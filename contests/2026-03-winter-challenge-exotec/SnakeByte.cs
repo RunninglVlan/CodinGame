@@ -67,6 +67,10 @@ static class SnakeByte {
                 int x = int.Parse(axes[0]);
                 int y = int.Parse(axes[1]);
                 snake.parts.Add(new Point(x, y));
+                if (grid.IsOutside(x, y)) {
+                    Console.Error.WriteLine($"Snake {snakeId} outside grid: {x}, {y}");
+                    continue;
+                }
                 var cell = grid.Get(x, y);
                 bool isTail = index == parts.Length - 1;
                 if (snake.isMine) {
@@ -165,7 +169,7 @@ class Grid {
         return cells.Where(it => it.type == CellType.Power).Select(it => it.point).ToList();
     }
 
-    bool IsOutside(int x, int y) {
+    public bool IsOutside(int x, int y) {
         return x < 0 || x >= width || y < 0 || y >= height;
     }
 
