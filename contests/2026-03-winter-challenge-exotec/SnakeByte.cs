@@ -100,8 +100,6 @@ class Grid {
 
     public static Point[] FourDirections { get; } = [
         Point.UP, Point.RIGHT, Point.DOWN, Point.LEFT
-        // tried to prioritize vertical movement, didn't improve rank
-        // Point.RIGHT, Point.LEFT, Point.UP, Point.DOWN
     ];
 
     Cell[] cells = null!;
@@ -133,37 +131,18 @@ class Grid {
         }
     }
 
-    public Point? NearestPower(Point source, int length) {
+    public Point? NearestPower(Point source) {
         (Point? point, float distance) nearest = (null, float.MaxValue);
-        (Point? point, float distance) nearestReachable = (null, float.MaxValue);
         foreach (var cell in cells) {
             if (cell.type != CellType.Power) {
                 continue;
             }
             float distance = Point.ManhattanDistance(source, cell.point);
-            // 1: Original logic - just nearest power, Rank: 255/1121
             if (distance < nearest.distance) {
                 nearest = (cell.point, distance);
             }
-            continue;
-            // 2: Thought prioritizing reachable could improve my result, but no
-            if (distance < nearestReachable.distance && IsReachable(cell.point, length)) {
-                nearestReachable = (cell.point, distance);
-            }
         }
-        return nearestReachable.point ?? nearest.point;
-    }
-
-    bool IsReachable(Point point, int length) {
-        var cellBelow = Get(point.x, point.y + 1);
-        while (cellBelow.type is CellType.Empty) {
-            cellBelow = Get(point.x, cellBelow.point.y + 1);
-        }
-        // Haven't made sure should I use < or <=
-        // 2.2: Rank: 343/1117
-        return Point.ManhattanDistance(point, cellBelow.point) < length;
-        // 2.1: Rank: 358/1114
-        // return Point.ManhattanDistance(point, cellBelow.point) <= length;
+        return nearest.point;
     }
 
     bool IsOutside(int x, int y) {
@@ -196,7 +175,7 @@ class Snake(Grid grid, bool mine) {
 
     public string Move(bool mark = false) {
         var head = parts[0];
-        var point = grid.NearestPower(head, parts.Count);
+        var point = grid.NearestPower(head);
         if (point == null) {
             return Action.WAIT;
         }
