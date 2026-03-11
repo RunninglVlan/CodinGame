@@ -11,7 +11,7 @@ static class SnakeByte {
         Init();
 
         while (true) {
-            ClearSnakes();
+            ClearPowerAndSnakes();
             UpdatePower();
             UpdateSnakes();
             Console.WriteLine(MoveSnakes());
@@ -19,7 +19,8 @@ static class SnakeByte {
         // ReSharper disable once FunctionNeverReturns
     }
 
-    static void ClearSnakes() {
+    static void ClearPowerAndSnakes() {
+        grid.ClearPowerAndSnakes();
         foreach (var snake in snakes.Values) {
             snake.parts.Clear();
         }
@@ -115,6 +116,15 @@ class Grid {
             }
         }
         return nearest.point;
+    }
+
+    public void ClearPowerAndSnakes() {
+        foreach (var cell in cells) {
+            if (cell.type is not (CellType.MySnake or CellType.EnemySnake or CellType.Power)) {
+                continue;
+            }
+            cell.type = CellType.Empty;
+        }
     }
 }
 
