@@ -46,9 +46,9 @@ static class SnakeByte {
     static void UpdatePower() {
         int powerSourceCount = int.Parse(Console.ReadLine()!);
         for (var i = 0; i < powerSourceCount; i++) {
-            string[] axes = Console.ReadLine()!.Split(' ');
-            int x = int.Parse(axes[0]);
-            int y = int.Parse(axes[1]);
+            string[] position = Console.ReadLine()!.Split(' ');
+            int x = int.Parse(position[0]);
+            int y = int.Parse(position[1]);
             grid.Get(x, y).type = CellType.Power;
         }
     }
@@ -63,9 +63,9 @@ static class SnakeByte {
             string[] parts = body.Split(':');
             for (var index = 0; index < parts.Length; index++) {
                 string part = parts[index];
-                string[] axes = part.Split(',');
-                int x = int.Parse(axes[0]);
-                int y = int.Parse(axes[1]);
+                string[] position = part.Split(',');
+                int x = int.Parse(position[0]);
+                int y = int.Parse(position[1]);
                 snake.parts.Add(new Point(x, y));
                 if (grid.IsOutside(x, y)) {
                     Console.Error.WriteLine($"Snake {snakeId} outside grid: {x}, {y}");
