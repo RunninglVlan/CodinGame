@@ -173,7 +173,8 @@ class Snake(Grid grid, bool mine) {
             // TODO: improve
             move = Action.UP;
         } else if (nextCell.type is CellType.Platform or CellType.MySnake or CellType.EnemySnake) {
-            move = MoveToEmpty(head);
+            var path = Pathfinding.Path(grid, head, point.Value);
+            move = path != null ? path.First().Direction(head).ToAction : MoveToEmpty(head);
         }
         previousMove = move;
         return move;
@@ -251,6 +252,14 @@ readonly record struct Point(int x, int y) {
     public static Point operator +(Point a, Point b) {
         return new Point(a.x + b.x, a.y + b.y);
     }
+
+    public static Point operator -(Point a, Point b) {
+        return new Point(a.x - b.x, a.y - b.y);
+    }
+
+    public Point Direction(Point from) {
+        return this - from;
+    }
 }
 
 static class Action {
@@ -259,4 +268,92 @@ static class Action {
     public const string DOWN = "DOWN";
     public const string LEFT = "LEFT";
     public const string WAIT = "WAIT";
+}
+
+static class Pathfinding {
+    static readonly Dictionary<Point, Node> nodes = new();
+    static readonly PriorityQueue<Node, int> openQueue = new();
+
+    /// A*
+    public static List<Point>? Path(Grid grid, Point start, Point end) {
+        nodes.Clear();
+        openQueue.Clear();
+        var startNode = new Node(start) {
+            gCost = 0,
+            hCost = Point.ManhattanDistance(start, end)
+        };
+        nodes.Add(start, startNode);
+        openQueue.Enqueue(startNode, startNode.Priority);
+        while (openQueue.Count > 0) {
+            var current = openQueue.Dequeue();
+            // ignore stale nodes
+            if (current.isClosed) {
+                continue;
+            }
+            current.isOpen = false;
+            current.isClosed = true;
+            if (current.point == end) {
+                return Reconstruct(startNode, current);
+            }
+
+            foreach (var direction in Grid.FourDirections) {
+                var neighbourPoint = current.point + direction;
+                if (grid.IsOutside(neighbourPoint)) {
+                    continue;
+                }
+                var cell = grid.Get(neighbourPoint);
+                if (cell.type != CellType.Empty && (cell.type != CellType.Power || cell.point != end)) {
+                    continue;
+                }
+                if (!nodes.TryGetValue(cell.point, out var neighbour)) {
+                    neighbour = new Node(cell.point);
+                    nodes.Add(cell.point, neighbour);
+                }
+                if (neighbour.isClosed) {
+                    continue;
+                }
+                // we don't move diagonally
+                int gCost = current.gCost + 1;
+                if (gCost >= neighbour.gCost && neighbour.isOpen) {
+                    continue;
+                }
+                neighbour.gCost = gCost;
+                neighbour.hCost = Point.ManhattanDistance(neighbourPoint, end);
+                neighbour.parent = current;
+                openQueue.Enqueue(neighbour, neighbour.Priority);
+                neighbour.isOpen = true;
+            }
+        }
+        return null;
+    }
+
+    static List<Point> Reconstruct(Node start, Node end) {
+        var path = new List<Point>();
+        var current = end;
+        while (current != start) {
+            path.Add(current!.point);
+            current = current.parent;
+        }
+        path.Reverse();
+        return path;
+    }
+}
+
+class Node(Point point) {
+    public Point point = point;
+
+    /// Distance from start
+    public int gCost = int.MaxValue;
+
+    /// Distance to end
+    public int hCost = int.MaxValue;
+
+    public Node? parent;
+    public bool isOpen;
+    public bool isClosed;
+
+    int FCost => gCost + hCost;
+
+    /// Order by FCost, then hCost
+    public int Priority => FCost * 1000 + hCost;
 }
