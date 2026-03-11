@@ -2,7 +2,8 @@
 using System.Text;
 using System.Collections.Generic;
 
-static class Player {
+/// https://www.codingame.com/contests/winter-challenge-2026-exotec
+static class SnakeByte {
     static readonly Grid grid = new();
     static readonly Dictionary<int, Snake> snakes = new();
 
@@ -10,6 +11,7 @@ static class Player {
         Init();
 
         while (true) {
+            ClearSnakes();
             UpdatePower();
             UpdateSnakes();
             Console.WriteLine(MoveSnakes());
@@ -17,10 +19,16 @@ static class Player {
         // ReSharper disable once FunctionNeverReturns
     }
 
+    static void ClearSnakes() {
+        foreach (var snake in snakes.Values) {
+            snake.parts.Clear();
+        }
+    }
+
     static void Init() {
         // ReSharper disable once UnusedVariable
         int myId = int.Parse(Console.ReadLine()!);
-        grid.Build();
+        grid.Init();
         int snakesPerPlayer = int.Parse(Console.ReadLine()!);
         for (var i = 0; i < snakesPerPlayer; i++) {
             int mySnakeId = int.Parse(Console.ReadLine()!);
@@ -44,9 +52,6 @@ static class Player {
 
     static void UpdateSnakes() {
         int snakeCount = int.Parse(Console.ReadLine()!);
-        foreach (var snake in snakes.Values) {
-            snake.parts.Clear();
-        }
         for (var i = 0; i < snakeCount; i++) {
             string[] inputs = Console.ReadLine()!.Split(' ');
             int snakeId = int.Parse(inputs[0]);
@@ -83,7 +88,7 @@ class Grid {
     public Cell Get(int x, int y) => cells[width * y + x];
     void Set(int x, int y, Cell cell) => cells[width * y + x] = cell;
 
-    public void Build() {
+    public void Init() {
         width = int.Parse(Console.ReadLine()!);
         height = int.Parse(Console.ReadLine()!);
         cells = new Cell[width * height];
@@ -104,7 +109,7 @@ class Grid {
             if (cell.type != CellType.Power) {
                 continue;
             }
-            float distance = Point.Distance(source, cell.point);
+            float distance = Point.ManhattanDistance(source, cell.point);
             if (distance < nearest.distance) {
                 nearest = (cell.point, distance);
             }
@@ -134,20 +139,13 @@ class Snake(Grid grid, bool mine) {
     string? previousMove;
 
     public string Move() {
-        // Console.Error.WriteLine($"head: {head}, power: {nearest.point}, distance: {nearest.distance}");
         var head = parts[0];
         var point = grid.NearestPower(head);
         if (point == null) {
             return Action.WAIT;
         }
-        string move = NextMove(head, point.Value);
-        var nextCell = move switch {
-            Action.LEFT => grid.Get(head.x - 1, head.y),
-            Action.RIGHT => grid.Get(head.x + 1, head.y),
-            Action.UP => grid.Get(head.x, head.y - 1),
-            Action.DOWN => grid.Get(head.x, head.y + 1),
-            _ => throw new ArgumentOutOfRangeException()
-        };
+        string move = MoveTo(head, point.Value);
+        var nextCell = NextCell(head, move);
         if (nextCell.type == CellType.Platform) {
             move = Action.UP;
         }
@@ -155,7 +153,7 @@ class Snake(Grid grid, bool mine) {
         return move;
     }
 
-    string NextMove(Point head, Point target) {
+    string MoveTo(Point head, Point target) {
         if (head.x == target.x) {
             return Action.UP;
         }
@@ -167,22 +165,31 @@ class Snake(Grid grid, bool mine) {
         }
         return move;
     }
+
+    Cell NextCell(Point point, string move) {
+        (int x, int y) = move switch {
+            Action.LEFT => (point.x - 1, point.y),
+            Action.RIGHT => (point.x + 1, point.y),
+            Action.UP => (point.x, point.y - 1),
+            _ => (point.x, point.y + 1)
+        };
+        return grid.Get(x, y);
+    }
 }
 
 struct Point(int x, int y) {
     public readonly int x = x;
     public readonly int y = y;
 
-    /// Manhattan distance
-    public static int Distance(Point a, Point b) {
+    public static int ManhattanDistance(Point a, Point b) {
         return Math.Abs(a.x - b.x) + Math.Abs(a.y - b.y);
     }
 }
 
 static class Action {
     public const string UP = "UP";
+    public const string RIGHT = "RIGHT";
     public const string DOWN = "DOWN";
     public const string LEFT = "LEFT";
-    public const string RIGHT = "RIGHT";
     public const string WAIT = "WAIT";
 }
