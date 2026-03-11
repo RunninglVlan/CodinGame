@@ -126,6 +126,10 @@ class Grid {
             cell.type = CellType.Empty;
         }
     }
+
+    public bool IsOutside(int x, int y) {
+        return x < 0 || x >= width || y < 0 || y >= height;
+    }
 }
 
 class Cell(int x, int y) {
@@ -156,7 +160,7 @@ class Snake(Grid grid, bool mine) {
         }
         string move = MoveTo(head, point.Value);
         var nextCell = NextCell(head, move);
-        if (nextCell.type == CellType.Platform) {
+        if (nextCell == null || nextCell.type == CellType.Platform) {
             move = Action.UP;
         }
         previousMove = move;
@@ -176,14 +180,14 @@ class Snake(Grid grid, bool mine) {
         return move;
     }
 
-    Cell NextCell(Point point, string move) {
+    Cell? NextCell(Point point, string move) {
         (int x, int y) = move switch {
             Action.LEFT => (point.x - 1, point.y),
             Action.RIGHT => (point.x + 1, point.y),
             Action.UP => (point.x, point.y - 1),
             _ => (point.x, point.y + 1)
         };
-        return grid.Get(x, y);
+        return grid.IsOutside(x, y) ? null : grid.Get(x, y);
     }
 }
 
