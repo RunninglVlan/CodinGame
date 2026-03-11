@@ -138,8 +138,7 @@ class Grid {
 
     public void ClearPowerAndSnakes() {
         foreach (var cell in cells) {
-            if (cell.type is not (CellType.Power or
-                CellType.MySnake or CellType.EnemySnake or CellType.MySnakeTail or CellType.EnemySnakeTail)) {
+            if (cell.type is CellType.Platform or CellType.Empty) {
                 continue;
             }
             cell.type = CellType.Empty;
