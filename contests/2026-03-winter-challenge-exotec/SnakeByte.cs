@@ -165,7 +165,7 @@ class Snake(Grid grid, bool mine) {
 
     string MoveTo(Point head, Point target) {
         if (head.x == target.x) {
-            return Action.UP;
+            return target.y < head.y ? Action.UP : Action.DOWN;
         }
         string move = target.x < head.x ? Action.LEFT : Action.RIGHT;
         // don't move backwards
