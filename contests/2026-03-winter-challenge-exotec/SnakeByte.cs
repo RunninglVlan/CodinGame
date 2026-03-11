@@ -88,7 +88,7 @@ static class SnakeByte {
                 continue;
             }
             foreach (var power in powerSources) {
-                int distance = Point.ManhattanDistance(snake.Head, power);
+                int distance = Pathfinding.Path(grid, snake.Head, power)?.Count ?? int.MaxValue;
                 possibleTargets.Add((id, power, distance));
             }
         }
@@ -105,11 +105,15 @@ static class SnakeByte {
         }
 
         foreach ((int id, var snake) in snakes) {
-            if (!snakeTargets.TryGetValue(id, out var target)) {
-                // currently those that didn't get a target don't move
+            if (snake is not { isMine: true, IsDead: false }) {
                 continue;
             }
             try {
+                if (!snakeTargets.TryGetValue(id, out var target)) {
+                    string wanderingMove = snake.MoveToEmpty(snake.Head);
+                    result.Append($"{id} {wanderingMove};");
+                    continue;
+                }
                 string move = snake.Move(target);
                 result.Append($"{id} {move};");
             } catch (Exception e) {
@@ -125,7 +129,7 @@ class Grid {
     int height;
 
     public static Point[] FourDirections { get; } = [
-        Point.UP, Point.RIGHT, Point.DOWN, Point.LEFT
+        Point.RIGHT, Point.LEFT, Point.UP, Point.DOWN
     ];
 
     Cell[] cells = null!;
@@ -191,7 +195,7 @@ class Snake(Grid grid, bool mine) {
     public Point Head => parts[0];
 
     public string Move(Point target, bool mark = false) {
-        var head = parts[0];
+        var head = Head;
         var path = Pathfinding.Path(grid, head, target);
         string move = path != null ? path.First().Direction(head).ToAction : MoveToEmpty(head);
         if (mark && path != null) {
@@ -201,7 +205,7 @@ class Snake(Grid grid, bool mine) {
         return move;
     }
 
-    string MoveToEmpty(Point start) {
+    public string MoveToEmpty(Point start) {
         Point? emptyDirection = null;
         foreach (var direction in Grid.FourDirections) {
             var neighbour = start + direction;
