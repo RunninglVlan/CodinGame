@@ -134,7 +134,7 @@ class Grid {
         }
     }
 
-    public bool IsOutside(int x, int y) {
+    bool IsOutside(int x, int y) {
         return x < 0 || x >= width || y < 0 || y >= height;
     }
 
@@ -159,7 +159,6 @@ class Snake(Grid grid, bool mine) {
 
     public bool IsDead => parts.Count == 0;
     public readonly List<Point> parts = new();
-    string? previousMove;
 
     public string Move() {
         var head = parts[0];
@@ -167,40 +166,8 @@ class Snake(Grid grid, bool mine) {
         if (point == null) {
             return Action.WAIT;
         }
-        string move = MoveTo(head, point.Value);
-        var nextCell = NextCell(head, move);
-        if (nextCell == null) {
-            // TODO: improve
-            move = Action.UP;
-        } else if (nextCell.type is CellType.Platform or CellType.MySnake or CellType.EnemySnake) {
-            var path = Pathfinding.Path(grid, head, point.Value);
-            move = path != null ? path.First().Direction(head).ToAction : MoveToEmpty(head);
-        }
-        previousMove = move;
-        return move;
-    }
-
-    string MoveTo(Point head, Point target) {
-        if (head.x == target.x) {
-            return target.y < head.y ? Action.UP : Action.DOWN;
-        }
-        string move = target.x < head.x ? Action.LEFT : Action.RIGHT;
-        // don't move backwards
-        if ((move == Action.LEFT && previousMove == Action.RIGHT) ||
-            (move == Action.RIGHT && previousMove == Action.LEFT)) {
-            return Action.UP;
-        }
-        return move;
-    }
-
-    Cell? NextCell(Point point, string move) {
-        (int x, int y) = move switch {
-            Action.LEFT => (point.x - 1, point.y),
-            Action.RIGHT => (point.x + 1, point.y),
-            Action.UP => (point.x, point.y - 1),
-            _ => (point.x, point.y + 1)
-        };
-        return grid.IsOutside(x, y) ? null : grid.Get(x, y);
+        var path = Pathfinding.Path(grid, head, point.Value);
+        return path != null ? path.First().Direction(head).ToAction : MoveToEmpty(head);
     }
 
     [SuppressMessage("ReSharper", "InvertIf")]
