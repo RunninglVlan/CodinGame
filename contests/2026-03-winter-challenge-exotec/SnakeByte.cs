@@ -77,7 +77,12 @@ static class SnakeByte {
             if (snake is not { isMine: true, IsDead: false }) {
                 continue;
             }
-            result.Append($"{id} {snake.Move()};");
+            try {
+                string move = snake.Move();
+                result.Append($"{id} {move};");
+            } catch (Exception e) {
+                Console.Error.WriteLine($"{id} {e.Message}");
+            }
         }
         return result.ToString();
     }
