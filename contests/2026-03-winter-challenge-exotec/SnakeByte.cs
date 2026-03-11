@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Text;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 
 /// https://www.codingame.com/contests/winter-challenge-2026-exotec
 static class SnakeByte {
@@ -85,9 +87,14 @@ class Grid {
     int width;
     int height;
 
+    public static Point[] FourDirections { get; } = [
+        Point.UP, Point.RIGHT, Point.DOWN, Point.LEFT
+    ];
+
     Cell[] cells = null!;
     public Cell Get(int x, int y) => cells[width * y + x];
     void Set(int x, int y, Cell cell) => cells[width * y + x] = cell;
+    public Cell Get(Point point) => Get(point.x, point.y);
 
     public void Init() {
         width = int.Parse(Console.ReadLine()!);
@@ -130,6 +137,8 @@ class Grid {
     public bool IsOutside(int x, int y) {
         return x < 0 || x >= width || y < 0 || y >= height;
     }
+
+    public bool IsOutside(Point point) => IsOutside(point.x, point.y);
 }
 
 class Cell(int x, int y) {
@@ -160,8 +169,11 @@ class Snake(Grid grid, bool mine) {
         }
         string move = MoveTo(head, point.Value);
         var nextCell = NextCell(head, move);
-        if (nextCell == null || nextCell.type == CellType.Platform) {
+        if (nextCell == null) {
+            // TODO: improve
             move = Action.UP;
+        } else if (nextCell.type is CellType.Platform or CellType.MySnake or CellType.EnemySnake) {
+            move = MoveToEmpty(head);
         }
         previousMove = move;
         return move;
@@ -189,14 +201,55 @@ class Snake(Grid grid, bool mine) {
         };
         return grid.IsOutside(x, y) ? null : grid.Get(x, y);
     }
+
+    [SuppressMessage("ReSharper", "InvertIf")]
+    string MoveToEmpty(Point start) {
+        foreach (var direction in Grid.FourDirections) {
+            var neighbour = start + direction;
+            if (grid.IsOutside(neighbour)) {
+                continue;
+            }
+            var cell = grid.Get(neighbour);
+            if (cell.type != CellType.Empty) {
+                // loop until empty space will appear
+                if (cell.point != parts.Last()) {
+                    continue;
+                }
+            }
+            return direction.ToAction;
+        }
+        throw new InvalidOperationException("No empty neighbour found");
+    }
 }
 
-struct Point(int x, int y) {
+readonly record struct Point(int x, int y) {
     public readonly int x = x;
     public readonly int y = y;
 
+    public static readonly Point UP = new(0, 1);
+    public static readonly Point RIGHT = new(1, 0);
+    public static readonly Point DOWN = new(0, -1);
+    public static readonly Point LEFT = new(-1, 0);
+
+    /// Direction to Action
+    public string ToAction {
+        get {
+            if (this == UP) {
+                return Action.DOWN;
+            }
+            if (this == RIGHT) {
+                return Action.RIGHT;
+            }
+            return this == DOWN ? Action.UP : Action.LEFT;
+        }
+    }
+
     public static int ManhattanDistance(Point a, Point b) {
         return Math.Abs(a.x - b.x) + Math.Abs(a.y - b.y);
+    }
+
+    public static Point operator +(Point a, Point b) {
+        return new Point(a.x + b.x, a.y + b.y);
     }
 }
 
