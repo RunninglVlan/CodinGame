@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Text;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
 /// https://www.codingame.com/contests/winter-challenge-2026-exotec
@@ -61,12 +60,19 @@ static class SnakeByte {
             var snake = snakes[snakeId];
             string body = inputs[1];
             string[] parts = body.Split(':');
-            foreach (string part in parts) {
+            for (var index = 0; index < parts.Length; index++) {
+                string part = parts[index];
                 string[] axes = part.Split(',');
                 int x = int.Parse(axes[0]);
                 int y = int.Parse(axes[1]);
                 snake.parts.Add(new Point(x, y));
-                grid.Get(x, y).type = snake.isMine ? CellType.MySnake : CellType.EnemySnake;
+                var cell = grid.Get(x, y);
+                bool isTail = index == parts.Length - 1;
+                if (snake.isMine) {
+                    cell.type = isTail ? CellType.MySnakeTail : CellType.MySnake;
+                } else {
+                    cell.type = isTail ? CellType.EnemySnakeTail : CellType.EnemySnake;
+                }
             }
         }
     }
@@ -132,7 +138,8 @@ class Grid {
 
     public void ClearPowerAndSnakes() {
         foreach (var cell in cells) {
-            if (cell.type is not (CellType.MySnake or CellType.EnemySnake or CellType.Power)) {
+            if (cell.type is not (CellType.Power or
+                CellType.MySnake or CellType.EnemySnake or CellType.MySnakeTail or CellType.EnemySnakeTail)) {
                 continue;
             }
             cell.type = CellType.Empty;
@@ -156,7 +163,9 @@ enum CellType {
     Empty,
     Power,
     MySnake,
-    EnemySnake
+    EnemySnake,
+    MySnakeTail,
+    EnemySnakeTail
 }
 
 class Snake(Grid grid, bool mine) {
@@ -175,23 +184,24 @@ class Snake(Grid grid, bool mine) {
         return path != null ? path.First().Direction(head).ToAction : MoveToEmpty(head);
     }
 
-    [SuppressMessage("ReSharper", "InvertIf")]
     string MoveToEmpty(Point start) {
+        Point? emptyDirection = null;
         foreach (var direction in Grid.FourDirections) {
             var neighbour = start + direction;
             if (grid.IsOutside(neighbour)) {
                 continue;
             }
             var cell = grid.Get(neighbour);
-            if (cell.type != CellType.Empty) {
-                // loop until empty space will appear
-                if (cell.point != parts.Last()) {
-                    continue;
-                }
+            switch (cell.type) {
+                // prioritize tail
+                case CellType.MySnakeTail or CellType.EnemySnakeTail:
+                    return direction.ToAction;
+                case CellType.Empty:
+                    emptyDirection = direction;
+                    break;
             }
-            return direction.ToAction;
         }
-        throw new InvalidOperationException("No empty neighbour found");
+        return emptyDirection?.ToAction ?? throw new InvalidOperationException("No empty neighbour found");
     }
 }
 
