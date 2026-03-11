@@ -122,6 +122,15 @@ class Grid {
         }
     }
 
+    public void ClearPowerAndSnakes() {
+        foreach (var cell in cells) {
+            if (cell.type is CellType.Platform or CellType.Empty) {
+                continue;
+            }
+            cell.type = CellType.Empty;
+        }
+    }
+
     public Point? NearestPower(Point source) {
         (Point? point, float distance) nearest = (null, float.MaxValue);
         foreach (var cell in cells) {
@@ -134,15 +143,6 @@ class Grid {
             }
         }
         return nearest.point;
-    }
-
-    public void ClearPowerAndSnakes() {
-        foreach (var cell in cells) {
-            if (cell.type is CellType.Platform or CellType.Empty) {
-                continue;
-            }
-            cell.type = CellType.Empty;
-        }
     }
 
     bool IsOutside(int x, int y) {
