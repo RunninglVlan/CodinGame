@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Text;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
 /// https://www.codingame.com/contests/winter-challenge-2026-exotec
@@ -77,14 +78,40 @@ static class SnakeByte {
         }
     }
 
+    [SuppressMessage("ReSharper", "ForeachCanBeConvertedToQueryUsingAnotherGetEnumerator")]
     static string MoveSnakes() {
         var result = new StringBuilder();
+        var powerSources = grid.AllPower();
+        var possibleTargets = new List<(int id, Point target, int distance)>();
         foreach ((int id, var snake) in snakes) {
             if (snake is not { isMine: true, IsDead: false }) {
                 continue;
             }
+            foreach (var power in powerSources) {
+                var head = snake.parts[0];
+                int distance = Point.ManhattanDistance(head, power);
+                possibleTargets.Add((id, power, distance));
+            }
+        }
+        possibleTargets.Sort((a, b) => a.distance.CompareTo(b.distance));
+
+        var snakeTargets = new Dictionary<int, Point>();
+        var selectedTargets = new HashSet<Point>();
+        foreach ((int id, var target, int _) in possibleTargets) {
+            if (snakeTargets.ContainsKey(id) || selectedTargets.Contains(target)) {
+                continue;
+            }
+            snakeTargets.Add(id, target);
+            selectedTargets.Add(target);
+        }
+
+        foreach ((int id, var snake) in snakes) {
+            if (!snakeTargets.TryGetValue(id, out var target)) {
+                // currently those that didn't get a target don't move
+                continue;
+            }
             try {
-                string move = snake.Move();
+                string move = snake.Move(target);
                 result.Append($"{id} {move};");
             } catch (Exception e) {
                 Console.Error.WriteLine($"{id} {e.Message}");
@@ -131,18 +158,8 @@ class Grid {
         }
     }
 
-    public Point? NearestPower(Point source) {
-        (Point? point, float distance) nearest = (null, float.MaxValue);
-        foreach (var cell in cells) {
-            if (cell.type != CellType.Power) {
-                continue;
-            }
-            float distance = Point.ManhattanDistance(source, cell.point);
-            if (distance < nearest.distance) {
-                nearest = (cell.point, distance);
-            }
-        }
-        return nearest.point;
+    public List<Point> AllPower() {
+        return cells.Where(it => it.type == CellType.Power).Select(it => it.point).ToList();
     }
 
     bool IsOutside(int x, int y) {
@@ -173,13 +190,9 @@ class Snake(Grid grid, bool mine) {
     public bool IsDead => parts.Count == 0;
     public readonly List<Point> parts = new();
 
-    public string Move(bool mark = false) {
+    public string Move(Point target, bool mark = false) {
         var head = parts[0];
-        var point = grid.NearestPower(head);
-        if (point == null) {
-            return Action.WAIT;
-        }
-        var path = Pathfinding.Path(grid, head, point.Value);
+        var path = Pathfinding.Path(grid, head, target);
         string move = path != null ? path.First().Direction(head).ToAction : MoveToEmpty(head);
         if (mark && path != null) {
             // only 4 marks are allowed
