@@ -20,13 +20,6 @@ static class SnakeByte {
         // ReSharper disable once FunctionNeverReturns
     }
 
-    static void ClearPowerAndSnakes() {
-        grid.ClearPowerAndSnakes();
-        foreach (var snake in snakes.Values) {
-            snake.parts.Clear();
-        }
-    }
-
     static void Init() {
         // ReSharper disable once UnusedVariable
         int myId = int.Parse(Console.ReadLine()!);
@@ -39,6 +32,13 @@ static class SnakeByte {
         for (var i = 0; i < snakesPerPlayer; i++) {
             int enemySnakeId = int.Parse(Console.ReadLine()!);
             snakes.Add(enemySnakeId, new Snake(grid, false));
+        }
+    }
+
+    static void ClearPowerAndSnakes() {
+        grid.ClearPowerAndSnakes();
+        foreach (var snake in snakes.Values) {
+            snake.parts.Clear();
         }
     }
 
@@ -84,7 +84,7 @@ static class SnakeByte {
                 continue;
             }
             try {
-                string move = snake.Move(id == 7);
+                string move = snake.Move();
                 result.Append($"{id} {move};");
             } catch (Exception e) {
                 Console.Error.WriteLine($"{id} {e.Message}");
@@ -194,7 +194,7 @@ class Snake(Grid grid, bool mine) {
     public bool IsDead => parts.Count == 0;
     public readonly List<Point> parts = new();
 
-    public string Move(bool mark) {
+    public string Move(bool mark = false) {
         var head = parts[0];
         var point = grid.NearestPower(head, parts.Count);
         if (point == null) {
@@ -203,6 +203,7 @@ class Snake(Grid grid, bool mine) {
         var path = Pathfinding.Path(grid, head, point.Value);
         string move = path != null ? path.First().Direction(head).ToAction : MoveToEmpty(head);
         if (mark && path != null) {
+            // only 4 marks are allowed
             move += ';' + string.Join(';', path.Take(4).Select(it => $"MARK {it.x} {it.y}"));
         }
         return move;
