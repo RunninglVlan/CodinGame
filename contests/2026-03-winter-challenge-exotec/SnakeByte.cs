@@ -88,8 +88,7 @@ static class SnakeByte {
                 continue;
             }
             foreach (var power in powerSources) {
-                var head = snake.parts[0];
-                int distance = Point.ManhattanDistance(head, power);
+                int distance = Point.ManhattanDistance(snake.Head, power);
                 possibleTargets.Add((id, power, distance));
             }
         }
@@ -189,6 +188,7 @@ class Snake(Grid grid, bool mine) {
 
     public bool IsDead => parts.Count == 0;
     public readonly List<Point> parts = new();
+    public Point Head => parts[0];
 
     public string Move(Point target, bool mark = false) {
         var head = parts[0];
