@@ -84,7 +84,7 @@ static class SnakeByte {
                 continue;
             }
             try {
-                string move = snake.Move();
+                string move = snake.Move(id == 7);
                 result.Append($"{id} {move};");
             } catch (Exception e) {
                 Console.Error.WriteLine($"{id} {e.Message}");
@@ -100,6 +100,8 @@ class Grid {
 
     public static Point[] FourDirections { get; } = [
         Point.UP, Point.RIGHT, Point.DOWN, Point.LEFT
+        // tried to prioritize vertical movement, didn't improve rank
+        // Point.RIGHT, Point.LEFT, Point.UP, Point.DOWN
     ];
 
     Cell[] cells = null!;
@@ -192,14 +194,18 @@ class Snake(Grid grid, bool mine) {
     public bool IsDead => parts.Count == 0;
     public readonly List<Point> parts = new();
 
-    public string Move() {
+    public string Move(bool mark) {
         var head = parts[0];
         var point = grid.NearestPower(head, parts.Count);
         if (point == null) {
             return Action.WAIT;
         }
         var path = Pathfinding.Path(grid, head, point.Value);
-        return path != null ? path.First().Direction(head).ToAction : MoveToEmpty(head);
+        string move = path != null ? path.First().Direction(head).ToAction : MoveToEmpty(head);
+        if (mark && path != null) {
+            move += ';' + string.Join(';', path.Take(4).Select(it => $"MARK {it.x} {it.y}"));
+        }
+        return move;
     }
 
     string MoveToEmpty(Point start) {
