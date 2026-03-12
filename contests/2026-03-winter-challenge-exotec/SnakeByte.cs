@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Text;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
 /// https://www.codingame.com/contests/winter-challenge-2026-exotec
@@ -177,6 +178,9 @@ class Bots(Grid grid) {
             }
             foreach (var power in powerSources) {
                 (_, int cost) = pathfinding.Path(snake.Head, power);
+                if (snake.ShouldIgnore(power)) {
+                    cost = int.MaxValue;
+                }
                 possibleTargets.Add((id, power, cost));
             }
         }
@@ -209,6 +213,7 @@ class Bots(Grid grid) {
                 }
                 string move = MoveToTarget(snake.Head, target);
                 result.Append($"{id} {move};");
+                snake.SaveTurnData(target);
             } catch (Exception e) {
                 Console.Error.WriteLine($"{id} {e.Message}");
             }
@@ -253,6 +258,35 @@ class Snake(bool mine) {
     public bool IsDead => parts.Count == 0;
     public readonly List<Point> parts = new();
     public Point Head => parts[0];
+    readonly List<Point> previousParts = new();
+    Point previousTarget;
+    int waitTurns;
+
+    public void SaveTurnData(Point target) {
+        if (IsSamePosition() && target == previousTarget) {
+            waitTurns = 3;
+        } else if (waitTurns > 0) {
+            waitTurns--;
+        }
+        previousParts.Clear();
+        previousParts.AddRange(parts);
+        previousTarget = target;
+    }
+
+    public bool ShouldIgnore(Point target) => target == previousTarget && waitTurns > 0;
+
+    [SuppressMessage("ReSharper", "LoopCanBeConvertedToQuery")]
+    bool IsSamePosition() {
+        if (parts.Count != previousParts.Count) {
+            return false;
+        }
+        for (var i = 0; i < parts.Count; i++) {
+            if (parts[i] != previousParts[i]) {
+                return false;
+            }
+        }
+        return true;
+    }
 }
 
 readonly record struct Point(int x, int y) {
