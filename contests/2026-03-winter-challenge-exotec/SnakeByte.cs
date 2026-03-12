@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Text;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
 /// https://www.codingame.com/contests/winter-challenge-2026-exotec
@@ -169,20 +168,19 @@ class Bots(Grid grid) {
         }
     }
 
-    [SuppressMessage("ReSharper", "ForeachCanBeConvertedToQueryUsingAnotherGetEnumerator")]
     public string GetActions() {
         var powerSources = grid.AllPower();
-        var possibleTargets = new List<(int id, Point target, int distance)>();
+        var possibleTargets = new List<(int id, Point target, int cost)>();
         foreach ((int id, var snake) in snakes) {
             if (snake is not { isMine: true, IsDead: false }) {
                 continue;
             }
             foreach (var power in powerSources) {
-                int distance = pathfinding.Path(snake.Head, power)?.Count ?? int.MaxValue;
-                possibleTargets.Add((id, power, distance));
+                (_, int cost) = pathfinding.Path(snake.Head, power);
+                possibleTargets.Add((id, power, cost));
             }
         }
-        possibleTargets.Sort((a, b) => a.distance.CompareTo(b.distance));
+        possibleTargets.Sort((a, b) => a.cost.CompareTo(b.cost));
 
         var snakeTargets = new Dictionary<int, Point>();
         var selectedTargets = new HashSet<Point>();
@@ -219,7 +217,7 @@ class Bots(Grid grid) {
     }
 
     string MoveToTarget(Point source, Point target, bool mark = false) {
-        var path = pathfinding.Path(source, target);
+        var (path, _) = pathfinding.Path(source, target);
         string move = path != null ? path.First().Direction(source).ToAction : MoveToEmpty(source);
         if (mark && path != null) {
             // only 4 marks are allowed
@@ -310,7 +308,7 @@ class Pathfinding(Grid grid) {
     readonly PriorityQueue<Node, int> openQueue = new();
 
     /// A*
-    public List<Point>? Path(Point start, Point end) {
+    public (List<Point>?, int cost) Path(Point start, Point end) {
         nodes.Clear();
         openQueue.Clear();
         var startNode = new Node(start) {
@@ -328,7 +326,7 @@ class Pathfinding(Grid grid) {
             current.isOpen = false;
             current.isClosed = true;
             if (current.point == end) {
-                return Reconstruct(startNode, current);
+                return (Reconstruct(startNode, current), current.gCost);
             }
 
             foreach (var direction in Grid.FourDirections) {
@@ -347,8 +345,7 @@ class Pathfinding(Grid grid) {
                 if (neighbour.isClosed) {
                     continue;
                 }
-                // we don't move diagonally
-                int gCost = current.gCost + 1;
+                int gCost = current.gCost + NewGCost(neighbourPoint);
                 if (gCost >= neighbour.gCost && neighbour.isOpen) {
                     continue;
                 }
@@ -359,7 +356,21 @@ class Pathfinding(Grid grid) {
                 neighbour.isOpen = true;
             }
         }
-        return null;
+        return (null, int.MaxValue);
+    }
+
+    int NewGCost(Point point) {
+        for (var distance = 1; distance <= 3; distance++) {
+            var belowPoint = point + new Point(0, distance);
+            if (grid.IsOutside(belowPoint)) {
+                continue;
+            }
+            // prefer ledges
+            if (grid.Get(belowPoint).type == CellType.Platform) {
+                return distance; 
+            }
+        }
+        return 10;
     }
 
     List<Point> Reconstruct(Node start, Node end) {
