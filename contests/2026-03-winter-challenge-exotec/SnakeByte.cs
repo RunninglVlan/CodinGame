@@ -276,19 +276,24 @@ class Bots(Grid grid) {
         return result.ToString();
     }
 
-    [SuppressMessage("ReSharper", "InvertIf")]
     string MoveToTarget(Point source, Point target, int markCount = 0) {
         var (path, _) = pathfinding.Path(source, target);
-        string move = path != null ? path.First().Direction(source).ToAction : MoveToEmpty(source);
-        if (markCount > 0 && path != null) {
-            int count = Math.Min(MARK_COUNT, markCount);
-            move += ';' + string.Join(';', path.Take(count).Select(it => $"MARK {it.x} {it.y}"));
+        if (path == null) {
+            return MoveToEmpty(source);
         }
+        var step = path.First();
+        grid.Get(step).type = CellType.MySnake;
+        string move = step.Direction(source).ToAction;
+        if (markCount == 0) {
+            return move;
+        }
+        int count = Math.Min(MARK_COUNT, markCount);
+        move += ';' + string.Join(';', path.Take(count).Select(it => $"MARK {it.x} {it.y}"));
         return move;
     }
 
     string MoveToEmpty(Point source) {
-        Point? emptyDirection = null;
+        (Point step, Point direction)? fallback = null;
         foreach (var direction in Grid.FourDirections) {
             var neighbour = source + direction;
             if (grid.IsOutside(neighbour)) {
@@ -298,13 +303,18 @@ class Bots(Grid grid) {
             switch (cell.type) {
                 // prioritize tail
                 case CellType.MySnakeTail or CellType.EnemySnakeTail:
+                    cell.type = CellType.MySnake;
                     return direction.ToAction;
                 case CellType.Empty:
-                    emptyDirection = direction;
+                    fallback = (neighbour, direction);
                     break;
             }
         }
-        return emptyDirection?.ToAction ?? throw new InvalidOperationException("No empty neighbour found");
+        if (fallback == null) {
+            throw new InvalidOperationException("No empty neighbour found");
+        }
+        grid.Get(fallback.Value.step).type = CellType.MySnake;
+        return fallback.Value.direction.ToAction;
     }
 }
 
