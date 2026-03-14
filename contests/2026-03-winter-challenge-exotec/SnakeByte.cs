@@ -306,20 +306,21 @@ class Snake(bool mine) {
     public Point Head => parts[0];
     readonly List<Point> previousParts = new();
     Point previousTarget;
-    int waitTurns;
+    (Point target, int turns) ignore;
 
     public void SaveTurnData(Point target) {
-        if (IsSamePosition() && target == previousTarget) {
-            waitTurns = 3;
-        } else if (waitTurns > 0) {
-            waitTurns--;
+        bool stuck = IsSamePosition() && target == previousTarget;
+        if (stuck) {
+            ignore = (target, 3);
+        } else if (ignore.turns > 0) {
+            ignore.turns--;
         }
         previousParts.Clear();
         previousParts.AddRange(parts);
         previousTarget = target;
     }
 
-    public bool ShouldIgnore(Point target) => target == previousTarget && waitTurns > 0;
+    public bool ShouldIgnore(Point target) => target == ignore.target && ignore.turns > 0;
 
     [SuppressMessage("ReSharper", "LoopCanBeConvertedToQuery")]
     bool IsSamePosition() {
