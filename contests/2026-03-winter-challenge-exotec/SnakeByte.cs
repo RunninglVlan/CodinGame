@@ -162,6 +162,10 @@ enum CellType {
 
 class Bots(Grid grid) {
     readonly Pathfinding pathfinding = new(grid);
+
+    /// Performance optimization
+    const int TARGETS_PER_SNAKE = 10;
+
     readonly Dictionary<int, Snake> snakes = new();
 
     public void Init() {
@@ -215,22 +219,24 @@ class Bots(Grid grid) {
 
     public string GetActions() {
         var powerSources = grid.AllPower();
-        var possibleTargets = new List<(int id, Point target, int cost)>();
-        foreach ((int id, var snake) in snakes) {
-            if (snake is not { isMine: true, IsDead: false }) {
-                continue;
-            }
-            foreach (var power in powerSources) {
-                int cost;
-                if (snake.ShouldIgnore(power)) {
-                    cost = int.MaxValue;
-                } else {
-                    (_, cost) = pathfinding.Path(snake.Head, power);
-                }
-                possibleTargets.Add((id, power, cost));
-            }
-        }
-        possibleTargets.Sort((a, b) => a.cost.CompareTo(b.cost));
+        var filteredTargets = snakes
+            .Where(it => it.Value is { isMine: true, IsDead: false })
+            .SelectMany(it => powerSources.Select(target => (id: it.Key, snake: it.Value, target)))
+            .GroupBy(it => it.id)
+            .SelectMany(snakeGroup => snakeGroup
+                .OrderBy(it => Point.ManhattanDistance(it.snake.Head, it.target))
+                .Take(TARGETS_PER_SNAKE)
+            );
+
+        var possibleTargets = filteredTargets
+            .Select(it => {
+                int cost = it.snake.ShouldIgnore(it.target)
+                    ? int.MaxValue
+                    : pathfinding.Path(it.snake.Head, it.target).cost;
+                return (it.id, it.target, cost);
+            })
+            .OrderBy(it => it.cost)
+            .ToList();
 
         var snakeTargets = new Dictionary<int, Point>();
         var selectedTargets = new HashSet<Point>();
