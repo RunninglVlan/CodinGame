@@ -301,6 +301,8 @@ class Bots(Grid grid) {
 class Snake(bool mine) {
     public readonly bool isMine = mine;
 
+    const int STUCK_TURNS = 3;
+
     public bool IsDead => parts.Count == 0;
     public readonly List<Point> parts = new();
     public Point Head => parts[0];
@@ -311,7 +313,7 @@ class Snake(bool mine) {
     public void SaveTurnData(Point target) {
         bool stuck = IsSamePosition() && target == previousTarget;
         if (stuck) {
-            ignore = (target, 3);
+            ignore = (target, STUCK_TURNS);
         } else if (ignore.turns > 0) {
             ignore.turns--;
         }
