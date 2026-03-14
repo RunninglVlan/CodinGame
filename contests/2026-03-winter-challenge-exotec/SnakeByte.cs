@@ -276,11 +276,13 @@ class Bots(Grid grid) {
         return result.ToString();
     }
 
-    string MoveToTarget(Point source, Point target, bool mark = false) {
+    [SuppressMessage("ReSharper", "InvertIf")]
+    string MoveToTarget(Point source, Point target, int markCount = 0) {
         var (path, _) = pathfinding.Path(source, target);
         string move = path != null ? path.First().Direction(source).ToAction : MoveToEmpty(source);
-        if (mark && path != null) {
-            move += ';' + string.Join(';', path.Take(MARK_COUNT).Select(it => $"MARK {it.x} {it.y}"));
+        if (markCount > 0 && path != null) {
+            int count = Math.Min(MARK_COUNT, markCount);
+            move += ';' + string.Join(';', path.Take(count).Select(it => $"MARK {it.x} {it.y}"));
         }
         return move;
     }
