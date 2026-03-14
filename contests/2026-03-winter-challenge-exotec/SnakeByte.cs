@@ -49,6 +49,11 @@ class Grid {
         Point.RIGHT, Point.LEFT, Point.UP, Point.DOWN
     ];
 
+    public static Point[] EigthDirections { get; } = [
+        Point.RIGHT, Point.LEFT, Point.UP, Point.DOWN,
+        new (1, 1), new (-1, 1), new (1, -1), new (-1, -1)
+    ];
+
     Cell[] cells = null!;
     public Cell Get(int x, int y) => cells[width * y + x];
     void Set(int x, int y, Cell cell) => cells[width * y + x] = cell;
@@ -156,6 +161,8 @@ enum CellType {
     Power,
     MySnake,
     EnemySnake,
+    MySnakeHead,
+    EnemySnakeHead,
     MySnakeTail,
     EnemySnakeTail
 }
@@ -209,13 +216,16 @@ class Bots(Grid grid) {
                     Console.Error.WriteLine($"Snake {snakeId} outside grid: {x}, {y}");
                     continue;
                 }
-                var cell = grid.Get(x, y);
+                bool isHead = index == 0;
                 bool isTail = index == parts.Length - 1;
-                if (snake.isMine) {
-                    cell.type = isTail ? CellType.MySnakeTail : CellType.MySnake;
-                } else {
-                    cell.type = isTail ? CellType.EnemySnakeTail : CellType.EnemySnake;
-                }
+                grid.Get(x, y).type = (snake.isMine, isHead, isTail) switch {
+                    (true, true, _) => CellType.MySnakeHead,
+                    (true, _, true) => CellType.MySnakeTail,
+                    (true, _, _) => CellType.MySnake,
+                    (false, true, _) => CellType.EnemySnakeHead,
+                    (false, _, true) => CellType.EnemySnakeTail,
+                    _ => CellType.EnemySnake
+                };
             }
         }
     }
@@ -463,17 +473,37 @@ class Pathfinding(Grid grid) {
     }
 
     int NewGCost(Point point) {
+        var cost = 10;
         for (var distance = 1; distance <= 3; distance++) {
             var belowPoint = point + new Point(0, distance);
             if (grid.IsOutside(belowPoint)) {
                 continue;
             }
             // prefer ledges
-            if (grid.Get(belowPoint).type == CellType.Platform) {
-                return distance; 
+            if (grid.Get(belowPoint).type != CellType.Platform) {
+                continue;
+            }
+            cost = distance;
+            break;
+        }
+        if (IsOpponentNearby(point)) {
+            cost += 20;
+        }
+        return cost;
+    }
+
+    [SuppressMessage("ReSharper", "LoopCanBeConvertedToQuery")]
+    bool IsOpponentNearby(Point point) {
+        foreach (var direction in Grid.EigthDirections) {
+            var neighbourPoint = point + direction;
+            if (grid.IsOutside(neighbourPoint)) {
+                continue;
+            }
+            if (grid.Get(neighbourPoint).type == CellType.EnemySnakeHead) {
+                return true;
             }
         }
-        return 10;
+        return false;
     }
 
     List<Point> Reconstruct(Node start, Node end) {
