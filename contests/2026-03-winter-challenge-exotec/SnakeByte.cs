@@ -120,7 +120,6 @@ class Bots(Grid grid) {
     readonly Dictionary<int, Snake> snakes = new();
 
     public void Init() {
-        pathfinding.Init();
         int snakesPerPlayer = int.Parse(Console.ReadLine()!);
         for (var i = 0; i < snakesPerPlayer; i++) {
             int mySnakeId = int.Parse(Console.ReadLine()!);
@@ -337,34 +336,21 @@ static class Action {
 }
 
 class Pathfinding(Grid grid) {
-    readonly Node[] nodes = new Node[grid.Width * grid.Height];
+    readonly Dictionary<Point, Node> nodes = new();
     readonly List<Point> path = new();
     readonly Heap<Node> open = new(grid.Width * grid.Height);
     readonly HashSet<Node> closed = new();
-    int iteration;
-
-    Node Get(int x, int y) => nodes[grid.Width * y + x];
-    void Set(int x, int y, Node node) => nodes[grid.Width * y + x] = node;
-    Node Get(Point point) => Get(point.x, point.y);
-
-    public void Init() {
-        for (var y = 0; y < grid.Height; y++) {
-            for (var x = 0; x < grid.Width; x++) {
-                var node = new Node(new(x, y));
-                Set(x, y, node);
-            }
-        }
-    }
 
     /// A*
     public (List<Point>?, int cost) Path(Point start, Point end) {
-        iteration++;
+        nodes.Clear();
         open.Clear();
         closed.Clear();
-        var startNode = Get(start);
-        startNode.Reset(iteration);
-        startNode.gCost = 0;
-        startNode.hCost = Point.ManhattanDistance(start, end);
+        var startNode = new Node(start) {
+            gCost = 0,
+            hCost = Point.ManhattanDistance(start, end)
+        };
+        nodes.Add(start, startNode);
         open.Add(startNode);
         while (open.Count > 0) {
             var current = open.RemoveFirst();
@@ -382,9 +368,9 @@ class Pathfinding(Grid grid) {
                 if (cell.type != CellType.Empty && (cell.type != CellType.Power || cell.point != end)) {
                     continue;
                 }
-                var neighbour = Get(cell.point);
-                if (neighbour.iteration != iteration) {
-                    neighbour.Reset(iteration);
+                if (!nodes.TryGetValue(cell.point, out var neighbour)) {
+                    neighbour = new Node(cell.point);
+                    nodes.Add(cell.point, neighbour);
                 }
                 if (closed.Contains(neighbour)) {
                     continue;
@@ -436,22 +422,14 @@ class Node(Point point) : IHeapItem<Node> {
     public Point point = point;
 
     /// Distance from start
-    public int gCost;
+    public int gCost = int.MaxValue;
 
     /// Distance to end
-    public int hCost;
+    public int hCost = int.MaxValue;
 
     int FCost => gCost + hCost;
-    public int iteration;
     public Node? parent;
     int IHeapItem<Node>.HeapIndex { get; set; }
-
-    public void Reset(int newIteration) {
-        gCost = int.MaxValue;
-        hCost = int.MaxValue;
-        iteration = newIteration;
-        parent = null;
-    }
 
     int IComparable<Node>.CompareTo(Node? other) {
         if (other == null) {
