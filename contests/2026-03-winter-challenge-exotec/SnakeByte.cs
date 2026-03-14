@@ -69,6 +69,31 @@ class Grid {
         }
     }
 
+    /// For local tests
+    public void Init(string input, out Point source) {
+        string[] rows = input.Split(Environment.NewLine);
+        width = rows[0].Length;
+        height = rows.Length;
+        cells = new Cell[width * height];
+        source = default;
+        for (var y = 0; y < height; y++) {
+            string row = rows[y];
+            for (var x = 0; x < row.Length; x++) {
+                char c = row[x];
+                var cell = new Cell(x, y);
+                Set(x, y, cell);
+                cell.type = c switch {
+                    '#' => CellType.Platform,
+                    'T' => CellType.Power,
+                    _ => CellType.Empty
+                };
+                if (c == 'S') {
+                    source = cell.point;
+                }
+            }
+        }
+    }
+
     /// Clears power sources and snakes
     public void ClearOldData() {
         foreach (var cell in cells) {
@@ -99,6 +124,25 @@ class Grid {
     }
 
     public bool IsOutside(Point point) => IsOutside(point.x, point.y);
+
+    /// For copying challenge parameters and using them in local tests
+    public override string ToString() {
+        var result = new StringBuilder();
+        for (var y = 0; y < height; y++) {
+            var row = string.Empty;
+            for (var x = 0; x < width; x++) {
+                var cell = Get(x, y);
+                char symbol = cell.type switch {
+                    CellType.Platform => '#',
+                    CellType.Power => 'T',
+                    _ => '.'
+                };
+                row += symbol;
+            }
+            result.AppendLine(row);
+        }
+        return result.ToString();
+    }
 }
 
 class Cell(int x, int y) {
