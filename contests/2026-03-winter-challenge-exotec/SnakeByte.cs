@@ -166,6 +166,9 @@ class Bots(Grid grid) {
     /// Performance optimization
     const int TARGETS_PER_SNAKE = 10;
 
+    // Limit by the rules
+    const int MARK_COUNT = 4;
+
     readonly Dictionary<int, Snake> snakes = new();
 
     public void Init() {
@@ -277,8 +280,7 @@ class Bots(Grid grid) {
         var (path, _) = pathfinding.Path(source, target);
         string move = path != null ? path.First().Direction(source).ToAction : MoveToEmpty(source);
         if (mark && path != null) {
-            // only 4 marks are allowed
-            move += ';' + string.Join(';', path.Take(4).Select(it => $"MARK {it.x} {it.y}"));
+            move += ';' + string.Join(';', path.Take(MARK_COUNT).Select(it => $"MARK {it.x} {it.y}"));
         }
         return move;
     }
