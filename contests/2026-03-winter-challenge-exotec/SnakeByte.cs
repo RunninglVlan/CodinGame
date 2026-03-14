@@ -21,15 +21,13 @@ class Game {
     readonly Bots bots;
 
     public Game() {
-        // ReSharper disable once UnusedVariable
-        int myId = int.Parse(Console.ReadLine()!);
-        int width = int.Parse(Console.ReadLine()!);
-        int height = int.Parse(Console.ReadLine()!);
-        grid = new Grid(width, height);
+        grid = new Grid();
         bots = new Bots(grid);
     }
 
     public void Init() {
+        // ReSharper disable once UnusedVariable
+        int myId = int.Parse(Console.ReadLine()!);
         grid.Init();
         bots.Init();
     }
@@ -43,20 +41,23 @@ class Game {
     }
 }
 
-class Grid(int width, int height) {
-    readonly Cell[] cells = new Cell[width * height];
+class Grid {
+    int width;
+    int height;
 
     public static Point[] FourDirections { get; } = [
         Point.RIGHT, Point.LEFT, Point.UP, Point.DOWN
     ];
 
-    public int Width => width;
-    public int Height => height;
+    Cell[] cells = null!;
     public Cell Get(int x, int y) => cells[width * y + x];
     void Set(int x, int y, Cell cell) => cells[width * y + x] = cell;
     public Cell Get(Point point) => Get(point.x, point.y);
 
     public void Init() {
+        width = int.Parse(Console.ReadLine()!);
+        height = int.Parse(Console.ReadLine()!);
+        cells = new Cell[width * height];
         for (var y = 0; y < height; y++) {
             string row = Console.ReadLine()!;
             for (var x = 0; x < row.Length; x++) {
@@ -338,23 +339,26 @@ static class Action {
 class Pathfinding(Grid grid) {
     readonly Dictionary<Point, Node> nodes = new();
     readonly List<Point> path = new();
-    readonly Heap<Node> open = new(grid.Width * grid.Height);
-    readonly HashSet<Node> closed = new();
+    readonly PriorityQueue<Node, int> openQueue = new();
 
     /// A*
     public (List<Point>?, int cost) Path(Point start, Point end) {
         nodes.Clear();
-        open.Clear();
-        closed.Clear();
+        openQueue.Clear();
         var startNode = new Node(start) {
             gCost = 0,
             hCost = Point.ManhattanDistance(start, end)
         };
         nodes.Add(start, startNode);
-        open.Add(startNode);
-        while (open.Count > 0) {
-            var current = open.RemoveFirst();
-            closed.Add(current);
+        openQueue.Enqueue(startNode, startNode.Priority);
+        while (openQueue.Count > 0) {
+            var current = openQueue.Dequeue();
+            // ignore stale nodes
+            if (current.isClosed) {
+                continue;
+            }
+            current.isOpen = false;
+            current.isClosed = true;
             if (current.point == end) {
                 return (Reconstruct(startNode, current), current.gCost);
             }
@@ -372,21 +376,18 @@ class Pathfinding(Grid grid) {
                     neighbour = new Node(cell.point);
                     nodes.Add(cell.point, neighbour);
                 }
-                if (closed.Contains(neighbour)) {
+                if (neighbour.isClosed) {
                     continue;
                 }
                 int gCost = current.gCost + NewGCost(neighbourPoint);
-                if (gCost >= neighbour.gCost && open.Contains(neighbour)) {
+                if (gCost >= neighbour.gCost && neighbour.isOpen) {
                     continue;
                 }
                 neighbour.gCost = gCost;
                 neighbour.hCost = Point.ManhattanDistance(neighbourPoint, end);
                 neighbour.parent = current;
-                if (!open.Contains(neighbour)) {
-                    open.Add(neighbour);
-                } else {
-                    open.UpdateItem(neighbour);
-                }
+                openQueue.Enqueue(neighbour, neighbour.Priority);
+                neighbour.isOpen = true;
             }
         }
         return (null, int.MaxValue);
@@ -400,7 +401,7 @@ class Pathfinding(Grid grid) {
             }
             // prefer ledges
             if (grid.Get(belowPoint).type == CellType.Platform) {
-                return distance;
+                return distance; 
             }
         }
         return 10;
@@ -418,7 +419,7 @@ class Pathfinding(Grid grid) {
     }
 }
 
-class Node(Point point) : IHeapItem<Node> {
+class Node(Point point) {
     public Point point = point;
 
     /// Distance from start
@@ -427,94 +428,12 @@ class Node(Point point) : IHeapItem<Node> {
     /// Distance to end
     public int hCost = int.MaxValue;
 
-    int FCost => gCost + hCost;
     public Node? parent;
-    int IHeapItem<Node>.HeapIndex { get; set; }
+    public bool isOpen;
+    public bool isClosed;
 
-    int IComparable<Node>.CompareTo(Node? other) {
-        if (other == null) {
-            return 1;
-        }
-        int compare = FCost.CompareTo(other.FCost);
-        if (compare == 0) {
-            return hCost.CompareTo(other.hCost);
-        }
-        return -compare;
-    }
-}
+    int FCost => gCost + hCost;
 
-class Heap<T>(int maxSize) where T : IHeapItem<T> {
-    readonly T[] items = new T[maxSize];
-    public int Count { get; private set; }
-
-    public void Clear() => Count = 0;
-
-    public void Add(T item) {
-        item.HeapIndex = Count;
-        items[Count] = item;
-        SortUp(item);
-        Count++;
-    }
-
-    public T RemoveFirst() {
-        var firstItem = items[0];
-        Count--;
-        items[0] = items[Count];
-        items[0].HeapIndex = 0;
-        SortDown(items[0]);
-        return firstItem;
-    }
-
-    public bool Contains(T item) {
-        return item.HeapIndex < Count && Equals(items[item.HeapIndex], item);
-    }
-
-    public void UpdateItem(T item) {
-        SortUp(item);
-    }
-
-    void SortUp(T item) {
-        int parentIndex = (item.HeapIndex - 1) / 2;
-        while (true) {
-            var parentItem = items[parentIndex];
-            if (item.CompareTo(parentItem) > 0) {
-                Swap(item, parentItem);
-            } else {
-                break;
-            }
-            parentIndex = (item.HeapIndex - 1) / 2;
-        }
-    }
-
-    void SortDown(T item) {
-        while (true) {
-            int childIndexLeft = item.HeapIndex * 2 + 1;
-            int childIndexRight = item.HeapIndex * 2 + 2;
-            if (childIndexLeft < Count) {
-                int swapIndex = childIndexLeft;
-                if (childIndexRight < Count) {
-                    if (items[childIndexLeft].CompareTo(items[childIndexRight]) < 0) {
-                        swapIndex = childIndexRight;
-                    }
-                }
-                if (item.CompareTo(items[swapIndex]) < 0) {
-                    Swap(item, items[swapIndex]);
-                } else {
-                    break;
-                }
-            } else {
-                break;
-            }
-        }
-    }
-
-    void Swap(T aItem, T bItem) {
-        items[aItem.HeapIndex] = bItem;
-        items[bItem.HeapIndex] = aItem;
-        (aItem.HeapIndex, bItem.HeapIndex) = (bItem.HeapIndex, aItem.HeapIndex);
-    }
-}
-
-interface IHeapItem<in T> : IComparable<T> {
-    int HeapIndex { get; set; }
+    /// Order by FCost, then hCost
+    public int Priority => FCost * 1000 + hCost;
 }
