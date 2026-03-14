@@ -55,7 +55,23 @@ class Grid {
     ];
 
     Cell[] cells = null!;
-    public Cell Get(int x, int y) => cells[width * y + x];
+    readonly Dictionary<Point, Cell> outsideCells = new();
+
+    [SuppressMessage("ReSharper", "InvertIf")]
+    public Cell Get(int x, int y) {
+        if (!IsOutside(x, y)) {
+            return cells[width * y + x];
+        }
+        var point = new Point(x, y);
+        if (!outsideCells.TryGetValue(point, out var cell)) {
+            cell = new Cell(x, y) {
+                type = x >= -1 && x <= width && y >= -1 && y <= height ? CellType.Empty : CellType.OutOfBounds
+            };
+            outsideCells[point] = cell;
+        }
+        return cell;
+    }
+
     void Set(int x, int y, Cell cell) => cells[width * y + x] = cell;
     public Cell Get(Point point) => Get(point.x, point.y);
 
@@ -107,6 +123,7 @@ class Grid {
             }
             cell.type = CellType.Empty;
         }
+        outsideCells.Clear();
     }
 
     /// Updates power sources
@@ -124,11 +141,7 @@ class Grid {
         return cells.Where(it => it.type == CellType.Power).Select(it => it.point).ToList();
     }
 
-    public bool IsOutside(int x, int y) {
-        return x < 0 || x >= width || y < 0 || y >= height;
-    }
-
-    public bool IsOutside(Point point) => IsOutside(point.x, point.y);
+    bool IsOutside(int x, int y) => x < 0 || x >= width || y < 0 || y >= height;
 
     /// For copying challenge parameters and using them in local tests
     public override string ToString() {
@@ -164,7 +177,8 @@ enum CellType {
     MySnakeHead,
     EnemySnakeHead,
     MySnakeTail,
-    EnemySnakeTail
+    EnemySnakeTail,
+    OutOfBounds
 }
 
 class Bots(Grid grid) {
@@ -212,10 +226,6 @@ class Bots(Grid grid) {
                 int x = int.Parse(position[0]);
                 int y = int.Parse(position[1]);
                 snake.parts.Add(new Point(x, y));
-                if (grid.IsOutside(x, y)) {
-                    Console.Error.WriteLine($"Snake {snakeId} outside grid: {x}, {y}");
-                    continue;
-                }
                 bool isHead = index == 0;
                 bool isTail = index == parts.Length - 1;
                 grid.Get(x, y).type = (snake.isMine, isHead, isTail) switch {
@@ -306,9 +316,6 @@ class Bots(Grid grid) {
         (Point step, Point direction)? fallback = null;
         foreach (var direction in Grid.FourDirections) {
             var neighbour = source + direction;
-            if (grid.IsOutside(neighbour)) {
-                continue;
-            }
             var cell = grid.Get(neighbour);
             switch (cell.type) {
                 // prioritize tail
@@ -444,9 +451,6 @@ class Pathfinding(Grid grid) {
 
             foreach (var direction in Grid.FourDirections) {
                 var neighbourPoint = current.point + direction;
-                if (grid.IsOutside(neighbourPoint)) {
-                    continue;
-                }
                 var cell = grid.Get(neighbourPoint);
                 if (cell.type != CellType.Empty && (cell.type != CellType.Power || cell.point != end)) {
                     continue;
@@ -476,9 +480,6 @@ class Pathfinding(Grid grid) {
         var cost = 10;
         for (var distance = 1; distance <= 3; distance++) {
             var belowPoint = point + new Point(0, distance);
-            if (grid.IsOutside(belowPoint)) {
-                continue;
-            }
             // prefer ledges
             if (grid.Get(belowPoint).type != CellType.Platform) {
                 continue;
@@ -496,9 +497,6 @@ class Pathfinding(Grid grid) {
     bool IsOpponentNearby(Point point) {
         foreach (var direction in Grid.EigthDirections) {
             var neighbourPoint = point + direction;
-            if (grid.IsOutside(neighbourPoint)) {
-                continue;
-            }
             if (grid.Get(neighbourPoint).type == CellType.EnemySnakeHead) {
                 return true;
             }
