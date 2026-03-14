@@ -221,9 +221,11 @@ class Bots(Grid grid) {
                 continue;
             }
             foreach (var power in powerSources) {
-                (_, int cost) = pathfinding.Path(snake.Head, power);
+                int cost;
                 if (snake.ShouldIgnore(power)) {
                     cost = int.MaxValue;
+                } else {
+                    (_, cost) = pathfinding.Path(snake.Head, power);
                 }
                 possibleTargets.Add((id, power, cost));
             }
