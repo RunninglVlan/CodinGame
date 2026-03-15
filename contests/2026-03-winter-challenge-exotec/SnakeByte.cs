@@ -412,6 +412,8 @@ readonly record struct Point(int x, int y) {
     public Point Direction(Point from) {
         return this - from;
     }
+
+    public override string ToString() => $"({x}, {y})";
 }
 
 static class Action {
