@@ -49,9 +49,9 @@ class Grid {
         Point.RIGHT, Point.LEFT, Point.UP, Point.DOWN
     ];
 
-    public static Point[] EigthDirections { get; } = [
+    public static Point[] EighthDirections { get; } = [
         Point.RIGHT, Point.LEFT, Point.UP, Point.DOWN,
-        new (1, 1), new (-1, 1), new (1, -1), new (-1, -1)
+        new(1, 1), new(-1, 1), new(1, -1), new(-1, -1)
     ];
 
     Cell[] cells = null!;
@@ -479,9 +479,9 @@ class Pathfinding(Grid grid) {
     int NewGCost(Point point) {
         var cost = 10;
         for (var distance = 1; distance <= 3; distance++) {
-            var belowPoint = point + new Point(0, distance);
+            var pointBelow = point + new Point(0, distance);
             // prefer ledges
-            if (grid.Get(belowPoint).type != CellType.Platform) {
+            if (grid.Get(pointBelow).type != CellType.Platform) {
                 continue;
             }
             cost = distance;
@@ -495,7 +495,7 @@ class Pathfinding(Grid grid) {
 
     [SuppressMessage("ReSharper", "LoopCanBeConvertedToQuery")]
     bool IsOpponentNearby(Point point) {
-        foreach (var direction in Grid.EigthDirections) {
+        foreach (var direction in Grid.EighthDirections) {
             var neighbourPoint = point + direction;
             if (grid.Get(neighbourPoint).type == CellType.EnemySnakeHead) {
                 return true;
