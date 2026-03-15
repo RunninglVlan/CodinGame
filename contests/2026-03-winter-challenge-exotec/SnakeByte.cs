@@ -253,10 +253,19 @@ class Bots(Grid grid) {
 
         var possibleTargets = filteredTargets
             .Select(it => {
-                int cost = it.snake.ShouldIgnore(it.target)
-                    ? int.MaxValue
-                    : pathfinding.Path(it.snake.Head, it.target).cost;
-                return (it.id, it.target, cost);
+                if (it.snake.IsIgnored(it.target)) {
+                    return (it.id, it.target, cost: int.MaxValue);
+                }
+                (var path, int cost) = pathfinding.Path(it.snake.Head, it.target);
+                if (path == null) {
+                    return (it.id, it.target, cost);
+                }
+                var step = path.First();
+                if (ValidateNextTurn(it.snake, step)) {
+                    return (it.id, it.target, cost);
+                }
+                it.snake.Ignore(it.target);
+                return (it.id, it.target, cost: cost + 100_000);
             })
             .OrderBy(it => it.cost)
             .ToList();
@@ -274,6 +283,38 @@ class Bots(Grid grid) {
         return MoveSnakes(snakeTargets);
     }
 
+    bool ValidateNextTurn(Snake snake, Point newHead) {
+        // getting power source is good
+        if (grid.Get(newHead).type == CellType.Power) {
+            return true;
+        }
+        // staying on solid cell is good
+        if (IsOnSolidCell(newHead)) {
+            return true;
+        }
+        for (var i = 0; i < snake.parts.Count - 1; i++) {
+            var part = snake.parts[i];
+            if (IsOnSolidCell(part)) {
+                return true;
+            }
+        }
+        // fall one cell down and check if the position changed
+        if (snake.Head != newHead - Point.DOWN) {
+            return true;
+        }
+        for (var i = 0; i < snake.parts.Count - 1; i++) {
+            if (snake.parts[i] - Point.DOWN != snake.parts[i + 1]) {
+                return true;
+            }
+        }
+        return false;
+
+        bool IsOnSolidCell(Point point) {
+            var cellBelow = grid.Get(point - Point.DOWN);
+            return cellBelow.type is CellType.Platform or CellType.Power;
+        }
+    }
+
     string MoveSnakes(Dictionary<int, Point> snakeTargets) {
         var result = new StringBuilder();
         foreach ((int id, var snake) in snakes) {
@@ -288,7 +329,6 @@ class Bots(Grid grid) {
                 }
                 string move = MoveToTarget(snake.Head, target);
                 result.Append($"{id} {move};");
-                snake.SaveTurnData(target);
             } catch (Exception e) {
                 Console.Error.WriteLine($"{id} {e.Message}");
             }
@@ -343,36 +383,20 @@ class Snake(bool mine) {
     public bool IsDead => parts.Count == 0;
     public readonly List<Point> parts = new();
     public Point Head => parts[0];
-    readonly List<Point> previousParts = new();
-    Point previousTarget;
-    (Point target, int turns) ignore;
+    readonly Dictionary<Point, int> ignored = new();
 
-    public void SaveTurnData(Point target) {
-        bool stuck = IsSamePosition() && target == previousTarget;
-        if (stuck) {
-            ignore = (target, STUCK_TURNS);
-        } else if (ignore.turns > 0) {
-            ignore.turns--;
-        }
-        previousParts.Clear();
-        previousParts.AddRange(parts);
-        previousTarget = target;
-    }
-
-    public bool ShouldIgnore(Point target) => target == ignore.target && ignore.turns > 0;
-
-    [SuppressMessage("ReSharper", "LoopCanBeConvertedToQuery")]
-    bool IsSamePosition() {
-        if (parts.Count != previousParts.Count) {
+    public bool IsIgnored(Point target) {
+        if (!ignored.TryGetValue(target, out int turns)) {
             return false;
         }
-        for (var i = 0; i < parts.Count; i++) {
-            if (parts[i] != previousParts[i]) {
-                return false;
-            }
+        ignored[target] = --turns;
+        if (turns == 0) {
+            ignored.Remove(target);
         }
         return true;
     }
+
+    public void Ignore(Point target) => ignored.Add(target, STUCK_TURNS);
 }
 
 readonly record struct Point(int x, int y) {
