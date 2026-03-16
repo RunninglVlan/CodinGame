@@ -338,7 +338,7 @@ class Bots(Grid grid) {
                 Console.Error.WriteLine($"{id} {e.Message}");
             }
         }
-        return result.ToString();
+        return result.Length == 0 ? Action.WAIT : result.ToString();
     }
 
     string MoveToTarget(Point source, Point target, int markCount = 0) {
