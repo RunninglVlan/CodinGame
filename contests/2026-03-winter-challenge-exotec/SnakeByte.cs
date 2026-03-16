@@ -358,7 +358,7 @@ class Bots(Grid grid) {
     }
 
     string MoveToEmpty(Point source) {
-        (Point step, Point direction)? fallback = null;
+        (Cell cell, Point direction)? fallback = null;
         foreach (var direction in Grid.FourDirections) {
             var neighbour = source + direction;
             var cell = grid.Get(neighbour);
@@ -367,14 +367,17 @@ class Bots(Grid grid) {
                 cell.type = CellType.MySnake;
                 return direction.ToAction;
             }
-            if (cell.IsEmpty) {
-                fallback = (neighbour, direction);
+            if (!cell.IsEmpty) {
+                continue;
+            }
+            if (fallback == null || (fallback.Value.cell.type == CellType.EmptySide && cell.type == CellType.Empty)) {
+                fallback = (cell, direction);
             }
         }
         if (fallback == null) {
             throw new InvalidOperationException("No empty neighbour found");
         }
-        grid.Get(fallback.Value.step).type = CellType.MySnake;
+        fallback.Value.cell.type = CellType.MySnake;
         return fallback.Value.direction.ToAction;
     }
 }
