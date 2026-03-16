@@ -521,7 +521,7 @@ class Pathfinding(Grid grid) {
             cost += 20;
         }
         if (grid.Get(point).type == CellType.EmptySide) {
-            cost += 30;
+            cost += 20;
         }
         return cost;
     }
