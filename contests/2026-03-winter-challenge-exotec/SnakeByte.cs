@@ -495,7 +495,7 @@ class Pathfinding(Grid grid) {
                 if (neighbour.isClosed) {
                     continue;
                 }
-                int gCost = current.gCost + NewGCost(neighbourPoint);
+                int gCost = current.gCost + NewGCost(cell);
                 if (gCost >= neighbour.gCost && neighbour.isOpen) {
                     continue;
                 }
@@ -509,10 +509,13 @@ class Pathfinding(Grid grid) {
         return (null, int.MaxValue);
     }
 
-    int NewGCost(Point point) {
+    int NewGCost(Cell cell) {
+        if (cell.type == CellType.Power) {
+            return 0;
+        }
         var cost = 10;
         for (var distance = 1; distance <= 3; distance++) {
-            var pointBelow = point + new Point(0, distance);
+            var pointBelow = cell.point + new Point(0, distance);
             // prefer ledges
             if (grid.Get(pointBelow).type != CellType.Platform) {
                 continue;
@@ -520,10 +523,10 @@ class Pathfinding(Grid grid) {
             cost = distance;
             break;
         }
-        if (IsOpponentNearby(point)) {
+        if (IsOpponentNearby(cell.point)) {
             cost += 20;
         }
-        if (grid.Get(point).type == CellType.EmptySide) {
+        if (cell.type == CellType.EmptySide) {
             cost += 20;
         }
         return cost;
