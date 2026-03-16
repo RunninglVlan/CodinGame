@@ -64,9 +64,12 @@ class Grid {
         }
         var point = new Point(x, y);
         if (!outsideCells.TryGetValue(point, out var cell)) {
-            cell = new Cell(x, y) {
-                type = x >= -1 && x <= width && y >= -1 && y <= height ? CellType.Empty : CellType.OutOfBounds
-            };
+            cell = new Cell(x, y);
+            if (x >= -1 && x <= width && y >= -1 && y <= height) {
+                cell.type = x >= 0 && x <= width - 1 ? CellType.Empty : CellType.EmptySide;
+            } else {
+                cell.type = CellType.OutOfBounds;
+            }
             outsideCells[point] = cell;
         }
         return cell;
@@ -166,11 +169,13 @@ class Grid {
 class Cell(int x, int y) {
     public Point point = new(x, y);
     public CellType type;
+    public bool IsEmpty => type is CellType.Empty or CellType.EmptySide;
 }
 
 enum CellType {
     Platform,
     Empty,
+    EmptySide,
     Power,
     MySnake,
     EnemySnake,
@@ -357,14 +362,13 @@ class Bots(Grid grid) {
         foreach (var direction in Grid.FourDirections) {
             var neighbour = source + direction;
             var cell = grid.Get(neighbour);
-            switch (cell.type) {
-                // prioritize tail
-                case CellType.MySnakeTail or CellType.EnemySnakeTail:
-                    cell.type = CellType.MySnake;
-                    return direction.ToAction;
-                case CellType.Empty:
-                    fallback = (neighbour, direction);
-                    break;
+            // prioritize tail
+            if (cell.type is CellType.MySnakeTail or CellType.EnemySnakeTail) {
+                cell.type = CellType.MySnake;
+                return direction.ToAction;
+            }
+            if (cell.IsEmpty) {
+                fallback = (neighbour, direction);
             }
         }
         if (fallback == null) {
@@ -478,7 +482,7 @@ class Pathfinding(Grid grid) {
             foreach (var direction in Grid.FourDirections) {
                 var neighbourPoint = current.point + direction;
                 var cell = grid.Get(neighbourPoint);
-                if (cell.type != CellType.Empty && (cell.type != CellType.Power || cell.point != end)) {
+                if (!cell.IsEmpty && (cell.type != CellType.Power || cell.point != end)) {
                     continue;
                 }
                 if (!nodes.TryGetValue(cell.point, out var neighbour)) {
@@ -515,6 +519,9 @@ class Pathfinding(Grid grid) {
         }
         if (IsOpponentNearby(point)) {
             cost += 20;
+        }
+        if (grid.Get(point).type == CellType.EmptySide) {
+            cost += 30;
         }
         return cost;
     }
