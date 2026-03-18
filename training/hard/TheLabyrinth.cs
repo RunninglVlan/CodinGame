@@ -207,10 +207,6 @@ readonly record struct Point(int x, int y) {
         _ => throw new ArgumentOutOfRangeException($"Unsupported direction: {this}")
     };
 
-    public static int ManhattanDistance(Point a, Point b) {
-        return Math.Abs(a.x - b.x) + Math.Abs(a.y - b.y);
-    }
-
     public static Point operator +(Point a, Point b) {
         return new Point(a.x + b.x, a.y + b.y);
     }
@@ -234,32 +230,22 @@ static class Action {
 }
 
 class Pathfinding(Maze maze) {
-    readonly Dictionary<Point, Node> nodes = new();
     readonly List<Point> path = new();
-    readonly PriorityQueue<Node, int> openQueue = new();
+    readonly Queue<Node> queue = new();
+    readonly Dictionary<Point, Node> visited = new();
 
-    /// A*
+    /// BFS
     public List<Point>? Path(Point start, Point end) {
-        nodes.Clear();
-        openQueue.Clear();
-        var startNode = new Node(start) {
-            gCost = 0,
-            hCost = Point.ManhattanDistance(start, end)
-        };
-        nodes.Add(start, startNode);
-        openQueue.Enqueue(startNode, startNode.Priority);
-        while (openQueue.Count > 0) {
-            var current = openQueue.Dequeue();
-            // ignore stale nodes
-            if (current.isClosed) {
-                continue;
-            }
-            current.isOpen = false;
-            current.isClosed = true;
+        queue.Clear();
+        visited.Clear();
+        var startNode = new Node(start);
+        queue.Enqueue(startNode);
+        visited.Add(start, startNode);
+        while (queue.Count > 0) {
+            var current = queue.Dequeue();
             if (current.point == end) {
                 return Reconstruct(startNode, current);
             }
-
             foreach (var direction in Maze.FourDirections) {
                 var neighbourPoint = current.point + direction;
                 if (!maze.TryGet(neighbourPoint, out var cell)) {
@@ -268,22 +254,12 @@ class Pathfinding(Maze maze) {
                 if (!cell.IsWalkable && cell.point != end) {
                     continue;
                 }
-                if (!nodes.TryGetValue(cell.point, out var neighbour)) {
-                    neighbour = new Node(cell.point);
-                    nodes.Add(cell.point, neighbour);
-                }
-                if (neighbour.isClosed) {
+                if (visited.ContainsKey(cell.point)) {
                     continue;
                 }
-                int gCost = current.gCost + 1;
-                if (gCost >= neighbour.gCost && neighbour.isOpen) {
-                    continue;
-                }
-                neighbour.gCost = gCost;
-                neighbour.hCost = Point.ManhattanDistance(neighbourPoint, end);
-                neighbour.parent = current;
-                openQueue.Enqueue(neighbour, neighbour.Priority);
-                neighbour.isOpen = true;
+                var neighbour = new Node(cell.point) { parent = current };
+                queue.Enqueue(neighbour);
+                visited.Add(cell.point, neighbour);
             }
         }
         return null;
@@ -303,19 +279,5 @@ class Pathfinding(Maze maze) {
 
 class Node(Point point) {
     public Point point = point;
-
-    /// Distance from start
-    public int gCost = int.MaxValue;
-
-    /// Distance to end
-    public int hCost = int.MaxValue;
-
     public Node? parent;
-    public bool isOpen;
-    public bool isClosed;
-
-    int FCost => gCost + hCost;
-
-    /// Order by FCost, then hCost
-    public int Priority => FCost * 1000 + hCost;
 }
