@@ -77,7 +77,7 @@ class Game {
             }
         }
         foreach (var cell in maze.emptyCells.Where(it => !explored.Contains(it))) {
-            var (path, _) = pathfinding.Path(rick, cell);
+            var path = pathfinding.Path(rick, cell);
             if (path != null) {
                 return path.First().Direction(rick).ToAction;
             }
