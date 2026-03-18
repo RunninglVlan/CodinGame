@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
@@ -86,16 +85,20 @@ class Game {
     }
 
     string GoToControlRoom() {
-        Debug.Assert(maze.controlRoom != null, "Explored maze, but couldn't find control room");
+        if (maze.controlRoom == null) {
+            throw new ArgumentException("Explored maze, but couldn't find control room");
+        }
         var path = pathfinding.Path(rick, maze.controlRoom.Value);
-        Debug.Assert(path != null, "Can't find path to control room");
-        return path.First().Direction(rick).ToAction;
+        return path == null
+            ? throw new ArgumentException("Can't find path to control room")
+            : path.First().Direction(rick).ToAction;
     }
 
     string ReturnToStart() {
         var path = pathfinding.Path(rick, maze.start);
-        Debug.Assert(path != null, "Can't find path back to start");
-        return path.First().Direction(rick).ToAction;
+        return path == null
+            ? throw new ArgumentException("Can't find path back to start")
+            : path.First().Direction(rick).ToAction;
     }
 }
 
