@@ -42,6 +42,7 @@ class Game {
     public void Loop() {
         string[] point = Console.ReadLine()!.Split(' ');
         rick = Point.From(point[1], point[0]);
+        maze.ReadNewData();
         switch (maze.Get(rick).type) {
             case CellType.Empty:
                 explored.Add(rick);
@@ -50,7 +51,6 @@ class Game {
                 visitedControlRoom = true;
                 break;
         }
-        maze.ReadNewData();
         Console.WriteLine(NextMove());
     }
 
