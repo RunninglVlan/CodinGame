@@ -62,10 +62,9 @@ class Game {
         resultDirection = default;
         foreach (var direction in Maze.FourDirections) {
             var neighbour = rick + direction;
-            if (maze.IsOutside(neighbour)) {
+            if (!maze.TryGet(neighbour, out var cell)) {
                 continue;
             }
-            var cell = maze.Get(neighbour);
             if (!cell.IsWalkable || explored.Contains(cell.point)) {
                 continue;
             }
@@ -128,8 +127,14 @@ class Maze {
     Cell Get(int x, int y) => cells[width * y + x];
     public Cell Get(Point point) => Get(point.x, point.y);
 
-    bool IsOutside(int x, int y) => x < 0 || x >= width || y < 0 || y >= height;
-    public bool IsOutside(Point point) => IsOutside(point.x, point.y);
+    public bool TryGet(Point point, out Cell cell) {
+        cell = null!;
+        if (point.x < 0 || point.x >= width || point.y < 0 || point.y >= height) {
+            return false;
+        }
+        cell = Get(point);
+        return true;
+    }
 
     public void ReadNewData() {
         start = default;
@@ -257,7 +262,9 @@ class Pathfinding(Maze maze) {
 
             foreach (var direction in Maze.FourDirections) {
                 var neighbourPoint = current.point + direction;
-                var cell = maze.Get(neighbourPoint);
+                if (!maze.TryGet(neighbourPoint, out var cell)) {
+                    continue;
+                }
                 if (!cell.IsWalkable && cell.point != end) {
                     continue;
                 }
