@@ -198,7 +198,8 @@ readonly record struct Point(int x, int y) {
         (0, -1) => Action.UP,
         (1, 0) => Action.RIGHT,
         (0, 1) => Action.DOWN,
-        _ => Action.LEFT
+        (-1, 0) => Action.LEFT,
+        _ => throw new ArgumentOutOfRangeException($"Unsupported direction: {this}")
     };
 
     public static int ManhattanDistance(Point a, Point b) {
