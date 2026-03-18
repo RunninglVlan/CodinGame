@@ -56,7 +56,7 @@ class Game {
     }
 
     string NextMove() {
-        if (explored.Count < maze.emptyCells.Count) {
+        if (explored.Count < maze.emptyCells.Count && maze.controlRoom == null) {
             return ExploreMaze();
         }
         return !visitedControlRoom ? GoToControlRoom() : ReturnToStart();
