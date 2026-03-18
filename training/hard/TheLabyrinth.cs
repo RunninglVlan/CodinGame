@@ -38,24 +38,21 @@ class Game {
         alarmRounds = int.Parse(inputs[2]);
     }
 
-    [SuppressMessage("ReSharper", "SwitchStatementMissingSomeEnumCasesNoDefault")]
     public void Loop() {
         string[] point = Console.ReadLine()!.Split(' ');
         rick = Point.From(point[1], point[0]);
         maze.ReadNewData();
-        switch (maze.Get(rick).type) {
-            case CellType.Empty:
-                explored.Add(rick);
-                break;
-            case CellType.Control:
-                visitedControlRoom = true;
-                break;
+        var cell = maze.Get(rick);
+        if (cell.IsWalkable) {
+            explored.Add(rick);
+        } else if (cell.type == CellType.Control) {
+            visitedControlRoom = true;
         }
         Console.WriteLine(NextMove());
     }
 
     string NextMove() {
-        if (explored.Count < maze.emptyCells.Count && TryExploreMaze(out var direction)) {
+        if (explored.Count < maze.walkableCells.Count && TryExploreMaze(out var direction)) {
             return direction.ToAction;
         }
         return !visitedControlRoom ? GoToControlRoom() : ReturnToStart();
@@ -69,13 +66,13 @@ class Game {
                 continue;
             }
             var cell = maze.Get(neighbour);
-            if (cell.type != CellType.Empty || explored.Contains(cell.point)) {
+            if (!cell.IsWalkable || explored.Contains(cell.point)) {
                 continue;
             }
             resultDirection = direction;
             return true;
         }
-        foreach (var cell in maze.emptyCells.Where(it => !explored.Contains(it))) {
+        foreach (var cell in maze.walkableCells.Where(it => !explored.Contains(it))) {
             var path = pathfinding.Path(rick, cell);
             if (path == null) {
                 continue;
@@ -114,7 +111,7 @@ class Maze {
     readonly Cell[] cells;
     public Point start;
     public Point? controlRoom;
-    public readonly List<Point> emptyCells = new();
+    public readonly List<Point> walkableCells = new();
 
     public Maze(int width, int height) {
         this.width = width;
@@ -137,7 +134,7 @@ class Maze {
     public void ReadNewData() {
         start = default;
         controlRoom = null;
-        emptyCells.Clear();
+        walkableCells.Clear();
         for (var y = 0; y < height; y++) {
             string row = Console.ReadLine()!;
             for (var x = 0; x < width; x++) {
@@ -159,8 +156,10 @@ class Maze {
                         break;
                     default:
                         cell.type = CellType.Empty;
-                        emptyCells.Add(cell.point);
                         break;
+                }
+                if (cell.IsWalkable) {
+                    walkableCells.Add(cell.point);
                 }
             }
         }
@@ -170,6 +169,7 @@ class Maze {
 class Cell(int x, int y) {
     public Point point = new(x, y);
     public CellType type;
+    public bool IsWalkable => type is CellType.Empty or CellType.Start;
 }
 
 enum CellType {
@@ -257,7 +257,7 @@ class Pathfinding(Maze maze) {
             foreach (var direction in Maze.FourDirections) {
                 var neighbourPoint = current.point + direction;
                 var cell = maze.Get(neighbourPoint);
-                if (cell.type != CellType.Empty && cell.point != end) {
+                if (!cell.IsWalkable && cell.point != end) {
                     continue;
                 }
                 if (!nodes.TryGetValue(cell.point, out var neighbour)) {
