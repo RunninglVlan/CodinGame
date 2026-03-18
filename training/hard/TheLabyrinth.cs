@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
 /// https://www.codingame.com/training/hard/the-labyrinth
@@ -19,11 +18,9 @@ class Game {
     readonly Pathfinding pathfinding;
 
     /// number of rounds between the time the alarm countdown is activated and the time the alarm goes off
-    [SuppressMessage("ReSharper", "NotAccessedField.Local")]
-    int alarmRounds;
+    readonly int alarmRounds;
 
     Point rick;
-    readonly HashSet<Point> explored = new();
     bool visitedControlRoom;
 
     /// 10 ≤ height ≤ 100,
@@ -42,44 +39,28 @@ class Game {
         string[] point = Console.ReadLine()!.Split(' ');
         rick = Point.From(point[1], point[0]);
         maze.ReadNewData();
-        var cell = maze.Get(rick);
-        if (cell.IsWalkable) {
-            explored.Add(rick);
-        } else if (cell.type == CellType.Control) {
+        if (maze.Get(rick).type == CellType.Control) {
             visitedControlRoom = true;
         }
         Console.WriteLine(NextMove());
     }
 
     string NextMove() {
-        if (explored.Count < maze.walkableCells.Count && TryExploreMaze(out var direction)) {
-            return direction.ToAction;
+        if (maze.controlRoom == null) {
+            return ExploreMaze();
+        }
+        var controlToStart = pathfinding.Path(maze.controlRoom.Value, maze.start);
+        if (controlToStart == null || controlToStart.Count > alarmRounds) {
+            return ExploreMaze();
         }
         return !visitedControlRoom ? GoToControlRoom() : ReturnToStart();
     }
 
-    bool TryExploreMaze(out Point resultDirection) {
-        resultDirection = default;
-        foreach (var direction in Maze.FourDirections) {
-            var neighbour = rick + direction;
-            if (!maze.TryGet(neighbour, out var cell)) {
-                continue;
-            }
-            if (!cell.IsWalkable || explored.Contains(cell.point)) {
-                continue;
-            }
-            resultDirection = direction;
-            return true;
-        }
-        foreach (var cell in maze.walkableCells.Where(it => !explored.Contains(it))) {
-            var path = pathfinding.Path(rick, cell);
-            if (path == null) {
-                continue;
-            }
-            resultDirection = path.First().Direction(rick);
-            return true;
-        }
-        return false;
+    string ExploreMaze() {
+        var pathToUnknown = pathfinding.Path(rick, it => it.type == CellType.Unknown);
+        return pathToUnknown == null
+            ? throw new ArgumentException("Can't find path to unknown cell")
+            : pathToUnknown.First().Direction(rick).ToAction;
     }
 
     string GoToControlRoom() {
@@ -110,7 +91,6 @@ class Maze {
     readonly Cell[] cells;
     public Point start;
     public Point? controlRoom;
-    public readonly List<Point> walkableCells = new();
 
     public Maze(int width, int height) {
         this.width = width;
@@ -139,7 +119,6 @@ class Maze {
     public void ReadNewData() {
         start = default;
         controlRoom = null;
-        walkableCells.Clear();
         for (var y = 0; y < height; y++) {
             string row = Console.ReadLine()!;
             for (var x = 0; x < width; x++) {
@@ -162,9 +141,6 @@ class Maze {
                     default:
                         cell.type = CellType.Empty;
                         break;
-                }
-                if (cell.IsWalkable) {
-                    walkableCells.Add(cell.point);
                 }
             }
         }
@@ -234,30 +210,35 @@ class Pathfinding(Maze maze) {
     readonly Queue<Node> queue = new();
     readonly Dictionary<Point, Node> visited = new();
 
-    /// BFS
+    /// BFS to end
     public List<Point>? Path(Point start, Point end) {
+        return Path(start, it => it.point == end);
+    }
+
+    /// BFS to endPredicate
+    public List<Point>? Path(Point start, Predicate<Cell> endPredicate) {
         queue.Clear();
         visited.Clear();
-        var startNode = new Node(start);
+        var startNode = new Node(maze.Get(start));
         queue.Enqueue(startNode);
         visited.Add(start, startNode);
         while (queue.Count > 0) {
             var current = queue.Dequeue();
-            if (current.point == end) {
+            if (endPredicate(current.cell)) {
                 return Reconstruct(startNode, current);
             }
             foreach (var direction in Maze.FourDirections) {
-                var neighbourPoint = current.point + direction;
+                var neighbourPoint = current.cell.point + direction;
                 if (!maze.TryGet(neighbourPoint, out var cell)) {
                     continue;
                 }
-                if (!cell.IsWalkable && cell.point != end) {
+                if (!cell.IsWalkable && !endPredicate(cell)) {
                     continue;
                 }
                 if (visited.ContainsKey(cell.point)) {
                     continue;
                 }
-                var neighbour = new Node(cell.point) { parent = current };
+                var neighbour = new Node(cell) { parent = current };
                 queue.Enqueue(neighbour);
                 visited.Add(cell.point, neighbour);
             }
@@ -269,7 +250,7 @@ class Pathfinding(Maze maze) {
         path.Clear();
         var current = end;
         while (current != start) {
-            path.Add(current!.point);
+            path.Add(current!.cell.point);
             current = current.parent;
         }
         path.Reverse();
@@ -277,7 +258,7 @@ class Pathfinding(Maze maze) {
     }
 }
 
-class Node(Point point) {
-    public Point point = point;
+class Node(Cell cell) {
+    public readonly Cell cell = cell;
     public Node? parent;
 }
