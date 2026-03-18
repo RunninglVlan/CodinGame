@@ -55,13 +55,14 @@ class Game {
     }
 
     string NextMove() {
-        if (explored.Count < maze.emptyCells.Count && maze.controlRoom == null) {
-            return ExploreMaze();
+        if (explored.Count < maze.emptyCells.Count && TryExploreMaze(out var direction)) {
+            return direction.ToAction;
         }
         return !visitedControlRoom ? GoToControlRoom() : ReturnToStart();
     }
 
-    string ExploreMaze() {
+    bool TryExploreMaze(out Point resultDirection) {
+        resultDirection = default;
         foreach (var direction in Maze.FourDirections) {
             var neighbour = rick + direction;
             if (maze.IsOutside(neighbour)) {
@@ -71,17 +72,21 @@ class Game {
             if (cell.type != CellType.Empty) {
                 continue;
             }
-            if (!explored.Contains(cell.point)) {
-                return direction.ToAction;
+            if (explored.Contains(cell.point)) {
+                continue;
             }
+            resultDirection = direction;
+            return true;
         }
         foreach (var cell in maze.emptyCells.Where(it => !explored.Contains(it))) {
             var path = pathfinding.Path(rick, cell);
-            if (path != null) {
-                return path.First().Direction(rick).ToAction;
+            if (path == null) {
+                continue;
             }
+            resultDirection = path.First().Direction(rick);
+            return true;
         }
-        throw new ArgumentException("Couldn't find cell to explore");
+        return false;
     }
 
     string GoToControlRoom() {
