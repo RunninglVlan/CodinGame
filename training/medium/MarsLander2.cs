@@ -71,15 +71,12 @@ class Game {
         // x is from 0 to 7000
         const float maxDistance = 3500;
         int landingCenterX = (landing.start.x + landing.end.x) / 2;
-        int distance = Math.Abs(point.x - landingCenterX);
+        int distance = point.x - landingCenterX;
         float distancePercent = distance / maxDistance;
         result.angle = (int)(distancePercent * 40);
         // if became too fast, reverse angle to slow down
         if (Math.Abs(speed.horizontal) > 40) {
-            result.angle = Math.Clamp(-speed.horizontal, -90, 90);
-        }
-        if (point.x < landingCenterX) {
-            result.angle = -result.angle;
+            result.angle = Math.Clamp(speed.horizontal, -90, 90);
         }
         Console.Error.WriteLine("Moving to landing");
     }
