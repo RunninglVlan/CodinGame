@@ -76,7 +76,13 @@ class Game {
                 return direction.ToAction;
             }
         }
-        throw new ArgumentException("No simple direction");
+        foreach (var cell in maze.emptyCells.Where(it => !explored.Contains(it))) {
+            var (path, _) = pathfinding.Path(rick, cell);
+            if (path != null) {
+                return path.First().Direction(rick).ToAction;
+            }
+        }
+        throw new ArgumentException("Couldn't find cell to explore");
     }
 
     string GoToControlRoom() {
