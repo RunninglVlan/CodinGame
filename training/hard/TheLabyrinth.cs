@@ -57,7 +57,7 @@ class Game {
     }
 
     string ExploreMaze() {
-        var pathToUnknown = pathfinding.Path(rick, it => it.type == CellType.Unknown);
+        var pathToUnknown = pathfinding.Path(rick, cell => cell.type == CellType.Unknown);
         return pathToUnknown == null
             ? throw new ArgumentException("Can't find path to unknown cell")
             : pathToUnknown.First().Direction(rick).ToAction;
@@ -212,7 +212,7 @@ class Pathfinding(Maze maze) {
 
     /// BFS to end
     public List<Point>? Path(Point start, Point end) {
-        return Path(start, it => it.point == end);
+        return Path(start, cell => cell.point == end);
     }
 
     /// BFS to endPredicate
