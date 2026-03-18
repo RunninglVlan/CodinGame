@@ -69,10 +69,7 @@ class Game {
                 continue;
             }
             var cell = maze.Get(neighbour);
-            if (cell.type != CellType.Empty) {
-                continue;
-            }
-            if (explored.Contains(cell.point)) {
+            if (cell.type != CellType.Empty || explored.Contains(cell.point)) {
                 continue;
             }
             resultDirection = direction;
@@ -144,16 +141,8 @@ class Maze {
         for (var y = 0; y < height; y++) {
             string row = Console.ReadLine()!;
             for (var x = 0; x < width; x++) {
-                char c = row[x];
                 var cell = Get(x, y);
-                cell.type = c switch {
-                    '#' => CellType.Wall,
-                    'T' => CellType.Start,
-                    'C' => CellType.Control,
-                    '?' => CellType.Unknown,
-                    _ => CellType.Empty
-                };
-                switch (c) {
+                switch (row[x]) {
                     case '#':
                         cell.type = CellType.Wall;
                         break;
