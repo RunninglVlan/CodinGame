@@ -39,18 +39,16 @@ class Game {
 
     public void Loop() {
         var (point, speed, _, _, _) = ReadInput();
-
         var result = new Result { power = 3 };
-        if (Math.Abs(speed.vertical) > 35) {
-            result.power = 4;
-        }
-
         if (!ReachedLanding(point)) {
             MoveToLanding(point, speed, ref result);
         } else {
             Land(speed, ref result);
         }
-
+        if (Math.Abs(speed.vertical) > 30) {
+            result.power = 4;
+            result.angle = Math.Abs(speed.horizontal) < 20 ? 0 : Math.Clamp(speed.horizontal, -30, 30);
+        }
         Console.WriteLine($"{result.angle} {result.power}");
     }
 
@@ -76,7 +74,7 @@ class Game {
         result.angle = (int)(distancePercent * 40);
         // if became too fast, reverse angle to slow down
         if (Math.Abs(speed.horizontal) > 40) {
-            result.angle = Math.Clamp(speed.horizontal, -90, 90);
+            result.angle = Math.Clamp(speed.horizontal, -65, 65);
         }
         Console.Error.WriteLine("Moving to landing");
     }
