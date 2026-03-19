@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 
 /// https://www.codingame.com/training/medium/mars-lander-episode-2
 static class MarsLander2 {
@@ -13,13 +14,9 @@ static class MarsLander2 {
 }
 
 class Game {
-    (Point start, Point end) landing;
+    const float GRAVITY = 3.711f;
 
-    bool ReachedLanding(Point point) {
-        // "reaching landing" a bit quicker
-        const float landingShift = 250;
-        return point.x > landing.start.x - landingShift && point.x < landing.end.x + landingShift;
-    }
+    (Point start, Point end) landing;
 
     public void Init() {
         // 2 ≤ number < 30
@@ -38,21 +35,19 @@ class Game {
     }
 
     public void Loop() {
-        var (point, speed, _, _, _) = ReadInput();
-        var result = new Result { power = 3 };
-        if (!ReachedLanding(point)) {
-            MoveToLanding(point, speed, ref result);
+        var (point, speed, _, currentControl) = ReadInput();
+        var nextControl = new Control(0, 0);
+        bool reachedLanding = point.x > landing.start.x && point.x < landing.end.x;
+        if (!reachedLanding) {
+            MoveToLanding(point, speed, currentControl, ref nextControl);
         } else {
-            Land(speed, ref result);
+            Land(point, speed, currentControl, ref nextControl);
         }
-        if (Math.Abs(speed.vertical) > 30) {
-            result.power = 4;
-            result.angle = Math.Abs(speed.horizontal) < 20 ? 0 : Math.Clamp(speed.horizontal, -30, 30);
-        }
-        Console.WriteLine($"{result.angle} {result.power}");
+        Console.WriteLine($"{nextControl.angle} {nextControl.power}");
     }
 
-    static (Point, Speed, int, int, int) ReadInput() {
+    [SuppressMessage("ReSharper", "UnusedTupleComponentInReturnValue")]
+    static (Point, Speed, int, Control) ReadInput() {
         string[] inputs = Console.ReadLine()!.Split(' ');
         var point = Point.From(inputs[0], inputs[1]);
         var speed = Speed.From(inputs[2], inputs[3]);
@@ -62,30 +57,82 @@ class Game {
         int angle = int.Parse(inputs[5]);
         // 0 ≤ power ≤ 4
         int power = int.Parse(inputs[6]);
-        return (point, speed, fuel, angle, power);
+        return (point, speed, fuel, new Control(angle, power));
     }
 
-    void MoveToLanding(Point point, Speed speed, ref Result result) {
-        // x is from 0 to 7000
-        const float maxDistance = 3500;
-        int landingCenterX = (landing.start.x + landing.end.x) / 2;
-        int distance = point.x - landingCenterX;
-        float distancePercent = distance / maxDistance;
-        result.angle = (int)(distancePercent * 40);
-        // if became too fast, reverse angle to slow down
-        if (Math.Abs(speed.horizontal) > 40) {
-            result.angle = Math.Clamp(speed.horizontal, -65, 65);
-        }
+    void MoveToLanding(Point point, Speed speed, Control current, ref Control next) {
+        double targetX = (landing.start.x + landing.end.x) / 2.0;
+        var target = new Vector(targetX, point.y);
+        Vector p = point;
+        Vector v = speed;
+        var (bestControl, _) = FindBest(p, v, current, target, 6);
+        next.angle = bestControl.angle;
+        next.power = bestControl.power;
         Console.Error.WriteLine("Moving to landing");
     }
 
-    static void Land(Speed speed, ref Result result) {
+    static (Control control, double score) FindBest(Vector p, Vector v, Control current, Vector target, int depth) {
+        if (depth == 0) {
+            double speedPenalty = 0;
+            if (!Speed.IsSafeX(v.x)) {
+                speedPenalty += 10_000;
+            }
+            if (!Speed.IsSafeY(v.y)) {
+                speedPenalty += 20_000;
+            }
+            double distance = Vector.Distance(p, target);
+            return (default, distance + speedPenalty);
+        }
+        (Control control, double score) best = (default, double.MaxValue);
+        for (int angle = -15; angle <= 15; angle += 15) {
+            int nextAngle = Math.Clamp(current.angle + angle, -90, 90);
+            for (int power = -1; power <= 1; power++) {
+                int nextPower = Math.Clamp(current.power + power, 0, 4);
+                var (pNew, vNew) = SimulateNext(p, v, nextAngle, nextPower, 4);
+                (_, double score) = FindBest(pNew, vNew, new Control(nextAngle, nextPower), target, depth - 1);
+                if (score >= best.score) {
+                    continue;
+                }
+                best.score = score;
+                best.control = new Control(nextAngle, nextPower);
+            }
+        }
+        return best;
+    }
+
+    /// vNew = v + a * t,
+    /// pNew = p + v * t + 0.5 * a * t^2,
+    /// pNew = p + vNew * t - 0.5 * a * t^2.<br/>
+    /// t = 1, so
+    /// vNew = v + a,
+    /// pNew = p + v + 0.5 * a,
+    /// pNew = p + vNew - 0.5 * a.<br/>
+    /// <see href="https://en.wikipedia.org/wiki/Equations_of_motion#Constant_translational_acceleration_in_a_straight_line" />
+    static (Vector, Vector) SimulateNext(Vector p, Vector v, int nextAngle, int nextPower, int iterations) {
+        double radians = nextAngle * Math.PI / 180;
+        var thrust = new Vector(-nextPower * Math.Sin(radians), nextPower * Math.Cos(radians));
+        var a = new Vector(thrust.x, thrust.y - GRAVITY);
+        for (var i = 0; i < iterations; i++) {
+            v = new Vector(v.x + a.x, v.y + a.y);
+            p = new Vector(p.x + v.x - 0.5 * a.x, p.y + v.y - 0.5 * a.y);
+        }
+        return (p, v);
+    }
+
+    void Land(Point point, Speed speed, Control current, ref Control next) {
         if (!speed.IsSafe) {
+            double targetX = (landing.start.x + landing.end.x) / 2.0;
+            var target = new Vector(targetX, landing.start.y);
+            Vector p = point;
+            Vector v = speed;
+            var (bestControl, _) = FindBest(p, v, current, target, 5);
+            next.angle = bestControl.angle;
+            next.power = bestControl.power;
             Console.Error.WriteLine("Reached landing, normalizing speed");
-            result.angle = Math.Clamp(speed.horizontal, -90, 90);
         } else {
+            next.angle = 0;
+            next.power = 4;
             Console.Error.WriteLine("Normalized speed, straightened");
-            result.angle = 0;
         }
     }
 }
@@ -99,22 +146,47 @@ readonly struct Point(int x, int y) {
         return new Point(int.Parse(x), int.Parse(y));
     }
 
+    public static implicit operator Vector(Point value) => new(value.x, value.y);
+
     public override string ToString() => $"({x}, {y})";
 }
 
-// -500 < horizontal, vertical < 500, in m/s
-readonly struct Speed(int horizontal, int vertical) {
-    public readonly int horizontal = horizontal;
-    public readonly int vertical = vertical;
+readonly struct Vector(double x, double y) {
+    public readonly double x = x;
+    public readonly double y = y;
 
-    public bool IsSafe => Math.Abs(horizontal) < 20 && Math.Abs(vertical) < 40;
-
-    public static Speed From(string horizontal, string vertical) {
-        return new Speed(int.Parse(horizontal), int.Parse(vertical));
+    public static double Distance(Vector a, Vector b) {
+        double diffX = a.x - b.x;
+        double diffY = a.y - b.y;
+        return Math.Sqrt(diffX * diffX + diffY * diffY);
     }
+
+    public override string ToString() => $"({x:F1}, {y:F1})";
 }
 
-struct Result {
-    public int angle;
-    public int power;
+// -500 < horizontal, vertical < 500, in m/s
+readonly struct Speed(int x, int y) {
+    const int SAFE_X = 15;
+    const int SAFE_Y = 35;
+
+    /// horizontal
+    public readonly int x = x;
+
+    /// vertical
+    public readonly int y = y;
+
+    public bool IsSafe => Math.Abs(x) < SAFE_X && Math.Abs(y) < SAFE_Y;
+    public static bool IsSafeX(double value) => Math.Abs(value) < SAFE_X;
+    public static bool IsSafeY(double value) => Math.Abs(value) < SAFE_Y;
+
+    public static Speed From(string x, string y) {
+        return new Speed(int.Parse(x), int.Parse(y));
+    }
+
+    public static implicit operator Vector(Speed value) => new(value.x, value.y);
+}
+
+struct Control(int angle, int power) {
+    public int angle = angle;
+    public int power = power;
 }
