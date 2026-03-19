@@ -38,10 +38,16 @@ class Game {
         var (point, speed, _, currentControl) = ReadInput();
         var nextControl = new Control(0, 0);
         bool reachedLanding = point.x > landing.start.x && point.x < landing.end.x;
-        if (!reachedLanding) {
-            MoveToLanding(point, speed, currentControl, ref nextControl);
-        } else {
-            Land(point, speed, currentControl, ref nextControl);
+        Console.Error.WriteLine(!reachedLanding ? "Moving to landing" : "Reached landing");
+        var landingCenter = ((Vector)landing.start + landing.end) / 2.0;
+        Vector p = point;
+        Vector v = speed;
+        var (bestControl, _) = FindBest(p, v, currentControl, landingCenter, 5);
+        nextControl.angle = bestControl.angle;
+        nextControl.power = bestControl.power;
+        if (reachedLanding && speed.IsSafe) {
+            nextControl.angle = 0;
+            nextControl.power = 3;
         }
         Console.WriteLine($"{nextControl.angle} {nextControl.power}");
     }
@@ -60,35 +66,25 @@ class Game {
         return (point, speed, fuel, new Control(angle, power));
     }
 
-    void MoveToLanding(Point point, Speed speed, Control current, ref Control next) {
-        double targetX = (landing.start.x + landing.end.x) / 2.0;
-        var target = new Vector(targetX, point.y);
-        Vector p = point;
-        Vector v = speed;
-        var (bestControl, _) = FindBest(p, v, current, target, 6);
-        next.angle = bestControl.angle;
-        next.power = bestControl.power;
-        Console.Error.WriteLine("Moving to landing");
-    }
-
     static (Control control, double score) FindBest(Vector p, Vector v, Control current, Vector target, int depth) {
         if (depth == 0) {
+            double distanceX = Math.Abs(p.x - target.x);
+            double distanceY = Math.Abs(p.y - target.y);
             double speedPenalty = 0;
             if (!Speed.IsSafeX(v.x)) {
-                speedPenalty += 10_000;
+                speedPenalty += 10_000 + Math.Abs(v.x) * 100;
             }
             if (!Speed.IsSafeY(v.y)) {
-                speedPenalty += 20_000;
+                speedPenalty += 20_000 + Math.Abs(v.y) * 100;
             }
-            double distance = Vector.Distance(p, target);
-            return (default, distance + speedPenalty);
+            return (default, distanceX + distanceY * 0.5 + speedPenalty);
         }
         (Control control, double score) best = (default, double.MaxValue);
         for (int angle = -15; angle <= 15; angle += 15) {
             int nextAngle = Math.Clamp(current.angle + angle, -90, 90);
             for (int power = -1; power <= 1; power++) {
                 int nextPower = Math.Clamp(current.power + power, 0, 4);
-                var (pNew, vNew) = SimulateNext(p, v, nextAngle, nextPower, 4);
+                var (pNew, vNew) = SimulateNext(p, v, nextAngle, nextPower, 5);
                 (_, double score) = FindBest(pNew, vNew, new Control(nextAngle, nextPower), target, depth - 1);
                 if (score >= best.score) {
                     continue;
@@ -118,23 +114,6 @@ class Game {
         }
         return (p, v);
     }
-
-    void Land(Point point, Speed speed, Control current, ref Control next) {
-        if (!speed.IsSafe) {
-            double targetX = (landing.start.x + landing.end.x) / 2.0;
-            var target = new Vector(targetX, landing.start.y);
-            Vector p = point;
-            Vector v = speed;
-            var (bestControl, _) = FindBest(p, v, current, target, 5);
-            next.angle = bestControl.angle;
-            next.power = bestControl.power;
-            Console.Error.WriteLine("Reached landing, normalizing speed");
-        } else {
-            next.angle = 0;
-            next.power = 4;
-            Console.Error.WriteLine("Normalized speed, straightened");
-        }
-    }
 }
 
 // 0 ≤ x < 7000, 0 ≤ y < 3000
@@ -155,10 +134,12 @@ readonly struct Vector(double x, double y) {
     public readonly double x = x;
     public readonly double y = y;
 
-    public static double Distance(Vector a, Vector b) {
-        double diffX = a.x - b.x;
-        double diffY = a.y - b.y;
-        return Math.Sqrt(diffX * diffX + diffY * diffY);
+    public static Vector operator +(Vector a, Vector b) {
+        return new Vector(a.x + b.x, a.y + b.y);
+    }
+
+    public static Vector operator /(Vector a, double divisor) {
+        return new Vector(a.x / divisor, a.y / divisor);
     }
 
     public override string ToString() => $"({x:F1}, {y:F1})";
@@ -166,7 +147,10 @@ readonly struct Vector(double x, double y) {
 
 // -500 < horizontal, vertical < 500, in m/s
 readonly struct Speed(int x, int y) {
+    /// actual safe horizontal speed is less than or equals 20
     const int SAFE_X = 15;
+
+    /// actual safe vertical speed is less than or equals 40
     const int SAFE_Y = 35;
 
     /// horizontal
