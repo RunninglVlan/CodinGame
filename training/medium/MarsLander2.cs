@@ -5,7 +5,6 @@ using System.Diagnostics.CodeAnalysis;
 static class MarsLander2 {
     static void Main() {
         var game = new Game();
-        game.Init();
         while (true) {
             game.Loop();
         }
@@ -16,9 +15,9 @@ static class MarsLander2 {
 class Game {
     const float GRAVITY = 3.711f;
 
-    (Point start, Point end) landing;
+    readonly Landing landing = null!;
 
-    public void Init() {
+    public Game() {
         // 2 ≤ number < 30
         int numberOfSurfacePoints = int.Parse(Console.ReadLine()!);
         Point? previousPoint = null;
@@ -29,23 +28,20 @@ class Game {
                 previousPoint = point;
                 continue;
             }
-            landing = (previousPoint.Value, point);
+            landing = new Landing(previousPoint.Value, point);
             Console.Error.WriteLine($"Landing: {landing}");
         }
     }
 
     public void Loop() {
         var (point, speed, _, currentControl) = ReadInput();
-        var nextControl = new Control(0, 0);
-        bool reachedLanding = point.x > landing.start.x && point.x < landing.end.x;
-        Console.Error.WriteLine(!reachedLanding ? "Moving to landing" : "Reached landing");
-        var landingCenter = ((Vector)landing.start + landing.end) / 2.0;
+        landing.SetReached(point);
+        Console.Error.WriteLine(!landing.reached ? "Moving to landing" : "Reached landing");
         Vector p = point;
         Vector v = speed;
-        var (bestControl, _) = FindBest(p, v, currentControl, landingCenter, 5);
-        nextControl.angle = bestControl.angle;
-        nextControl.power = bestControl.power;
-        if (reachedLanding && speed.IsSafe) {
+        var (bestControl, _) = FindBest(p, v, currentControl, landing.center, 5);
+        var nextControl = new Control(bestControl.angle, bestControl.power);
+        if (landing.reached && speed.IsSafe) {
             nextControl.angle = 0;
             nextControl.power = 3;
         }
@@ -128,6 +124,15 @@ readonly struct Point(int x, int y) {
     public static implicit operator Vector(Point value) => new(value.x, value.y);
 
     public override string ToString() => $"({x}, {y})";
+}
+
+class Landing(Point start, Point end) {
+    public Vector center = ((Vector)start + end) / 2.0;
+    public bool reached;
+
+    public void SetReached(Point point) {
+        reached = point.x > start.x && point.x < end.x;
+    }
 }
 
 readonly struct Vector(double x, double y) {
