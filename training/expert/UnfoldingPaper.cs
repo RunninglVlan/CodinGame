@@ -42,39 +42,6 @@ class FoldedPaper(int width, int height) {
         }
     }
 
-    /// For local tests
-    public void Init(string input) {
-        string[] rows = input.Split(Environment.NewLine);
-        for (var y = 0; y < grid.height; y++) {
-            string row = rows[y];
-            SetGridRow(row, y);
-        }
-    }
-
-    /// Down-to-up and Right-to-left
-    public FoldedPaper Unfold() {
-        var paper = new FoldedPaper(grid.width * 2, grid.height * 2);
-        for (var y = 0; y < grid.height; y++) {
-            for (var x = 0; x < grid.width; x++) {
-                var cell = grid.Get(x, y);
-                int xRight = grid.width + x;
-                int xLeft = paper.grid.width - 1 - grid.width - x;
-                int yBottom = grid.height + y;
-                int yTop = paper.grid.height - 1 - grid.height - y;
-                cell.point = new Point(xRight, yBottom);
-                paper.grid.Set(xRight, yBottom, cell);
-                cell.point = new Point(xRight, yTop);
-                paper.grid.Set(xRight, yTop, cell);
-                cell.point = new Point(xLeft, yBottom);
-                paper.grid.Set(xLeft, yBottom, cell);
-                cell.point = new Point(xLeft, yTop);
-                paper.grid.Set(xLeft, yTop, cell);
-            }
-        }
-        paper.grid.filled = grid.filled * 4;
-        return paper;
-    }
-
     public int NumberOfPieces() {
         visitedFilled.Clear();
         var pieces = 0;
@@ -108,6 +75,39 @@ class FoldedPaper(int width, int height) {
                 visitedFilled.Add(cell.point);
             }
         }
+    }
+
+    /// For local tests
+    public void Init(string input) {
+        string[] rows = input.Split(Environment.NewLine);
+        for (var y = 0; y < grid.height; y++) {
+            string row = rows[y];
+            SetGridRow(row, y);
+        }
+    }
+
+    /// Down-to-up and Right-to-left
+    public FoldedPaper Unfold() {
+        var paper = new FoldedPaper(grid.width * 2, grid.height * 2);
+        for (var y = 0; y < grid.height; y++) {
+            for (var x = 0; x < grid.width; x++) {
+                var cell = grid.Get(x, y);
+                int xRight = grid.width + x;
+                int xLeft = paper.grid.width - 1 - grid.width - x;
+                int yBottom = grid.height + y;
+                int yTop = paper.grid.height - 1 - grid.height - y;
+                cell.point = new Point(xRight, yBottom);
+                paper.grid.Set(xRight, yBottom, cell);
+                cell.point = new Point(xRight, yTop);
+                paper.grid.Set(xRight, yTop, cell);
+                cell.point = new Point(xLeft, yBottom);
+                paper.grid.Set(xLeft, yBottom, cell);
+                cell.point = new Point(xLeft, yTop);
+                paper.grid.Set(xLeft, yTop, cell);
+            }
+        }
+        paper.grid.filled = grid.filled * 4;
+        return paper;
     }
 
     /// For copying challenge parameters and using them in local tests
