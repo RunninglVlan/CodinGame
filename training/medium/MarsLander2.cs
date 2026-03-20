@@ -29,7 +29,7 @@ class Game {
                 continue;
             }
             landing = new Landing(previousPoint.Value, point);
-            Console.Error.WriteLine($"Landing: {landing}");
+            Console.Error.WriteLine($"Landing center: {landing.center}");
         }
     }
 
@@ -39,10 +39,11 @@ class Game {
         Console.Error.WriteLine(!landing.reached ? "Moving to landing" : "Reached landing");
         Vector p = point;
         Vector v = speed;
-        var (bestControl, _) = FindBest(p, v, currentControl, landing.center, 5);
-        var nextControl = new Control(bestControl.angle, bestControl.power);
+        var (nextControl, _) = FindBest(p, v, currentControl, landing.center, 5);
         if (landing.reached && speed.IsSafe) {
+            // make sure we're landing with 0 angle
             nextControl.angle = 0;
+            // prevents hovering over landing
             nextControl.power = 3;
         }
         Console.WriteLine($"{nextControl.angle} {nextControl.power}");
