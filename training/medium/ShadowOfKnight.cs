@@ -14,8 +14,8 @@ static class ShadowOfKnight {
 }
 
 class Game {
-    (int xLeft, int yTop, int xRight, int yBottom) bombZone;
-    (int x, int y) batman;
+    BombZone bombZone = null!;
+    Point batman;
 
     [SuppressMessage("ReSharper", "UnusedVariable")]
     public void Init() {
@@ -23,25 +23,26 @@ class Game {
         string[] dimensions = Console.ReadLine()!.Split(' ');
         int width = int.Parse(dimensions[0]);
         int height = int.Parse(dimensions[1]);
-        bombZone = (0, 0, width - 1, height - 1);
+        bombZone = new(0, 0, width - 1, height - 1);
         // maximum number of turns before game over
         int maxTurns = int.Parse(Console.ReadLine()!);
         string[] position = Console.ReadLine()!.Split(' ');
         int x = int.Parse(position[0]);
         int y = int.Parse(position[1]);
-        batman = (x, y);
+        batman = new(x, y);
     }
 
     /// Response time per turn ≤ 150ms
     public void Loop() {
-        // direction of the bomb from batman's current location
-        var bombDirection = ToDirection(Console.ReadLine()!);
-        UpdateBombZone(bombDirection);
-        MoveBatman();
-        Console.WriteLine($"{batman.x} {batman.y}");
+        var bombDirection = ReadDirection();
+        bombZone.Shrink(bombDirection, batman);
+        batman = bombZone.Center;
+        Console.WriteLine(batman);
     }
 
-    static Direction ToDirection(string value) {
+    static Direction ReadDirection() {
+        // direction of the bomb from batman's current location
+        string value = Console.ReadLine()!;
         return value switch {
             "U" => Direction.Up,
             "UR" => Direction.UpRight,
@@ -54,63 +55,50 @@ class Game {
             _ => throw new ArgumentOutOfRangeException(nameof(value), value, null)
         };
     }
+}
 
-    void UpdateBombZone(Direction direction) {
-        switch (direction) {
-            case Direction.Up:
-                bombZone.xLeft = batman.x;
-                bombZone.xRight = batman.x;
-                bombZone.yBottom = batman.y - 1;
-                break;
-            case Direction.Down:
-                bombZone.xLeft = batman.x;
-                bombZone.xRight = batman.x;
-                bombZone.yTop = batman.y + 1;
-                break;
-            case Direction.Right:
-                bombZone.yTop = batman.y;
-                bombZone.yBottom = batman.y;
-                bombZone.xLeft = batman.x + 1;
-                break;
-            case Direction.Left:
-                bombZone.yTop = batman.y;
-                bombZone.yBottom = batman.y;
-                bombZone.xRight = batman.x - 1;
-                break;
-            case Direction.UpRight:
-                bombZone.xLeft = batman.x + 1;
-                bombZone.yBottom = batman.y - 1;
-                break;
-            case Direction.DownRight:
-                bombZone.xLeft = batman.x + 1;
-                bombZone.yTop = batman.y + 1;
-                break;
-            case Direction.UpLeft:
-                bombZone.xRight = batman.x - 1;
-                bombZone.yBottom = batman.y - 1;
-                break;
-            case Direction.DownLeft:
-                bombZone.xRight = batman.x - 1;
-                bombZone.yTop = batman.y + 1;
-                break;
-            default:
-                throw new ArgumentOutOfRangeException(nameof(direction), direction, null);
+class BombZone(int xLeft, int yTop, int xRight, int yBottom) {
+    int xLeft = xLeft;
+    int yTop = yTop;
+    int xRight = xRight;
+    int yBottom = yBottom;
+
+    public Point Center => new((xLeft + xRight) / 2, (yTop + yBottom) / 2);
+
+    [SuppressMessage("ReSharper", "ConvertIfStatementToSwitchStatement")]
+    public void Shrink(Direction direction, Point batman) {
+        if (direction is Direction.Up or Direction.Down) {
+            xLeft = batman.X;
+            xRight = batman.X;
+        } else if (direction is Direction.Right or Direction.Left) {
+            yTop = batman.Y;
+            yBottom = batman.Y;
         }
-    }
-
-    void MoveBatman() {
-        batman.x = (bombZone.xLeft + bombZone.xRight) / 2;
-        batman.y = (bombZone.yTop + bombZone.yBottom) / 2;
+        if (direction.HasFlag(Direction.Up)) {
+            yBottom = batman.Y - 1;
+        } else if (direction.HasFlag(Direction.Down)) {
+            yTop = batman.Y + 1;
+        }
+        if (direction.HasFlag(Direction.Right)) {
+            xLeft = batman.X + 1;
+        } else if (direction.HasFlag(Direction.Left)) {
+            xRight = batman.X - 1;
+        }
     }
 }
 
+readonly record struct Point(int X, int Y) {
+    public override string ToString() => $"{X} {Y}";
+}
+
+[Flags]
 enum Direction {
-    Up,
-    UpRight,
-    Right,
-    DownRight,
-    Down,
-    DownLeft,
-    Left,
-    UpLeft
+    Up = 0b_0001,
+    Right = 0b_0010,
+    Down = 0b_0100,
+    Left = 0b_1000,
+    UpRight = Up | Right,
+    DownRight = Down | Right,
+    DownLeft = Down | Left,
+    UpLeft = Up | Left
 }
