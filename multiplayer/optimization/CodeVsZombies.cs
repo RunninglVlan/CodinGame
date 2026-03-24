@@ -15,9 +15,13 @@ static class CodeVsZombies {
 }
 
 class Game {
+    const int ASH_MOVE = 1000;
+    const int ASH_RADIUS = 2000;
+    const int ZOMBIE_MOVE = 400;
+
     Point ash;
-    readonly List<Point> humans = new();
-    readonly List<Point> zombies = new();
+    readonly Dictionary<int, Point> humans = new();
+    readonly Dictionary<int, Point> zombies = new();
 
     public void Loop() {
         string[] position = Console.ReadLine()!.Split(' ');
@@ -34,7 +38,7 @@ class Game {
             string[] inputs = Console.ReadLine()!.Split(' ');
             int humanId = int.Parse(inputs[0]);
             var human = Point.From(inputs[1], inputs[2]);
-            humans.Add(human);
+            humans.Add(humanId, human);
         }
     }
 
@@ -46,19 +50,37 @@ class Game {
             int zombieId = int.Parse(inputs[0]);
             var zombie = Point.From(inputs[1], inputs[2]);
             var zombieNext = Point.From(inputs[3], inputs[4]);
-            zombies.Add(zombie);
+            zombies.Add(zombieId, zombie);
         }
     }
 
     Point ChooseTarget() {
-        (Point human, int distance) closest = (default, int.MaxValue);
-        foreach (var human in humans) {
-            int distance = Point.ManhattanDistance(human, ash);
-            if (distance < closest.distance) {
-                closest = (human, distance);
+        (Point? human, int distance) closest = (null, int.MaxValue);
+        foreach (var human in humans.Values) {
+            var distance = (int)Point.Distance(human, ash);
+            if (distance >= closest.distance) {
+                continue;
+            }
+            if (IsZombieCloser(human)) {
+                continue;
+            }
+            closest = (human, distance);
+        }
+        return closest.human ?? throw new ArgumentException("No target found");
+    }
+
+    [SuppressMessage("ReSharper", "ForeachCanBeConvertedToQueryUsingAnotherGetEnumerator")]
+    bool IsZombieCloser(Point human) {
+        int ashDistance = (int)Point.Distance(human, ash) - ASH_RADIUS;
+        int ashTurns = ashDistance / ASH_MOVE;
+        foreach (var zombie in zombies.Values) {
+            var distance = (int)Point.Distance(zombie, human);
+            int turns = distance / ZOMBIE_MOVE;
+            if (turns < ashTurns) {
+                return true;
             }
         }
-        return closest.human;
+        return false;
     }
 }
 
@@ -67,8 +89,10 @@ readonly record struct Point(int X, int Y) {
         return new(int.Parse(x), int.Parse(y));
     }
 
-    public static int ManhattanDistance(Point a, Point b) {
-        return Math.Abs(a.X - b.X) + Math.Abs(a.Y - b.Y);
+    public static float Distance(Point a, Point b) {
+        float diffX = a.X - b.X;
+        float diffY = a.Y - b.Y;
+        return (float)Math.Sqrt(diffX * diffX + diffY * diffY);
     }
 
     public override string ToString() => $"{X} {Y}";
