@@ -19,18 +19,24 @@ class Game {
     public void Loop() {
         string[] position = Console.ReadLine()!.Split(' ');
         ash = Point.From(position[0], position[1]);
-        ReadHumans();
+        ReadHumans(out var closestHuman);
         ReadZombies(out var closestZombie);
-        Console.WriteLine(closestZombie);
+        Console.WriteLine(closestHuman);
     }
 
-    void ReadHumans() {
+    void ReadHumans(out Point closestHuman) {
+        (Point human, int distance) closest = (default, int.MaxValue);
         int humanCount = int.Parse(Console.ReadLine()!);
         for (var i = 0; i < humanCount; i++) {
             string[] inputs = Console.ReadLine()!.Split(' ');
             int humanId = int.Parse(inputs[0]);
             var human = Point.From(inputs[1], inputs[2]);
+            int distance = Point.ManhattanDistance(ash, human);
+            if (distance < closest.distance) {
+                closest = (human, distance);
+            }
         }
+        closestHuman = closest.human;
     }
 
     void ReadZombies(out Point closestZombie) {
