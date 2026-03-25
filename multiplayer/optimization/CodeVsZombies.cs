@@ -59,6 +59,10 @@ class Game {
     }
 
     Point ChooseTarget() {
+        return ClosestSavableHuman() ?? throw new ArgumentException("No target found");
+    }
+
+    Point? ClosestSavableHuman() {
         (Point? human, int distance) closest = (null, int.MaxValue);
         foreach (var human in humans.Values) {
             var distance = (int)Point.Distance(human, ash);
@@ -70,7 +74,7 @@ class Game {
             }
             closest = (human, distance);
         }
-        return closest.human ?? throw new ArgumentException("No target found");
+        return closest.human;
     }
 
     [SuppressMessage("ReSharper", "ForeachCanBeConvertedToQueryUsingAnotherGetEnumerator")]
@@ -85,6 +89,18 @@ class Game {
             }
         }
         return false;
+    }
+
+    Point? ClosestZombie() {
+        (Point? zombie, int distance) closest = (null, int.MaxValue);
+        foreach (var zombie in zombies.Values) {
+            var distance = (int)Point.Distance(zombie, ash);
+            if (distance >= closest.distance) {
+                continue;
+            }
+            closest = (zombie, distance);
+        }
+        return closest.zombie;
     }
 }
 
