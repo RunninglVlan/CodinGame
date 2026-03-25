@@ -66,29 +66,30 @@ public class Game {
     }
 
     (Point target, int distance) ChooseTarget() {
-        (var target, int distance) = CriticalSavableHuman();
+        (var target, int distance) = CriticalHumanDanger();
         return target != null ? (target.Value, distance) : throw new ArgumentException("No target found");
     }
 
-    (Point? target, int distance) CriticalSavableHuman() {
-        (Point? human, int distance, int zombieTurns) critical = (null, int.MaxValue, int.MaxValue);
+    (Point? target, int distance) CriticalHumanDanger() {
+        (Point? zombie, int distance, int turns) critical = (null, int.MaxValue, int.MaxValue);
         foreach (var human in humans.Values) {
             var distance = (int)Point.Distance(human, ash);
-            int ashTurns = (distance - GUN_RANGE) / ASH_MOVE;
-            if (!IsSavable(human, ashTurns, out int zombieTurns)) {
+            int turns = (distance - GUN_RANGE) / ASH_MOVE;
+            if (!IsSavable(human, turns, out var closest)) {
                 continue;
             }
-            if (zombieTurns < critical.zombieTurns ||
-                    zombieTurns == critical.zombieTurns && distance < critical.distance) {
-                critical = (human, distance, zombieTurns);
+            if (closest.turns < critical.turns || closest.turns == critical.turns && distance < critical.distance) {
+                critical = (closest.zombie, distance, closest.turns);
             }
         }
-        return (critical.human, critical.distance);
+        int dangerDistance = critical.zombie.HasValue
+                ? (int)Point.Distance(critical.zombie.Value, ash)
+                : int.MaxValue;
+        return (critical.zombie, dangerDistance);
     }
 
-    bool IsSavable(Point human, int ashTurns, out int zombieTurns) {
-        zombieTurns = 0;
-        (Point? zombie, int turns) closest = (null, int.MaxValue);
+    bool IsSavable(Point human, int ashTurns, out (Point zombie, int turns) closest) {
+        closest = (default, int.MaxValue);
         foreach (var zombie in zombies.Values) {
             var distance = (int)Point.Distance(zombie, human);
             int turns = distance / ZOMBIE_MOVE;
@@ -100,20 +101,7 @@ public class Game {
             }
             closest = (zombie, turns);
         }
-        zombieTurns = closest.turns;
         return true;
-    }
-
-    (Point? target, int distance) ClosestZombie() {
-        (Point? zombie, int distance) closest = (null, int.MaxValue);
-        foreach (var zombie in zombies.Values) {
-            var distance = (int)Point.Distance(zombie, ash);
-            if (distance >= closest.distance) {
-                continue;
-            }
-            closest = (zombie, distance);
-        }
-        return closest;
     }
 
     #region Testing
