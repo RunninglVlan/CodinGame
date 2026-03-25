@@ -24,11 +24,15 @@ class Game {
     readonly Dictionary<int, Point> zombies = new();
 
     public void Loop() {
-        string[] position = Console.ReadLine()!.Split(' ');
-        ash = Point.From(position[0], position[1]);
+        ReadAsh();
         ReadHumans();
         ReadZombies();
         Console.WriteLine(ChooseTarget());
+    }
+
+    void ReadAsh() {
+        string[] position = Console.ReadLine()!.Split(' ');
+        ash = Point.From(position[0], position[1]);
     }
 
     void ReadHumans() {
