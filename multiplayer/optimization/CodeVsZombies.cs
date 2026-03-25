@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using System.Text.Json;
 
 namespace CodeVsZombies;
@@ -28,7 +29,7 @@ public class Game {
 
     Point ash;
     Dictionary<int, Point> humans = new();
-    Dictionary<int, Point> zombies = new();
+    Dictionary<int, Zombie> zombies = new();
 
     public void Loop() {
         ReadAsh();
@@ -61,7 +62,7 @@ public class Game {
             int zombieId = int.Parse(inputs[0]);
             var zombie = Point.From(inputs[1], inputs[2]);
             var zombieNext = Point.From(inputs[3], inputs[4]);
-            zombies.Add(zombieId, zombie);
+            zombies.Add(zombieId, new(zombie, zombieNext));
         }
     }
 
@@ -79,7 +80,7 @@ public class Game {
                 continue;
             }
             if (closest.turns < critical.turns || closest.turns == critical.turns && distance < critical.distance) {
-                critical = (closest.zombie, distance, closest.turns);
+                critical = (closest.zombie.Current, distance, closest.turns);
             }
         }
         int dangerDistance = critical.zombie.HasValue
@@ -88,10 +89,10 @@ public class Game {
         return (critical.zombie, dangerDistance);
     }
 
-    bool IsSavable(Point human, int ashTurns, out (Point zombie, int turns) closest) {
+    bool IsSavable(Point human, int ashTurns, out (Zombie zombie, int turns) closest) {
         closest = (default, int.MaxValue);
         foreach (var zombie in zombies.Values) {
-            var distance = (int)Point.Distance(zombie, human);
+            var distance = (int)Point.Distance(zombie.Current, human);
             int turns = distance / ZOMBIE_MOVE;
             if (turns < ashTurns) {
                 return false;
@@ -107,14 +108,19 @@ public class Game {
     #region Testing
 
     public void Save() {
-        Console.Error.WriteLine(JsonSerializer.Serialize(new SaveData(ash, humans, zombies)));
+        var zombiePoints = zombies.ToDictionary(it => it.Key, it => it.Value.Current);
+        Console.Error.WriteLine(JsonSerializer.Serialize(new SaveData(ash, humans, zombiePoints)));
     }
 
     public void Load(string json) {
         var data = JsonSerializer.Deserialize<SaveData>(json);
         ash = data.Ash;
         humans = data.Humans;
-        zombies = data.Zombies;
+        zombies = data.Zombies.ToDictionary(it => it.Key, it => {
+            (var human, int distance) = ClosestHuman(it.Value);
+            var next = MoveTo(it.Value, human, distance, ZOMBIE_MOVE);
+            return new Zombie(it.Value, next);
+        });
     }
 
     public int Simulate() {
@@ -134,8 +140,10 @@ public class Game {
 
     void MoveZombies() {
         foreach ((int id, var zombie) in zombies) {
-            (var human, int distance) = ClosestHuman(zombie);
-            zombies[id] = MoveTo(zombie, human, distance, ZOMBIE_MOVE);
+            (var human, int distance) = ClosestHuman(zombie.Current);
+            var current = MoveTo(zombie.Current, human, distance, ZOMBIE_MOVE);
+            var next = MoveTo(zombie.Current, human, distance, ZOMBIE_MOVE * 2);
+            zombies[id] = new Zombie(current, next);
         }
     }
 
@@ -164,7 +172,7 @@ public class Game {
         var zombieCount = 0;
         foreach (int id in zombies.Keys) {
             var zombie = zombies[id];
-            var distance = (int)Point.Distance(zombie, ash);
+            var distance = (int)Point.Distance(zombie.Current, ash);
             if (distance > GUN_RANGE) {
                 continue;
             }
@@ -183,7 +191,7 @@ public class Game {
         foreach (var zombie in zombies.Values) {
             foreach (int id in humans.Keys) {
                 var human = humans[id];
-                if (human == zombie) {
+                if (human == zombie.Current) {
                     humans.Remove(id);
                 }
             }
@@ -194,6 +202,8 @@ public class Game {
 
     #endregion
 }
+
+readonly record struct Zombie(Point Current, Point Next);
 
 readonly record struct Point(int X, int Y) {
     public static Point From(string x, string y) {
