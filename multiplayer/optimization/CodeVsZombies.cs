@@ -66,37 +66,42 @@ public class Game {
     }
 
     (Point target, int distance) ChooseTarget() {
-        (var target, int distance) = ClosestSavableHuman();
+        (var target, int distance) = CriticalSavableHuman();
         return target != null ? (target.Value, distance) : throw new ArgumentException("No target found");
     }
 
-    (Point? target, int distance) ClosestSavableHuman() {
-        (Point? human, int distance) closest = (null, int.MaxValue);
+    (Point? target, int distance) CriticalSavableHuman() {
+        (Point? human, int distance, int zombieTurns) critical = (null, int.MaxValue, int.MaxValue);
         foreach (var human in humans.Values) {
             var distance = (int)Point.Distance(human, ash);
-            if (distance >= closest.distance) {
+            int ashTurns = (distance - GUN_RANGE) / ASH_MOVE;
+            if (!IsSavable(human, ashTurns, out int zombieTurns)) {
                 continue;
             }
-            if (IsZombieCloser(human)) {
-                continue;
+            if (zombieTurns < critical.zombieTurns ||
+                    zombieTurns == critical.zombieTurns && distance < critical.distance) {
+                critical = (human, distance, zombieTurns);
             }
-            closest = (human, distance);
         }
-        return closest;
+        return (critical.human, critical.distance);
     }
 
-    [SuppressMessage("ReSharper", "ForeachCanBeConvertedToQueryUsingAnotherGetEnumerator")]
-    bool IsZombieCloser(Point human) {
-        int ashDistance = (int)Point.Distance(human, ash) - GUN_RANGE;
-        int ashTurns = ashDistance / ASH_MOVE;
+    bool IsSavable(Point human, int ashTurns, out int zombieTurns) {
+        zombieTurns = 0;
+        (Point? zombie, int turns) closest = (null, int.MaxValue);
         foreach (var zombie in zombies.Values) {
             var distance = (int)Point.Distance(zombie, human);
             int turns = distance / ZOMBIE_MOVE;
             if (turns < ashTurns) {
-                return true;
+                return false;
             }
+            if (turns >= closest.turns) {
+                continue;
+            }
+            closest = (zombie, turns);
         }
-        return false;
+        zombieTurns = closest.turns;
+        return true;
     }
 
     (Point? target, int distance) ClosestZombie() {
