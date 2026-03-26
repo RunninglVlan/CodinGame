@@ -49,23 +49,24 @@ class Game {
     }
 
     string CutGatewayLink(Node agent) {
-        var gateway = nodes.First(it => it is { gateway: true, connections.Count: > 0 });
-        (int i, int distance) closest = (-1, int.MaxValue);
-        for (var i = 0; i < gateway.connections.Count; i++) {
-            var connection = gateway.connections[i];
-            var path = pathfinding.Path(connection, agent);
-            if (path == null || path.Count >= closest.distance) {
-                continue;
+        (Node? gateway, int i, int distance) closest = (null, -1, int.MaxValue);
+        foreach (var gateway in nodes.Where(it => it is { gateway: true, connections.Count: > 0 })) {
+            for (var i = 0; i < gateway.connections.Count; i++) {
+                var connection = gateway.connections[i];
+                var path = pathfinding.Path(connection, agent);
+                if (path == null || path.Count >= closest.distance) {
+                    continue;
+                }
+                closest = (gateway, i, path.Count);
             }
-            closest = (i, path.Count);
         }
-        if (closest.i < 0) {
+        if (closest.gateway == null) {
             throw new ArgumentException("Couldn't find path to agent");
         }
-        var node = gateway.connections[closest.i];
-        gateway.connections.RemoveAt(closest.i);
-        node.connections.Remove(gateway);
-        return $"{gateway.i} {node.i}";
+        var node = closest.gateway.connections[closest.i];
+        closest.gateway.connections.RemoveAt(closest.i);
+        node.connections.Remove(closest.gateway);
+        return $"{closest.gateway.i} {node.i}";
     }
 }
 
