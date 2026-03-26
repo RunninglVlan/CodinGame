@@ -48,49 +48,34 @@ class Game {
     public string Play() {
         var rounds = 0;
         while (player1Deck.Count > 0 && player2Deck.Count > 0) {
+            // battle
             int player1Card = player1Deck.Dequeue();
             player1Pile.Enqueue(player1Card);
             int player2Card = player2Deck.Dequeue();
             player2Pile.Enqueue(player2Card);
             if (player1Card == player2Card) {
-                if (WarIsDraw()) {
+                // war
+                if (player1Deck.Count < 4 || player2Deck.Count < 4) {
                     return "PAT";
                 }
+                for (var i = 0; i < 3; i++) {
+                    int card = player1Deck.Dequeue();
+                    player1Pile.Enqueue(card);
+                }
+                for (var i = 0; i < 3; i++) {
+                    int card = player2Deck.Dequeue();
+                    player2Pile.Enqueue(card);
+                }
+            } else {
+                EnqueueFromWarPiles(player1Card > player2Card ? player1Deck : player2Deck);
                 rounds++;
-                continue;
             }
-            AddToBottomFromWarPiles(player1Card > player2Card ? player1Deck : player2Deck);
-            rounds++;
         }
         int winner = player1Deck.Count > 0 ? 1 : 2;
         return $"{winner} {rounds}";
     }
 
-    [SuppressMessage("ReSharper", "TailRecursiveCall")]
-    bool WarIsDraw() {
-        if (player1Deck.Count < 4 || player2Deck.Count < 4) {
-            return true;
-        }
-        for (var i = 0; i < 3; i++) {
-            int card = player1Deck.Dequeue();
-            player1Pile.Enqueue(card);
-        }
-        for (var i = 0; i < 3; i++) {
-            int card = player2Deck.Dequeue();
-            player2Pile.Enqueue(card);
-        }
-        int player1Card = player1Deck.Dequeue();
-        player1Pile.Enqueue(player1Card);
-        int player2Card = player2Deck.Dequeue();
-        player2Pile.Enqueue(player2Card);
-        if (player1Card == player2Card) {
-            return WarIsDraw();
-        }
-        AddToBottomFromWarPiles(player1Card > player2Card ? player1Deck : player2Deck);
-        return false;
-    }
-
-    void AddToBottomFromWarPiles(Queue<int> deck) {
+    void EnqueueFromWarPiles(Queue<int> deck) {
         while (player1Pile.Count > 0) {
             int card = player1Pile.Dequeue();
             deck.Enqueue(card);
