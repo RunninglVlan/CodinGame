@@ -14,8 +14,8 @@ static class War {
 }
 
 class Game {
-    readonly List<int> player1Deck = new();
-    readonly List<int> player2Deck = new();
+    readonly Queue<int> player1Deck = new();
+    readonly Queue<int> player2Deck = new();
     readonly List<int> player1Pile = new();
     readonly List<int> player2Pile = new();
 
@@ -25,7 +25,7 @@ class Game {
     }
 
     [SuppressMessage("ReSharper", "ConvertIfStatementToSwitchStatement")]
-    static void ReadCards(List<int> deck) {
+    static void ReadCards(Queue<int> deck) {
         int cards = int.Parse(Console.ReadLine()!);
         for (var i = 0; i < cards; i++) {
             string card = Console.ReadLine()!;
@@ -41,16 +41,16 @@ class Game {
             } else if (value == 1) {
                 value = 10;
             }
-            deck.Add(value);
+            deck.Enqueue(value);
         }
     }
 
     public string Play() {
         var rounds = 0;
         while (player1Deck.Count > 0 && player2Deck.Count > 0) {
-            int player1Card = TakeFromTop(player1Deck);
+            int player1Card = player1Deck.Dequeue();
             player1Pile.Add(player1Card);
-            int player2Card = TakeFromTop(player2Deck);
+            int player2Card = player2Deck.Dequeue();
             player2Pile.Add(player2Card);
             if (player1Card == player2Card) {
                 if (WarIsDraw()) {
@@ -72,16 +72,16 @@ class Game {
             return true;
         }
         for (var i = 0; i < 3; i++) {
-            int card = TakeFromTop(player1Deck);
+            int card = player1Deck.Dequeue();
             player1Pile.Add(card);
         }
         for (var i = 0; i < 3; i++) {
-            int card = TakeFromTop(player2Deck);
+            int card = player2Deck.Dequeue();
             player2Pile.Add(card);
         }
-        int player1Card = TakeFromTop(player1Deck);
+        int player1Card = player1Deck.Dequeue();
         player1Pile.Add(player1Card);
-        int player2Card = TakeFromTop(player2Deck);
+        int player2Card = player2Deck.Dequeue();
         player2Pile.Add(player2Card);
         if (player1Card == player2Card) {
             return WarIsDraw();
@@ -90,20 +90,13 @@ class Game {
         return false;
     }
 
-    static int TakeFromTop(List<int> deck) {
-        int i = deck.Count - 1;
-        int card = deck[i];
-        deck.RemoveAt(i);
-        return card;
-    }
-
-    void AddToBottomFromWarPiles(List<int> deck) {
+    void AddToBottomFromWarPiles(Queue<int> deck) {
         foreach (int card in player1Pile) {
-            deck.Insert(0, card);
+            deck.Enqueue(card);
         }
         player1Pile.Clear();
         foreach (int card in player2Pile) {
-            deck.Insert(0, card);
+            deck.Enqueue(card);
         }
         player2Pile.Clear();
     }
