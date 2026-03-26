@@ -49,15 +49,15 @@ class Game {
     }
 
     string CutGatewayLink(Node agent) {
-        (Node? gateway, int i, int distance) closest = (null, -1, int.MaxValue);
+        (Node? gateway, int i, int length) closest = (null, -1, int.MaxValue);
         foreach (var gateway in nodes.Where(it => it is { gateway: true, connections.Count: > 0 })) {
             for (var i = 0; i < gateway.connections.Count; i++) {
                 var connection = gateway.connections[i];
-                var path = pathfinding.Path(connection, agent);
-                if (path == null || path.Count >= closest.distance) {
+                int? length = pathfinding.PathLength(connection, agent);
+                if (length == null || length >= closest.length) {
                     continue;
                 }
-                closest = (gateway, i, path.Count);
+                closest = (gateway, i, length.Value);
             }
         }
         if (closest.gateway == null) {
@@ -77,12 +77,11 @@ class Node(int i) {
 }
 
 class Pathfinding {
-    readonly List<int> path = new();
     readonly Queue<PathNode> queue = new();
     readonly Dictionary<int, PathNode> visited = new();
 
     /// BFS
-    public List<int>? Path(Node start, Node end) {
+    public int? PathLength(Node start, Node end) {
         queue.Clear();
         visited.Clear();
         var startNode = new PathNode(start);
@@ -91,7 +90,7 @@ class Pathfinding {
         while (queue.Count > 0) {
             var current = queue.Dequeue();
             if (current.node == end) {
-                return Reconstruct(startNode, current);
+                return CountNodes(startNode, current);
             }
             foreach (var node in current.node.connections) {
                 if (visited.ContainsKey(node.i)) {
@@ -105,15 +104,14 @@ class Pathfinding {
         return null;
     }
 
-    List<int> Reconstruct(PathNode start, PathNode end) {
-        path.Clear();
+    static int CountNodes(PathNode start, PathNode end) {
+        var length = 0;
         var current = end;
         while (current != start) {
-            path.Add(current!.node.i);
-            current = current.parent;
+            length++;
+            current = current?.parent;
         }
-        path.Reverse();
-        return path;
+        return length;
     }
 }
 
