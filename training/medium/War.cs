@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 
 namespace War;
 
@@ -24,23 +23,18 @@ class Game {
         ReadCards(player2Deck);
     }
 
-    [SuppressMessage("ReSharper", "ConvertIfStatementToSwitchStatement")]
     static void ReadCards(Queue<int> deck) {
         int cards = int.Parse(Console.ReadLine()!);
         for (var i = 0; i < cards; i++) {
             string card = Console.ReadLine()!;
-            char c = card[0];
-            var value = (int)char.GetNumericValue(c);
-            if (value < 0) {
-                value = c switch {
-                    'J' => 11,
-                    'Q' => 12,
-                    'K' => 13,
-                    _ => 14
-                };
-            } else if (value == 1) {
-                value = 10;
-            }
+            card = card.Remove(card.Length - 1);
+            int value = card switch {
+                "J" => 11,
+                "Q" => 12,
+                "K" => 13,
+                "A" => 14,
+                _ => int.Parse(card)
+            };
             deck.Enqueue(value);
         }
     }
