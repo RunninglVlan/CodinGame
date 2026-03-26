@@ -53,11 +53,11 @@ class Game {
         if (path == null) {
             throw new ArgumentException("Couldn't find path to agent");
         }
-        var node1 = path[^1];
-        var node2 = path[^2];
-        node1.connections.Remove(node2);
-        node2.connections.Remove(node1);
-        return $"{node1.i} {node2.i}";
+        var gateway = path[^1];
+        var node = path[^2];
+        gateway.connections.Remove(node);
+        node.connections.Remove(gateway);
+        return $"{gateway.i} {node.i}";
     }
 }
 
@@ -81,7 +81,7 @@ class Pathfinding {
         while (queue.Count > 0) {
             var current = queue.Dequeue();
             if (endPredicate(current.node.i)) {
-                return Reconstruct(startNode, current);
+                return Reconstruct(current);
             }
             foreach (var node in current.node.connections) {
                 if (visited.Contains(node.i)) {
@@ -95,14 +95,13 @@ class Pathfinding {
         return null;
     }
 
-    List<Node> Reconstruct(PathNode start, PathNode end) {
+    List<Node> Reconstruct(PathNode end) {
         path.Clear();
         var current = end;
-        while (current != start) {
-            path.Add(current!.node);
+        while (current != null) {
+            path.Add(current.node);
             current = current.parent;
         }
-        path.Add(start.node);
         path.Reverse();
         return path;
     }
