@@ -14,30 +14,27 @@ static class ThereIsNoSpoon {
 
 class Grid {
     int width, height;
-    bool[] powerCells = null!;
+    bool[,] powerCells = null!;
 
     public void Init() {
         width = int.Parse(Console.ReadLine()!);
         height = int.Parse(Console.ReadLine()!);
-        powerCells = new bool[width * height];
+        powerCells = new bool[width, height];
         for (var y = 0; y < height; y++) {
             string characters = Console.ReadLine()!;
             for (var x = 0; x < width; x++) {
                 char c = characters[x];
                 // A dot . represents an empty cell
                 // A zero 0 represents a cell containing a node
-                Set(x, y, c == '0');
+                powerCells[x, y] = c == '0';
             }
         }
     }
 
-    void Set(int x, int y, bool cell) => powerCells[width * y + x] = cell;
-    bool Get(int x, int y) => powerCells[width * y + x];
-
     public void PrintNodeNeighbors() {
         for (var y = 0; y < height; y++) {
             for (var x = 0; x < width; x++) {
-                bool isPowerNode = Get(x, y);
+                bool isPowerNode = powerCells[x, y];
                 if (!isPowerNode) {
                     continue;
                 }
@@ -50,7 +47,7 @@ class Grid {
 
     (int x, int y) RightNode(int startX, int y) {
         for (int x = startX; x < width; x++) {
-            bool isPowerNode = Get(x, y);
+            bool isPowerNode = powerCells[x, y];
             if (isPowerNode) {
                 return (x, y);
             }
@@ -60,7 +57,7 @@ class Grid {
 
     (int x, int y) BottomNode(int x, int startY) {
         for (int y = startY; y < height; y++) {
-            bool isPowerNode = Get(x, y);
+            bool isPowerNode = powerCells[x, y];
             if (isPowerNode) {
                 return (x, y);
             }
