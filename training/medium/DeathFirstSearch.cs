@@ -19,6 +19,7 @@ static class DeathFirstSearch {
 
 class Game {
     Node[] nodes = null!;
+    readonly Pathfinding pathfinding = new();
 
     public void Init() {
         string[] inputs = Console.ReadLine()!.Split(' ');
@@ -43,14 +44,26 @@ class Game {
     }
 
     public void Loop() {
-        int bobnet = int.Parse(Console.ReadLine()!);
-        Console.WriteLine(CutGatewayLink());
+        int agent = int.Parse(Console.ReadLine()!);
+        Console.WriteLine(CutGatewayLink(nodes[agent]));
     }
 
-    string CutGatewayLink() {
+    string CutGatewayLink(Node agent) {
         var gateway = nodes.First(it => it is { gateway: true, connections.Count: > 0 });
-        var node = gateway.connections.First();
-        gateway.connections.RemoveAt(0);
+        (int i, int distance) closest = (-1, int.MaxValue);
+        for (var i = 0; i < gateway.connections.Count; i++) {
+            var connection = gateway.connections[i];
+            var path = pathfinding.Path(connection, agent);
+            if (path == null || path.Count >= closest.distance) {
+                continue;
+            }
+            closest = (i, path.Count);
+        }
+        if (closest.i < 0) {
+            throw new ArgumentException("Couldn't find path to agent");
+        }
+        var node = gateway.connections[closest.i];
+        gateway.connections.RemoveAt(closest.i);
         node.connections.Remove(gateway);
         return $"{gateway.i} {node.i}";
     }
@@ -60,4 +73,50 @@ class Node(int i) {
     public readonly int i = i;
     public readonly List<Node> connections = new();
     public bool gateway;
+}
+
+class Pathfinding {
+    readonly List<int> path = new();
+    readonly Queue<PathNode> queue = new();
+    readonly Dictionary<int, PathNode> visited = new();
+
+    /// BFS
+    public List<int>? Path(Node start, Node end) {
+        queue.Clear();
+        visited.Clear();
+        var startNode = new PathNode(start);
+        queue.Enqueue(startNode);
+        visited.Add(start.i, startNode);
+        while (queue.Count > 0) {
+            var current = queue.Dequeue();
+            if (current.node == end) {
+                return Reconstruct(startNode, current);
+            }
+            foreach (var node in current.node.connections) {
+                if (visited.ContainsKey(node.i)) {
+                    continue;
+                }
+                var neighbour = new PathNode(node) { parent = current };
+                queue.Enqueue(neighbour);
+                visited.Add(node.i, neighbour);
+            }
+        }
+        return null;
+    }
+
+    List<int> Reconstruct(PathNode start, PathNode end) {
+        path.Clear();
+        var current = end;
+        while (current != start) {
+            path.Add(current!.node.i);
+            current = current.parent;
+        }
+        path.Reverse();
+        return path;
+    }
+}
+
+class PathNode(Node node) {
+    public readonly Node node = node;
+    public PathNode? parent;
 }
