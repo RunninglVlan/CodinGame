@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
+namespace SnakeByte;
+
 /// https://www.codingame.com/contests/winter-challenge-2026-exotec
 static class SnakeByte {
     static void Main() {
@@ -41,7 +43,7 @@ class Game {
     }
 }
 
-class Grid {
+public class Grid {
     int width;
     int height;
 
@@ -166,13 +168,13 @@ class Grid {
     }
 }
 
-class Cell(int x, int y) {
+public class Cell(int x, int y) {
     public Point point = new(x, y);
     public CellType type;
     public bool IsEmpty => type is CellType.Empty or CellType.EmptySide;
 }
 
-enum CellType {
+public enum CellType {
     Platform,
     Empty,
     EmptySide,
@@ -406,7 +408,7 @@ class Snake(bool mine) {
     public void Ignore(Point target) => ignored.Add(target, STUCK_TURNS);
 }
 
-readonly record struct Point(int x, int y) {
+public readonly record struct Point(int x, int y) {
     public readonly int x = x;
     public readonly int y = y;
 
@@ -455,7 +457,7 @@ static class Action {
     public const string WAIT = "WAIT";
 }
 
-class Pathfinding(Grid grid) {
+public class Pathfinding(Grid grid) {
     readonly Dictionary<Point, Node> nodes = new();
     readonly List<Point> path = new();
     readonly PriorityQueue<Node, int> openQueue = new();

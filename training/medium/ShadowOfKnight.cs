@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Diagnostics.CodeAnalysis;
 
+namespace ShadowOfKnight;
+
 /// https://www.codingame.com/training/medium/shadows-of-the-knight-episode-1
 static class ShadowOfKnight {
     static void Main() {

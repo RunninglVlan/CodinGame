@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 
+namespace UnfoldingPaper;
+
 /// https://www.codingame.com/training/expert/unfolding-paper
 static class UnfoldingPaper {
     static void Main() {
@@ -15,7 +17,7 @@ static class UnfoldingPaper {
     }
 }
 
-class FoldedPaper(int width, int height) {
+public class FoldedPaper(int width, int height) {
     readonly Grid grid = new(width, height);
 
     public void Init() {

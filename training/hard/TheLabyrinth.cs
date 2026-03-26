@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 
+namespace TheLabyrinth;
+
 /// https://www.codingame.com/training/hard/the-labyrinth
 static class TheLabyrinth {
     static void Main() {
