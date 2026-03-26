@@ -163,7 +163,7 @@ public class Game {
             return target;
         }
         var direction = (Vector)target - source;
-        return source + direction.Normalized * step;
+        return source + direction.Normalized() * step;
     }
 
     [SuppressMessage("ReSharper", "ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator")]
@@ -222,9 +222,9 @@ readonly record struct Point(int X, int Y) {
 }
 
 readonly record struct Vector(double X, double Y) {
-    public Vector Normalized => this / Magnitude;
+    public Vector Normalized() => this / Magnitude();
 
-    double Magnitude => Math.Sqrt(X * X + Y * Y);
+    double Magnitude() => Math.Sqrt(X * X + Y * Y);
 
     public static implicit operator Point(Vector value) => new((int)Math.Floor(value.X), (int)Math.Floor(value.Y));
 
