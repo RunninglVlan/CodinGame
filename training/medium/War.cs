@@ -16,8 +16,8 @@ static class War {
 class Game {
     readonly Queue<int> player1Deck = new();
     readonly Queue<int> player2Deck = new();
-    readonly List<int> player1Pile = new();
-    readonly List<int> player2Pile = new();
+    readonly Queue<int> player1Pile = new();
+    readonly Queue<int> player2Pile = new();
 
     public void Init() {
         ReadCards(player1Deck);
@@ -49,9 +49,9 @@ class Game {
         var rounds = 0;
         while (player1Deck.Count > 0 && player2Deck.Count > 0) {
             int player1Card = player1Deck.Dequeue();
-            player1Pile.Add(player1Card);
+            player1Pile.Enqueue(player1Card);
             int player2Card = player2Deck.Dequeue();
-            player2Pile.Add(player2Card);
+            player2Pile.Enqueue(player2Card);
             if (player1Card == player2Card) {
                 if (WarIsDraw()) {
                     return "PAT";
@@ -73,16 +73,16 @@ class Game {
         }
         for (var i = 0; i < 3; i++) {
             int card = player1Deck.Dequeue();
-            player1Pile.Add(card);
+            player1Pile.Enqueue(card);
         }
         for (var i = 0; i < 3; i++) {
             int card = player2Deck.Dequeue();
-            player2Pile.Add(card);
+            player2Pile.Enqueue(card);
         }
         int player1Card = player1Deck.Dequeue();
-        player1Pile.Add(player1Card);
+        player1Pile.Enqueue(player1Card);
         int player2Card = player2Deck.Dequeue();
-        player2Pile.Add(player2Card);
+        player2Pile.Enqueue(player2Card);
         if (player1Card == player2Card) {
             return WarIsDraw();
         }
@@ -91,13 +91,13 @@ class Game {
     }
 
     void AddToBottomFromWarPiles(Queue<int> deck) {
-        foreach (int card in player1Pile) {
+        while (player1Pile.Count > 0) {
+            int card = player1Pile.Dequeue();
             deck.Enqueue(card);
         }
-        player1Pile.Clear();
-        foreach (int card in player2Pile) {
+        while (player2Pile.Count > 0) {
+            int card = player2Pile.Dequeue();
             deck.Enqueue(card);
         }
-        player2Pile.Clear();
     }
 }
