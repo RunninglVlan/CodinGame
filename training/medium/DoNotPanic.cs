@@ -17,8 +17,7 @@ static class DoNotPanic {
 }
 
 class Game {
-    Target exit = null!;
-    readonly Dictionary<int, Target> elevators = new();
+    readonly Dictionary<int, Target> targets = new();
 
     [SuppressMessage("ReSharper", "UnusedVariable")]
     public void Init() {
@@ -26,63 +25,52 @@ class Game {
         int floors = int.Parse(inputs[0]);
         int width = int.Parse(inputs[1]);
         int maxRounds = int.Parse(inputs[2]);
-        exit = new(Position.From(inputs[4], inputs[3]));
+        int exitFloor = int.Parse(inputs[3]);
+        int exitX = int.Parse(inputs[4]);
+        targets.Add(exitFloor, new Target(exitX));
         int clones = int.Parse(inputs[5]);
         int additionalElevators = int.Parse(inputs[6]);
         int elevatorCount = int.Parse(inputs[7]);
         for (var i = 0; i < elevatorCount; i++) {
             inputs = Console.ReadLine()!.Split(' ');
-            var elevatorPosition = Position.From(inputs[1], inputs[0]);
-            elevators.Add(elevatorPosition.Floor, new Target(elevatorPosition));
+            int elevatorFloor = int.Parse(inputs[0]);
+            int elevatorX = int.Parse(inputs[1]);
+            targets.Add(elevatorFloor, new Target(elevatorX));
         }
     }
 
     public void Loop() {
         string[] inputs = Console.ReadLine()!.Split(' ');
-        var leadingClone = Position.From(inputs[1], inputs[0]);
+        int leadingCloneFloor = int.Parse(inputs[0]);
+        int leadingCloneX = int.Parse(inputs[1]);
         string leadingCloneDirection = inputs[2];
-        Console.WriteLine(ChooseAction(leadingClone, leadingCloneDirection));
+        Console.WriteLine(ChooseAction(leadingCloneX, leadingCloneFloor, leadingCloneDirection));
     }
 
-    string ChooseAction(Position clone, string direction) {
-        if (clone.Floor < 0) {
+    string ChooseAction(int cloneX, int cloneFloor, string direction) {
+        if (cloneFloor < 0) {
             // no leading clone
             return Action.WAIT;
         }
-        if (exit.reachable) {
+        var target = targets[cloneFloor];
+        if (target.reachable) {
             return Action.WAIT;
         }
-        if (exit.position.Floor != clone.Floor) {
-            var elevator = elevators[clone.Floor];
-            if (elevator.reachable) {
-                return Action.WAIT;
-            }
-            elevator.reachable = true;
-            return BlockIfMovingInWrongDirection(clone, direction, elevator);
-        }
-        exit.reachable = true;
-        return BlockIfMovingInWrongDirection(clone, direction, exit);
+        target.reachable = true;
+        return BlockIfMovingInWrongDirection(cloneX, direction, target);
     }
 
-    static string BlockIfMovingInWrongDirection(Position clone, string direction, Target target) {
-        if (target.position.X < clone.X) {
+    static string BlockIfMovingInWrongDirection(int cloneX, string direction, Target target) {
+        if (target.x < cloneX) {
             return direction == Direction.RIGHT ? Action.BLOCK : Action.WAIT;
         }
         return direction == Direction.LEFT ? Action.BLOCK : Action.WAIT;
     }
 }
 
-class Target(Position position) {
-    public readonly Position position = position;
+class Target(int x) {
+    public readonly int x = x;
     public bool reachable;
-}
-
-readonly record struct Position(int X, int Floor) {
-    public static Position From(string x, string floor) {
-        return new(int.Parse(x), int.Parse(floor));
-    }
-
-    public override string ToString() => $"({X}, {Floor})";
 }
 
 static class Direction {
