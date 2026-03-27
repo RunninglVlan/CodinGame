@@ -54,7 +54,7 @@ class Game {
         var gatewayLinks = GatewayLinks();
         (Link? link, int path, int nodePath) best = (null, int.MinValue, int.MaxValue);
         foreach (var link in gatewayLinks) {
-            CutLink(link);
+            link.Cut();
             int path = pathfinding.PathLength(agent, it => gateways.Contains(it)) ?? int.MinValue;
             int nodePath = pathfinding.PathLength(agent, link.Node) ?? int.MaxValue;
             if (path > best.path
@@ -62,17 +62,11 @@ class Game {
                     || link.GatewayCount == best.link?.GatewayCount && nodePath < best.nodePath) {
                 best = (link, path, nodePath);
             }
-            link.Gateway.connections.Add(link.Node);
-            link.Node.connections.Add(link.Gateway);
+            link.Restore();
         }
         var bestLink = best.link ?? gatewayLinks.First();
-        CutLink(bestLink);
+        bestLink.Cut();
         return bestLink;
-
-        void CutLink(Link link) {
-            link.Gateway.connections.Remove(link.Node);
-            link.Node.connections.Remove(link.Gateway);
-        }
     }
 
     List<Link> GatewayLinks() {
@@ -99,6 +93,16 @@ class Node(int i) {
 }
 
 readonly record struct Link(Node Gateway, Node Node, int GatewayCount) {
+    public void Cut() {
+        Gateway.connections.Remove(Node);
+        Node.connections.Remove(Gateway);
+    }
+
+    public void Restore() {
+        Gateway.connections.Add(Node);
+        Node.connections.Add(Gateway);
+    }
+
     public override string ToString() => $"{Gateway.i} {Node.i}";
 }
 
