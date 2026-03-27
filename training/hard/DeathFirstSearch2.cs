@@ -54,14 +54,14 @@ class Game {
         (Link? link, int futurePath, int nodePath) best = (null, int.MinValue, int.MaxValue);
         foreach (var link in GatewayLinks()) {
             link.Cut();
-            var agentPath = pathfinding.Path(agent, it => gateways.Contains(it));
-            if (agentPath == null) {
+            var path = pathfinding.Path(agent, it => gateways.Contains(it));
+            if (path == null) {
                 return link;
             }
-            var futureAgent = nodes[agentPath.First().i];
-            int path = pathfinding.Path(agent, it => gateways.Contains(it))?.Count ?? int.MinValue;
+            var futureAgent = nodes[path.First().i];
+            int pathLength = path.Count;
             int nodePath = pathfinding.Path(futureAgent, link.Node)?.Count ?? int.MaxValue;
-            int futureBestPath = FutureBestPath(futureAgent, path);
+            int futureBestPath = FutureBestPath(futureAgent, pathLength);
             if (futureBestPath > best.futurePath
                     || futureBestPath == best.futurePath && link.GatewayCount > best.link?.GatewayCount
                     || link.GatewayCount == best.link?.GatewayCount && nodePath < best.nodePath) {
