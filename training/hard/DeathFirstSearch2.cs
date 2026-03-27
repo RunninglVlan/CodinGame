@@ -51,20 +51,25 @@ class Game {
     }
 
     Link CutGatewayLink(Node agent) {
-        var gatewayLinks = GatewayLinks();
-        (Link? link, int path, int nodePath) best = (null, int.MinValue, int.MaxValue);
-        foreach (var link in gatewayLinks) {
+        (Link? link, int futurePath, int nodePath) best = (null, int.MinValue, int.MaxValue);
+        foreach (var link in GatewayLinks()) {
             link.Cut();
-            int path = pathfinding.PathLength(agent, it => gateways.Contains(it)) ?? int.MinValue;
-            int nodePath = pathfinding.PathLength(agent, link.Node) ?? int.MaxValue;
-            if (path > best.path
-                    || path == best.path && link.GatewayCount > best.link?.GatewayCount
+            var agentPath = pathfinding.Path(agent, it => gateways.Contains(it));
+            if (agentPath == null) {
+                return link;
+            }
+            var futureAgent = nodes[agentPath.First().i];
+            int path = pathfinding.Path(agent, it => gateways.Contains(it))?.Count ?? int.MinValue;
+            int nodePath = pathfinding.Path(futureAgent, link.Node)?.Count ?? int.MaxValue;
+            int futureBestPath = FutureBestPath(futureAgent, path);
+            if (futureBestPath > best.futurePath
+                    || futureBestPath == best.futurePath && link.GatewayCount > best.link?.GatewayCount
                     || link.GatewayCount == best.link?.GatewayCount && nodePath < best.nodePath) {
-                best = (link, path, nodePath);
+                best = (link, futureBestPath, nodePath);
             }
             link.Restore();
         }
-        var bestLink = best.link ?? gatewayLinks.First();
+        var bestLink = best.link!.Value;
         bestLink.Cut();
         return bestLink;
     }
@@ -84,6 +89,19 @@ class Game {
             links.Add(new Link(gateway, node, gatewayCount));
         }
         return links;
+    }
+
+    int FutureBestPath(Node agent, int previousPath) {
+        int bestPath = previousPath;
+        foreach (var link in GatewayLinks()) {
+            link.Cut();
+            int path = pathfinding.Path(agent, it => gateways.Contains(it))?.Count ?? int.MaxValue;
+            if (path > bestPath) {
+                bestPath = path;
+            }
+            link.Restore();
+        }
+        return bestPath;
     }
 }
 
@@ -107,16 +125,17 @@ readonly record struct Link(Node Gateway, Node Node, int GatewayCount) {
 }
 
 class Pathfinding {
+    readonly List<Node> path = new();
     readonly Queue<PathNode> queue = new();
     readonly HashSet<int> visited = new();
 
     /// BFS to end
-    public int? PathLength(Node start, Node end) {
-        return PathLength(start, i => i == end.i);
+    public List<Node>? Path(Node start, Node end) {
+        return Path(start, i => i == end.i);
     }
 
     /// BFS to endPredicate
-    public int? PathLength(Node start, Predicate<int> endPredicate) {
+    public List<Node>? Path(Node start, Predicate<int> endPredicate) {
         queue.Clear();
         visited.Clear();
         var startNode = new PathNode(start);
@@ -125,7 +144,7 @@ class Pathfinding {
         while (queue.Count > 0) {
             var current = queue.Dequeue();
             if (endPredicate(current.node.i)) {
-                return CountLinks(current);
+                return Reconstruct(startNode, current);
             }
             foreach (var node in current.node.connections) {
                 if (visited.Contains(node.i)) {
@@ -139,14 +158,15 @@ class Pathfinding {
         return null;
     }
 
-    static int CountLinks(PathNode end) {
-        var length = 0;
+    List<Node> Reconstruct(PathNode start, PathNode end) {
+        path.Clear();
         var current = end;
-        while (current != null) {
-            length++;
+        while (current != start) {
+            path.Add(current!.node);
             current = current.parent;
         }
-        return length - 1;
+        path.Reverse();
+        return path;
     }
 }
 
