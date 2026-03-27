@@ -50,23 +50,35 @@ class Game {
     }
 
     string CutGatewayLink(Node agent) {
-        var paths = pathfinding.ShortestPaths(agent, i => gateways.Contains(i));
-        (Node? gateway, Node? node, int links) important = (null, null, int.MinValue);
-        foreach (var path in paths) {
-            var pathGateway = path[^1];
-            var pathNode = path[^2];
-            int gatewayLinks = pathNode.connections.Count(it => gateways.Contains(it.i));
-            if (gatewayLinks > important.links) {
-                important = (pathGateway, pathNode, gatewayLinks);
-            }
-        }
-        var (gateway, node) = (important.gateway, important.node);
-        if (gateway == null || node == null) {
-            throw new ArgumentException("Couldn't find path to agent");
-        }
+        var dangerousNode = FindDangerousNodes(agent).First();
+        var node = nodes[dangerousNode.I];
+        var gateway = node.connections.First(it => gateways.Contains(it.i));
         gateway.connections.Remove(node);
         node.connections.Remove(gateway);
         return $"{gateway.i} {node.i}";
+    }
+
+    IEnumerable<DangerousNode> FindDangerousNodes(Node agent) {
+        return Nodes()
+            .OrderByDescending(it => it.Path == 0)
+            .ThenByDescending(it => it.GatewayLinks)
+            .ThenBy(it => it.Path);
+
+        IEnumerable<DangerousNode> Nodes() {
+            foreach (var node in nodes) {
+                int gatewayLinks = node.connections.Count(it => gateways.Contains(it.i));
+                if (gatewayLinks <= 0) {
+                    continue;
+                }
+                int? path = node == agent
+                    ? 0
+                    : pathfinding.PathLength(node, agent);
+                if (path == null) {
+                    continue;
+                }
+                yield return new DangerousNode(node.i, gatewayLinks, path.Value);
+            }
+        }
     }
 }
 
@@ -75,14 +87,14 @@ class Node(int i) {
     public readonly List<Node> connections = new();
 }
 
+record struct DangerousNode(int I, int GatewayLinks, int Path);
+
 class Pathfinding {
-    readonly List<List<Node>> paths = new();
     readonly Queue<PathNode> queue = new();
     readonly HashSet<int> visited = new();
 
     /// BFS
-    public List<List<Node>> ShortestPaths(Node start, Predicate<int> endPredicate) {
-        paths.Clear();
+    public int? PathLength(Node start, Node end) {
         queue.Clear();
         visited.Clear();
         var startNode = new PathNode(start);
@@ -90,12 +102,8 @@ class Pathfinding {
         visited.Add(start.i);
         while (queue.Count > 0) {
             var current = queue.Dequeue();
-            if (endPredicate(current.node.i)) {
-                var path = Reconstruct(current);
-                if (paths.Count > 0 && path.Count > paths.First().Count) {
-                    return paths;
-                }
-                paths.Add(path);
+            if (current.node == end) {
+                return CountLinks(current);
             }
             foreach (var node in current.node.connections) {
                 if (visited.Contains(node.i)) {
@@ -106,18 +114,17 @@ class Pathfinding {
                 visited.Add(node.i);
             }
         }
-        return paths;
+        return null;
     }
 
-    static List<Node> Reconstruct(PathNode end) {
-        var path = new List<Node>();
+    static int CountLinks(PathNode end) {
+        var length = 0;
         var current = end;
         while (current != null) {
-            path.Add(current.node);
+            length++;
             current = current.parent;
         }
-        path.Reverse();
-        return path;
+        return length - 1;
     }
 }
 
