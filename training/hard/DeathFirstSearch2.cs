@@ -46,39 +46,50 @@ class Game {
 
     public void Loop() {
         int agent = int.Parse(Console.ReadLine()!);
-        Console.WriteLine(CutGatewayLink(nodes[agent]));
+        var link = CutGatewayLink(nodes[agent]);
+        Console.WriteLine(link);
     }
 
-    string CutGatewayLink(Node agent) {
-        var dangerousNode = FindDangerousNodes(agent).First();
-        var node = nodes[dangerousNode.I];
-        var gateway = node.connections.First(it => gateways.Contains(it.i));
-        gateway.connections.Remove(node);
-        node.connections.Remove(gateway);
-        return $"{gateway.i} {node.i}";
-    }
-
-    IEnumerable<DangerousNode> FindDangerousNodes(Node agent) {
-        return Nodes()
-            .OrderByDescending(it => it.Path == 0)
-            .ThenByDescending(it => it.GatewayLinks)
-            .ThenBy(it => it.Path);
-
-        IEnumerable<DangerousNode> Nodes() {
-            foreach (var node in nodes) {
-                int gatewayLinks = node.connections.Count(it => gateways.Contains(it.i));
-                if (gatewayLinks <= 0) {
-                    continue;
-                }
-                int? path = node == agent
-                    ? 0
-                    : pathfinding.PathLength(node, agent);
-                if (path == null) {
-                    continue;
-                }
-                yield return new DangerousNode(node.i, gatewayLinks, path.Value);
+    Link CutGatewayLink(Node agent) {
+        var gatewayLinks = GatewayLinks();
+        (Link? link, int path, int nodePath) best = (null, int.MinValue, int.MaxValue);
+        foreach (var link in gatewayLinks) {
+            CutLink(link);
+            int path = pathfinding.PathLength(agent, it => gateways.Contains(it)) ?? int.MinValue;
+            int nodePath = pathfinding.PathLength(agent, link.Node) ?? int.MaxValue;
+            if (path > best.path
+                    || path == best.path && link.GatewayCount > best.link?.GatewayCount
+                    || link.GatewayCount == best.link?.GatewayCount && nodePath < best.nodePath) {
+                best = (link, path, nodePath);
             }
+            link.Gateway.connections.Add(link.Node);
+            link.Node.connections.Add(link.Gateway);
         }
+        var bestLink = best.link ?? gatewayLinks.First();
+        CutLink(bestLink);
+        return bestLink;
+
+        void CutLink(Link link) {
+            link.Gateway.connections.Remove(link.Node);
+            link.Node.connections.Remove(link.Gateway);
+        }
+    }
+
+    List<Link> GatewayLinks() {
+        var links = new List<Link>();
+        foreach (var node in nodes) {
+            Node? gateway = null;
+            var gatewayCount = 0;
+            foreach (var connectedGateway in node.connections.Where(it => gateways.Contains(it.i))) {
+                gateway = connectedGateway;
+                gatewayCount++;
+            }
+            if (gateway == null) {
+                continue;
+            }
+            links.Add(new Link(gateway, node, gatewayCount));
+        }
+        return links;
     }
 }
 
@@ -87,14 +98,21 @@ class Node(int i) {
     public readonly List<Node> connections = new();
 }
 
-record struct DangerousNode(int I, int GatewayLinks, int Path);
+readonly record struct Link(Node Gateway, Node Node, int GatewayCount) {
+    public override string ToString() => $"{Gateway.i} {Node.i}";
+}
 
 class Pathfinding {
     readonly Queue<PathNode> queue = new();
     readonly HashSet<int> visited = new();
 
-    /// BFS
+    /// BFS to end
     public int? PathLength(Node start, Node end) {
+        return PathLength(start, i => i == end.i);
+    }
+
+    /// BFS to endPredicate
+    public int? PathLength(Node start, Predicate<int> endPredicate) {
         queue.Clear();
         visited.Clear();
         var startNode = new PathNode(start);
@@ -102,7 +120,7 @@ class Pathfinding {
         visited.Add(start.i);
         while (queue.Count > 0) {
             var current = queue.Dequeue();
-            if (current.node == end) {
+            if (endPredicate(current.node.i)) {
                 return CountLinks(current);
             }
             foreach (var node in current.node.connections) {
