@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 
 namespace DeathFirstSearch2;
 
@@ -49,12 +50,20 @@ class Game {
     }
 
     string CutGatewayLink(Node agent) {
-        var path = pathfinding.Path(agent, i => gateways.Contains(i));
-        if (path == null) {
+        var paths = pathfinding.ShortestPaths(agent, i => gateways.Contains(i));
+        (Node? gateway, Node? node, int links) important = (null, null, int.MinValue);
+        foreach (var path in paths) {
+            var pathGateway = path[^1];
+            var pathNode = path[^2];
+            int gatewayLinks = pathNode.connections.Count(it => gateways.Contains(it.i));
+            if (gatewayLinks > important.links) {
+                important = (pathGateway, pathNode, gatewayLinks);
+            }
+        }
+        var (gateway, node) = (important.gateway, important.node);
+        if (gateway == null || node == null) {
             throw new ArgumentException("Couldn't find path to agent");
         }
-        var gateway = path[^1];
-        var node = path[^2];
         gateway.connections.Remove(node);
         node.connections.Remove(gateway);
         return $"{gateway.i} {node.i}";
@@ -67,12 +76,13 @@ class Node(int i) {
 }
 
 class Pathfinding {
-    readonly List<Node> path = new();
+    readonly List<List<Node>> paths = new();
     readonly Queue<PathNode> queue = new();
     readonly HashSet<int> visited = new();
 
     /// BFS
-    public List<Node>? Path(Node start, Predicate<int> endPredicate) {
+    public List<List<Node>> ShortestPaths(Node start, Predicate<int> endPredicate) {
+        paths.Clear();
         queue.Clear();
         visited.Clear();
         var startNode = new PathNode(start);
@@ -81,7 +91,11 @@ class Pathfinding {
         while (queue.Count > 0) {
             var current = queue.Dequeue();
             if (endPredicate(current.node.i)) {
-                return Reconstruct(current);
+                var path = Reconstruct(current);
+                if (paths.Count > 0 && path.Count > paths.First().Count) {
+                    return paths;
+                }
+                paths.Add(path);
             }
             foreach (var node in current.node.connections) {
                 if (visited.Contains(node.i)) {
@@ -92,11 +106,11 @@ class Pathfinding {
                 visited.Add(node.i);
             }
         }
-        return null;
+        return paths;
     }
 
-    List<Node> Reconstruct(PathNode end) {
-        path.Clear();
+    static List<Node> Reconstruct(PathNode end) {
+        var path = new List<Node>();
         var current = end;
         while (current != null) {
             path.Add(current.node);
