@@ -33,7 +33,7 @@ class Game {
                 continue;
             }
             landing = new Landing(previous.Value, point);
-            Console.Error.WriteLine($"Landing center: {landing.center}");
+            Console.Error.WriteLine($"Landing center: ({(landing.xLeft + landing.xRight) / 2}, {landing.y})");
         }
     }
 
@@ -43,7 +43,7 @@ class Game {
         Console.Error.WriteLine(!landing.reached ? "Moving to landing" : "Reached landing");
         Vector p = point;
         Vector v = speed;
-        var (nextControl, _) = FindBest(p, v, currentControl, landing.center, 5);
+        var (nextControl, _) = FindBest(p, v, currentControl, 5);
         if (landing.reached && speed.IsOptimal) {
             // make sure we're landing with 0 angle
             nextControl.angle = 0;
@@ -67,10 +67,15 @@ class Game {
         return (point, speed, fuel, new Control(angle, power));
     }
 
-    static (Control control, double score) FindBest(Vector p, Vector v, Control current, Vector target, int depth) {
+    (Control control, double score) FindBest(Vector p, Vector v, Control current, int depth) {
         if (depth == 0) {
-            double distanceX = Math.Abs(p.x - target.x);
-            double distanceY = Math.Abs(p.y - target.y);
+            double distanceX = 0;
+            if (p.x < landing.xLeft) {
+                distanceX = landing.xLeft - p.x;
+            } else if (p.x > landing.xRight) {
+                distanceX = p.x - landing.xRight;
+            }
+            double distanceY = Math.Abs(p.y - landing.y);
             // vertical distance is less important
             double score = distanceX + distanceY * 0.5;
             if (!Speed.IsOptimalX(v.x)) {
@@ -89,7 +94,7 @@ class Game {
             for (int power = -1; power <= 1; power++) {
                 int nextPower = Math.Clamp(current.power + power, 0, 4);
                 var (pNew, vNew) = SimulateNext(p, v, nextAngle, nextPower, 5);
-                (_, double score) = FindBest(pNew, vNew, new Control(nextAngle, nextPower), target, depth - 1);
+                (_, double score) = FindBest(pNew, vNew, new Control(nextAngle, nextPower), depth - 1);
                 if (score >= best.score) {
                     continue;
                 }
@@ -134,12 +139,17 @@ readonly struct Point(int x, int y) {
     public override string ToString() => $"({x}, {y})";
 }
 
-class Landing(Point start, Point end) {
-    public Vector center = ((Vector)start + end) / 2.0;
+class Landing(Point left, Point right) {
+    public readonly int xLeft = left.x;
+    public readonly int xRight = right.x;
+
+    /// Landing is flat, so left.y == right.y
+    public readonly int y = left.y;
+
     public bool reached;
 
     public void SetReached(Point point) {
-        reached = point.x > start.x && point.x < end.x;
+        reached = point.x > xLeft && point.x < xRight;
     }
 }
 
