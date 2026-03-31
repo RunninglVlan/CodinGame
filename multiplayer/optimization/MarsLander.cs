@@ -28,7 +28,7 @@ class Game {
         for (var i = 0; i < surfacePoints; i++) {
             string[] position = Console.ReadLine()!.Split(' ');
             var point = Point.From(position[0], position[1]);
-            if (previous == null || point.y != previous.Value.y) {
+            if (previous == null || point.Y != previous.Value.Y) {
                 previous = point;
                 continue;
             }
@@ -126,30 +126,27 @@ class Game {
 }
 
 // 0 ≤ x < 7000, 0 ≤ y < 3000
-readonly struct Point(int x, int y) {
-    public readonly int x = x;
-    public readonly int y = y;
-
+readonly record struct Point(int X, int Y) {
     public static Point From(string x, string y) {
         return new Point(int.Parse(x), int.Parse(y));
     }
 
-    public static implicit operator Vector(Point value) => new(value.x, value.y);
+    public static implicit operator Vector(Point value) => new(value.X, value.Y);
 
-    public override string ToString() => $"({x}, {y})";
+    public override string ToString() => $"({X}, {Y})";
 }
 
 class Landing(Point left, Point right) {
-    public readonly int xLeft = left.x;
-    public readonly int xRight = right.x;
+    public readonly int xLeft = left.X;
+    public readonly int xRight = right.X;
 
     /// Landing is flat, so left.y == right.y
-    public readonly int y = left.y;
+    public readonly int y = left.Y;
 
     public bool reached;
 
     public void SetReached(Point point) {
-        reached = point.x > xLeft && point.x < xRight;
+        reached = point.X > xLeft && point.X < xRight;
     }
 }
 
