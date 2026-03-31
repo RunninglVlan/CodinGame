@@ -71,11 +71,14 @@ class Game {
             double distanceY = Math.Abs(p.y - target.y);
             double speedPenalty = 0;
             if (!Speed.IsSafeX(v.x)) {
+                // being faster is worse
                 speedPenalty += 10_000 + Math.Abs(v.x) * 100;
             }
             if (!Speed.IsSafeY(v.y)) {
+                // unsafe vertical speed is penalized more
                 speedPenalty += 20_000 + Math.Abs(v.y) * 100;
             }
+            // vertical distance is less important
             return (default, distanceX + distanceY * 0.5 + speedPenalty);
         }
         (Control control, double score) best = (default, double.MaxValue);

@@ -44,7 +44,7 @@ class Game {
         Vector p = point;
         Vector v = speed;
         var (nextControl, _) = FindBest(p, v, currentControl, landing.center, 5);
-        if (landing.reached && speed.IsSafe) {
+        if (landing.reached && speed.IsOptimal) {
             // make sure we're landing with 0 angle
             nextControl.angle = 0;
             // prevents hovering over landing
@@ -71,14 +71,17 @@ class Game {
         if (depth == 0) {
             double distanceX = Math.Abs(p.x - target.x);
             double distanceY = Math.Abs(p.y - target.y);
-            double speedPenalty = 0;
-            if (!Speed.IsSafeX(v.x)) {
-                speedPenalty += 10_000 + Math.Abs(v.x) * 100;
+            // vertical distance is less important
+            double score = distanceX + distanceY * 0.5;
+            if (!Speed.IsOptimalX(v.x)) {
+                // being faster is worse
+                score += 10_000 + Math.Abs(v.x) * 100;
             }
-            if (!Speed.IsSafeY(v.y)) {
-                speedPenalty += 20_000 + Math.Abs(v.y) * 100;
+            if (!Speed.IsOptimalY(v.y)) {
+                // unsafe vertical speed is penalized more
+                score += 20_000 + Math.Abs(v.y) * 100;
             }
-            return (default, distanceX + distanceY * 0.5 + speedPenalty);
+            return (default, score);
         }
         (Control control, double score) best = (default, double.MaxValue);
         for (int angle = -15; angle <= 15; angle += 15) {
@@ -157,11 +160,8 @@ readonly struct Vector(double x, double y) {
 
 // -500 < horizontal, vertical < 500, in m/s
 readonly struct Speed(int x, int y) {
-    /// actual safe horizontal speed is less than or equals 20
-    const int SAFE_X = 15;
-
-    /// actual safe vertical speed is less than or equals 40
-    const int SAFE_Y = 35;
+    static readonly (int optimal, int max) X_LIMIT = (15, 20);
+    static readonly (int optimal, int max) Y_LIMIT = (35, 40);
 
     /// horizontal
     readonly int x = x;
@@ -169,9 +169,10 @@ readonly struct Speed(int x, int y) {
     /// vertical
     readonly int y = y;
 
-    public bool IsSafe => Math.Abs(x) < SAFE_X && Math.Abs(y) < SAFE_Y;
-    public static bool IsSafeX(double value) => Math.Abs(value) < SAFE_X;
-    public static bool IsSafeY(double value) => Math.Abs(value) < SAFE_Y;
+    public bool IsSafe => Math.Abs(x) <= X_LIMIT.max && Math.Abs(y) <= Y_LIMIT.max;
+    public bool IsOptimal => Math.Abs(x) < X_LIMIT.optimal && Math.Abs(y) < Y_LIMIT.optimal;
+    public static bool IsOptimalX(double value) => Math.Abs(value) < X_LIMIT.optimal;
+    public static bool IsOptimalY(double value) => Math.Abs(value) < Y_LIMIT.optimal;
 
     public static Speed From(string x, string y) {
         return new Speed(int.Parse(x), int.Parse(y));
