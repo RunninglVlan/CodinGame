@@ -53,7 +53,7 @@ class Game {
         if (IsObstacleInWay(point, target, 50, out var obstacle)) {
             target = obstacle with { Y = obstacle.Y + 50 };
         }
-        var (nextControl, _) = FindBest(p, v, currentControl, target, 6);
+        var (nextControl, _) = FindBest(p, v, currentControl, target, 5);
         if (landing.reached && speed.IsOptimal) {
             // make sure we're landing with 0 angle
             nextControl.Angle = 0;
@@ -109,11 +109,11 @@ class Game {
             // vertical distance is important only if target is above
             double yWeight = target.Y > p.Y ? 2.0 : 0.5;
             double score = distanceX + distanceY * yWeight;
-            if (!Speed.IsOptimalX(v.X)) {
+            if (!Speed.IsSafeX(v.X)) {
                 // being faster is worse
                 score += 10_000 + Math.Abs(v.X) * 100;
             }
-            if (!Speed.IsOptimalY(v.Y)) {
+            if (!Speed.IsSafeY(v.Y)) {
                 // unsafe vertical speed is penalized more
                 score += 20_000 + Math.Abs(v.Y) * 100;
             }
@@ -124,8 +124,7 @@ class Game {
             int nextAngle = Math.Clamp(current.Angle + angle, -90, 90);
             for (int power = -1; power <= 1; power++) {
                 int nextPower = Math.Clamp(current.Power + power, 0, 4);
-                int iterations = depth > 2 ? 5 : 2;
-                var (pNew, vNew) = SimulateNext(p, v, nextAngle, nextPower, iterations);
+                var (pNew, vNew) = SimulateNext(p, v, nextAngle, nextPower, 5);
                 (_, double score) = FindBest(pNew, vNew, new Control(nextAngle, nextPower), target, depth - 1);
                 if (score >= best.score) {
                     continue;
@@ -207,8 +206,8 @@ readonly struct Speed(int x, int y) {
     readonly int y = y;
 
     public bool IsOptimal => Math.Abs(x) < X_LIMIT.optimal && Math.Abs(y) < Y_LIMIT.optimal;
-    public static bool IsOptimalX(double value) => Math.Abs(value) < X_LIMIT.optimal;
-    public static bool IsOptimalY(double value) => value > -Y_LIMIT.optimal;
+    public static bool IsSafeX(double value) => Math.Abs(value) < X_LIMIT.max;
+    public static bool IsSafeY(double value) => value > -Y_LIMIT.max;
 
     public static Speed From(string x, string y) {
         return new Speed(int.Parse(x), int.Parse(y));
