@@ -46,9 +46,9 @@ class Game {
         var (nextControl, _) = FindBest(p, v, currentControl, landing.Nearest(point), 5);
         if (landing.reached && speed.IsOptimal) {
             // make sure we're landing with 0 angle
-            nextControl.angle = 0;
+            nextControl.Angle = 0;
             // prevents hovering over landing
-            nextControl.power = 3;
+            nextControl.Power = 3;
         }
         Console.WriteLine(nextControl);
     }
@@ -69,25 +69,25 @@ class Game {
 
     static (Control control, double score) FindBest(Vector p, Vector v, Control current, Point target, int depth) {
         if (depth == 0) {
-            double distanceX = Math.Abs(p.x - target.X);
-            double distanceY = Math.Abs(p.y - target.Y);
+            double distanceX = Math.Abs(p.X - target.X);
+            double distanceY = Math.Abs(p.Y - target.Y);
             // vertical distance is less important
             double score = distanceX + distanceY * 0.5;
-            if (!Speed.IsOptimalX(v.x)) {
+            if (!Speed.IsOptimalX(v.X)) {
                 // being faster is worse
-                score += 10_000 + Math.Abs(v.x) * 100;
+                score += 10_000 + Math.Abs(v.X) * 100;
             }
-            if (!Speed.IsOptimalY(v.y)) {
+            if (!Speed.IsOptimalY(v.Y)) {
                 // unsafe vertical speed is penalized more
-                score += 20_000 + Math.Abs(v.y) * 100;
+                score += 20_000 + Math.Abs(v.Y) * 100;
             }
             return (default, score);
         }
         (Control control, double score) best = (default, double.MaxValue);
         for (int angle = -15; angle <= 15; angle += 15) {
-            int nextAngle = Math.Clamp(current.angle + angle, -90, 90);
+            int nextAngle = Math.Clamp(current.Angle + angle, -90, 90);
             for (int power = -1; power <= 1; power++) {
-                int nextPower = Math.Clamp(current.power + power, 0, 4);
+                int nextPower = Math.Clamp(current.Power + power, 0, 4);
                 var (pNew, vNew) = SimulateNext(p, v, nextAngle, nextPower, 5);
                 (_, double score) = FindBest(pNew, vNew, new Control(nextAngle, nextPower), target, depth - 1);
                 if (score >= best.score) {
@@ -111,10 +111,10 @@ class Game {
     static (Vector, Vector) SimulateNext(Vector p, Vector v, int nextAngle, int nextPower, int iterations) {
         double radians = nextAngle * Math.PI / 180;
         var thrust = new Vector(-nextPower * Math.Sin(radians), nextPower * Math.Cos(radians));
-        var a = new Vector(thrust.x, thrust.y - GRAVITY);
+        var a = thrust with { Y = thrust.Y - GRAVITY };
         for (var i = 0; i < iterations; i++) {
-            v = new Vector(v.x + a.x, v.y + a.y);
-            p = new Vector(p.x + v.x - 0.5 * a.x, p.y + v.y - 0.5 * a.y);
+            v = new Vector(v.X + a.X, v.Y + a.Y);
+            p = new Vector(p.X + v.X - 0.5 * a.X, p.Y + v.Y - 0.5 * a.Y);
         }
         return (p, v);
     }
@@ -146,19 +146,16 @@ class Landing(Point left, Point right) {
     }
 }
 
-readonly struct Vector(double x, double y) {
-    public readonly double x = x;
-    public readonly double y = y;
-
+readonly record struct Vector(double X, double Y) {
     public static Vector operator +(Vector a, Vector b) {
-        return new Vector(a.x + b.x, a.y + b.y);
+        return new Vector(a.X + b.X, a.Y + b.Y);
     }
 
     public static Vector operator /(Vector a, double divisor) {
-        return new Vector(a.x / divisor, a.y / divisor);
+        return new Vector(a.X / divisor, a.Y / divisor);
     }
 
-    public override string ToString() => $"({x:F1}, {y:F1})";
+    public override string ToString() => $"({X:F1}, {Y:F1})";
 }
 
 // -500 < horizontal, vertical < 500, in m/s
@@ -172,7 +169,6 @@ readonly struct Speed(int x, int y) {
     /// vertical
     readonly int y = y;
 
-    public bool IsSafe => Math.Abs(x) <= X_LIMIT.max && Math.Abs(y) <= Y_LIMIT.max;
     public bool IsOptimal => Math.Abs(x) < X_LIMIT.optimal && Math.Abs(y) < Y_LIMIT.optimal;
     public static bool IsOptimalX(double value) => Math.Abs(value) < X_LIMIT.optimal;
     public static bool IsOptimalY(double value) => Math.Abs(value) < Y_LIMIT.optimal;
@@ -184,9 +180,6 @@ readonly struct Speed(int x, int y) {
     public static implicit operator Vector(Speed value) => new(value.x, value.y);
 }
 
-struct Control(int angle, int power) {
-    public int angle = angle;
-    public int power = power;
-
-    public override string ToString() => $"{angle} {power}";
+record struct Control(int Angle, int Power) {
+    public override string ToString() => $"{Angle} {Power}";
 }
