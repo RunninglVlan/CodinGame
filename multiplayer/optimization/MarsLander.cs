@@ -19,20 +19,26 @@ static class MarsLander {
 class Game {
     const float GRAVITY = 3.711f;
 
+    Point[] surface = null!;
     Landing landing = null!;
 
     public void Init() {
         // 2 ≤ number < 30
         int surfacePoints = int.Parse(Console.ReadLine()!);
+        surface = new Point[surfacePoints];
         Point? previous = null;
         for (var i = 0; i < surfacePoints; i++) {
             string[] position = Console.ReadLine()!.Split(' ');
             var point = Point.From(position[0], position[1]);
+            surface[i] = point;
             if (previous == null || point.Y != previous.Value.Y) {
                 previous = point;
                 continue;
             }
-            landing = new Landing(previous.Value, point);
+            const int safetyMargin = 50;
+            landing = new Landing(
+                    previous.Value with { X = previous.Value.X + safetyMargin },
+                    point with { X = point.X - safetyMargin });
             Console.Error.WriteLine($"Landing center: {landing.center}");
         }
     }
@@ -43,7 +49,11 @@ class Game {
         Console.Error.WriteLine(!landing.reached ? "Moving to landing" : "Reached landing");
         Vector p = point;
         Vector v = speed;
-        var (nextControl, _) = FindBest(p, v, currentControl, landing.Nearest(point), 5);
+        var target = landing.Nearest(point);
+        if (IsObstacleInWay(point, target, 50, out var obstacle)) {
+            target = obstacle with { Y = obstacle.Y + 50 };
+        }
+        var (nextControl, _) = FindBest(p, v, currentControl, target, 6);
         if (landing.reached && speed.IsOptimal) {
             // make sure we're landing with 0 angle
             nextControl.Angle = 0;
@@ -67,12 +77,38 @@ class Game {
         return (point, speed, fuel, new Control(angle, power));
     }
 
+    bool IsObstacleInWay(Point current, Point target, int margin, out Point obstacle) {
+        // straight line: y = mx + b
+        double m = (double)(target.Y - current.Y) / (target.X - current.X);
+        double b = current.Y - m * current.X;
+        int left = Math.Min(current.X, target.X);
+        int right = Math.Max(current.X, target.X);
+        (Point? point, double violation) mostDangerous = (null, -margin);
+        obstacle = default;
+        foreach (var point in surface) {
+            if (point.X <= left || point.X >= right) {
+                continue;
+            }
+            double lineY = m * point.X + b;
+            double violation = point.Y - lineY;
+            if (violation > mostDangerous.violation) {
+                mostDangerous = (point, violation);
+            }
+        }
+        if (mostDangerous.point == null) {
+            return false;
+        }
+        obstacle = mostDangerous.point.Value;
+        return true;
+    }
+
     static (Control control, double score) FindBest(Vector p, Vector v, Control current, Point target, int depth) {
         if (depth == 0) {
             double distanceX = Math.Abs(p.X - target.X);
             double distanceY = Math.Abs(p.Y - target.Y);
-            // vertical distance is less important
-            double score = distanceX + distanceY * 0.5;
+            // vertical distance is important only if target is above
+            double yWeight = target.Y > p.Y ? 2.0 : 0.5;
+            double score = distanceX + distanceY * yWeight;
             if (!Speed.IsOptimalX(v.X)) {
                 // being faster is worse
                 score += 10_000 + Math.Abs(v.X) * 100;
@@ -88,7 +124,8 @@ class Game {
             int nextAngle = Math.Clamp(current.Angle + angle, -90, 90);
             for (int power = -1; power <= 1; power++) {
                 int nextPower = Math.Clamp(current.Power + power, 0, 4);
-                var (pNew, vNew) = SimulateNext(p, v, nextAngle, nextPower, 5);
+                int iterations = depth > 2 ? 5 : 2;
+                var (pNew, vNew) = SimulateNext(p, v, nextAngle, nextPower, iterations);
                 (_, double score) = FindBest(pNew, vNew, new Control(nextAngle, nextPower), target, depth - 1);
                 if (score >= best.score) {
                     continue;
@@ -171,7 +208,7 @@ readonly struct Speed(int x, int y) {
 
     public bool IsOptimal => Math.Abs(x) < X_LIMIT.optimal && Math.Abs(y) < Y_LIMIT.optimal;
     public static bool IsOptimalX(double value) => Math.Abs(value) < X_LIMIT.optimal;
-    public static bool IsOptimalY(double value) => Math.Abs(value) < Y_LIMIT.optimal;
+    public static bool IsOptimalY(double value) => value > -Y_LIMIT.optimal;
 
     public static Speed From(string x, string y) {
         return new Speed(int.Parse(x), int.Parse(y));
