@@ -34,7 +34,7 @@ readonly record struct Point(int X, int Y) {
     }
 }
 
-/// 0 &lt;= thrust power &lt;= 100
+// 0 <= thrust power <= 100
 readonly struct Control(Point target, int power) {
     public override string ToString() => $"{target.X} {target.Y} {power}";
 }

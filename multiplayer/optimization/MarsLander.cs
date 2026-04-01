@@ -170,7 +170,7 @@ readonly record struct Point(int X, int Y) {
 class Landing(Point left, Point right) {
     public bool reached;
 
-    /// Landing is flat, so left.y == right.y
+    /// Landing is flat, so left.Y == right.Y
     public Point center = left with { X = (left.X + right.X) / 2 };
 
     public Point Nearest(Point point) {
