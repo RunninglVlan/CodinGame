@@ -32,12 +32,14 @@ class Game {
     }
 }
 
+// 0 ≤ x < 16000, 0 ≤ y < 9000
 readonly record struct Point(int X, int Y) {
     public static Point From(string x, string y) {
         return new Point(int.Parse(x), int.Parse(y));
     }
 }
 
+// Has radius of 600
 // -180 <= angle <= 180 between pod orientation and direction of next checkpoint
 readonly struct Checkpoint(Point point, int distance, int angle) {
     public Point Point => point;
