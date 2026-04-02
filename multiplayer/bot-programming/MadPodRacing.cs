@@ -18,18 +18,19 @@ static class MadPodRacing {
 class Game {
     Checkpoint next;
     Point previousCheckpoint = new(-1, -1);
-    readonly Dictionary<Point, int> checkpointDistances = new();
+    readonly Dictionary<Point, Checkpoint> checkpoints = new();
     Point? boostCheckpoint;
     bool hasBoost = true;
 
     public void Loop() {
         ReadInput();
+        FindBoostCheckpoint();
         if (hasBoost && next.IsOptimalAngle && next.Point == boostCheckpoint) {
             Console.WriteLine($"{next.Point} BOOST");
             hasBoost = false;
         } else {
-            int power = next.IsSafeAngle ? 100 : 0;
-            Console.WriteLine(new Control(next.Point, power));
+            int thrust = next.IsSafeAngle ? 100 : 0;
+            Console.WriteLine(new Control(next.Point, thrust));
         }
     }
 
@@ -40,18 +41,21 @@ class Game {
         next = Checkpoint.From(checkpoint, inputs[4], inputs[5]);
         inputs = Console.ReadLine()!.Split(' ');
         var opponent = Point.From(inputs[0], inputs[1]);
-        if (previousCheckpoint == checkpoint) {
+    }
+
+    void FindBoostCheckpoint() {
+        if (previousCheckpoint == next.Point) {
             return;
         }
-        previousCheckpoint = checkpoint;
-        if (checkpointDistances.ContainsKey(checkpoint)) {
+        previousCheckpoint = next.Point;
+        if (checkpoints.ContainsKey(next.Point)) {
             // found all checkpoints, use boost on longest straight
-            boostCheckpoint = checkpointDistances
-                    .OrderByDescending(it => it.Value)
+            boostCheckpoint = checkpoints
+                    .OrderByDescending(it => it.Value.Distance)
                     .Select(it => it.Key)
                     .First();
         }
-        checkpointDistances[checkpoint] = next.Distance;
+        checkpoints[next.Point] = next;
     }
 }
 
@@ -77,7 +81,7 @@ readonly struct Checkpoint(Point point, int distance, int angle) {
     }
 }
 
-// 0 <= thrust power <= 100
-readonly struct Control(Point target, int power) {
-    public override string ToString() => $"{target} {power}";
+// 0 <= thrust <= 100
+readonly struct Control(Point target, int thrust) {
+    public override string ToString() => $"{target} {thrust}";
 }
