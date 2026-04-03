@@ -93,10 +93,12 @@ class Game {
     }
 
     static Vector SimulateNext(Vector p, Vector v, Vector target, int thrust, int iterations) {
+        const double friction = 0.85;
         for (var i = 0; i < iterations; i++) {
             var direction = target - p;
             v += direction.Normalized() * thrust;
             p += v;
+            v *= friction;
         }
         return p;
     }
