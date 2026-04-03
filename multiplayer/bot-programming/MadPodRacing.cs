@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace MadPodRacing;
 
@@ -20,7 +19,7 @@ class Game {
 
     Checkpoint next;
     Point previousCheckpoint = new(-1, -1);
-    readonly Dictionary<Point, Checkpoint> checkpoints = new();
+    readonly List<Point> checkpoints = new();
     Point? boostCheckpoint;
     bool hasBoost = true;
 
@@ -51,15 +50,24 @@ class Game {
         if (boostCheckpoint != null || previousCheckpoint == next.Point) {
             return;
         }
-        previousCheckpoint = next.Point;
-        if (checkpoints.ContainsKey(next.Point)) {
-            // found all checkpoints, use boost on longest straight
-            boostCheckpoint = checkpoints
-                    .OrderByDescending(it => it.Value.Distance)
-                    .Select(it => it.Key)
-                    .First();
+        if (!checkpoints.Contains(next.Point)) {
+            checkpoints.Add(next.Point);
+            previousCheckpoint = next.Point;
+            return;
         }
-        checkpoints[next.Point] = next;
+        // found all checkpoints
+        var maxDistance = double.MinValue;
+        for (var i = 0; i < checkpoints.Count; i++) {
+            var checkpoint = checkpoints[i];
+            var checkpointNext = checkpoints[(i + 1) % checkpoints.Count];
+            double distance = Vector.Distance(checkpoint, checkpointNext);
+            if (distance <= maxDistance) {
+                continue;
+            }
+            // use boost on longest straight
+            maxDistance = distance;
+            boostCheckpoint = checkpointNext;
+        }
     }
 }
 
@@ -67,6 +75,16 @@ class Game {
 readonly record struct Point(int X, int Y) {
     public static Point From(string x, string y) {
         return new Point(int.Parse(x), int.Parse(y));
+    }
+
+    public static implicit operator Vector(Point value) => new(value.X, value.Y);
+}
+
+readonly record struct Vector(double X, double Y) {
+    public static double Distance(Vector a, Vector b) {
+        double diffX = a.X - b.X;
+        double diffY = a.Y - b.Y;
+        return Math.Sqrt(diffX * diffX + diffY * diffY);
     }
 }
 
