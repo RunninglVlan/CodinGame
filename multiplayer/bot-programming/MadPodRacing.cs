@@ -44,7 +44,7 @@ class Game {
     }
 
     void FindBoostCheckpoint() {
-        if (previousCheckpoint == next.Point) {
+        if (boostCheckpoint != null || previousCheckpoint == next.Point) {
             return;
         }
         previousCheckpoint = next.Point;
