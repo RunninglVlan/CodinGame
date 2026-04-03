@@ -16,6 +16,8 @@ static class MadPodRacing {
 }
 
 class Game {
+    static readonly (int none, int max) THRUST = (0, 100);
+
     Checkpoint next;
     Point previousCheckpoint = new(-1, -1);
     readonly Dictionary<Point, Checkpoint> checkpoints = new();
@@ -25,13 +27,15 @@ class Game {
     public void Loop() {
         ReadInput();
         FindBoostCheckpoint();
-        if (hasBoost && next.IsOptimalAngle && next.Point == boostCheckpoint) {
-            Console.WriteLine($"{next.Point} BOOST");
+        var control = $"{next.Point.X} {next.Point.Y} ";
+        if (hasBoost && next.Point == boostCheckpoint && next.IsOptimalAngle) {
+            control += Ability.BOOST;
             hasBoost = false;
         } else {
-            int thrust = next.IsSafeAngle ? 100 : 0;
-            Console.WriteLine(new Control(next.Point, thrust));
+            int thrust = next.IsSafeAngle ? THRUST.max : THRUST.none;
+            control += thrust;
         }
+        Console.WriteLine(control);
     }
 
     void ReadInput() {
@@ -64,8 +68,6 @@ readonly record struct Point(int X, int Y) {
     public static Point From(string x, string y) {
         return new Point(int.Parse(x), int.Parse(y));
     }
-
-    public override string ToString() => $"{X} {Y}";
 }
 
 // Has radius of 600
@@ -81,7 +83,6 @@ readonly struct Checkpoint(Point point, int distance, int angle) {
     }
 }
 
-// 0 <= thrust <= 100
-readonly struct Control(Point target, int thrust) {
-    public override string ToString() => $"{target} {thrust}";
+static class Ability {
+    public const string BOOST = "BOOST";
 }
