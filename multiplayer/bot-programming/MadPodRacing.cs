@@ -28,7 +28,7 @@ class Game {
 
     public void Loop() {
         ReadInput();
-        FindBoostCheckpoint();
+        FindBoostCheckpoint(next.Point);
         var control = $"{next.Point.X} {next.Point.Y} ";
         if (player.Speed > 300 && turn - player.ShieldTurn > 3 && player.HasCollisionRisk(opponent)) {
             control += Ability.SHIELD;
@@ -41,6 +41,7 @@ class Game {
         }
         Console.WriteLine(control);
         turn++;
+        previous = next.Point;
     }
 
     void ReadInput() {
@@ -52,13 +53,12 @@ class Game {
         opponent.Point = Point.From(inputs[0], inputs[1]);
     }
 
-    void FindBoostCheckpoint() {
-        if (boostCheckpoint != null || previous == next.Point) {
+    void FindBoostCheckpoint(Point current) {
+        if (boostCheckpoint != null || previous == current) {
             return;
         }
-        if (!checkpoints.Contains(next.Point)) {
-            checkpoints.Add(next.Point);
-            previous = next.Point;
+        if (!checkpoints.Contains(current)) {
+            checkpoints.Add(current);
             return;
         }
         checkpointsFound = true;
