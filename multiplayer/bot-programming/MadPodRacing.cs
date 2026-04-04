@@ -135,7 +135,7 @@ readonly record struct Point(int X, int Y) {
 
     public static implicit operator Vector(Point value) => new(value.X, value.Y);
 
-    public override string ToString() => $"({X}, {X})";
+    public override string ToString() => $"({X}, {Y})";
 }
 
 record struct Vector(double X, double Y) {
@@ -154,7 +154,7 @@ record struct Vector(double X, double Y) {
     public static Vector operator *(Vector a, double value) => new(a.X * value, a.Y * value);
     public static Vector operator /(Vector a, double value) => new(a.X / value, a.Y / value);
 
-    public override string ToString() => $"({X:F0}, {X:F0})";
+    public override string ToString() => $"({X:F0}, {Y:F0})";
 }
 
 // -180 <= angle <= 180 between pod orientation and direction of next checkpoint
