@@ -21,7 +21,7 @@ class Game {
     int turn = 1;
     readonly Pod player = new(), opponent = new();
     Checkpoint next;
-    Point previousCheckpoint = new(-1, -1);
+    Point previous = new(-1, -1);
     readonly List<Point> checkpoints = new();
     bool checkpointsFound;
     Point? boostCheckpoint;
@@ -53,12 +53,12 @@ class Game {
     }
 
     void FindBoostCheckpoint() {
-        if (boostCheckpoint != null || previousCheckpoint == next.Point) {
+        if (boostCheckpoint != null || previous == next.Point) {
             return;
         }
         if (!checkpoints.Contains(next.Point)) {
             checkpoints.Add(next.Point);
-            previousCheckpoint = next.Point;
+            previous = next.Point;
             return;
         }
         checkpointsFound = true;
@@ -93,12 +93,11 @@ class Game {
     }
 
     static Vector SimulateNext(Vector p, Vector v, Vector target, int thrust, int iterations) {
-        const double friction = 0.85;
         for (var i = 0; i < iterations; i++) {
             var direction = target - p;
             v += direction.Normalized() * thrust;
             p += v;
-            v *= friction;
+            v *= Pod.FRICTION;
         }
         return p;
     }
@@ -128,6 +127,8 @@ readonly record struct Point(int X, int Y) {
     public static Point operator -(Point a, Point b) => new(a.X - b.X, a.Y - b.Y);
 
     public static implicit operator Vector(Point value) => new(value.X, value.Y);
+
+    public override string ToString() => $"({X}, {X})";
 }
 
 readonly record struct Vector(double X, double Y) {
@@ -145,6 +146,8 @@ readonly record struct Vector(double X, double Y) {
     public static Vector operator -(Vector a, Vector b) => new(a.X - b.X, a.Y - b.Y);
     public static Vector operator *(Vector a, double value) => new(a.X * value, a.Y * value);
     public static Vector operator /(Vector a, double value) => new(a.X / value, a.Y / value);
+
+    public override string ToString() => $"({X:F0}, {X:F0})";
 }
 
 // -180 <= angle <= 180 between pod orientation and direction of next checkpoint
@@ -161,6 +164,9 @@ readonly struct Checkpoint(Point point, int distance, int angle) {
 
 [SuppressMessage("ReSharper", "ReplaceWithFieldKeyword")]
 class Pod {
+    /// Tested and this is what game engine uses
+    public const double FRICTION = 0.85;
+
     const int DIAMETER = 800;
 
     Point? previous;
