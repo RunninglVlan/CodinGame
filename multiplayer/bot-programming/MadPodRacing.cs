@@ -18,7 +18,7 @@ static class MadPodRacing {
 class Game {
     static readonly (int none, int max) THRUST = (0, 100);
 
-    int turn;
+    int turn = 1;
     readonly Pod player = new(), opponent = new();
     Checkpoint next;
     Point previousCheckpoint = new(-1, -1);
