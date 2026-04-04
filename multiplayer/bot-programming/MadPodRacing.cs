@@ -64,11 +64,11 @@ class Game {
     public void Loop() {
         ReadInput();
         foreach (var player in players) {
-            var control = $"{player.Next.X} {player.Next.Y} ";
+            var control = $"{player.Target.X} {player.Target.Y} ";
             if (player.Speed > 300 && turn - player.ShieldTurn > 3 && HasCollisionRisk(player)) {
                 control += Ability.SHIELD;
                 player.ShieldTurn = turn;
-            } else if (haveBoost && player.Next == boostCheckpoint && Math.Abs(player.AngleToNext) < 5) {
+            } else if (haveBoost && player.Target == boostCheckpoint && Math.Abs(player.AngleToTarget) < 5) {
                 control += Ability.BOOST;
                 haveBoost = false;
             } else {
@@ -83,9 +83,18 @@ class Game {
         for (var i = 0; i < PLAYERS; i++) {
             UpdatePod(players[i]);
         }
+        (Pod? pod, double distance) best = (null, double.MaxValue);
         for (var i = 0; i < PLAYERS; i++) {
-            UpdatePod(opponents[i]);
+            var opponent = opponents[i];
+            UpdatePod(opponent);
+            double distance = Vector.Distance(opponent.Point, opponent.Next);
+            if (best.pod == null
+                    || opponent.Progress > best.pod.Progress
+                    || opponent.Progress == best.pod.Progress && distance < best.distance) {
+                best = (opponent, distance);
+            }
         }
+        players[1].Target = best.pod!.Point + best.pod.Velocity * 2;
     }
 
     void UpdatePod(Pod pod) {
@@ -99,8 +108,8 @@ class Game {
 
     bool HasCollisionRisk(Pod player) {
         foreach (var opponent in opponents) {
-            var (pNew, _, _) = Next(player.Point, player.Velocity, player.Angle, player.Next, THRUST.max);
-            var (oNew, _, _) = Next(opponent.Point, opponent.Velocity, opponent.Angle, opponent.Next, THRUST.max);
+            var (pNew, _, _) = Next(player.Point, player.Velocity, player.Angle, player.Target, THRUST.max);
+            var (oNew, _, _) = Next(opponent.Point, opponent.Velocity, opponent.Angle, opponent.Target, THRUST.max);
             if (Vector.Distance(pNew, oNew) < Pod.DIAMETER) {
                 return true;
             }
@@ -112,13 +121,13 @@ class Game {
         if (turn == 1) {
             return THRUST.max;
         }
-        if (Math.Abs(player.AngleToNext) > 90) {
+        if (Math.Abs(player.AngleToTarget) > 90) {
             return THRUST.none;
         }
         (double score, int thrust) best = (int.MaxValue, THRUST.max);
         for (int thrust = THRUST.none; thrust <= THRUST.max; thrust += 10) {
-            (var pNew, int? turns) = SimulateNext(player.Point, player.Velocity, player.Angle, player.Next, thrust);
-            double score = Score(pNew, player.Next, turns);
+            (var pNew, int? turns) = SimulateNext(player.Point, player.Velocity, player.Angle, player.Target, thrust);
+            double score = Score(pNew, player.Target, turns);
             if (score >= best.score) {
                 continue;
             }
@@ -163,6 +172,9 @@ class Game {
         double score = turnsToHit.Value * 1_000;
         // prioritizing thrust that shortens distance to next checkpoint
         int i = Array.IndexOf(checkpoints, target);
+        if (i == -1) {
+            return score + Vector.Distance(pNew, target);
+        }
         int iNext = (i + 1) % checkpoints.Length;
         var nextCheckpoint = checkpoints[iNext];
         return score + Vector.Distance(pNew, nextCheckpoint);
@@ -222,6 +234,8 @@ record struct Vector(double X, double Y) {
     public static Vector operator *(Vector a, double value) => new(a.X * value, a.Y * value);
     public static Vector operator /(Vector a, double value) => new(a.X / value, a.Y / value);
 
+    public static implicit operator Point(Vector value) => new((int)value.X, (int)value.Y);
+
     public override string ToString() => $"({X:F0}, {Y:F0})";
 }
 
@@ -231,7 +245,7 @@ class Pod {
     public const int DIAMETER = 800;
 
     Vector velocity;
-    Point next;
+    Point next = new(-1, -1), target;
 
     public Point Point { get; set; }
 
@@ -249,22 +263,34 @@ class Pod {
     public Point Next {
         get => next;
         set {
-            next = value;
-            var direction = Next - Point;
+            if (next != value) {
+                next = value;
+                Progress++;
+            }
+            Target = next;
+        }
+    }
+
+    public Point Target {
+        get => target;
+        set {
+            target = value;
+            var direction = target - Point;
             double toAngle = Vector.Angle(direction);
-            AngleToNext = Vector.Angle(Angle, toAngle);
+            AngleToTarget = Vector.Angle(Angle, toAngle);
         }
     }
 
     public double Speed { get; private set; }
-    public double AngleToNext { get; private set; }
+    public double AngleToTarget { get; private set; }
+    public int Progress { get; private set; }
     public int ShieldTurn { get; set; } = -3;
 
     public override string ToString() {
-        var direction = Next - Point;
+        var direction = Target - Point;
         double vAngle = Vector.Angle(Velocity, direction);
-        double distance = Vector.Distance(Point, Next);
-        return $"p: {Point}, v: {Velocity}, a: {Angle}, vA: {vAngle:F0}, aToNext: {AngleToNext:F0}, d: {distance:F0}";
+        double distance = Vector.Distance(Point, Target);
+        return $"p: {Point}, v: {Velocity}, a: {Angle}, vA: {vAngle:F0}, aToTarget: {AngleToTarget:F0}, d: {distance:F0}";
     }
 }
 
