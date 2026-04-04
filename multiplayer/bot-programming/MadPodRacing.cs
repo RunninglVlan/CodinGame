@@ -94,10 +94,12 @@ class Game {
 
     static Vector SimulateNext(Vector p, Vector v, Vector target, int thrust, int iterations) {
         for (var i = 0; i < iterations; i++) {
-            var direction = target - p;
-            v += direction.Normalized() * thrust;
-            p += v;
-            v *= Pod.FRICTION;
+            v.X = (int)(v.X * Pod.FRICTION);
+            v.Y = (int)(v.Y * Pod.FRICTION);
+            var direction = (target - p).Normalized();
+            v += direction * thrust;
+            p.X = Math.Round(p.X + v.X);
+            p.Y = Math.Round(p.Y + v.Y);
         }
         return p;
     }
@@ -131,7 +133,7 @@ readonly record struct Point(int X, int Y) {
     public override string ToString() => $"({X}, {X})";
 }
 
-readonly record struct Vector(double X, double Y) {
+record struct Vector(double X, double Y) {
     public Vector Normalized() => this / Magnitude();
 
     public double Magnitude() => Math.Sqrt(X * X + Y * Y);
