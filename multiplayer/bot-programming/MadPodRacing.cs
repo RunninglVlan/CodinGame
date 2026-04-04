@@ -100,9 +100,9 @@ class Game {
 
     bool HasCollisionRisk(Pod player) {
         foreach (var opponent in opponents) {
-            var (nextPlayer, _) = Next(player.Point, player.Velocity, player.Next, THRUST.max);
-            var (nextOpponent, _) = Next(opponent.Point, opponent.Velocity, opponent.Next, THRUST.max);
-            if (Vector.Distance(nextPlayer, nextOpponent) < Pod.DIAMETER) {
+            var (pNew, _, _) = Next(player.Point, player.Velocity, player.Angle, player.Next, THRUST.max);
+            var (oNew, _, _) = Next(opponent.Point, opponent.Velocity, opponent.Angle, opponent.Next, THRUST.max);
+            if (Vector.Distance(pNew, oNew) < Pod.DIAMETER) {
                 return true;
             }
         }
@@ -115,7 +115,7 @@ class Game {
         }
         (double score, int thrust) best = (int.MaxValue, THRUST.max);
         for (int thrust = THRUST.none; thrust <= THRUST.max; thrust += 10) {
-            (var pNew, int? turns) = SimulateNext(player.Point, player.Velocity, player.Next, thrust);
+            (var pNew, int? turns) = SimulateNext(player.Point, player.Velocity, player.Angle, player.Next, thrust);
             double score = Score(pNew, player.Next, turns);
             if (score >= best.score) {
                 continue;
@@ -125,10 +125,10 @@ class Game {
         return best.thrust;
     }
 
-    static (Vector, int?) SimulateNext(Vector p, Vector v, Vector target, int thrust) {
+    static (Vector, int?) SimulateNext(Vector p, Vector v, double angle, Vector target, int thrust) {
         const int maxTurns = 20;
         for (var turns = 1; turns < maxTurns; turns++) {
-            (p, v) = Next(p, v, target, thrust);
+            (p, v, angle) = Next(p, v, angle, target, thrust);
             if (Vector.Distance(p, target) < CHECKPOINT_RADIUS) {
                 return (p, turns);
             }
@@ -136,16 +136,21 @@ class Game {
         return (p, null);
     }
 
-    static (Vector, Vector) Next(Vector p, Vector v, Vector target, int thrust) {
-        var direction = (target - p).Normalized();
-        v += direction * thrust;
+    static (Vector, Vector, double) Next(Vector p, Vector v, double angle, Vector target, int thrust) {
+        const int turnAngle = 18;
+        var direction = target - p;
+        double targetAngle = Vector.Angle(direction);
+        double angleToNext = Vector.Angle(angle, targetAngle);
+        angle += Math.Clamp(angleToNext, -turnAngle, turnAngle);
+        double radians = angle * Math.PI / 180;
+        v += new Vector(thrust * Math.Cos(radians), thrust * Math.Sin(radians));
         p += v;
         v *= Pod.FRICTION;
         v.X = (int)v.X;
         v.Y = (int)v.Y;
         p.X = Math.Round(p.X);
         p.Y = Math.Round(p.Y);
-        return (p, v);
+        return (p, v, Math.Round(angle));
     }
 
     double Score(Vector pNew, Point target, int? turnsToHit) {
@@ -179,8 +184,6 @@ record struct Vector(double X, double Y) {
     public static Vector From(string x, string y) {
         return new Vector(int.Parse(x), int.Parse(y));
     }
-
-    public Vector Normalized() => this / Magnitude();
 
     public double Magnitude() => Math.Sqrt(X * X + Y * Y);
 
