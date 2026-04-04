@@ -110,6 +110,9 @@ class Game {
     }
 
     int Thrust(Pod player) {
+        if (turn == 1) {
+            return THRUST.max;
+        }
         if (Math.Abs(player.AngleToNext) > 90) {
             return THRUST.none;
         }
