@@ -82,8 +82,8 @@ class Game {
         }
         (double score, int thrust) best = (int.MaxValue, 100);
         for (var thrust = 0; thrust <= 100; thrust += 10) {
-            var pNew = SimulateNext(player.Point, player.Velocity, next.Point, thrust, 4);
-            double score = Score(pNew, thrust);
+            (var pNew, int? turns) = SimulateNext(player.Point, player.Velocity, next.Point, thrust);
+            double score = Score(pNew, turns, thrust);
             if (score >= best.score) {
                 continue;
             }
@@ -92,31 +92,36 @@ class Game {
         return best.thrust;
     }
 
-    static Vector SimulateNext(Vector p, Vector v, Vector target, int thrust, int iterations) {
-        for (var i = 0; i < iterations; i++) {
+    static (Vector, int?) SimulateNext(Vector p, Vector v, Vector target, int thrust) {
+        const int maxTurns = 20;
+        for (var turns = 0; turns < maxTurns; turns++) {
             v.X = (int)(v.X * Pod.FRICTION);
             v.Y = (int)(v.Y * Pod.FRICTION);
             var direction = (target - p).Normalized();
             v += direction * thrust;
             p.X = Math.Round(p.X + v.X);
             p.Y = Math.Round(p.Y + v.Y);
+            if (Vector.Distance(p, target) < Checkpoint.RADIUS) {
+                return (p, turns);
+            }
         }
-        return p;
+        return (p, null);
     }
 
-    /// Prioritizing points inside checkpoint radius
-    double Score(Vector pNew, int thrust) {
-        double distance = Vector.Distance(pNew, next.Point);
-        if (distance > Checkpoint.RADIUS) {
-            return 100000 + distance;
+    double Score(Vector pNew, int? turnsToHit, int thrust) {
+        if (turnsToHit == null) {
+            return 1_000_000 + Vector.Distance(pNew, next.Point);
         }
+        // prioritizing thrust that leads to reaching checkpoint in less turns
+        double score = turnsToHit.Value * 1_000;
         if (!checkpointsFound) {
-            return 100 - thrust;
+            return score + 100 - thrust;
         }
+        // prioritizing thrust that shortens distance to next checkpoint
         int i = checkpoints.IndexOf(next.Point);
         int iNext = (i + 1) % checkpoints.Count;
         var nextCheckpoint = checkpoints[iNext];
-        return Vector.Distance(pNew, nextCheckpoint);
+        return score + Vector.Distance(pNew, nextCheckpoint);
     }
 }
 
