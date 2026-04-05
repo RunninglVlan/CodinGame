@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 
 namespace MadPodRacing;
 
@@ -17,6 +18,7 @@ static class MadPodRacing {
 
 class Game {
     const int PLAYERS = 2;
+    const int RACER = 0;
     const int CHECKPOINT_RADIUS = 600;
     static readonly (int none, int max) THRUST = (0, 100);
 
@@ -62,24 +64,18 @@ class Game {
     }
 
     public void Loop() {
-        ReadInput();
-        foreach (var player in players) {
-            var control = $"{player.Target.X} {player.Target.Y} ";
-            if (player.Speed > 300 && turn - player.ShieldTurn > 3 && HasCollisionRisk(player)) {
-                control += Ability.SHIELD;
-                player.ShieldTurn = turn;
-            } else if (haveBoost && player.Target == boostCheckpoint && Math.Abs(player.AngleToTarget) < 5) {
-                control += Ability.BOOST;
-                haveBoost = false;
-            } else {
-                control += Thrust(player);
-            }
+        ReadInput(out var leadingOpponent);
+        for (var i = 0; i < players.Length; i++) {
+            var player = players[i];
+            string control = i == RACER
+                    ? RacerControl(player)
+                    : InterceptorControl(player, leadingOpponent);
             Console.WriteLine(control);
         }
         turn++;
     }
 
-    void ReadInput() {
+    void ReadInput(out Pod leadingOpponent) {
         for (var i = 0; i < PLAYERS; i++) {
             UpdatePod(players[i]);
         }
@@ -94,7 +90,7 @@ class Game {
                 best = (opponent, distance);
             }
         }
-        players[1].Target = best.pod!.Point + best.pod.Velocity * 2;
+        leadingOpponent = best.pod!;
         return;
 
         void UpdatePod(Pod pod) {
@@ -105,6 +101,68 @@ class Game {
             int nextCheckPoint = int.Parse(inputs[5]);
             pod.Next = checkpoints[nextCheckPoint];
         }
+    }
+
+    string RacerControl(Pod player) {
+        var control = $"{player.Target.X} {player.Target.Y} ";
+        if (player.Speed > 300 && turn - player.ShieldTurn > 3 && HasCollisionRisk(player)) {
+            control += Ability.SHIELD;
+            player.ShieldTurn = turn;
+        } else if (haveBoost && player.Target == boostCheckpoint && Math.Abs(player.AngleToTarget) < 5) {
+            control += Ability.BOOST;
+            haveBoost = false;
+        } else {
+            control += Thrust(player);
+        }
+        return control;
+    }
+
+    string InterceptorControl(Pod player, Pod opponent) {
+        var ambush = AmbushPoint(player, opponent);
+        bool movingToAmbush = false, waiting = false;
+        if (opponent.Next == ambush.point) {
+            player.Target = opponent.Point + opponent.Velocity;
+        } else if (ambush.distance > CHECKPOINT_RADIUS) {
+            player.Target = ambush.point;
+            movingToAmbush = true;
+        } else {
+            player.Target = opponent.Point;
+            waiting = true;
+        }
+        var control = $"{player.Target.X} {player.Target.Y} ";
+        if (turn - player.ShieldTurn > 3 && HasCollisionRisk(player)) {
+            control += Ability.SHIELD;
+            player.ShieldTurn = turn;
+        } else if (waiting) {
+            control += THRUST.none;
+        } else {
+            control += Thrust(player, movingToAmbush);
+        }
+        return control;
+    }
+
+    (Point point, double distance) AmbushPoint(Pod player, Pod opponent) {
+        var current = opponent.Next;
+        int currentI = Array.IndexOf(checkpoints, opponent.Next);
+        var nearest = checkpoints
+                .Select(it => (point: it, distance: Vector.Distance(it, player.Point)))
+                .OrderBy(it => it.distance)
+                .First();
+        if (nearest.point == current) {
+            return nearest;
+        }
+        double opponentDistance = Vector.Distance(opponent.Point, current);
+        for (var i = 0; i < checkpoints.Length; i++, currentI++) {
+            int iNext = (currentI + 1) % checkpoints.Length;
+            var next = checkpoints[iNext];
+            double playerDistance = Vector.Distance(player.Point, next);
+            if (playerDistance < opponentDistance) {
+                return (next, playerDistance);
+            }
+            opponentDistance += Vector.Distance(current, next);
+            current = next;
+        }
+        return nearest;
     }
 
     bool HasCollisionRisk(Pod player) {
@@ -118,7 +176,7 @@ class Game {
         return false;
     }
 
-    int Thrust(Pod player) {
+    int Thrust(Pod player, bool stopAtTarget = false) {
         if (turn == 1) {
             return THRUST.max;
         }
@@ -127,9 +185,9 @@ class Game {
         }
         (double score, int thrust) best = (int.MaxValue, THRUST.max);
         for (int thrust = THRUST.none; thrust <= THRUST.max; thrust += 10) {
-            var p = player.Point;
-            (p, int? turns) = SimulateNext(p, player.Velocity, player.Angle, player.Target, thrust);
-            double score = Score(p, player.Target, turns);
+            var (p, v) = (player.Point, player.Velocity);
+            (p, v, int? turns) = SimulateNext(p, v, player.Angle, player.Target, thrust);
+            double score = Score(p, v, player.Target, turns, stopAtTarget);
             if (score >= best.score) {
                 continue;
             }
@@ -138,15 +196,15 @@ class Game {
         return best.thrust;
     }
 
-    static (Vector, int?) SimulateNext(Vector p, Vector v, double angle, Vector target, int thrust) {
+    static (Vector, Vector, int?) SimulateNext(Vector p, Vector v, double angle, Vector target, int thrust) {
         const int maxTurns = 20;
         for (var turns = 1; turns < maxTurns; turns++) {
             (p, v, angle) = Next(p, v, angle, target, thrust);
             if (Vector.Distance(p, target) < CHECKPOINT_RADIUS) {
-                return (p, turns);
+                return (p, v, turns);
             }
         }
-        return (p, null);
+        return (p, v, null);
     }
 
     static (Vector, Vector, double) Next(Vector p, Vector v, double angle, Vector target, int thrust) {
@@ -166,12 +224,15 @@ class Game {
         return (p, v, Math.Round(angle));
     }
 
-    double Score(Vector pNew, Point target, int? turnsToHit) {
+    double Score(Vector pNew, Vector vNew, Point target, int? turnsToHit, bool stopAtTarget) {
         if (turnsToHit == null) {
             return 1_000_000 + Vector.Distance(pNew, target);
         }
         // prioritizing thrust that leads to reaching checkpoint in less turns
         double score = turnsToHit.Value * 1_000;
+        if (stopAtTarget) {
+            return score + vNew.Magnitude() * 20;
+        }
         // prioritizing thrust that shortens distance to next checkpoint
         int i = Array.IndexOf(checkpoints, target);
         if (i == -1) {
