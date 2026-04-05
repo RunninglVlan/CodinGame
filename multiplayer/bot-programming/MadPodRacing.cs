@@ -86,16 +86,15 @@ class Game {
         for (var i = 0; i < PLAYERS; i++) {
             UpdatePod(opponents[i]);
         }
-        return;
+    }
 
-        void UpdatePod(Pod pod) {
-            string[] inputs = Console.ReadLine()!.Split(' ');
-            pod.Point = Point.From(inputs[0], inputs[1]);
-            pod.Velocity = Vector.From(inputs[2], inputs[3]);
-            pod.Angle = int.Parse(inputs[4]);
-            int nextCheckPoint = int.Parse(inputs[5]);
-            pod.Next = checkpoints[nextCheckPoint];
-        }
+    void UpdatePod(Pod pod) {
+        string[] inputs = Console.ReadLine()!.Split(' ');
+        pod.Point = Point.From(inputs[0], inputs[1]);
+        pod.Velocity = Vector.From(inputs[2], inputs[3]);
+        pod.Angle = int.Parse(inputs[4]);
+        int nextCheckPoint = int.Parse(inputs[5]);
+        pod.Next = checkpoints[nextCheckPoint];
     }
 
     bool HasCollisionRisk(Pod player) {
