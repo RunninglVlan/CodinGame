@@ -95,15 +95,16 @@ class Game {
             }
         }
         players[1].Target = best.pod!.Point + best.pod.Velocity * 2;
-    }
+        return;
 
-    void UpdatePod(Pod pod) {
-        string[] inputs = Console.ReadLine()!.Split(' ');
-        pod.Point = Point.From(inputs[0], inputs[1]);
-        pod.Velocity = Vector.From(inputs[2], inputs[3]);
-        pod.Angle = int.Parse(inputs[4]);
-        int nextCheckPoint = int.Parse(inputs[5]);
-        pod.Next = checkpoints[nextCheckPoint];
+        void UpdatePod(Pod pod) {
+            string[] inputs = Console.ReadLine()!.Split(' ');
+            pod.Point = Point.From(inputs[0], inputs[1]);
+            pod.Velocity = Vector.From(inputs[2], inputs[3]);
+            pod.Angle = int.Parse(inputs[4]);
+            int nextCheckPoint = int.Parse(inputs[5]);
+            pod.Next = checkpoints[nextCheckPoint];
+        }
     }
 
     bool HasCollisionRisk(Pod player) {
@@ -126,8 +127,9 @@ class Game {
         }
         (double score, int thrust) best = (int.MaxValue, THRUST.max);
         for (int thrust = THRUST.none; thrust <= THRUST.max; thrust += 10) {
-            (var pNew, int? turns) = SimulateNext(player.Point, player.Velocity, player.Angle, player.Target, thrust);
-            double score = Score(pNew, player.Target, turns);
+            var p = player.Point;
+            (p, int? turns) = SimulateNext(p, player.Velocity, player.Angle, player.Target, thrust);
+            double score = Score(p, player.Target, turns);
             if (score >= best.score) {
                 continue;
             }
@@ -290,7 +292,7 @@ class Pod {
         var direction = Target - Point;
         double vAngle = Vector.Angle(Velocity, direction);
         double distance = Vector.Distance(Point, Target);
-        return $"p: {Point}, v: {Velocity}, a: {Angle}, vA: {vAngle:F0}, aToTarget: {AngleToTarget:F0}, d: {distance:F0}";
+        return $"p: {Point}, v: {Velocity}, a: {Angle}, vA: {vAngle:F0}, aToT: {AngleToTarget:F0}, d: {distance:F0}";
     }
 }
 
