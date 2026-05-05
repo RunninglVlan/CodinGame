@@ -44,10 +44,13 @@ class Game {
     [SuppressMessage("ReSharper", "LoopCanBeConvertedToQuery")]
     public void Loop() {
         ReadInput();
-        var moves = new List<Move>();
+        var actions = new List<IAction>();
         foreach (var factory in factories) {
             if (factory.Player != Player.Me) {
                 continue;
+            }
+            if (factory.CanIncreaseProduction) {
+                actions.Add(factory.IncreaseProduction());
             }
             var targets = factory.connections
                     .Where(it => it.factory.Player != Player.Me)
@@ -56,10 +59,10 @@ class Game {
                     .ToArray();
             int cyborgs = factory.Cyborgs / targets.Length;
             foreach (var target in targets) {
-                moves.Add(new Move(factory.id, target.factory.id, cyborgs));
+                actions.Add(new Move(factory.id, target.factory.id, cyborgs));
             }
         }
-        Console.WriteLine(string.Join(';', moves));
+        Console.WriteLine(string.Join(';', actions));
     }
 
     void ReadInput() {
@@ -106,6 +109,9 @@ class Game {
 }
 
 class Factory(int id) {
+    const int PRODUCTION_MAX = 3;
+    const int PRODUCTION_INCREASE_COST = 10;
+
     public readonly int id = id;
     public readonly List<(Factory factory, int distanceInTurns)> connections = new();
     public Player Player { get; set; }
@@ -114,6 +120,13 @@ class Factory(int id) {
 
     /// number of turns before the factory starts producing again (0 means that the factory produces normally)
     public int CooldownTurns { get; set; }
+
+    public bool CanIncreaseProduction => Production < PRODUCTION_MAX && Cyborgs >= PRODUCTION_INCREASE_COST;
+
+    public IncreaseProduction IncreaseProduction() {
+        Cyborgs -= PRODUCTION_INCREASE_COST;
+        return new IncreaseProduction(id);
+    }
 }
 
 class Troop {
@@ -151,6 +164,10 @@ interface IAction;
 
 struct Wait : IAction {
     public override string ToString() => "WAIT";
+}
+
+readonly struct IncreaseProduction(int factoryId) : IAction {
+    public override string ToString() => $"INC {factoryId}";
 }
 
 readonly struct Move(int sourceId, int targetId, int cyborgs) : IAction {
