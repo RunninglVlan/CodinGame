@@ -18,8 +18,9 @@ static class GhostInTheCell {
 
 class Game {
     Factory[] factories = null!;
-    readonly Dictionary<int, Troop> troops = new();
-    readonly Dictionary<int, Bomb> bombs = new();
+    readonly List<Troop> troops = new();
+    readonly List<Bomb> bombs = new();
+    int remainingBombs = 2;
 
     public void Init() {
         int factoryCount = Math.Clamp(int.Parse(Console.ReadLine()!), 7, 15);
@@ -43,6 +44,17 @@ class Game {
     public void Loop() {
         ReadInput();
         var actions = new List<IAction>();
+        if (remainingBombs > 0) {
+            var bombTarget = factories
+                    .Where(it => it.Player == Player.Opponent)
+                    .Where(it => it.Production == Factory.PRODUCTION_MAX)
+                    .Where(it => it.connections.Any(connection => connection.factory.Player == Player.Me))
+                    .Where(it => it.CooldownTurns == 0)
+                    .FirstOrDefault(it => bombs.All(bomb => bomb.TargetId != it.id));
+            if (bombTarget != null) {
+                actions.Add(SendBomb(bombTarget));
+            }
+        }
         foreach (var factory in factories) {
             if (factory.Player != Player.Me) {
                 continue;
@@ -56,6 +68,8 @@ class Game {
         foreach (var factory in factories) {
             factory.ApproachingCyborgs = default;
         }
+        troops.Clear();
+        bombs.Clear();
         int entityCount = int.Parse(Console.ReadLine()!);
         for (var i = 0; i < entityCount; i++) {
             string[] inputs = Console.ReadLine()!.Split(' ');
@@ -71,10 +85,10 @@ class Game {
                     UpdateFactory(entityId, player, arg2, arg3, arg4);
                     break;
                 case EntityType.TROOP:
-                    UpdateTroop(entityId, player, arg2, arg3, arg4, arg5);
+                    ProcessTroop(entityId, player, arg2, arg3, arg4, arg5);
                     break;
                 case EntityType.BOMB:
-                    UpdateBomb(entityId, player, arg2, arg3, arg4);
+                    bombs.Add(new Bomb(entityId, player, arg2, arg3, arg4));
                     break;
             }
         }
@@ -88,26 +102,18 @@ class Game {
         factory.CooldownTurns = cooldownTurns;
     }
 
-    void UpdateTroop(int id, Player player, int sourceId, int targetId, int cyborgs, int walkTurns) {
-        if (!troops.TryGetValue(id, out var troop)) {
-            troops.Add(id, troop = new Troop());
-        }
-        troop.Player = player;
-        troop.SourceId = sourceId;
-        troop.TargetId = targetId;
-        troop.Cyborgs = cyborgs;
-        troop.WalkTurns = walkTurns;
+    void ProcessTroop(int id, Player player, int sourceId, int targetId, int cyborgs, int walkTurns) {
+        troops.Add(new Troop(id, player, sourceId, targetId, cyborgs, walkTurns));
         factories[targetId].UpdateApproaching(cyborgs, player);
     }
 
-    void UpdateBomb(int id, Player player, int sourceId, int targetId, int turns) {
-        if (!bombs.TryGetValue(id, out var bomb)) {
-            bombs.Add(id, bomb = new Bomb());
-        }
-        bomb.Player = player;
-        bomb.SourceId = sourceId;
-        bomb.TargetId = targetId;
-        bomb.Turns = turns;
+    SendBomb SendBomb(Factory target) {
+        remainingBombs--;
+        var source = target.connections
+                .Where(it => it.factory.Player == Player.Me)
+                .OrderBy(it => it.distanceInTurns)
+                .First();
+        return new SendBomb(source.factory.id, target.id);
     }
 
     static IEnumerable<IAction> Actions(Factory factory) {
@@ -145,7 +151,7 @@ class Factory(int id) {
     public const int PRODUCTION_MAX = 3;
     const int PRODUCTION_INCREASE_COST = 10;
 
-    readonly int id = id;
+    public readonly int id = id;
     public readonly List<(Factory factory, int distanceInTurns)> connections = new();
     public Player Player { get; set; }
     public int Cyborgs { get; set; }
@@ -190,23 +196,12 @@ class Factory(int id) {
     }
 }
 
-class Troop {
-    public Player Player { get; set; }
-    public int SourceId { get; set; }
-    public int TargetId { get; set; }
-    public int Cyborgs { get; set; }
-    public int WalkTurns { get; set; }
-}
+struct Troop(int id, Player player, int sourceId, int targetId, int cyborgs, int walkTurns);
 
-class Bomb {
-    public Player Player { get; set; }
-    public int SourceId { get; set; }
-
-    /// id of the targeted factory if it's my bomb, -1 otherwise
-    public int TargetId { get; set; }
-
-    /// remaining number of turns before the bomb explodes (positive integer) if that's your bomb, -1 otherwise
-    public int Turns { get; set; }
+/// <param name="targetId">id of the targeted factory if it's my bomb, -1 otherwise</param>
+/// <param name="turns">remaining number of turns before the bomb explodes (positive integer) if that's your bomb, -1 otherwise</param>
+readonly struct Bomb(int id, Player player, int sourceId, int targetId, int turns) {
+    public int TargetId => targetId;
 }
 
 static class EntityType {
@@ -233,4 +228,8 @@ readonly struct IncreaseProduction(int factoryId) : IAction {
 
 readonly struct MoveTroop(int sourceId, int targetId, int cyborgs) : IAction {
     public override string ToString() => $"MOVE {sourceId} {targetId} {cyborgs}";
+}
+
+readonly struct SendBomb(int sourceId, int targetId) : IAction {
+    public override string ToString() => $"BOMB {sourceId} {targetId}";
 }
