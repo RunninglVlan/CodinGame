@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
 namespace GhostInTheCell;
@@ -41,7 +40,6 @@ class Game {
         }
     }
 
-    [SuppressMessage("ReSharper", "LoopCanBeConvertedToQuery")]
     public void Loop() {
         ReadInput();
         var actions = new List<IAction>();
@@ -49,20 +47,24 @@ class Game {
             if (factory.Player != Player.Me) {
                 continue;
             }
-            if (factory.CanIncreaseProduction) {
-                actions.Add(factory.IncreaseProduction());
-            }
-            var targets = factory.connections
-                    .Where(it => it.factory.Player != Player.Me)
-                    .OrderBy(it => it.distanceInTurns)
-                    .Take(2)
-                    .ToArray();
-            int cyborgs = factory.Cyborgs / targets.Length;
-            foreach (var target in targets) {
-                actions.Add(new Move(factory.id, target.factory.id, cyborgs));
-            }
+            actions.AddRange(Actions(factory));
         }
         Console.WriteLine(string.Join(';', actions));
+    }
+
+    static IEnumerable<IAction> Actions(Factory factory) {
+        if (factory.CanIncreaseProduction) {
+            yield return factory.IncreaseProduction();
+        }
+        var targets = factory.connections
+                .Where(it => it.factory.Player != Player.Me)
+                .OrderBy(it => it.distanceInTurns)
+                .Take(2)
+                .ToArray();
+        int cyborgs = factory.Cyborgs / targets.Length;
+        foreach (var target in targets) {
+            yield return new Move(factory.id, target.factory.id, cyborgs);
+        }
     }
 
     void ReadInput() {
@@ -78,33 +80,45 @@ class Game {
             int arg5 = int.Parse(inputs[6]);
             switch (entityType) {
                 case EntityType.FACTORY:
-                    var factory = factories[entityId];
-                    factory.Player = player;
-                    factory.Cyborgs = arg2;
-                    factory.Production = arg3;
-                    factory.CooldownTurns = arg4;
+                    UpdateFactory(entityId, player, arg2, arg3, arg4);
                     break;
                 case EntityType.TROOP:
-                    if (!troops.TryGetValue(entityId, out var troop)) {
-                        troops.Add(entityId, troop = new Troop());
-                    }
-                    troop.Player = player;
-                    troop.SourceId = arg2;
-                    troop.TargetId = arg3;
-                    troop.Cyborgs = arg4;
-                    troop.WalkTurns = arg5;
+                    UpdateTroop(entityId, player, arg2, arg3, arg4, arg5);
                     break;
                 case EntityType.BOMB:
-                    if (!bombs.TryGetValue(entityId, out var bomb)) {
-                        bombs.Add(entityId, bomb = new Bomb());
-                    }
-                    bomb.Player = player;
-                    bomb.SourceId = arg2;
-                    bomb.TargetId = arg3;
-                    bomb.Turns = arg4;
+                    UpdateBomb(entityId, player, arg2, arg3, arg4);
                     break;
             }
         }
+    }
+
+    void UpdateFactory(int id, Player player, int cyborgs, int production, int cooldownTurns) {
+        var factory = factories[id];
+        factory.Player = player;
+        factory.Cyborgs = cyborgs;
+        factory.Production = production;
+        factory.CooldownTurns = cooldownTurns;
+    }
+
+    void UpdateTroop(int id, Player player, int sourceId, int targetId, int cyborgs, int walkTurns) {
+        if (!troops.TryGetValue(id, out var troop)) {
+            troops.Add(id, troop = new Troop());
+        }
+        troop.Player = player;
+        troop.SourceId = sourceId;
+        troop.TargetId = targetId;
+        troop.Cyborgs = cyborgs;
+        troop.WalkTurns = walkTurns;
+    }
+
+    void UpdateBomb(int id, Player player, int sourceId, int targetId, int turns) {
+        if (!bombs.TryGetValue(id, out var bomb)) {
+            bombs.Add(id, bomb = new Bomb());
+        }
+        bomb.Player = player;
+        bomb.SourceId = sourceId;
+        bomb.TargetId = targetId;
+        bomb.Turns = turns;
     }
 }
 
