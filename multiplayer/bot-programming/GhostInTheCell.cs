@@ -59,7 +59,7 @@ class Game {
             if (factory.Player != Player.Me) {
                 continue;
             }
-            actions.AddRange(Actions(factory));
+            actions.AddRange(factory.Actions());
         }
         Console.WriteLine(string.Join(';', actions));
     }
@@ -115,36 +115,6 @@ class Game {
                 .First();
         return new SendBomb(source.factory.id, target.id);
     }
-
-    static IEnumerable<IAction> Actions(Factory factory) {
-        if (factory.CanIncreaseProduction) {
-            yield return factory.IncreaseProduction();
-        }
-        var notMyTargets = factory.connections
-                .Where(it => it.factory.Player != Player.Me)
-                .OrderBy(it => it.distanceInTurns)
-                .ThenByDescending(it => it.factory.Production);
-        foreach (var target in notMyTargets) {
-            if (factory.Cyborgs == 0) {
-                yield break;
-            }
-            if (target.factory.NeededCyborgs > 0) {
-                yield return factory.MoveTroop(target.factory);
-            }
-        }
-        var myTargets = factory.connections
-                .Where(it => it.factory is { Player: Player.Me, Production: < Factory.PRODUCTION_MAX })
-                .OrderBy(it => it.distanceInTurns)
-                .ThenBy(it => it.factory.Production);
-        foreach (var target in myTargets) {
-            if (factory.Cyborgs == 0) {
-                yield break;
-            }
-            if (target.factory.NeededCyborgs > 0) {
-                yield return factory.MoveTroop(target.factory);
-            }
-        }
-    }
 }
 
 class Factory(int id) {
@@ -157,7 +127,7 @@ class Factory(int id) {
     public int Cyborgs { get; set; }
     public (int mine, int opponent) ApproachingCyborgs { get; set; }
 
-    public int NeededCyborgs {
+    int NeededCyborgs {
         get {
             int cyborgs = Player == Player.Me
                     ? (PRODUCTION_MAX - Production) * PRODUCTION_INCREASE_COST
@@ -174,7 +144,7 @@ class Factory(int id) {
     /// number of turns before the factory starts producing again (0 means that the factory produces normally)
     public int CooldownTurns { get; set; }
 
-    public bool CanIncreaseProduction => Production < PRODUCTION_MAX && Cyborgs >= PRODUCTION_INCREASE_COST;
+    bool CanIncreaseProduction => Production < PRODUCTION_MAX && Cyborgs >= PRODUCTION_INCREASE_COST;
 
     public void UpdateApproaching(int cyborgs, Player player) {
         if (player == Player.Me) {
@@ -184,12 +154,42 @@ class Factory(int id) {
         }
     }
 
-    public IncreaseProduction IncreaseProduction() {
+    public IEnumerable<IAction> Actions() {
+        if (CanIncreaseProduction) {
+            yield return IncreaseProduction();
+        }
+        var notMyTargets = connections
+                .Where(it => it.factory.Player != Player.Me)
+                .OrderBy(it => it.distanceInTurns)
+                .ThenByDescending(it => it.factory.Production);
+        foreach (var target in notMyTargets) {
+            if (Cyborgs == 0) {
+                yield break;
+            }
+            if (target.factory.NeededCyborgs > 0) {
+                yield return MoveTroop(target.factory);
+            }
+        }
+        var myTargets = connections
+                .Where(it => it.factory is { Player: Player.Me, Production: < PRODUCTION_MAX })
+                .OrderBy(it => it.distanceInTurns)
+                .ThenBy(it => it.factory.Production);
+        foreach (var target in myTargets) {
+            if (Cyborgs == 0) {
+                yield break;
+            }
+            if (target.factory.NeededCyborgs > 0) {
+                yield return MoveTroop(target.factory);
+            }
+        }
+    }
+
+    IncreaseProduction IncreaseProduction() {
         Cyborgs -= PRODUCTION_INCREASE_COST;
         return new IncreaseProduction(id);
     }
 
-    public MoveTroop MoveTroop(Factory target) {
+    MoveTroop MoveTroop(Factory target) {
         int cyborgs = Math.Min(Cyborgs, target.NeededCyborgs);
         Cyborgs -= cyborgs;
         return new MoveTroop(id, target.id, cyborgs);
