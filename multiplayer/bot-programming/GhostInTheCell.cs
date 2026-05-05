@@ -56,18 +56,36 @@ class Game {
         if (factory.CanIncreaseProduction) {
             yield return factory.IncreaseProduction();
         }
-        var targets = factory.connections
+        var notMyTargets = factory.connections
                 .Where(it => it.factory.Player != Player.Me)
                 .OrderBy(it => it.distanceInTurns)
-                .Take(2)
-                .ToArray();
-        int cyborgs = factory.Cyborgs / targets.Length;
-        foreach (var target in targets) {
-            yield return new Move(factory.id, target.factory.id, cyborgs);
+                .ThenByDescending(it => it.factory.Production);
+        foreach (var target in notMyTargets) {
+            if (factory.Cyborgs == 0) {
+                yield break;
+            }
+            if (target.factory.NeededCyborgs > 0) {
+                yield return factory.MoveTroop(target.factory);
+            }
+        }
+        var myTargets = factory.connections
+                .Where(it => it.factory is { Player: Player.Me, Production: < Factory.PRODUCTION_MAX })
+                .OrderBy(it => it.distanceInTurns)
+                .ThenBy(it => it.factory.Production);
+        foreach (var target in myTargets) {
+            if (factory.Cyborgs == 0) {
+                yield break;
+            }
+            if (target.factory.NeededCyborgs > 0) {
+                yield return factory.MoveTroop(target.factory);
+            }
         }
     }
 
     void ReadInput() {
+        foreach (var factory in factories) {
+            factory.ApproachingCyborgs = default;
+        }
         int entityCount = int.Parse(Console.ReadLine()!);
         for (var i = 0; i < entityCount; i++) {
             string[] inputs = Console.ReadLine()!.Split(' ');
@@ -109,6 +127,7 @@ class Game {
         troop.TargetId = targetId;
         troop.Cyborgs = cyborgs;
         troop.WalkTurns = walkTurns;
+        factories[targetId].UpdateApproaching(cyborgs, player);
     }
 
     void UpdateBomb(int id, Player player, int sourceId, int targetId, int turns) {
@@ -123,13 +142,27 @@ class Game {
 }
 
 class Factory(int id) {
-    const int PRODUCTION_MAX = 3;
+    public const int PRODUCTION_MAX = 3;
     const int PRODUCTION_INCREASE_COST = 10;
 
-    public readonly int id = id;
+    readonly int id = id;
     public readonly List<(Factory factory, int distanceInTurns)> connections = new();
     public Player Player { get; set; }
     public int Cyborgs { get; set; }
+    public (int mine, int opponent) ApproachingCyborgs { get; set; }
+
+    public int NeededCyborgs {
+        get {
+            int cyborgs = Player == Player.Me
+                    ? (PRODUCTION_MAX - Production) * PRODUCTION_INCREASE_COST
+                    : Cyborgs + 1;
+            if (Player != Player.Me && Production == 0) {
+                cyborgs += PRODUCTION_INCREASE_COST;
+            }
+            return cyborgs - ApproachingCyborgs.mine + ApproachingCyborgs.opponent;
+        }
+    }
+
     public int Production { get; set; }
 
     /// number of turns before the factory starts producing again (0 means that the factory produces normally)
@@ -137,9 +170,23 @@ class Factory(int id) {
 
     public bool CanIncreaseProduction => Production < PRODUCTION_MAX && Cyborgs >= PRODUCTION_INCREASE_COST;
 
+    public void UpdateApproaching(int cyborgs, Player player) {
+        if (player == Player.Me) {
+            ApproachingCyborgs = ApproachingCyborgs with { mine = ApproachingCyborgs.mine + cyborgs };
+        } else {
+            ApproachingCyborgs = ApproachingCyborgs with { opponent = ApproachingCyborgs.opponent + cyborgs };
+        }
+    }
+
     public IncreaseProduction IncreaseProduction() {
         Cyborgs -= PRODUCTION_INCREASE_COST;
         return new IncreaseProduction(id);
+    }
+
+    public Move MoveTroop(Factory target) {
+        int cyborgs = Math.Min(Cyborgs, target.NeededCyborgs);
+        Cyborgs -= cyborgs;
+        return new Move(id, target.id, cyborgs);
     }
 }
 
