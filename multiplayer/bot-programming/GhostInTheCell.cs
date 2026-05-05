@@ -52,36 +52,6 @@ class Game {
         Console.WriteLine(string.Join(';', actions));
     }
 
-    static IEnumerable<IAction> Actions(Factory factory) {
-        if (factory.CanIncreaseProduction) {
-            yield return factory.IncreaseProduction();
-        }
-        var notMyTargets = factory.connections
-                .Where(it => it.factory.Player != Player.Me)
-                .OrderBy(it => it.distanceInTurns)
-                .ThenByDescending(it => it.factory.Production);
-        foreach (var target in notMyTargets) {
-            if (factory.Cyborgs == 0) {
-                yield break;
-            }
-            if (target.factory.NeededCyborgs > 0) {
-                yield return factory.MoveTroop(target.factory);
-            }
-        }
-        var myTargets = factory.connections
-                .Where(it => it.factory is { Player: Player.Me, Production: < Factory.PRODUCTION_MAX })
-                .OrderBy(it => it.distanceInTurns)
-                .ThenBy(it => it.factory.Production);
-        foreach (var target in myTargets) {
-            if (factory.Cyborgs == 0) {
-                yield break;
-            }
-            if (target.factory.NeededCyborgs > 0) {
-                yield return factory.MoveTroop(target.factory);
-            }
-        }
-    }
-
     void ReadInput() {
         foreach (var factory in factories) {
             factory.ApproachingCyborgs = default;
@@ -139,6 +109,36 @@ class Game {
         bomb.TargetId = targetId;
         bomb.Turns = turns;
     }
+
+    static IEnumerable<IAction> Actions(Factory factory) {
+        if (factory.CanIncreaseProduction) {
+            yield return factory.IncreaseProduction();
+        }
+        var notMyTargets = factory.connections
+                .Where(it => it.factory.Player != Player.Me)
+                .OrderBy(it => it.distanceInTurns)
+                .ThenByDescending(it => it.factory.Production);
+        foreach (var target in notMyTargets) {
+            if (factory.Cyborgs == 0) {
+                yield break;
+            }
+            if (target.factory.NeededCyborgs > 0) {
+                yield return factory.MoveTroop(target.factory);
+            }
+        }
+        var myTargets = factory.connections
+                .Where(it => it.factory is { Player: Player.Me, Production: < Factory.PRODUCTION_MAX })
+                .OrderBy(it => it.distanceInTurns)
+                .ThenBy(it => it.factory.Production);
+        foreach (var target in myTargets) {
+            if (factory.Cyborgs == 0) {
+                yield break;
+            }
+            if (target.factory.NeededCyborgs > 0) {
+                yield return factory.MoveTroop(target.factory);
+            }
+        }
+    }
 }
 
 class Factory(int id) {
@@ -183,10 +183,10 @@ class Factory(int id) {
         return new IncreaseProduction(id);
     }
 
-    public Move MoveTroop(Factory target) {
+    public MoveTroop MoveTroop(Factory target) {
         int cyborgs = Math.Min(Cyborgs, target.NeededCyborgs);
         Cyborgs -= cyborgs;
-        return new Move(id, target.id, cyborgs);
+        return new MoveTroop(id, target.id, cyborgs);
     }
 }
 
@@ -231,6 +231,6 @@ readonly struct IncreaseProduction(int factoryId) : IAction {
     public override string ToString() => $"INC {factoryId}";
 }
 
-readonly struct Move(int sourceId, int targetId, int cyborgs) : IAction {
+readonly struct MoveTroop(int sourceId, int targetId, int cyborgs) : IAction {
     public override string ToString() => $"MOVE {sourceId} {targetId} {cyborgs}";
 }
