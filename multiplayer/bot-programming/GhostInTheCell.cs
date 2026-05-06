@@ -282,51 +282,47 @@ readonly struct SendBomb(int sourceId, int targetId) : IAction {
 
 class Pathfinding<T> where T : INode<T> {
     readonly List<T> path = new();
-    readonly PriorityQueue<PathNode, int> queue = new();
+    readonly PriorityQueue<T, int> queue = new();
     readonly Dictionary<int, int> distances = new();
+    readonly Dictionary<int, T> parents = new();
 
     /// Dijkstra
     public List<T>? Path(T start, T end) {
         queue.Clear();
         distances.Clear();
-        var startNode = new PathNode(start);
-        queue.Enqueue(startNode, 0);
+        parents.Clear();
+        queue.Enqueue(start, 0);
         distances.Add(start.Id, 0);
         while (queue.TryDequeue(out var current, out int currentDistance)) {
-            if (current.node.Id == end.Id) {
-                return Reconstruct(startNode, current);
+            if (current.Id == end.Id) {
+                return Reconstruct(start, current);
             }
             // skip if we've already found a better path
-            if (currentDistance > distances.GetValueOrDefault(current.node.Id, int.MaxValue)) {
+            if (currentDistance > distances.GetValueOrDefault(current.Id, int.MaxValue)) {
                 continue;
             }
-            foreach ((var node, int distance) in current.node.Connections) {
+            foreach ((var node, int distance) in current.Connections) {
                 int newDistance = currentDistance + distance;
                 if (newDistance >= distances.GetValueOrDefault(node.Id, int.MaxValue)) {
                     continue;
                 }
-                var neighbour = new PathNode(node) { parent = current };
-                queue.Enqueue(neighbour, newDistance);
+                queue.Enqueue(node, newDistance);
                 distances[node.Id] = newDistance;
+                parents[node.Id] = current;
             }
         }
         return null;
     }
 
-    List<T> Reconstruct(PathNode start, PathNode end) {
+    List<T> Reconstruct(T start, T end) {
         path.Clear();
         var current = end;
-        while (current != start) {
-            path.Add(current!.node);
-            current = current.parent;
+        while (current.Id != start.Id) {
+            path.Add(current);
+            current = parents[current.Id];
         }
         path.Reverse();
         return path;
-    }
-
-    class PathNode(T node) {
-        public readonly T node = node;
-        public PathNode? parent;
     }
 }
 
