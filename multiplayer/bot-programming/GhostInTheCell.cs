@@ -66,7 +66,7 @@ class Game {
 
     void ReadInput() {
         foreach (var factory in factories) {
-            factory.ApproachingCyborgs = default;
+            factory.ClearOldData();
         }
         troops.Clear();
         bombs.Clear();
@@ -103,8 +103,9 @@ class Game {
     }
 
     void ProcessTroop(int id, Player player, int sourceId, int targetId, int cyborgs, int walkTurns) {
-        troops.Add(new Troop(id, player, sourceId, targetId, cyborgs, walkTurns));
-        factories[targetId].UpdateApproaching(cyborgs, player);
+        var troop = new Troop(id, player, sourceId, targetId, cyborgs, walkTurns);
+        troops.Add(troop);
+        factories[targetId].ApproachingTroops.Add(troop);
     }
 
     SendBomb SendBomb(Factory target) {
@@ -125,7 +126,7 @@ class Factory(int id) {
     public readonly List<(Factory factory, int distanceInTurns)> connections = new();
     public Player Player { get; set; }
     public int Cyborgs { get; set; }
-    public (int mine, int opponent) ApproachingCyborgs { get; set; }
+    public List<Troop> ApproachingTroops { get; } = new();
 
     int NeededCyborgs {
         get {
@@ -135,7 +136,9 @@ class Factory(int id) {
             if (Player != Player.Me && Production == 0) {
                 cyborgs += PRODUCTION_INCREASE_COST;
             }
-            return cyborgs - ApproachingCyborgs.mine + ApproachingCyborgs.opponent;
+            return cyborgs
+                    - ApproachingTroops.Where(it => it.Player == Player.Me).Sum(it => it.Cyborgs)
+                    + ApproachingTroops.Where(it => it.Player == Player.Opponent).Sum(it => it.Cyborgs);
         }
     }
 
@@ -144,19 +147,14 @@ class Factory(int id) {
     /// number of turns before the factory starts producing again (0 means that the factory produces normally)
     public int CooldownTurns { get; set; }
 
-    bool CanIncreaseProduction => Production < PRODUCTION_MAX && Cyborgs >= PRODUCTION_INCREASE_COST;
-
-    public void UpdateApproaching(int cyborgs, Player player) {
-        if (player == Player.Me) {
-            ApproachingCyborgs = ApproachingCyborgs with { mine = ApproachingCyborgs.mine + cyborgs };
-        } else {
-            ApproachingCyborgs = ApproachingCyborgs with { opponent = ApproachingCyborgs.opponent + cyborgs };
-        }
-    }
+    public void ClearOldData() => ApproachingTroops.Clear();
 
     public IEnumerable<IAction> Actions() {
-        if (CanIncreaseProduction) {
+        if (CanIncreaseProduction()) {
             yield return IncreaseProduction();
+        }
+        if (Production == 0) {
+            yield break;
         }
         var notMyTargets = connections
                 .Where(it => it.factory.Player != Player.Me)
@@ -184,8 +182,34 @@ class Factory(int id) {
         }
     }
 
+    bool CanIncreaseProduction() {
+        return Production < PRODUCTION_MAX && Cyborgs >= PRODUCTION_INCREASE_COST && IsSafeToIncreaseProduction();
+    }
+
+    bool IsSafeToIncreaseProduction() {
+        const int simulateTurns = 3;
+        int cyborgs = Cyborgs - PRODUCTION_INCREASE_COST;
+        var approaching = ApproachingTroops.ToArray();
+        for (var i = 0; i < simulateTurns; i++) {
+            cyborgs += Production + 1;
+            for (var j = 0; j < approaching.Length; j++) {
+                approaching[j] = approaching[j].Move();
+                var troop = approaching[j];
+                if (troop.WalkTurns != 0) {
+                    continue;
+                }
+                cyborgs += troop.Player == Player.Me ? troop.Cyborgs : -troop.Cyborgs;
+                if (cyborgs < 0) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
     IncreaseProduction IncreaseProduction() {
         Cyborgs -= PRODUCTION_INCREASE_COST;
+        Production++;
         return new IncreaseProduction(id);
     }
 
@@ -196,7 +220,13 @@ class Factory(int id) {
     }
 }
 
-struct Troop(int id, Player player, int sourceId, int targetId, int cyborgs, int walkTurns);
+readonly struct Troop(int id, Player player, int sourceId, int targetId, int cyborgs, int walkTurns) {
+    public Player Player => player;
+    public int Cyborgs => cyborgs;
+    public int WalkTurns => walkTurns;
+
+    public Troop Move() => new(id, player, sourceId, targetId, cyborgs, walkTurns - 1);
+}
 
 /// <param name="targetId">id of the targeted factory if it's my bomb, -1 otherwise</param>
 /// <param name="turns">remaining number of turns before the bomb explodes (positive integer) if that's your bomb, -1 otherwise</param>
