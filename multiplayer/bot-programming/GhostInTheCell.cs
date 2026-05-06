@@ -18,6 +18,7 @@ static class GhostInTheCell {
 }
 
 class Game {
+    readonly Pathfinding<Factory> pathfinding = new();
     Factory[] factories = null!;
     readonly List<Bomb> bombs = new();
     int remainingBombs = 2;
@@ -51,7 +52,7 @@ class Game {
             if (factory.Player != Player.Me) {
                 continue;
             }
-            actions.AddRange(factory.Actions());
+            actions.AddRange(factory.Actions(pathfinding));
         }
         Console.WriteLine(string.Join(';', actions));
     }
@@ -104,7 +105,7 @@ class Game {
                 .Where(it => it.Production == Factory.PRODUCTION_MAX)
                 .Where(it => it.connections.Any(connection => connection.factory.Player == Player.Me))
                 .Where(it => it.CooldownTurns == 0)
-                .FirstOrDefault(it => bombs.All(bomb => bomb.TargetId != it.id));
+                .FirstOrDefault(it => bombs.All(bomb => bomb.TargetId != it.Id));
         bombTarget = target!;
         return target != null;
     }
@@ -115,16 +116,17 @@ class Game {
                 .Where(it => it.factory.Player == Player.Me)
                 .OrderBy(it => it.distanceInTurns)
                 .First();
-        return new SendBomb(source.factory.id, target.id);
+        return new SendBomb(source.factory.Id, target.Id);
     }
 }
 
-class Factory(int id) {
+class Factory(int id) : INode<Factory> {
     public const int PRODUCTION_MAX = 3;
     const int PRODUCTION_INCREASE_COST = 10;
 
-    public readonly int id = id;
+    public int Id { get; } = id;
     public readonly List<(Factory factory, int distanceInTurns)> connections = new();
+    List<(Factory, int)> INode<Factory>.Connections => connections;
     public Player Player { get; set; }
     public int Cyborgs { get; set; }
     public List<Troop> ApproachingTroops { get; } = new();
@@ -150,7 +152,7 @@ class Factory(int id) {
 
     public void ClearOldData() => ApproachingTroops.Clear();
 
-    public IEnumerable<IAction> Actions() {
+    public IEnumerable<IAction> Actions(Pathfinding<Factory> pathfinding) {
         if (CanIncreaseProduction()) {
             yield return IncreaseProduction();
         }
@@ -161,9 +163,14 @@ class Factory(int id) {
             if (Cyborgs == 0) {
                 yield break;
             }
-            if (target.cyborgs > 0) {
-                yield return MoveTroop(target.factory, target.cyborgs);
+            if (target.cyborgs <= 0) {
+                continue;
             }
+            var path = pathfinding.Path(this, target.factory);
+            if (path == null) {
+                continue;
+            }
+            yield return MoveTroop(path.First(), target.cyborgs);
         }
     }
 
@@ -195,7 +202,7 @@ class Factory(int id) {
     IncreaseProduction IncreaseProduction() {
         Cyborgs -= PRODUCTION_INCREASE_COST;
         Production++;
-        return new IncreaseProduction(id);
+        return new IncreaseProduction(Id);
     }
 
     IEnumerable<(Factory factory, int cyborgs)> PrioritizedTargets() {
@@ -229,7 +236,7 @@ class Factory(int id) {
     MoveTroop MoveTroop(Factory target, int count) {
         int cyborgs = Math.Min(Cyborgs, count);
         Cyborgs -= cyborgs;
-        return new MoveTroop(id, target.id, cyborgs);
+        return new MoveTroop(Id, target.Id, cyborgs);
     }
 }
 
@@ -271,4 +278,59 @@ readonly struct MoveTroop(int sourceId, int targetId, int cyborgs) : IAction {
 
 readonly struct SendBomb(int sourceId, int targetId) : IAction {
     public override string ToString() => $"BOMB {sourceId} {targetId}";
+}
+
+class Pathfinding<T> where T : INode<T> {
+    readonly List<T> path = new();
+    readonly PriorityQueue<PathNode, int> queue = new();
+    readonly Dictionary<int, int> distances = new();
+
+    /// Dijkstra
+    public List<T>? Path(T start, T end) {
+        queue.Clear();
+        distances.Clear();
+        var startNode = new PathNode(start);
+        queue.Enqueue(startNode, 0);
+        distances.Add(start.Id, 0);
+        while (queue.TryDequeue(out var current, out int currentDistance)) {
+            if (current.node.Id == end.Id) {
+                return Reconstruct(startNode, current);
+            }
+            // skip if we've already found a better path
+            if (currentDistance > distances.GetValueOrDefault(current.node.Id, int.MaxValue)) {
+                continue;
+            }
+            foreach ((var node, int distance) in current.node.Connections) {
+                int newDistance = currentDistance + distance;
+                if (newDistance >= distances.GetValueOrDefault(node.Id, int.MaxValue)) {
+                    continue;
+                }
+                var neighbour = new PathNode(node) { parent = current };
+                queue.Enqueue(neighbour, newDistance);
+                distances[node.Id] = newDistance;
+            }
+        }
+        return null;
+    }
+
+    List<T> Reconstruct(PathNode start, PathNode end) {
+        path.Clear();
+        var current = end;
+        while (current != start) {
+            path.Add(current!.node);
+            current = current.parent;
+        }
+        path.Reverse();
+        return path;
+    }
+
+    class PathNode(T node) {
+        public readonly T node = node;
+        public PathNode? parent;
+    }
+}
+
+interface INode<T> where T : INode<T> {
+    int Id { get; }
+    List<(T, int)> Connections { get; }
 }
