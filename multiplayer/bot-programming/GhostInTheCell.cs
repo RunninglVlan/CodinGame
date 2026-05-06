@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
 namespace GhostInTheCell;
@@ -18,7 +19,6 @@ static class GhostInTheCell {
 
 class Game {
     Factory[] factories = null!;
-    readonly List<Troop> troops = new();
     readonly List<Bomb> bombs = new();
     int remainingBombs = 2;
 
@@ -44,16 +44,8 @@ class Game {
     public void Loop() {
         ReadInput();
         var actions = new List<IAction>();
-        if (remainingBombs > 0) {
-            var bombTarget = factories
-                    .Where(it => it.Player == Player.Opponent)
-                    .Where(it => it.Production == Factory.PRODUCTION_MAX)
-                    .Where(it => it.connections.Any(connection => connection.factory.Player == Player.Me))
-                    .Where(it => it.CooldownTurns == 0)
-                    .FirstOrDefault(it => bombs.All(bomb => bomb.TargetId != it.id));
-            if (bombTarget != null) {
-                actions.Add(SendBomb(bombTarget));
-            }
+        if (remainingBombs > 0 && TryFindBombTarget(out var target)) {
+            actions.Add(SendBomb(target));
         }
         foreach (var factory in factories) {
             if (factory.Player != Player.Me) {
@@ -68,7 +60,6 @@ class Game {
         foreach (var factory in factories) {
             factory.ClearOldData();
         }
-        troops.Clear();
         bombs.Clear();
         int entityCount = int.Parse(Console.ReadLine()!);
         for (var i = 0; i < entityCount; i++) {
@@ -104,8 +95,18 @@ class Game {
 
     void ProcessTroop(int id, Player player, int sourceId, int targetId, int cyborgs, int walkTurns) {
         var troop = new Troop(id, player, sourceId, targetId, cyborgs, walkTurns);
-        troops.Add(troop);
         factories[targetId].ApproachingTroops.Add(troop);
+    }
+
+    bool TryFindBombTarget(out Factory bombTarget) {
+        var target = factories
+                .Where(it => it.Player == Player.Opponent)
+                .Where(it => it.Production == Factory.PRODUCTION_MAX)
+                .Where(it => it.connections.Any(connection => connection.factory.Player == Player.Me))
+                .Where(it => it.CooldownTurns == 0)
+                .FirstOrDefault(it => bombs.All(bomb => bomb.TargetId != it.id));
+        bombTarget = target!;
+        return target != null;
     }
 
     SendBomb SendBomb(Factory target) {
@@ -156,42 +157,13 @@ class Factory(int id) {
         if (Production == 0) {
             yield break;
         }
-        // capture other factories
-        var otherTargets = connections
-                .Where(it => it.factory.Player != Player.Me)
-                .OrderBy(it => it.distanceInTurns)
-                .ThenByDescending(it => it.factory.Production);
-        foreach (var target in otherTargets) {
+        foreach (var target in PrioritizedTargets()) {
             if (Cyborgs == 0) {
                 yield break;
             }
-            if (target.factory.NeededCyborgs > 0) {
-                yield return MoveTroop(target.factory, target.factory.NeededCyborgs);
+            if (target.cyborgs > 0) {
+                yield return MoveTroop(target.factory, target.cyborgs);
             }
-        }
-        // help my factories
-        var myTargets = connections
-                .Where(it => it.factory is { Player: Player.Me, Production: < PRODUCTION_MAX })
-                .OrderBy(it => it.distanceInTurns)
-                .ThenBy(it => it.factory.Production);
-        foreach (var target in myTargets) {
-            if (Cyborgs == 0) {
-                yield break;
-            }
-            if (target.factory.NeededCyborgs > 0) {
-                yield return MoveTroop(target.factory, target.factory.NeededCyborgs);
-            }
-        }
-        // attack opponent factories
-        var opponentTargets = connections
-                .Where(it => it.factory.Player == Player.Opponent)
-                .OrderBy(it => it.distanceInTurns)
-                .ThenByDescending(it => it.factory.Production);
-        foreach (var target in opponentTargets) {
-            if (Cyborgs == 0) {
-                yield break;
-            }
-            yield return MoveTroop(target.factory, 3);
         }
     }
 
@@ -226,6 +198,34 @@ class Factory(int id) {
         return new IncreaseProduction(id);
     }
 
+    IEnumerable<(Factory factory, int cyborgs)> PrioritizedTargets() {
+        const int maxAttackingCyborgs = 3;
+        // capture other factories
+        var otherTargets = connections
+                .Where(it => it.factory.Player != Player.Me)
+                .OrderBy(it => it.distanceInTurns)
+                .ThenByDescending(it => it.factory.Production);
+        foreach (var target in otherTargets) {
+            yield return (target.factory, target.factory.NeededCyborgs);
+        }
+        // help my factories
+        var myTargets = connections
+                .Where(it => it.factory is { Player: Player.Me, Production: < PRODUCTION_MAX })
+                .OrderBy(it => it.distanceInTurns)
+                .ThenBy(it => it.factory.Production);
+        foreach (var target in myTargets) {
+            yield return (target.factory, target.factory.NeededCyborgs);
+        }
+        // attack opponent factories
+        var opponentTargets = connections
+                .Where(it => it.factory.Player == Player.Opponent)
+                .OrderBy(it => it.distanceInTurns)
+                .ThenByDescending(it => it.factory.Production);
+        foreach (var target in opponentTargets) {
+            yield return (target.factory, maxAttackingCyborgs);
+        }
+    }
+
     MoveTroop MoveTroop(Factory target, int count) {
         int cyborgs = Math.Min(Cyborgs, count);
         Cyborgs -= cyborgs;
@@ -233,19 +233,15 @@ class Factory(int id) {
     }
 }
 
-readonly struct Troop(int id, Player player, int sourceId, int targetId, int cyborgs, int walkTurns) {
-    public Player Player => player;
-    public int Cyborgs => cyborgs;
-    public int WalkTurns => walkTurns;
-
-    public Troop Move() => new(id, player, sourceId, targetId, cyborgs, walkTurns - 1);
+[SuppressMessage("ReSharper", "NotAccessedPositionalProperty.Global")]
+readonly record struct Troop(int Id, Player Player, int SourceId, int TargetId, int Cyborgs, int WalkTurns) {
+    public Troop Move() => this with { WalkTurns = WalkTurns - 1 };
 }
 
-/// <param name="targetId">id of the targeted factory if it's my bomb, -1 otherwise</param>
-/// <param name="turns">remaining number of turns before the bomb explodes (positive integer) if that's your bomb, -1 otherwise</param>
-readonly struct Bomb(int id, Player player, int sourceId, int targetId, int turns) {
-    public int TargetId => targetId;
-}
+/// <param name="TargetId">id of the targeted factory if it's my bomb, -1 otherwise</param>
+/// <param name="Turns">remaining number of turns before the bomb explodes (positive integer) if that's your bomb, -1 otherwise</param>
+[SuppressMessage("ReSharper", "NotAccessedPositionalProperty.Global")]
+readonly record struct Bomb(int Id, Player Player, int SourceId, int TargetId, int Turns);
 
 static class EntityType {
     public const string FACTORY = "FACTORY";
