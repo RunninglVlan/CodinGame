@@ -123,6 +123,7 @@ class Game {
 class Factory(int id) : INode<Factory> {
     public const int PRODUCTION_MAX = 3;
     const int PRODUCTION_INCREASE_COST = 10;
+    const int SIMULATE_TURNS = 3;
 
     public int Id { get; } = id;
     public readonly List<(Factory factory, int distanceInTurns)> connections = new();
@@ -156,11 +157,12 @@ class Factory(int id) : INode<Factory> {
         if (CanIncreaseProduction()) {
             yield return IncreaseProduction();
         }
-        if (Production == 0) {
+        int availableCyborgs = SimulateCyborgs(Cyborgs, Production);
+        if (Production == 0 || availableCyborgs == 0) {
             yield break;
         }
         foreach (var target in PrioritizedTargets()) {
-            if (Cyborgs == 0) {
+            if (availableCyborgs == 0) {
                 yield break;
             }
             if (target.cyborgs <= 0) {
@@ -170,20 +172,23 @@ class Factory(int id) : INode<Factory> {
             if (path == null) {
                 continue;
             }
-            yield return MoveTroop(path.First(), target.cyborgs);
+            int cyborgs = Math.Min(availableCyborgs, target.cyborgs);
+            availableCyborgs -= cyborgs;
+            yield return new MoveTroop(Id, path.First().Id, cyborgs);
         }
     }
 
     bool CanIncreaseProduction() {
-        return Production < PRODUCTION_MAX && Cyborgs >= PRODUCTION_INCREASE_COST && IsSafeToIncreaseProduction();
+        return Production < PRODUCTION_MAX
+                && Cyborgs >= PRODUCTION_INCREASE_COST
+                && SimulateCyborgs(Cyborgs - PRODUCTION_INCREASE_COST, Production + 1) > 0;
     }
 
-    bool IsSafeToIncreaseProduction() {
-        const int simulateTurns = 3;
-        int cyborgs = Cyborgs - PRODUCTION_INCREASE_COST;
+    int SimulateCyborgs(int initial, int production) {
+        int cyborgs = initial;
         var approaching = ApproachingTroops.ToArray();
-        for (var i = 0; i < simulateTurns; i++) {
-            cyborgs += Production + 1;
+        for (var i = 0; i < SIMULATE_TURNS; i++) {
+            cyborgs += production;
             for (var j = 0; j < approaching.Length; j++) {
                 approaching[j] = approaching[j].Move();
                 var troop = approaching[j];
@@ -191,12 +196,12 @@ class Factory(int id) : INode<Factory> {
                     continue;
                 }
                 cyborgs += troop.Player == Player.Me ? troop.Cyborgs : -troop.Cyborgs;
-                if (cyborgs < 0) {
-                    return false;
+                if (cyborgs <= 0) {
+                    return 0;
                 }
             }
         }
-        return true;
+        return Math.Max(cyborgs - initial, 0);
     }
 
     IncreaseProduction IncreaseProduction() {
@@ -231,12 +236,6 @@ class Factory(int id) : INode<Factory> {
         foreach (var target in opponentTargets) {
             yield return (target.factory, maxAttackingCyborgs);
         }
-    }
-
-    MoveTroop MoveTroop(Factory target, int count) {
-        int cyborgs = Math.Min(Cyborgs, count);
-        Cyborgs -= cyborgs;
-        return new MoveTroop(Id, target.Id, cyborgs);
     }
 }
 
