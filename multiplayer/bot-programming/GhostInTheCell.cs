@@ -156,11 +156,12 @@ class Factory(int id) {
         if (Production == 0) {
             yield break;
         }
-        var notMyTargets = connections
+        // attack other factories
+        var otherTargets = connections
                 .Where(it => it.factory.Player != Player.Me)
                 .OrderBy(it => it.distanceInTurns)
                 .ThenByDescending(it => it.factory.Production);
-        foreach (var target in notMyTargets) {
+        foreach (var target in otherTargets) {
             if (Cyborgs == 0) {
                 yield break;
             }
@@ -168,6 +169,7 @@ class Factory(int id) {
                 yield return MoveTroop(target.factory);
             }
         }
+        // help my factories
         var myTargets = connections
                 .Where(it => it.factory is { Player: Player.Me, Production: < PRODUCTION_MAX })
                 .OrderBy(it => it.distanceInTurns)
