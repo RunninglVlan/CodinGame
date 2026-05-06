@@ -156,7 +156,7 @@ class Factory(int id) {
         if (Production == 0) {
             yield break;
         }
-        // attack other factories
+        // capture other factories
         var otherTargets = connections
                 .Where(it => it.factory.Player != Player.Me)
                 .OrderBy(it => it.distanceInTurns)
@@ -166,7 +166,7 @@ class Factory(int id) {
                 yield break;
             }
             if (target.factory.NeededCyborgs > 0) {
-                yield return MoveTroop(target.factory);
+                yield return MoveTroop(target.factory, target.factory.NeededCyborgs);
             }
         }
         // help my factories
@@ -179,8 +179,19 @@ class Factory(int id) {
                 yield break;
             }
             if (target.factory.NeededCyborgs > 0) {
-                yield return MoveTroop(target.factory);
+                yield return MoveTroop(target.factory, target.factory.NeededCyborgs);
             }
+        }
+        // attack opponent factories
+        var opponentTargets = connections
+                .Where(it => it.factory.Player == Player.Opponent)
+                .OrderBy(it => it.distanceInTurns)
+                .ThenByDescending(it => it.factory.Production);
+        foreach (var target in opponentTargets) {
+            if (Cyborgs == 0) {
+                yield break;
+            }
+            yield return MoveTroop(target.factory, 3);
         }
     }
 
@@ -215,8 +226,8 @@ class Factory(int id) {
         return new IncreaseProduction(id);
     }
 
-    MoveTroop MoveTroop(Factory target) {
-        int cyborgs = Math.Min(Cyborgs, target.NeededCyborgs);
+    MoveTroop MoveTroop(Factory target, int count) {
+        int cyborgs = Math.Min(Cyborgs, count);
         Cyborgs -= cyborgs;
         return new MoveTroop(id, target.id, cyborgs);
     }
