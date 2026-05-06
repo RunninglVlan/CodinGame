@@ -157,7 +157,7 @@ class Factory(int id) : INode<Factory> {
         if (CanIncreaseProduction()) {
             yield return IncreaseProduction();
         }
-        int availableCyborgs = SimulateCyborgs(Cyborgs, Production);
+        int availableCyborgs = AvailableCyborgs();
         if (Production == 0 || availableCyborgs == 0) {
             yield break;
         }
@@ -179,9 +179,16 @@ class Factory(int id) : INode<Factory> {
     }
 
     bool CanIncreaseProduction() {
-        return Production < PRODUCTION_MAX
-                && Cyborgs >= PRODUCTION_INCREASE_COST
-                && SimulateCyborgs(Cyborgs - PRODUCTION_INCREASE_COST, Production + 1) > 0;
+        return Production < PRODUCTION_MAX && Cyborgs >= PRODUCTION_INCREASE_COST && IsSafeToIncreaseProduction();
+    }
+
+    bool IsSafeToIncreaseProduction() {
+        return SimulateCyborgs(Cyborgs - PRODUCTION_INCREASE_COST, Production + 1) > 0;
+    }
+
+    int AvailableCyborgs() {
+        int simulated = SimulateCyborgs(Cyborgs, Production);
+        return simulated > Cyborgs ? Cyborgs : simulated;
     }
 
     int SimulateCyborgs(int initial, int production) {
@@ -196,12 +203,12 @@ class Factory(int id) : INode<Factory> {
                     continue;
                 }
                 cyborgs += troop.Player == Player.Me ? troop.Cyborgs : -troop.Cyborgs;
-                if (cyborgs <= 0) {
-                    return 0;
-                }
+            }
+            if (cyborgs <= 0) {
+                return 0;
             }
         }
-        return Math.Max(cyborgs - initial, 0);
+        return Math.Max(cyborgs, 0);
     }
 
     IncreaseProduction IncreaseProduction() {
