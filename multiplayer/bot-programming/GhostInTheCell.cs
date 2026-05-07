@@ -176,9 +176,10 @@ class Factory(int id) : INode<Factory> {
             if (path == null) {
                 continue;
             }
-            int cyborgs = Math.Min(availableCyborgs, target.cyborgs);
+            var nextFactory = path.First();
+            int cyborgs = Math.Min(availableCyborgs, Math.Max(nextFactory.NeededCyborgs, target.cyborgs));
             availableCyborgs -= cyborgs;
-            yield return new MoveTroop(Id, path.First().Id, cyborgs);
+            yield return new MoveTroop(Id, nextFactory.Id, cyborgs);
         }
     }
 
