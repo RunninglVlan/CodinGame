@@ -219,8 +219,8 @@ class Factory(int id) : INode<Factory> {
         // capture other factories
         var otherTargets = connections
                 .Where(it => it.factory.Player != Player.Me)
-                .OrderBy(it => it.distanceInTurns)
-                .ThenByDescending(it => it.factory.Production);
+                .OrderByDescending(it => (float)it.factory.Production / it.distanceInTurns)
+                .ThenBy(it => it.distanceInTurns);
         foreach (var target in otherTargets) {
             yield return (target.factory, target.factory.NeededCyborgs);
         }
