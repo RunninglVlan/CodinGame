@@ -162,7 +162,7 @@ class Factory(int id) : INode<Factory> {
             yield return Upgrade();
         }
         int availableCyborgs = AvailableCyborgs();
-        if (Production == 0 || availableCyborgs == 0) {
+        if (availableCyborgs == 0) {
             yield break;
         }
         foreach (var target in PrioritizedTargets()) {
@@ -184,10 +184,20 @@ class Factory(int id) : INode<Factory> {
     }
 
     bool CanUpgrade() {
-        return Production < PRODUCTION_MAX && Cyborgs >= UPGRADE_COST && IsSafeToUpgrade();
+        return Production < PRODUCTION_MAX
+                && Cyborgs >= UPGRADE_COST
+                && IsSafeToUpgrade()
+                && !ShouldPrioritizeCapture();
 
         bool IsSafeToUpgrade() {
             return SimulateMinCyborgs(Cyborgs - UPGRADE_COST, Production + 1) >= 0;
+        }
+
+        bool ShouldPrioritizeCapture() {
+            return connections
+                    .Where(it => it.factory.Player != Player.Me && it.factory.Production > Production)
+                    .Where(it => it.distanceInTurns <= it.factory.Production - Production)
+                    .Any(it => Cyborgs >= it.factory.NeededCyborgs);
         }
     }
 
