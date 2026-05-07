@@ -199,12 +199,12 @@ class Factory(int id) : INode<Factory> {
         int horizon = ApproachingTroops.Count != 0 ? ApproachingTroops.Max(t => t.WalkTurns) : 0;
         int simulateTurns = Math.Max(horizon, 3);
         for (var turn = 1; turn <= simulateTurns; turn++) {
-            current += production;
             current += ApproachingTroops.Where(tr => tr.WalkTurns == turn)
                     .Sum(troop => troop.Player == Player.Me ? troop.Cyborgs : -troop.Cyborgs);
             if (current <= 0) {
                 return 0;
             }
+            current += production;
         }
         return Math.Max(current, 0);
     }
