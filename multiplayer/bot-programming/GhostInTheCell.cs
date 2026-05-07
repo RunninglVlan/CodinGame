@@ -46,7 +46,7 @@ class Game {
     public void Loop() {
         ReadInput();
         var actions = new List<IAction>();
-        if (remainingBombs > 0 && TryFindBombTarget(out var target)) {
+        if (remainingBombs > 0 && TryChooseBombTarget(out var target)) {
             actions.Add(SendBomb(target));
         }
         foreach (var factory in factories) {
@@ -104,7 +104,7 @@ class Game {
         factories[targetId].ApproachingTroops.Add(troop);
     }
 
-    bool TryFindBombTarget(out Factory bombTarget) {
+    bool TryChooseBombTarget(out Factory bombTarget) {
         var target = factories
                 .Where(it => it.Player == Player.Opponent)
                 .Where(it => it.Production == Factory.PRODUCTION_MAX)
@@ -127,7 +127,7 @@ class Game {
 
 class Factory(int id) : INode<Factory> {
     public const int PRODUCTION_MAX = 3;
-    const int PRODUCTION_INCREASE_COST = 10;
+    const int UPGRADE_COST = 10;
 
     public int Id { get; } = id;
     public readonly List<(Factory factory, int distanceInTurns)> connections = new();
@@ -139,10 +139,10 @@ class Factory(int id) : INode<Factory> {
     int NeededCyborgs {
         get {
             int cyborgs = Player == Player.Me
-                    ? (PRODUCTION_MAX - Production) * PRODUCTION_INCREASE_COST
+                    ? (PRODUCTION_MAX - Production) * UPGRADE_COST
                     : Cyborgs + 1;
             if (Player != Player.Me && Production == 0) {
-                cyborgs += PRODUCTION_INCREASE_COST;
+                cyborgs += UPGRADE_COST;
             }
             return cyborgs
                     - ApproachingTroops.Where(it => it.Player == Player.Me).Sum(it => it.Cyborgs)
@@ -158,8 +158,8 @@ class Factory(int id) : INode<Factory> {
     public void ClearOldData() => ApproachingTroops.Clear();
 
     public IEnumerable<IAction> Actions(Pathfinding<Factory> pathfinding) {
-        if (CanIncreaseProduction()) {
-            yield return IncreaseProduction();
+        if (CanUpgrade()) {
+            yield return Upgrade();
         }
         int availableCyborgs = AvailableCyborgs();
         if (Production == 0 || availableCyborgs == 0) {
@@ -183,12 +183,12 @@ class Factory(int id) : INode<Factory> {
         }
     }
 
-    bool CanIncreaseProduction() {
-        return Production < PRODUCTION_MAX && Cyborgs >= PRODUCTION_INCREASE_COST && IsSafeToIncreaseProduction();
-    }
+    bool CanUpgrade() {
+        return Production < PRODUCTION_MAX && Cyborgs >= UPGRADE_COST && IsSafeToUpgrade();
 
-    bool IsSafeToIncreaseProduction() {
-        return SimulateMinCyborgs(Cyborgs - PRODUCTION_INCREASE_COST, Production + 1) > 0;
+        bool IsSafeToUpgrade() {
+            return SimulateMinCyborgs(Cyborgs - UPGRADE_COST, Production + 1) > 0;
+        }
     }
 
     int AvailableCyborgs() {
@@ -212,10 +212,10 @@ class Factory(int id) : INode<Factory> {
         return min;
     }
 
-    IncreaseProduction IncreaseProduction() {
-        Cyborgs -= PRODUCTION_INCREASE_COST;
+    Upgrade Upgrade() {
+        Cyborgs -= UPGRADE_COST;
         Production++;
-        return new IncreaseProduction(Id);
+        return new Upgrade(Id);
     }
 
     IEnumerable<(Factory factory, int cyborgs)> PrioritizedTargets() {
@@ -275,7 +275,7 @@ struct Wait : IAction {
     public override string ToString() => "WAIT";
 }
 
-readonly struct IncreaseProduction(int factoryId) : IAction {
+readonly struct Upgrade(int factoryId) : IAction {
     public override string ToString() => $"INC {factoryId}";
 }
 
