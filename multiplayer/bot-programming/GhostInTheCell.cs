@@ -39,6 +39,7 @@ class Game {
             var factory2 = factories[factoryId2];
             factory1.connections.Add((factory2, distanceInTurns));
             factory2.connections.Add((factory1, distanceInTurns));
+            Console.Error.WriteLine($"Link: {factoryId1} <-> {factoryId2} ({distanceInTurns} turns)");
         }
     }
 
