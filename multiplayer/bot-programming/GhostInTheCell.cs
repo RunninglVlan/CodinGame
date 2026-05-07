@@ -195,23 +195,16 @@ class Factory(int id) : INode<Factory> {
     }
 
     int SimulateCyborgs(int initial, int production) {
-        int cyborgs = initial;
-        var approaching = ApproachingTroops.ToArray();
-        for (var i = 0; i < SIMULATE_TURNS; i++) {
-            cyborgs += production;
-            for (var j = 0; j < approaching.Length; j++) {
-                approaching[j] = approaching[j].Move();
-                var troop = approaching[j];
-                if (troop.WalkTurns != 0) {
-                    continue;
-                }
-                cyborgs += troop.Player == Player.Me ? troop.Cyborgs : -troop.Cyborgs;
-            }
-            if (cyborgs <= 0) {
+        int current = initial;
+        for (var turn = 1; turn <= SIMULATE_TURNS; turn++) {
+            current += production;
+            current += ApproachingTroops.Where(tr => tr.WalkTurns == turn)
+                    .Sum(troop => troop.Player == Player.Me ? troop.Cyborgs : -troop.Cyborgs);
+            if (current <= 0) {
                 return 0;
             }
         }
-        return Math.Max(cyborgs, 0);
+        return Math.Max(current, 0);
     }
 
     IncreaseProduction IncreaseProduction() {
@@ -250,9 +243,7 @@ class Factory(int id) : INode<Factory> {
 }
 
 [SuppressMessage("ReSharper", "NotAccessedPositionalProperty.Global")]
-readonly record struct Troop(int Id, Player Player, int SourceId, int TargetId, int Cyborgs, int WalkTurns) {
-    public Troop Move() => this with { WalkTurns = WalkTurns - 1 };
-}
+readonly record struct Troop(int Id, Player Player, int SourceId, int TargetId, int Cyborgs, int WalkTurns);
 
 /// <param name="TargetId">id of the targeted factory if it's my bomb, -1 otherwise</param>
 /// <param name="Turns">remaining number of turns before the bomb explodes (positive integer) if that's your bomb, -1 otherwise</param>
