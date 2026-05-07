@@ -187,27 +187,28 @@ class Factory(int id) : INode<Factory> {
     }
 
     bool IsSafeToIncreaseProduction() {
-        return SimulateCyborgs(Cyborgs - PRODUCTION_INCREASE_COST, Production + 1) > 0;
+        return SimulateMinCyborgs(Cyborgs - PRODUCTION_INCREASE_COST, Production + 1) > 0;
     }
 
     int AvailableCyborgs() {
-        int simulated = SimulateCyborgs(Cyborgs, Production);
-        return simulated > Cyborgs ? Cyborgs : simulated;
+        int simulated = SimulateMinCyborgs(Cyborgs, Production);
+        return Math.Clamp(simulated, 0, Cyborgs);
     }
 
-    int SimulateCyborgs(int initial, int production) {
+    int SimulateMinCyborgs(int initial, int production) {
         int current = initial;
+        int min = initial;
         int horizon = ApproachingTroops.Count != 0 ? ApproachingTroops.Max(t => t.WalkTurns) : 0;
         int simulateTurns = Math.Max(horizon, 3);
         for (var turn = 1; turn <= simulateTurns; turn++) {
             current += ApproachingTroops.Where(tr => tr.WalkTurns == turn)
                     .Sum(troop => troop.Player == Player.Me ? troop.Cyborgs : -troop.Cyborgs);
-            if (current <= 0) {
-                return 0;
+            if (current < min) {
+                min = current;
             }
             current += production;
         }
-        return Math.Max(current, 0);
+        return min;
     }
 
     IncreaseProduction IncreaseProduction() {
@@ -218,36 +219,30 @@ class Factory(int id) : INode<Factory> {
 
     IEnumerable<(Factory factory, int cyborgs)> PrioritizedTargets() {
         const int maxAttackingCyborgs = 3;
-        // capture other factories
-        var otherTargets = connections
-                .Where(it => it.factory.Player != Player.Me)
-                .OrderByDescending(it => (float)it.factory.Production / it.distanceInTurns)
-                .ThenBy(it => it.distanceInTurns);
-        foreach (var target in otherTargets) {
-            yield return (target.factory, target.factory.NeededCyborgs);
-        }
-        // help my factories
         var myFactories = connections.Where(it => it.factory.Player == Player.Me).ToArray();
-        var riskOfLosing = myFactories
+        var helpFactoriesIMightLose = myFactories
                 .Where(it => {
-                    int simulated = it.factory.SimulateCyborgs(it.factory.Cyborgs, it.factory.Production);
-                    return it.factory.Cyborgs > 0 && simulated == 0;
+                    int simulated = it.factory.SimulateMinCyborgs(it.factory.Cyborgs, it.factory.Production);
+                    return simulated < 0;
                 })
                 .OrderBy(it => it.distanceInTurns)
                 .ThenByDescending(it => it.factory.Production);
-        var needUpgrade = myFactories
+        var captureOthers = connections
+                .Where(it => it.factory.Player != Player.Me)
+                .OrderByDescending(it => (float)it.factory.Production / it.distanceInTurns)
+                .ThenBy(it => it.distanceInTurns);
+        var helpInUpgrading = myFactories
                 .Where(it => it.factory.Production < PRODUCTION_MAX)
                 .OrderBy(it => it.distanceInTurns)
                 .ThenBy(it => it.factory.Production);
-        foreach (var target in riskOfLosing.Concat(needUpgrade)) {
+        foreach (var target in helpFactoriesIMightLose.Concat(captureOthers).Concat(helpInUpgrading)) {
             yield return (target.factory, target.factory.NeededCyborgs);
         }
-        // attack opponent factories
-        var opponentTargets = connections
+        var attackOpponent = connections
                 .Where(it => it.factory.Player == Player.Opponent)
                 .OrderBy(it => it.distanceInTurns)
                 .ThenByDescending(it => it.factory.Production);
-        foreach (var target in opponentTargets) {
+        foreach (var target in attackOpponent) {
             yield return (target.factory, maxAttackingCyborgs);
         }
     }
