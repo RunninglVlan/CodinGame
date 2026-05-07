@@ -54,9 +54,10 @@ class Game {
             }
             actions.AddRange(factory.Actions(pathfinding));
         }
-        if (actions.Count == 0) {
-            actions.Add(new Wait());
-        }
+        actions.Add(new Message($"Factories: my {factories.Count(it => it.Player == Player.Me)} "
+                + $"vs {factories.Count(it => it.Player == Player.Opponent)}             "
+                + $"Production: my {factories.Where(it => it.Player == Player.Me).Sum(it => it.Production)} "
+                + $"vs {factories.Where(it => it.Player == Player.Opponent).Sum(it => it.Production)}"));
         Console.WriteLine(string.Join(';', actions));
     }
 
@@ -287,6 +288,10 @@ readonly struct MoveTroop(int sourceId, int targetId, int cyborgs) : IAction {
 
 readonly struct SendBomb(int sourceId, int targetId) : IAction {
     public override string ToString() => $"BOMB {sourceId} {targetId}";
+}
+
+readonly struct Message(string value) : IAction {
+    public override string ToString() => $"MSG {value}";
 }
 
 class Pathfinding<T> where T : INode<T> {
