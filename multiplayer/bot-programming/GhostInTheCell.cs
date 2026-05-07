@@ -207,7 +207,9 @@ class Factory(int id) : INode<Factory> {
             if (current < min) {
                 min = current;
             }
-            current += production;
+            if (CooldownTurns == 0) {
+                current += production;
+            }
         }
         return min;
     }
