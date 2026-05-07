@@ -126,7 +126,6 @@ class Game {
 class Factory(int id) : INode<Factory> {
     public const int PRODUCTION_MAX = 3;
     const int PRODUCTION_INCREASE_COST = 10;
-    const int SIMULATE_TURNS = 3;
 
     public int Id { get; } = id;
     public readonly List<(Factory factory, int distanceInTurns)> connections = new();
@@ -196,7 +195,9 @@ class Factory(int id) : INode<Factory> {
 
     int SimulateCyborgs(int initial, int production) {
         int current = initial;
-        for (var turn = 1; turn <= SIMULATE_TURNS; turn++) {
+        int horizon = ApproachingTroops.Count != 0 ? ApproachingTroops.Max(t => t.WalkTurns) : 0;
+        int simulateTurns = Math.Max(horizon, 3);
+        for (var turn = 1; turn <= simulateTurns; turn++) {
             current += production;
             current += ApproachingTroops.Where(tr => tr.WalkTurns == turn)
                     .Sum(troop => troop.Player == Player.Me ? troop.Cyborgs : -troop.Cyborgs);
@@ -224,11 +225,19 @@ class Factory(int id) : INode<Factory> {
             yield return (target.factory, target.factory.NeededCyborgs);
         }
         // help my factories
-        var myTargets = connections
-                .Where(it => it.factory is { Player: Player.Me, Production: < PRODUCTION_MAX })
+        var myFactories = connections.Where(it => it.factory.Player == Player.Me).ToArray();
+        var riskOfLosing = myFactories
+                .Where(it => {
+                    int simulated = it.factory.SimulateCyborgs(it.factory.Cyborgs, it.factory.Production);
+                    return it.factory.Cyborgs > 0 && simulated == 0;
+                })
+                .OrderBy(it => it.distanceInTurns)
+                .ThenByDescending(it => it.factory.Production);
+        var needUpgrade = myFactories
+                .Where(it => it.factory.Production < PRODUCTION_MAX)
                 .OrderBy(it => it.distanceInTurns)
                 .ThenBy(it => it.factory.Production);
-        foreach (var target in myTargets) {
+        foreach (var target in riskOfLosing.Concat(needUpgrade)) {
             yield return (target.factory, target.factory.NeededCyborgs);
         }
         // attack opponent factories
