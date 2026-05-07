@@ -187,7 +187,7 @@ class Factory(int id) : INode<Factory> {
         return Production < PRODUCTION_MAX && Cyborgs >= UPGRADE_COST && IsSafeToUpgrade();
 
         bool IsSafeToUpgrade() {
-            return SimulateMinCyborgs(Cyborgs - UPGRADE_COST, Production + 1) > 0;
+            return SimulateMinCyborgs(Cyborgs - UPGRADE_COST, Production + 1) >= 0;
         }
     }
 
