@@ -54,6 +54,9 @@ class Game {
             }
             actions.AddRange(factory.Actions(pathfinding));
         }
+        if (actions.Count == 0) {
+            actions.Add(new Wait());
+        }
         Console.WriteLine(string.Join(';', actions));
     }
 
