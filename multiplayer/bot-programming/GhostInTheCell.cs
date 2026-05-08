@@ -136,26 +136,24 @@ class Factory(int id) : INode<Factory> {
     public int Cyborgs { get; set; }
     public List<Troop> ApproachingTroops { get; } = new();
 
-    int NeededCyborgs {
-        get {
-            int cyborgs = Player == Player.Me
-                    ? (PRODUCTION_MAX - Production) * UPGRADE_COST
-                    : Cyborgs + 1;
-            if (Player != Player.Me && Production == 0) {
-                cyborgs += UPGRADE_COST;
-            }
-            return cyborgs
-                    - ApproachingTroops.Where(it => it.Player == Player.Me).Sum(it => it.Cyborgs)
-                    + ApproachingTroops.Where(it => it.Player == Player.Opponent).Sum(it => it.Cyborgs);
-        }
-    }
-
     public int Production { get; set; }
 
     /// number of turns before the factory starts producing again (0 means that the factory produces normally)
     public int CooldownTurns { get; set; }
 
     public void ClearOldData() => ApproachingTroops.Clear();
+
+    int NeededCyborgs(int distanceInTurns) {
+        int cyborgs = Player == Player.Me
+                ? (PRODUCTION_MAX - Production) * UPGRADE_COST
+                : Cyborgs + (Player == Player.Opponent ? distanceInTurns * Production : 0) + 1;
+        if (Player != Player.Me && Production == 0) {
+            cyborgs += UPGRADE_COST;
+        }
+        return cyborgs
+                - ApproachingTroops.Where(it => it.Player == Player.Me).Sum(it => it.Cyborgs)
+                + ApproachingTroops.Where(it => it.Player == Player.Opponent).Sum(it => it.Cyborgs);
+    }
 
     public IEnumerable<IAction> Actions(Pathfinding<Factory> pathfinding) {
         if (CanUpgrade()) {
@@ -174,7 +172,9 @@ class Factory(int id) : INode<Factory> {
                 continue;
             }
             var nextFactory = path.First();
-            int cyborgs = Math.Min(availableCyborgs, Math.Max(nextFactory.NeededCyborgs, target.cyborgs));
+            int distance = connections.First(it => it.factory.Id == nextFactory.Id).distanceInTurns;
+            int neededCyborgs = Math.Max(nextFactory.NeededCyborgs(distance), target.cyborgs);
+            int cyborgs = Math.Min(availableCyborgs, neededCyborgs);
             availableCyborgs -= cyborgs;
             yield return new MoveTroop(Id, nextFactory.Id, cyborgs);
         }
@@ -194,7 +194,7 @@ class Factory(int id) : INode<Factory> {
             return connections
                     .Where(it => it.factory.Player != Player.Me && it.factory.Production > Production)
                     .Where(it => it.distanceInTurns <= it.factory.Production - Production)
-                    .Any(it => Cyborgs >= it.factory.NeededCyborgs);
+                    .Any(it => Cyborgs >= it.factory.NeededCyborgs(it.distanceInTurns));
         }
     }
 
@@ -246,7 +246,7 @@ class Factory(int id) : INode<Factory> {
                 .OrderBy(it => it.distanceInTurns)
                 .ThenBy(it => it.factory.Production);
         foreach (var target in helpFactoriesIMightLose.Concat(captureOthers).Concat(helpInUpgrading)) {
-            yield return (target.factory, target.factory.NeededCyborgs);
+            yield return (target.factory, target.factory.NeededCyborgs(target.distanceInTurns));
         }
         var attackOpponent = connections
                 .Where(it => it.factory.Player == Player.Opponent)
