@@ -169,11 +169,8 @@ class Factory(int id) : INode<Factory> {
             if (availableCyborgs == 0) {
                 yield break;
             }
-            if (target.cyborgs <= 0) {
-                continue;
-            }
             var path = pathfinding.Path(this, target.factory);
-            if (path == null) {
+            if (target.cyborgs <= 0 || path == null) {
                 continue;
             }
             var nextFactory = path.First();
@@ -212,8 +209,8 @@ class Factory(int id) : INode<Factory> {
         int horizon = ApproachingTroops.Count != 0 ? ApproachingTroops.Max(t => t.WalkTurns) : 0;
         int simulateTurns = Math.Max(horizon, 3);
         for (var turn = 1; turn <= simulateTurns; turn++) {
-            current += ApproachingTroops.Where(tr => tr.WalkTurns == turn)
-                    .Sum(troop => troop.Player == Player.Me ? troop.Cyborgs : -troop.Cyborgs);
+            current += ApproachingTroops.Where(it => it.WalkTurns == turn)
+                    .Sum(it => it.Player == Player.Me ? it.Cyborgs : -it.Cyborgs);
             if (current < min) {
                 min = current;
             }
