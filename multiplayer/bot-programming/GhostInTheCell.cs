@@ -144,15 +144,19 @@ class Factory(int id) : INode<Factory> {
     public void ClearOldData() => ApproachingTroops.Clear();
 
     int NeededCyborgs(int distanceInTurns) {
-        int cyborgs = Player == Player.Me
-                ? (PRODUCTION_MAX - Production) * UPGRADE_COST
-                : Cyborgs + (Player == Player.Opponent ? distanceInTurns * Production : 0) + 1;
-        if (Player != Player.Me && Production == 0) {
-            cyborgs += UPGRADE_COST;
+        return BaseNeed() - ApproachingTroops.Sum(it => it.Player == Player.Me ? it.Cyborgs : -it.Cyborgs);
+
+        int BaseNeed() {
+            if (Player == Player.Me) {
+                return (PRODUCTION_MAX - Production) * UPGRADE_COST;
+            }
+            int travelProduction = Player == Player.Opponent ? distanceInTurns * Production : 0;
+            int cyborgs = Cyborgs + travelProduction + 1;
+            if (Production == 0) {
+                cyborgs += UPGRADE_COST;
+            }
+            return cyborgs;
         }
-        return cyborgs
-                - ApproachingTroops.Where(it => it.Player == Player.Me).Sum(it => it.Cyborgs)
-                + ApproachingTroops.Where(it => it.Player == Player.Opponent).Sum(it => it.Cyborgs);
     }
 
     public IEnumerable<IAction> Actions(Pathfinding<Factory> pathfinding) {
