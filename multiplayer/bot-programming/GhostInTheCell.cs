@@ -242,7 +242,7 @@ class Factory(int id) : INode<Factory> {
                 .ThenByDescending(it => it.factory.Production);
         var captureOthers = connections
                 .Where(it => it.factory.Player != Player.Me)
-                .OrderByDescending(it => (float)it.factory.Production / it.distanceInTurns)
+                .OrderByDescending(it => (it.factory.Production + 0.5f) / it.distanceInTurns)
                 .ThenBy(it => it.distanceInTurns);
         var helpInUpgrading = myFactories
                 .Where(it => it.factory.Production < PRODUCTION_MAX)
