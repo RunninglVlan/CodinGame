@@ -62,7 +62,7 @@ class Game {
         var pathToUnknown = pathfinding.Path(rick, cell => cell.type == CellType.Unknown);
         return pathToUnknown == null
             ? throw new ArgumentException("Can't find path to unknown cell")
-            : pathToUnknown.First().Direction(rick).ToAction;
+            : Action.From(pathToUnknown.First().Direction(rick));
     }
 
     string GoToControlRoom() {
@@ -72,14 +72,14 @@ class Game {
         var path = pathfinding.Path(rick, maze.controlRoom.Value);
         return path == null
             ? throw new ArgumentException("Can't find path to control room")
-            : path.First().Direction(rick).ToAction;
+            : Action.From(path.First().Direction(rick));
     }
 
     string ReturnToStart() {
         var path = pathfinding.Path(rick, maze.start);
         return path == null
             ? throw new ArgumentException("Can't find path back to start")
-            : path.First().Direction(rick).ToAction;
+            : Action.From(path.First().Direction(rick));
     }
 }
 
@@ -176,15 +176,6 @@ readonly record struct Point(int x, int y) {
         return new Point(int.Parse(x), int.Parse(y));
     }
 
-    /// Direction to Action
-    public string ToAction => this switch {
-        (0, -1) => Action.UP,
-        (1, 0) => Action.RIGHT,
-        (0, 1) => Action.DOWN,
-        (-1, 0) => Action.LEFT,
-        _ => throw new ArgumentOutOfRangeException($"Unsupported direction: {this}")
-    };
-
     public static Point operator +(Point a, Point b) {
         return new Point(a.x + b.x, a.y + b.y);
     }
@@ -201,16 +192,24 @@ readonly record struct Point(int x, int y) {
 }
 
 static class Action {
-    public const string UP = "UP";
-    public const string RIGHT = "RIGHT";
-    public const string DOWN = "DOWN";
-    public const string LEFT = "LEFT";
+    const string UP = "UP";
+    const string RIGHT = "RIGHT";
+    const string DOWN = "DOWN";
+    const string LEFT = "LEFT";
+
+    public static string From(Point direction) => direction switch {
+        (0, 1) => DOWN,
+        (0, -1) => UP,
+        (-1, 0) => LEFT,
+        (1, 0) => RIGHT,
+        _ => throw new ArgumentOutOfRangeException($"Unsupported direction: {direction}")
+    };
 }
 
 class Pathfinding(Maze maze) {
     readonly List<Point> path = new();
-    readonly Queue<Node> queue = new();
-    readonly Dictionary<Point, Node> visited = new();
+    readonly Queue<PathNode> queue = new();
+    readonly Dictionary<Point, PathNode> visited = new();
 
     /// BFS to end
     public List<Point>? Path(Point start, Point end) {
@@ -221,7 +220,7 @@ class Pathfinding(Maze maze) {
     public List<Point>? Path(Point start, Predicate<Cell> endPredicate) {
         queue.Clear();
         visited.Clear();
-        var startNode = new Node(maze.Get(start));
+        var startNode = new PathNode(maze.Get(start));
         queue.Enqueue(startNode);
         visited.Add(start, startNode);
         while (queue.Count > 0) {
@@ -230,8 +229,8 @@ class Pathfinding(Maze maze) {
                 return Reconstruct(startNode, current);
             }
             foreach (var direction in Maze.FourDirections) {
-                var neighbourPoint = current.cell.point + direction;
-                if (!maze.TryGet(neighbourPoint, out var cell)) {
+                var neighborPoint = current.cell.point + direction;
+                if (!maze.TryGet(neighborPoint, out var cell)) {
                     continue;
                 }
                 if (!cell.IsWalkable && !endPredicate(cell)) {
@@ -240,15 +239,15 @@ class Pathfinding(Maze maze) {
                 if (visited.ContainsKey(cell.point)) {
                     continue;
                 }
-                var neighbour = new Node(cell) { parent = current };
-                queue.Enqueue(neighbour);
-                visited.Add(cell.point, neighbour);
+                var neighbor = new PathNode(cell) { parent = current };
+                queue.Enqueue(neighbor);
+                visited.Add(cell.point, neighbor);
             }
         }
         return null;
     }
 
-    List<Point> Reconstruct(Node start, Node end) {
+    List<Point> Reconstruct(PathNode start, PathNode end) {
         path.Clear();
         var current = end;
         while (current != start) {
@@ -260,7 +259,7 @@ class Pathfinding(Maze maze) {
     }
 }
 
-class Node(Cell cell) {
+class PathNode(Cell cell) {
     public readonly Cell cell = cell;
-    public Node? parent;
+    public PathNode? parent;
 }

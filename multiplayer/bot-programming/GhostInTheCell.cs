@@ -56,9 +56,9 @@ class Game {
             actions.AddRange(factory.Actions(pathfinding));
         }
         actions.Add(new Message($"Factories: my {factories.Count(it => it.Player == Player.Me)} "
-                + $"vs {factories.Count(it => it.Player == Player.Opponent)}             "
+                + $"vs {factories.Count(it => it.Player == Player.Enemy)}             "
                 + $"Production: my {factories.Where(it => it.Player == Player.Me).Sum(it => it.Production)} "
-                + $"vs {factories.Where(it => it.Player == Player.Opponent).Sum(it => it.Production)}"));
+                + $"vs {factories.Where(it => it.Player == Player.Enemy).Sum(it => it.Production)}"));
         Console.WriteLine(string.Join(';', actions));
     }
 
@@ -106,7 +106,7 @@ class Game {
 
     bool TryChooseBombTarget(out Factory bombTarget) {
         var target = factories
-                .Where(it => it.Player == Player.Opponent)
+                .Where(it => it.Player == Player.Enemy)
                 .Where(it => it.Production == Factory.PRODUCTION_MAX)
                 .Where(it => it.connections.Any(connection => connection.factory.Player == Player.Me))
                 .Where(it => it.CooldownTurns == 0)
@@ -150,7 +150,7 @@ class Factory(int id) : INode<Factory> {
             if (Player == Player.Me) {
                 return (PRODUCTION_MAX - Production) * UPGRADE_COST;
             }
-            int travelProduction = Player == Player.Opponent ? distanceInTurns * Production : 0;
+            int travelProduction = Player == Player.Enemy ? distanceInTurns * Production : 0;
             int cyborgs = Cyborgs + travelProduction + 1;
             if (Production == 0) {
                 cyborgs += UPGRADE_COST;
@@ -252,11 +252,11 @@ class Factory(int id) : INode<Factory> {
         foreach (var target in helpFactoriesIMightLose.Concat(captureOthers).Concat(helpInUpgrading)) {
             yield return (target.factory, target.factory.NeededCyborgs(target.distanceInTurns));
         }
-        var attackOpponent = connections
-                .Where(it => it.factory.Player == Player.Opponent)
+        var attackEnemy = connections
+                .Where(it => it.factory.Player == Player.Enemy)
                 .OrderBy(it => it.distanceInTurns)
                 .ThenByDescending(it => it.factory.Production);
-        foreach (var target in attackOpponent) {
+        foreach (var target in attackEnemy) {
             yield return (target.factory, maxAttackingCyborgs);
         }
     }
@@ -278,7 +278,7 @@ static class EntityType {
 
 enum Player {
     Me = 1,
-    Opponent = -1,
+    Enemy = -1,
     Neutral = 0
 }
 
@@ -352,5 +352,5 @@ class Pathfinding<T> where T : INode<T> {
 
 interface INode<T> where T : INode<T> {
     int Id { get; }
-    List<(T, int)> Connections { get; }
+    List<(T, int distance)> Connections { get; }
 }

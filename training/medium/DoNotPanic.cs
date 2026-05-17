@@ -49,27 +49,27 @@ class Game {
 
     string ChooseAction(int x, int floor, string direction) {
         bool noLeadingClone = floor < 0;
-        return noLeadingClone ? Action.WAIT : BlockIfMovingInWrongDirection(x, floor, direction);
+        return noLeadingClone ? Actions.WAIT : BlockIfMovingInWrongDirection(x, floor, direction);
     }
 
     string BlockIfMovingInWrongDirection(int x, int floor, string direction) {
         int target = targets[floor];
         if (target < x) {
-            return direction == Direction.RIGHT ? Action.BLOCK : Action.WAIT;
+            return direction == Directions.RIGHT ? Actions.BLOCK : Actions.WAIT;
         }
         if (target > x) {
-            return direction == Direction.LEFT ? Action.BLOCK : Action.WAIT;
+            return direction == Directions.LEFT ? Actions.BLOCK : Actions.WAIT;
         }
-        return Action.WAIT;
+        return Actions.WAIT;
     }
 }
 
-static class Direction {
+static class Directions {
     public const string LEFT = "LEFT";
     public const string RIGHT = "RIGHT";
 }
 
-static class Action {
+static class Actions {
     public const string WAIT = "WAIT";
     public const string BLOCK = "BLOCK";
 }

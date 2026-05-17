@@ -51,7 +51,7 @@ public class Grid {
         Point.RIGHT, Point.LEFT, Point.UP, Point.DOWN
     ];
 
-    public static Point[] EighthDirections { get; } = [
+    public static Point[] EightDirections { get; } = [
         Point.RIGHT, Point.LEFT, Point.UP, Point.DOWN,
         new(1, 1), new(-1, 1), new(1, -1), new(-1, -1)
     ];
@@ -350,7 +350,8 @@ class Bots(Grid grid) {
         }
         var step = path.First();
         grid.Get(step).type = CellType.MySnake;
-        string move = step.Direction(source).ToAction;
+        var direction = step - source;
+        string move = Action.From(direction);
         if (markCount == 0) {
             return move;
         }
@@ -362,12 +363,12 @@ class Bots(Grid grid) {
     string MoveToEmpty(Point source) {
         (Cell cell, Point direction)? fallback = null;
         foreach (var direction in Grid.FourDirections) {
-            var neighbour = source + direction;
-            var cell = grid.Get(neighbour);
+            var neighbor = source + direction;
+            var cell = grid.Get(neighbor);
             // prioritize tail
             if (cell.type is CellType.MySnakeTail or CellType.EnemySnakeTail) {
                 cell.type = CellType.MySnake;
-                return direction.ToAction;
+                return Action.From(direction);
             }
             if (!cell.IsEmpty) {
                 continue;
@@ -377,10 +378,10 @@ class Bots(Grid grid) {
             }
         }
         if (fallback == null) {
-            throw new InvalidOperationException("No empty neighbour found");
+            throw new InvalidOperationException("No empty neighbor found");
         }
         fallback.Value.cell.type = CellType.MySnake;
-        return fallback.Value.direction.ToAction;
+        return Action.From(fallback.Value.direction);
     }
 }
 
@@ -417,19 +418,6 @@ public readonly record struct Point(int x, int y) {
     public static readonly Point DOWN = new(0, -1);
     public static readonly Point LEFT = new(-1, 0);
 
-    /// Direction to Action
-    public string ToAction {
-        get {
-            if (this == UP) {
-                return Action.DOWN;
-            }
-            if (this == RIGHT) {
-                return Action.RIGHT;
-            }
-            return this == DOWN ? Action.UP : Action.LEFT;
-        }
-    }
-
     public static int ManhattanDistance(Point a, Point b) {
         return Math.Abs(a.x - b.x) + Math.Abs(a.y - b.y);
     }
@@ -442,31 +430,35 @@ public readonly record struct Point(int x, int y) {
         return new Point(a.x - b.x, a.y - b.y);
     }
 
-    public Point Direction(Point from) {
-        return this - from;
-    }
-
     public override string ToString() => $"({x}, {y})";
 }
 
 static class Action {
-    public const string UP = "UP";
-    public const string RIGHT = "RIGHT";
-    public const string DOWN = "DOWN";
-    public const string LEFT = "LEFT";
+    const string UP = "UP";
+    const string RIGHT = "RIGHT";
+    const string DOWN = "DOWN";
+    const string LEFT = "LEFT";
     public const string WAIT = "WAIT";
+
+    public static string From(Point direction) => direction switch {
+        (0, 1) => DOWN,
+        (0, -1) => UP,
+        (-1, 0) => LEFT,
+        (1, 0) => RIGHT,
+        _ => throw new ArgumentOutOfRangeException($"Unsupported direction: {direction}")
+    };
 }
 
 public class Pathfinding(Grid grid) {
-    readonly Dictionary<Point, Node> nodes = new();
+    readonly Dictionary<Point, PathNode> nodes = new();
     readonly List<Point> path = new();
-    readonly PriorityQueue<Node, int> openQueue = new();
+    readonly PriorityQueue<PathNode, int> openQueue = new();
 
     /// A*
     public (List<Point>?, int cost) Path(Point start, Point end) {
         nodes.Clear();
         openQueue.Clear();
-        var startNode = new Node(start) {
+        var startNode = new PathNode(start) {
             gCost = 0,
             hCost = Point.ManhattanDistance(start, end)
         };
@@ -485,27 +477,27 @@ public class Pathfinding(Grid grid) {
             }
 
             foreach (var direction in Grid.FourDirections) {
-                var neighbourPoint = current.point + direction;
-                var cell = grid.Get(neighbourPoint);
+                var neighborPoint = current.point + direction;
+                var cell = grid.Get(neighborPoint);
                 if (!cell.IsEmpty && (cell.type != CellType.Power || cell.point != end)) {
                     continue;
                 }
-                if (!nodes.TryGetValue(cell.point, out var neighbour)) {
-                    neighbour = new Node(cell.point);
-                    nodes.Add(cell.point, neighbour);
+                if (!nodes.TryGetValue(cell.point, out var neighbor)) {
+                    neighbor = new PathNode(cell.point);
+                    nodes.Add(cell.point, neighbor);
                 }
-                if (neighbour.isClosed) {
+                if (neighbor.isClosed) {
                     continue;
                 }
                 int gCost = current.gCost + NewGCost(cell);
-                if (gCost >= neighbour.gCost && neighbour.isOpen) {
+                if (gCost >= neighbor.gCost && neighbor.isOpen) {
                     continue;
                 }
-                neighbour.gCost = gCost;
-                neighbour.hCost = Point.ManhattanDistance(neighbourPoint, end);
-                neighbour.parent = current;
-                openQueue.Enqueue(neighbour, neighbour.Priority);
-                neighbour.isOpen = true;
+                neighbor.gCost = gCost;
+                neighbor.hCost = Point.ManhattanDistance(neighborPoint, end);
+                neighbor.parent = current;
+                openQueue.Enqueue(neighbor, neighbor.Priority);
+                neighbor.isOpen = true;
             }
         }
         return (null, int.MaxValue);
@@ -536,16 +528,16 @@ public class Pathfinding(Grid grid) {
 
     [SuppressMessage("ReSharper", "LoopCanBeConvertedToQuery")]
     bool IsOpponentNearby(Point point) {
-        foreach (var direction in Grid.EighthDirections) {
-            var neighbourPoint = point + direction;
-            if (grid.Get(neighbourPoint).type == CellType.EnemySnakeHead) {
+        foreach (var direction in Grid.EightDirections) {
+            var neighborPoint = point + direction;
+            if (grid.Get(neighborPoint).type == CellType.EnemySnakeHead) {
                 return true;
             }
         }
         return false;
     }
 
-    List<Point> Reconstruct(Node start, Node end) {
+    List<Point> Reconstruct(PathNode start, PathNode end) {
         path.Clear();
         var current = end;
         while (current != start) {
@@ -557,7 +549,7 @@ public class Pathfinding(Grid grid) {
     }
 }
 
-class Node(Point point) {
+class PathNode(Point point) {
     public Point point = point;
 
     /// Distance from start
@@ -566,7 +558,7 @@ class Node(Point point) {
     /// Distance to end
     public int hCost = int.MaxValue;
 
-    public Node? parent;
+    public PathNode? parent;
     public bool isOpen;
     public bool isClosed;
 

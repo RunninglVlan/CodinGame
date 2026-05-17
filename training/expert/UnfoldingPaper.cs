@@ -80,16 +80,16 @@ public class FoldedPaper(int width, int height) {
         while (queue.Count > 0) {
             var point = queue.Dequeue();
             foreach (var direction in Grid.FourDirections) {
-                var neighbour = point + direction;
-                if (!grid.TryGet(neighbour, out var cell)) {
-                    if (neighbour.x < 0) {
+                var neighbor = point + direction;
+                if (!grid.TryGet(neighbor, out var cell)) {
+                    if (neighbor.x < 0) {
                         type |= PieceType.EdgeLeft;
-                    } else if (neighbour.x >= grid.width) {
+                    } else if (neighbor.x >= grid.width) {
                         type |= PieceType.EdgeRight;
                     }
-                    if (neighbour.y < 0) {
+                    if (neighbor.y < 0) {
                         type |= PieceType.EdgeTop;
-                    } else if (neighbour.y >= grid.height) {
+                    } else if (neighbor.y >= grid.height) {
                         type |= PieceType.EdgeBottom;
                     }
                     continue;
