@@ -65,7 +65,7 @@ class Game {
     IEnumerable<IAction> Actions() {
         foreach (var troll in myTrolls) {
             var cell = grid.Get(troll.Point);
-            if (troll.HasPlace && cell.tree is { Fruits: > 0 }) {
+            if (troll.CanCarry && cell.tree is { Fruits: > 0 }) {
                 yield return new Harvest(troll.Id);
                 continue;
             }
@@ -180,12 +180,9 @@ readonly record struct Tree(Point Point, string Type, int Size, int Health, int 
 readonly record struct Troll(int Id, Point Point, Player Player,
         int MovementSpeed, int CarryCapacity, int HarvestPower, int ChopPower,
         int CarryPlum, int CarryLemon, int CarryApple, int CarryBanana, int CarryIron, int CarryWood) {
-    public bool IsCarrying =>
-            CarryPlum > 0 || CarryLemon > 0 || CarryApple > 0 || CarryBanana > 0 || CarryIron > 0 || CarryWood > 0;
-
+    public bool IsCarrying => CarryTotal > 0;
     int CarryTotal => CarryPlum + CarryLemon + CarryApple + CarryBanana + CarryIron + CarryWood;
-
-    public bool HasPlace => CarryTotal < CarryCapacity;
+    public bool CanCarry => CarryTotal < CarryCapacity;
 
     public static Troll From(Point point, string[] inputs) {
         int id = int.Parse(inputs[0]);
