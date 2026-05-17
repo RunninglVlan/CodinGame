@@ -5,6 +5,62 @@ using System.Linq;
 
 namespace TrollFarm;
 
+// TODO: First update with Wood 1 rules:
+// $"PLANT {id} {type}" Make troll id plant a type on its current cell: PLUM, LEMON, APPLE or BANANA.
+//  A troll can PLANT a tree on its current cell if the troll carries at least 1 fruit of that type.
+//  If two trolls try to plant a tree of the same type on the same cell, both will lose a seed and the tree gets planted.
+//  If they try to plant different types, nothing will happen.
+// $"PICK {id} {type}" Make troll id pick one type from the shack: PLUM, LEMON, APPLE or BANANA.
+//  A troll can PICK one item from its shack. Only 1 item can be picked at a time.
+// $"TRAIN {moveSpeed} {carryCapacity} {harvestPower} {chopPower}" Train a new troll with the given attributes.
+//  Use TRAIN to spawn a new troll at your shack and set its four attributes. Each attribute requires a different resource:
+//   PLUM for movementSpeed
+//   LEMON for carryCapacity
+//   APPLE for harvestPower
+//  The cost for each attribute is equal to the number of existing trolls in the own team plus the attribute squared.
+//  Example: you already have 2 trolls and want to TRAIN the following, giving you these costs:
+//   2 movementSpeed: 2 + 2×2 = 6 PLUMs
+//   3 carryCapacity: 2 + 3×3 = 11 LEMONs
+//   1 harvestPower: 2 + 1×1 = 3 APPLEs
+
+// TODO: Then update with Bronze rules:
+// "MINE {id}" Make troll id mine a nearby IRON.
+//  A troll adjacent to an IRON cell can MINE, gaining up to chopPower iron limited by free carryCapacity. Iron resources are infinite.
+// "CHOP {id}" Make troll id chop on its current cell.
+//  A troll can CHOP a tree on the same cell, reducing its health by chopPower.
+//  When health reaches 0, the tree disappears and the troll collects wood equal to its size, capped by free carryCapacity.
+//  Any wood that the troll can't carry will just vanish.
+//  Similar to harvesting, both trolls get one wood at a time until they can't carry any more or the wood is completely split up.
+//  The last wood can get duplicated.
+// Training trolls:
+//  chopPower requires IRON
+//  Cost example: 0 chopPower: 2 + 0×0 = 2 IRONs
+// Trees grow faster when next to water.
+// Trees differ in cooldown and health as follows:
+//                      PLUM  LEMON APPLE  BANANA
+//  Cooldown            8     8     9      6
+//  Cooldown near water 3     3     2      4
+//  Health (size 1)     6     6     11     3
+//  Health (size 2)     8     8     14     4
+//  Health (size 3)     10    10    17     5
+//  Health (size 4)     12    12    20     6
+// When a damaged tree grows, it gains the health difference between sizes.
+// The game turn order is:
+//  Move trolls
+//  Harvest
+//  Plant
+//  Chop
+//  Pick
+//  Train
+//  Drop
+//  Mine
+//  Grow trees
+// Actions of the same type occur simultaneously. If both teams harvest or chop the same tree at once, resources are shared equally.
+//  Then both get one item at a time until they can't carry any more or the resource is exhausted. The last item can get duplicated.
+// Each troll can only perform one action per turn.
+// clamp 8 ≤ height ≤ 11
+// cell types: ~ for WATER, # for ROCK, + for IRON
+
 /// https://www.codingame.com/contests/spring-challenge-2026-troll-farm
 static class TrollFarm {
     [SuppressMessage("ReSharper", "FunctionNeverReturns")]
