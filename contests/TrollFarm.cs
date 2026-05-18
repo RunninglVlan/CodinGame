@@ -48,7 +48,6 @@ namespace TrollFarm;
 // Actions of the same type occur simultaneously. If both teams harvest or chop the same tree at once, resources are shared equally.
 //  Then both get one item at a time until they can't carry any more or the resource is exhausted. The last item can get duplicated.
 // Each troll can only perform one action per turn.
-// clamp 8 ≤ height ≤ 11
 // cell types: ~ for WATER, # for ROCK, + for IRON
 
 /// https://www.codingame.com/contests/spring-challenge-2026-troll-farm
@@ -172,8 +171,8 @@ class Grid {
 
     public void Init() {
         string[] dimensions = Console.ReadLine()!.Split(' ');
-        width = int.Parse(dimensions[0]);
-        height = int.Parse(dimensions[1]);
+        height = Math.Clamp(int.Parse(dimensions[1]), 8, 11);
+        width = 2 * height;
         cells = new Cell[width, height];
         for (var y = 0; y < height; y++) {
             string line = Console.ReadLine()!;
