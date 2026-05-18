@@ -24,8 +24,8 @@
                 if (visited.Contains(node.i)) {
                     continue;
                 }
-                var neighbour = new PathNode(node) { parent = current };
-                queue.Enqueue(neighbour);
+                var neighbor = new PathNode(node) { parent = current };
+                queue.Enqueue(neighbor);
                 visited.Add(node.i);
             }
         }

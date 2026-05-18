@@ -26,26 +26,26 @@
             }
 
             foreach (var direction in Point.Directions4) {
-                var neighbourPoint = current.point + direction;
-                if (!grid.TryGet(neighbourPoint, out var cell) || !cell.IsWalkable) {
+                var neighborPoint = current.point + direction;
+                if (!grid.TryGet(neighborPoint, out var cell) || !cell.IsWalkable) {
                     continue;
                 }
-                if (!nodes.TryGetValue(cell.point, out var neighbour)) {
-                    neighbour = new PathNode(cell.point);
-                    nodes.Add(cell.point, neighbour);
+                if (!nodes.TryGetValue(cell.point, out var neighbor)) {
+                    neighbor = new PathNode(cell.point);
+                    nodes.Add(cell.point, neighbor);
                 }
-                if (neighbour.isClosed) {
+                if (neighbor.isClosed) {
                     continue;
                 }
                 int gCost = current.gCost + NewGCost(cell);
-                if (gCost >= neighbour.gCost && neighbour.isOpen) {
+                if (gCost >= neighbor.gCost && neighbor.isOpen) {
                     continue;
                 }
-                neighbour.gCost = gCost;
-                neighbour.hCost = Point.ManhattanDistance(neighbourPoint, end);
-                neighbour.parent = current;
-                openQueue.Enqueue(neighbour, neighbour.Priority);
-                neighbour.isOpen = true;
+                neighbor.gCost = gCost;
+                neighbor.hCost = Point.ManhattanDistance(neighborPoint, end);
+                neighbor.parent = current;
+                openQueue.Enqueue(neighbor, neighbor.Priority);
+                neighbor.isOpen = true;
             }
         }
         return (null, int.MaxValue);

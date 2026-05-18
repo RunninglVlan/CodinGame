@@ -21,8 +21,8 @@
                 return Reconstruct(startNode, current);
             }
             foreach (var direction in Point.Directions4) {
-                var neighbourPoint = current.cell.point + direction;
-                if (!grid.TryGet(neighbourPoint, out var cell)) {
+                var neighborPoint = current.cell.point + direction;
+                if (!grid.TryGet(neighborPoint, out var cell)) {
                     continue;
                 }
                 if (!cell.IsWalkable && !endPredicate(cell)) {
@@ -31,9 +31,9 @@
                 if (visited.ContainsKey(cell.point)) {
                     continue;
                 }
-                var neighbour = new PathNode(cell) { parent = current };
-                queue.Enqueue(neighbour);
-                visited.Add(cell.point, neighbour);
+                var neighbor = new PathNode(cell) { parent = current };
+                queue.Enqueue(neighbor);
+                visited.Add(cell.point, neighbor);
             }
         }
         return null;
