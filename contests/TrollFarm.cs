@@ -232,6 +232,7 @@ readonly record struct Tree(Point Point, string Type, int Size, int Health, int 
     }
 }
 
+/// <param name="MovementSpeed">determines how many cells it can MOVE horizontally or vertically per turn</param>
 [SuppressMessage("ReSharper", "NotAccessedPositionalProperty.Global")]
 readonly record struct Troll(int Id, Point Point, Player Player,
         int MovementSpeed, int CarryCapacity, int HarvestPower, int ChopPower,
