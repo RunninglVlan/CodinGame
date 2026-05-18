@@ -47,7 +47,6 @@ namespace TrollFarm;
 //  Grow trees
 // Actions of the same type occur simultaneously. If both teams harvest or chop the same tree at once, resources are shared equally.
 //  Then both get one item at a time until they can't carry any more or the resource is exhausted. The last item can get duplicated.
-// Each troll can only perform one action per turn.
 
 /// https://www.codingame.com/contests/spring-challenge-2026-troll-farm
 static class TrollFarm {
