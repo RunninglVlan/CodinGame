@@ -62,10 +62,12 @@ static class TrollFarm {
 
 class Game {
     readonly Grid grid = new();
-    readonly List<Tree> trees = new();
+    readonly Pathfinding pathfinding;
     readonly List<Troll> myTrolls = new();
     readonly Inventory[] inventories = new Inventory[Inventory.COUNT];
     Inventory MyInventory => inventories[Inventory.ME];
+
+    public Game() => pathfinding = new(grid);
 
     public void Init() {
         grid.Init();
@@ -81,7 +83,6 @@ class Game {
 
     void ReadInput() {
         grid.ClearOldData();
-        trees.Clear();
         myTrolls.Clear();
         for (var i = 0; i < Inventory.COUNT; i++) {
             inventories[i].ReadNewData();
@@ -90,9 +91,7 @@ class Game {
         for (var i = 0; i < treesCount; i++) {
             string[] inputs = Console.ReadLine()!.Split(' ');
             var point = Point.From(inputs[1], inputs[2]);
-            var tree = Tree.From(point, inputs);
-            grid.Get(point).tree = tree;
-            trees.Add(tree);
+            grid.Get(point).tree = Tree.From(inputs);
         }
         int trollsCount = int.Parse(Console.ReadLine()!);
         for (var i = 0; i < trollsCount; i++) {
@@ -146,19 +145,10 @@ class Game {
             if (grid.Neighbors(cell).Any(it => it.type == CellType.MyShack)) {
                 return new Drop(troll.Id);
             }
-            return new Move(troll.Id, grid.myShack);
+            return new Move(troll.Id, grid.myShack.point);
         }
-        (Cell cell, int distance) bestTree = (null!, int.MaxValue);
-        foreach (var tree in trees) {
-            if (tree.Fruits == 0) {
-                continue;
-            }
-            int distance = Point.ManhattanDistance(troll.Point, tree.Point);
-            if (distance < bestTree.distance) {
-                bestTree = (grid.Get(tree.Point), distance);
-            }
-        }
-        return new Move(troll.Id, bestTree.cell);
+        var path = pathfinding.Path(troll.Point, it => it.tree is { Fruits: > 0 });
+        return new Move(troll.Id, path![troll.MovementSpeed - 1]);
     }
 }
 
@@ -225,6 +215,7 @@ class Cell(int x, int y) {
     public CellType type;
     public Tree? tree;
     public Troll? troll;
+    public bool IsWalkable => type == CellType.Grass;
 
     public void ClearOldData() {
         tree = null;
@@ -242,14 +233,14 @@ enum CellType {
 }
 
 [SuppressMessage("ReSharper", "NotAccessedPositionalProperty.Global")]
-readonly record struct Tree(Point Point, string Type, int Size, int Health, int Fruits, int Cooldown) {
-    public static Tree From(Point point, string[] inputs) {
+readonly record struct Tree(string Type, int Size, int Health, int Fruits, int Cooldown) {
+    public static Tree From(string[] inputs) {
         string type = inputs[0];
         int size = int.Parse(inputs[3]);
         int health = int.Parse(inputs[4]);
         int fruits = int.Parse(inputs[5]);
         int cooldown = int.Parse(inputs[6]);
-        return new Tree(point, type, size, health, fruits, cooldown);
+        return new Tree(type, size, health, fruits, cooldown);
     }
 }
 
@@ -318,8 +309,8 @@ readonly struct Drop(int trollId) : IAction {
     public override string ToString() => $"DROP {trollId}";
 }
 
-readonly struct Move(int trollId, Cell cell) : IAction {
-    public override string ToString() => $"MOVE {trollId} {cell.point.X} {cell.point.Y}";
+readonly struct Move(int trollId, Point point) : IAction {
+    public override string ToString() => $"MOVE {trollId} {point.X} {point.Y}";
 }
 
 readonly struct Train(int moveSpeed, int carryCapacity, int harvestPower, int chopPower) : IAction {
@@ -346,4 +337,58 @@ readonly record struct Point(int X, int Y) {
     public static Point operator -(Point a, Point b) => new(a.X - b.X, a.Y - b.Y);
 
     public override string ToString() => $"({X}, {Y})";
+}
+
+class Pathfinding(Grid grid) {
+    readonly List<Point> path = new();
+    readonly Queue<Node> queue = new();
+    readonly Dictionary<Point, Node> visited = new();
+
+    /// BFS to end
+    public List<Point>? Path(Point start, Point end) {
+        return Path(start, cell => cell.point == end);
+    }
+
+    /// BFS to endPredicate
+    public List<Point>? Path(Point start, Predicate<Cell> endPredicate) {
+        queue.Clear();
+        visited.Clear();
+        var startNode = new Node(grid.Get(start));
+        queue.Enqueue(startNode);
+        visited.Add(start, startNode);
+        while (queue.Count > 0) {
+            var current = queue.Dequeue();
+            if (endPredicate(current.cell)) {
+                return Reconstruct(startNode, current);
+            }
+            foreach (var cell in grid.Neighbors(current.cell)) {
+                if (!cell.IsWalkable && !endPredicate(cell)) {
+                    continue;
+                }
+                if (visited.ContainsKey(cell.point)) {
+                    continue;
+                }
+                var neighbor = new Node(cell) { parent = current };
+                queue.Enqueue(neighbor);
+                visited.Add(cell.point, neighbor);
+            }
+        }
+        return null;
+    }
+
+    List<Point> Reconstruct(Node start, Node end) {
+        path.Clear();
+        var current = end;
+        while (current != start) {
+            path.Add(current!.cell.point);
+            current = current.parent;
+        }
+        path.Reverse();
+        return path;
+    }
+
+    class Node(Cell cell) {
+        public readonly Cell cell = cell;
+        public Node? parent;
+    }
 }

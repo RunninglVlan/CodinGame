@@ -1,7 +1,7 @@
 ﻿class Pathfinding(Grid grid) {
     readonly List<Point> path = new();
-    readonly Queue<PathNode> queue = new();
-    readonly Dictionary<Point, PathNode> visited = new();
+    readonly Queue<Node> queue = new();
+    readonly Dictionary<Point, Node> visited = new();
 
     /// BFS to end
     public List<Point>? Path(Point start, Point end) {
@@ -12,7 +12,7 @@
     public List<Point>? Path(Point start, Predicate<Cell> endPredicate) {
         queue.Clear();
         visited.Clear();
-        var startNode = new PathNode(grid.Get(start));
+        var startNode = new Node(grid.Get(start));
         queue.Enqueue(startNode);
         visited.Add(start, startNode);
         while (queue.Count > 0) {
@@ -20,18 +20,14 @@
             if (endPredicate(current.cell)) {
                 return Reconstruct(startNode, current);
             }
-            foreach (var direction in Point.Directions4) {
-                var neighborPoint = current.cell.point + direction;
-                if (!grid.TryGet(neighborPoint, out var cell)) {
-                    continue;
-                }
+            foreach (var cell in grid.Neighbors(current.cell)) {
                 if (!cell.IsWalkable && !endPredicate(cell)) {
                     continue;
                 }
                 if (visited.ContainsKey(cell.point)) {
                     continue;
                 }
-                var neighbor = new PathNode(cell) { parent = current };
+                var neighbor = new Node(cell) { parent = current };
                 queue.Enqueue(neighbor);
                 visited.Add(cell.point, neighbor);
             }
@@ -39,7 +35,7 @@
         return null;
     }
 
-    List<Point> Reconstruct(PathNode start, PathNode end) {
+    List<Point> Reconstruct(Node start, Node end) {
         path.Clear();
         var current = end;
         while (current != start) {
@@ -49,26 +45,18 @@
         path.Reverse();
         return path;
     }
-}
 
-class PathNode(Cell cell) {
-    public readonly Cell cell = cell;
-    public PathNode? parent;
+    class Node(Cell cell) {
+        public readonly Cell cell = cell;
+        public Node? parent;
+    }
 }
 
 /// Stub
 class Grid(int width, int height) {
     readonly Cell[,] cells = new Cell[width, height];
     public Cell Get(Point point) => cells[point.X, point.Y];
-
-    public bool TryGet(Point point, out Cell cell) {
-        cell = null!;
-        if (point.X < 0 || point.X >= width || point.Y < 0 || point.Y >= height) {
-            return false;
-        }
-        cell = Get(point);
-        return true;
-    }
+    public IEnumerable<Cell> Neighbors(Cell cell) => throw new NotImplementedException();
 }
 
 /// Stub
