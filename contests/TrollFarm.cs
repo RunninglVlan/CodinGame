@@ -63,7 +63,7 @@ static class TrollFarm {
 class Game {
     readonly Grid grid = new();
     readonly Pathfinding pathfinding;
-    readonly List<Troll> myTrolls = new();
+    readonly Dictionary<int, Troll> trolls = new();
     readonly Inventory[] inventories = new Inventory[Inventory.COUNT];
     Inventory MyInventory => inventories[Inventory.ME];
 
@@ -83,7 +83,6 @@ class Game {
 
     void ReadInput() {
         grid.ClearOldData();
-        myTrolls.Clear();
         for (var i = 0; i < Inventory.COUNT; i++) {
             inventories[i].ReadNewData();
         }
@@ -96,12 +95,13 @@ class Game {
         int trollsCount = int.Parse(Console.ReadLine()!);
         for (var i = 0; i < trollsCount; i++) {
             string[] inputs = Console.ReadLine()!.Split(' ');
+            int id = int.Parse(inputs[0]);
             var point = Point.From(inputs[2], inputs[3]);
-            var troll = Troll.From(point, inputs);
-            grid.Get(point).troll = troll;
-            if (troll.Player == Player.Me) {
-                myTrolls.Add(troll);
+            if (!trolls.TryGetValue(id, out var troll)) {
+                trolls[id] = troll = Troll.From(id, inputs);
             }
+            troll.Update(point, inputs);
+            grid.Get(point).troll = troll;
         }
     }
 
@@ -109,7 +109,7 @@ class Game {
         if (CanTrain(out int movementSpeed, out int carryCapacity, out int harvestPower, out int chopPower)) {
             yield return new Train(movementSpeed, carryCapacity, harvestPower, chopPower);
         }
-        foreach (var action in myTrolls.Select(TrollAction)) {
+        foreach (var action in trolls.Values.Where(it => it.Player == Player.Me).Select(TrollAction)) {
             yield return action;
         }
     }
@@ -118,7 +118,7 @@ class Game {
     bool CanTrain(out int movementSpeed, out int carryCapacity, out int harvestPower, out int chopPower) {
         movementSpeed = carryCapacity = harvestPower = 1;
         chopPower = 0;
-        int trollCount = myTrolls.Count;
+        int trollCount = trolls.Values.Count(it => it.Player == Player.Me);
         if (MyInventory.plum < Required(movementSpeed)) {
             return false;
         }
@@ -248,29 +248,35 @@ record Tree(string Type, int Size, int Health, int Cooldown) {
 
 /// <param name="MovementSpeed">determines how many cells it can MOVE horizontally or vertically per turn</param>
 [SuppressMessage("ReSharper", "NotAccessedPositionalProperty.Global")]
-readonly record struct Troll(int Id, Point Point, Player Player,
-        int MovementSpeed, int CarryCapacity, int HarvestPower, int ChopPower,
-        int CarryPlum, int CarryLemon, int CarryApple, int CarryBanana, int CarryIron, int CarryWood) {
+record Troll(int Id, Player Player, int MovementSpeed, int CarryCapacity, int HarvestPower, int ChopPower) {
+    public Point Point { get; private set; }
+    public int CarryPlum { get; set; }
+    public int CarryLemon { get; set; }
+    public int CarryApple { get; set; }
+    public int CarryBanana { get; set; }
+    public int CarryIron { get; set; }
+    public int CarryWood { get; set; }
     public bool IsCarrying => CarryTotal > 0;
     int CarryTotal => CarryPlum + CarryLemon + CarryApple + CarryBanana + CarryIron + CarryWood;
     public bool CanCarry => CarryTotal < CarryCapacity;
 
-    public static Troll From(Point point, string[] inputs) {
-        int id = int.Parse(inputs[0]);
+    public static Troll From(int id, string[] inputs) {
         var player = (Player)int.Parse(inputs[1]);
         int movementSpeed = int.Parse(inputs[4]);
         int carryCapacity = int.Parse(inputs[5]);
         int harvestPower = int.Parse(inputs[6]);
         int chopPower = int.Parse(inputs[7]);
-        int carryPlum = int.Parse(inputs[8]);
-        int carryLemon = int.Parse(inputs[9]);
-        int carryApple = int.Parse(inputs[10]);
-        int carryBanana = int.Parse(inputs[11]);
-        int carryIron = int.Parse(inputs[12]);
-        int carryWood = int.Parse(inputs[13]);
-        return new Troll(id, point, player,
-                movementSpeed, carryCapacity, harvestPower, chopPower,
-                carryPlum, carryLemon, carryApple, carryBanana, carryIron, carryWood);
+        return new Troll(id, player, movementSpeed, carryCapacity, harvestPower, chopPower);
+    }
+
+    public void Update(Point point, string[] inputs) {
+        Point = point;
+        CarryPlum = int.Parse(inputs[8]);
+        CarryLemon = int.Parse(inputs[9]);
+        CarryApple = int.Parse(inputs[10]);
+        CarryBanana = int.Parse(inputs[11]);
+        CarryIron = int.Parse(inputs[12]);
+        CarryWood = int.Parse(inputs[13]);
     }
 
     public IAction Harvest(Tree tree) {
