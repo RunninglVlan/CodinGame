@@ -139,7 +139,7 @@ class Game {
     IAction TrollAction(Troll troll) {
         var cell = grid.Get(troll.Point);
         if (troll.CanCarry && cell.tree is { Fruits: > 0 }) {
-            return new Harvest(troll.Id);
+            return troll.Harvest(cell.tree);
         }
         if (troll.IsCarrying) {
             if (grid.Neighbors(cell).Any(it => it.type == CellType.MyShack)) {
@@ -233,14 +233,16 @@ enum CellType {
 }
 
 [SuppressMessage("ReSharper", "NotAccessedPositionalProperty.Global")]
-readonly record struct Tree(string Type, int Size, int Health, int Fruits, int Cooldown) {
+record Tree(string Type, int Size, int Health, int Cooldown) {
+    public int Fruits { get; set; }
+
     public static Tree From(string[] inputs) {
         string type = inputs[0];
         int size = int.Parse(inputs[3]);
         int health = int.Parse(inputs[4]);
         int fruits = int.Parse(inputs[5]);
         int cooldown = int.Parse(inputs[6]);
-        return new Tree(type, size, health, fruits, cooldown);
+        return new Tree(type, size, health, cooldown) { Fruits = fruits };
     }
 }
 
@@ -269,6 +271,12 @@ readonly record struct Troll(int Id, Point Point, Player Player,
         return new Troll(id, point, player,
                 movementSpeed, carryCapacity, harvestPower, chopPower,
                 carryPlum, carryLemon, carryApple, carryBanana, carryIron, carryWood);
+    }
+
+    public IAction Harvest(Tree tree) {
+        int taken = Math.Min(HarvestPower, CarryCapacity - CarryTotal);
+        tree.Fruits = Math.Max(0, tree.Fruits - taken);
+        return new Harvest(Id);
     }
 }
 
