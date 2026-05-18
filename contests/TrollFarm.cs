@@ -12,16 +12,6 @@ namespace TrollFarm;
 //  If they try to plant different types, nothing will happen.
 // $"PICK {id} {type}" Make troll id pick one type from the shack: PLUM, LEMON, APPLE or BANANA.
 //  A troll can PICK one item from its shack. Only 1 item can be picked at a time.
-// $"TRAIN {moveSpeed} {carryCapacity} {harvestPower} {chopPower}" Train a new troll with the given attributes.
-//  Use TRAIN to spawn a new troll at your shack and set its four attributes. Each attribute requires a different resource:
-//   PLUM for movementSpeed
-//   LEMON for carryCapacity
-//   APPLE for harvestPower
-//  The cost for each attribute is equal to the number of existing trolls in the own team plus the attribute squared.
-//  Example: you already have 2 trolls and want to TRAIN the following, giving you these costs:
-//   2 movementSpeed: 2 + 2×2 = 6 PLUMs
-//   3 carryCapacity: 2 + 3×3 = 11 LEMONs
-//   1 harvestPower: 2 + 1×1 = 3 APPLEs
 
 // TODO: Then update with Bronze rules:
 // "MINE {id}" Make troll id mine a nearby IRON.
@@ -78,6 +68,7 @@ class Game {
     readonly List<Tree> trees = new();
     readonly List<Troll> myTrolls = new();
     readonly Inventory[] inventories = new Inventory[Inventory.COUNT];
+    Inventory MyInventory => inventories[Inventory.ME];
 
     public void Init() {
         grid.Init();
@@ -119,9 +110,34 @@ class Game {
     }
 
     IEnumerable<IAction> Actions() {
+        if (CanTrain(out int movementSpeed, out int carryCapacity, out int harvestPower, out int chopPower)) {
+            yield return new Train(movementSpeed, carryCapacity, harvestPower, chopPower);
+        }
         foreach (var action in myTrolls.Select(TrollAction)) {
             yield return action;
         }
+    }
+
+    [SuppressMessage("ReSharper", "ConvertIfStatementToReturnStatement")]
+    bool CanTrain(out int movementSpeed, out int carryCapacity, out int harvestPower, out int chopPower) {
+        movementSpeed = carryCapacity = harvestPower = 1;
+        chopPower = 0;
+        int trollCount = myTrolls.Count;
+        if (MyInventory.plum < Required(movementSpeed)) {
+            return false;
+        }
+        if (MyInventory.lemon < Required(carryCapacity)) {
+            return false;
+        }
+        if (MyInventory.apple < Required(harvestPower)) {
+            return false;
+        }
+        if (MyInventory.iron < Required(chopPower)) {
+            return false;
+        }
+        return true;
+
+        int Required(int count) => trollCount + count * count;
     }
 
     IAction TrollAction(Troll troll) {
@@ -268,6 +284,7 @@ enum Player {
 
 class Inventory {
     public const int COUNT = 2;
+    public const int ME = 0;
 
     public int plum;
     public int lemon;
@@ -299,6 +316,10 @@ readonly struct Drop(int trollId) : IAction {
 
 readonly struct Move(int trollId, Cell cell) : IAction {
     public override string ToString() => $"MOVE {trollId} {cell.point.X} {cell.point.Y}";
+}
+
+readonly struct Train(int moveSpeed, int carryCapacity, int harvestPower, int chopPower) : IAction {
+    public override string ToString() => $"TRAIN {moveSpeed} {carryCapacity} {harvestPower} {chopPower}";
 }
 
 readonly record struct Point(int X, int Y) {
