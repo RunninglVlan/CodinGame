@@ -48,7 +48,6 @@ namespace TrollFarm;
 // Actions of the same type occur simultaneously. If both teams harvest or chop the same tree at once, resources are shared equally.
 //  Then both get one item at a time until they can't carry any more or the resource is exhausted. The last item can get duplicated.
 // Each troll can only perform one action per turn.
-// cell types: ~ for WATER, # for ROCK, + for IRON
 
 /// https://www.codingame.com/contests/spring-challenge-2026-troll-farm
 static class TrollFarm {
@@ -181,9 +180,13 @@ class Grid {
                 var cell = new Cell(x, y);
                 cells[x, y] = cell;
                 cell.type = c switch {
+                    '.' => CellType.Grass,
+                    '~' => CellType.Water,
+                    '#' => CellType.Rock,
+                    '+' => CellType.Iron,
                     '0' => CellType.MyShack,
                     '1' => CellType.EnemyShack,
-                    _ => CellType.Grass
+                    _ => throw new ArgumentException($"Unexpected cell type: {c}")
                 };
                 if (cell.type == CellType.MyShack) {
                     myShack = cell;
@@ -232,6 +235,9 @@ class Cell(int x, int y) {
 
 enum CellType {
     Grass,
+    Water,
+    Rock,
+    Iron,
     MyShack,
     EnemyShack
 }
