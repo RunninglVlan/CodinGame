@@ -119,32 +119,33 @@ class Game {
     }
 
     IEnumerable<IAction> Actions() {
-        foreach (var troll in myTrolls) {
-            var cell = grid.Get(troll.Point);
-            if (troll.CanCarry && cell.tree is { Fruits: > 0 }) {
-                yield return new Harvest(troll.Id);
+        foreach (var action in myTrolls.Select(TrollAction)) {
+            yield return action;
+        }
+    }
+
+    IAction TrollAction(Troll troll) {
+        var cell = grid.Get(troll.Point);
+        if (troll.CanCarry && cell.tree is { Fruits: > 0 }) {
+            return new Harvest(troll.Id);
+        }
+        if (troll.IsCarrying) {
+            if (grid.Neighbors(cell).Any(it => it.type == CellType.MyShack)) {
+                return new Drop(troll.Id);
+            }
+            return new Move(troll.Id, grid.myShack);
+        }
+        (Cell cell, int distance) bestTree = (null!, int.MaxValue);
+        foreach (var tree in trees) {
+            if (tree.Fruits == 0) {
                 continue;
             }
-            if (troll.IsCarrying) {
-                if (grid.Neighbors(cell).Any(it => it.type == CellType.MyShack)) {
-                    yield return new Drop(troll.Id);
-                } else {
-                    yield return new Move(troll.Id, grid.myShack);
-                }
-            } else {
-                (Cell cell, int distance) bestTree = (null!, int.MaxValue);
-                foreach (var tree in trees) {
-                    if (tree.Fruits == 0) {
-                        continue;
-                    }
-                    int distance = Point.ManhattanDistance(troll.Point, tree.Point);
-                    if (distance < bestTree.distance) {
-                        bestTree = (grid.Get(tree.Point), distance);
-                    }
-                }
-                yield return new Move(troll.Id, bestTree.cell);
+            int distance = Point.ManhattanDistance(troll.Point, tree.Point);
+            if (distance < bestTree.distance) {
+                bestTree = (grid.Get(tree.Point), distance);
             }
         }
+        return new Move(troll.Id, bestTree.cell);
     }
 }
 
