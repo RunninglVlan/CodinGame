@@ -5,14 +5,6 @@ using System.Linq;
 
 namespace TrollFarm;
 
-// TODO: First update with Wood 1 rules:
-// $"PLANT {id} {type}" Make troll id plant a type on its current cell: PLUM, LEMON, APPLE or BANANA.
-//  A troll can PLANT a tree on its current cell if the troll carries at least 1 fruit of that type.
-//  If two trolls try to plant a tree of the same type on the same cell, both will lose a seed and the tree gets planted.
-//  If they try to plant different types, nothing will happen.
-// $"PICK {id} {type}" Make troll id pick one type from the shack: PLUM, LEMON, APPLE or BANANA.
-//  A troll can PICK one item from its shack. Only 1 item can be picked at a time.
-
 // TODO: Then update with Bronze rules:
 // "MINE {id}" Make troll id mine a nearby IRON.
 //  A troll adjacent to an IRON cell can MINE, gaining up to chopPower iron limited by free carryCapacity. Iron resources are infinite.
@@ -138,17 +130,45 @@ class Game {
 
     IAction TrollAction(Troll troll) {
         var cell = grid.Get(troll.Point);
+        if (troll.PlantingType != null) {
+            var target = pathfinding.Path(grid.myShack.point, it => it is { type: CellType.Grass, tree: null })!.Last();
+            if (troll.Point != target) {
+                return new Move(troll.Id, target);
+            }
+            return troll.Plant();
+        }
+        bool nearShack = grid.Neighbors(cell).Any(it => it == grid.myShack);
+        bool planting = trolls.Values.Any(it => it.PlantingType != null);
+        if (nearShack && !planting && !troll.IsCarrying && NeedToPlant(out var fruit)) {
+            return troll.PickToPlant(fruit);
+        }
         if (troll.CanCarry && cell.tree is { Fruits: > 0 }) {
             return troll.Harvest(cell.tree);
         }
         if (troll.IsCarrying) {
-            if (grid.Neighbors(cell).Any(it => it == grid.myShack)) {
-                return new Drop(troll.Id);
-            }
-            return new Move(troll.Id, grid.myShack.point);
+            return nearShack ? new Drop(troll.Id) : new Move(troll.Id, grid.myShack.point);
         }
         var path = pathfinding.Path(troll.Point, it => it.tree is { Fruits: > 0 });
         return new Move(troll.Id, path![troll.MovementSpeed - 1]);
+    }
+
+    bool NeedToPlant(out FruitType fruitType) {
+        fruitType = default;
+        var shack = grid.myShack.point;
+        var treeTuples = Enum.GetValues<FruitType>()
+                .Select(type => (type, distance: PathDistance(it => it.tree?.Type == type)))
+                .OrderByDescending(it => it.distance);
+        int emptyCellDistance = PathDistance(it => it is { type: CellType.Grass, tree: null });
+        foreach ((var type, int distance) in treeTuples) {
+            if (!MyInventory.Has(type) || distance < emptyCellDistance) {
+                continue;
+            }
+            fruitType = type;
+            return true;
+        }
+        return false;
+
+        int PathDistance(Predicate<Cell> predicate) => pathfinding.Path(shack, predicate)?.Count ?? int.MaxValue;
     }
 }
 
@@ -233,17 +253,31 @@ enum CellType {
 }
 
 [SuppressMessage("ReSharper", "NotAccessedPositionalProperty.Global")]
-record Tree(string Type, int Size, int Health, int Cooldown) {
+record Tree(FruitType Type, int Size, int Health, int Cooldown) {
     public int Fruits { get; set; }
 
     public static Tree From(string[] inputs) {
-        string type = inputs[0];
+        string treeType = inputs[0];
+        var type = treeType switch {
+            "PLUM" => FruitType.Plum,
+            "LEMON" => FruitType.Lemon,
+            "APPLE" => FruitType.Apple,
+            "BANANA" => FruitType.Banana,
+            _ => throw new ArgumentException($"Unexpected tree type: {treeType}")
+        };
         int size = int.Parse(inputs[3]);
         int health = int.Parse(inputs[4]);
         int fruits = int.Parse(inputs[5]);
         int cooldown = int.Parse(inputs[6]);
         return new Tree(type, size, health, cooldown) { Fruits = fruits };
     }
+}
+
+enum FruitType {
+    Plum,
+    Lemon,
+    Apple,
+    Banana
 }
 
 /// <param name="MovementSpeed">determines how many cells it can MOVE horizontally or vertically per turn</param>
@@ -259,6 +293,7 @@ record Troll(int Id, Player Player, int MovementSpeed, int CarryCapacity, int Ha
     public bool IsCarrying => CarryTotal > 0;
     int CarryTotal => CarryPlum + CarryLemon + CarryApple + CarryBanana + CarryIron + CarryWood;
     public bool CanCarry => CarryTotal < CarryCapacity;
+    public FruitType? PlantingType { get; private set; }
 
     public static Troll From(int id, string[] inputs) {
         var player = (Player)int.Parse(inputs[1]);
@@ -283,6 +318,17 @@ record Troll(int Id, Player Player, int MovementSpeed, int CarryCapacity, int Ha
         int taken = Math.Min(HarvestPower, CarryCapacity - CarryTotal);
         tree.Fruits = Math.Max(0, tree.Fruits - taken);
         return new Harvest(Id);
+    }
+
+    public IAction PickToPlant(FruitType fruitType) {
+        PlantingType = fruitType;
+        return new Pick(Id, fruitType);
+    }
+
+    public IAction Plant() {
+        var action = new Plant(Id, PlantingType!.Value);
+        PlantingType = null;
+        return action;
     }
 }
 
@@ -311,6 +357,17 @@ class Inventory {
         iron = int.Parse(inputs[4]);
         wood = int.Parse(inputs[5]);
     }
+
+    public bool Has(FruitType type) {
+        int count = type switch {
+            FruitType.Plum => plum,
+            FruitType.Lemon => lemon,
+            FruitType.Apple => apple,
+            FruitType.Banana => banana,
+            _ => throw new ArgumentException($"Unexpected fruit type: {type}")
+        };
+        return count > 0;
+    }
 }
 
 interface IAction;
@@ -329,6 +386,14 @@ readonly struct Move(int trollId, Point point) : IAction {
 
 readonly struct Train(int moveSpeed, int carryCapacity, int harvestPower, int chopPower) : IAction {
     public override string ToString() => $"TRAIN {moveSpeed} {carryCapacity} {harvestPower} {chopPower}";
+}
+
+readonly struct Pick(int trollId, FruitType type) : IAction {
+    public override string ToString() => $"PICK {trollId} {type.ToString().ToUpper()}";
+}
+
+readonly struct Plant(int trollId, FruitType type) : IAction {
+    public override string ToString() => $"PLANT {trollId} {type.ToString().ToUpper()}";
 }
 
 readonly record struct Point(int X, int Y) {
