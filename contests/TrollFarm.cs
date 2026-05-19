@@ -142,7 +142,7 @@ class Game {
             return troll.Harvest(cell.tree);
         }
         if (troll.IsCarrying) {
-            if (grid.Neighbors(cell).Any(it => it.type == CellType.MyShack)) {
+            if (grid.Neighbors(cell).Any(it => it == grid.myShack)) {
                 return new Drop(troll.Id);
             }
             return new Move(troll.Id, grid.myShack.point);
