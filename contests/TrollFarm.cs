@@ -113,7 +113,7 @@ class Game {
         }
         // planting
         if (troll.PlantingType != null) {
-            var target = pathfinding.Path(grid.myShack.point, it => it is { type: CellType.Grass, tree: null })!.Last();
+            var target = pathfinding.Path(grid.myShack.point, Cell.NoTree)!.Last();
             return target == troll.Point ? troll.Plant() : new Move(troll.Id, target);
         }
         bool nearShack = grid.Neighbors(cell).Any(it => it == grid.myShack);
@@ -175,9 +175,9 @@ class Game {
         var treeTuples = Enum.GetValues<FruitType>()
                 .Select(type => (type, distance: PathDistance(it => it.tree?.Type == type)))
                 .OrderByDescending(it => it.distance);
-        int emptyCellDistance = PathDistance(it => it is { type: CellType.Grass, tree: null });
+        int plantingDistance = PathDistance(Cell.NoTree);
         foreach ((var type, int distance) in treeTuples) {
-            if (!MyInventory.Has(type) || distance < emptyCellDistance) {
+            if (!MyInventory.Has(type) || distance < plantingDistance) {
                 continue;
             }
             fruitType = type;
@@ -264,6 +264,7 @@ class Cell(int x, int y) {
     public Tree? tree;
     public Troll? troll;
     public bool IsWalkable => type == CellType.Grass;
+    public static Predicate<Cell> NoTree { get; } = it => it is { type: CellType.Grass, tree: null };
 
     public void ClearOldData() {
         tree = null;
