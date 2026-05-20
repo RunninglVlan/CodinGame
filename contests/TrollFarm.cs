@@ -21,6 +21,7 @@ class Game {
     readonly Grid grid = new();
     readonly Pathfinding pathfinding;
     readonly Dictionary<int, Troll> trolls = new();
+    readonly List<Tree> trees = new();
     readonly Inventory[] inventories = new Inventory[Inventory.COUNT];
     Inventory MyInventory => inventories[Inventory.ME];
     (Cell cell, int score)[] plantingPlaces = null!;
@@ -59,6 +60,7 @@ class Game {
 
     void ReadInput() {
         grid.ClearOldData();
+        trees.Clear();
         for (var i = 0; i < Inventory.COUNT; i++) {
             inventories[i].ReadNewData();
         }
@@ -66,7 +68,9 @@ class Game {
         for (var i = 0; i < treesCount; i++) {
             string[] inputs = Console.ReadLine()!.Split(' ');
             var point = Point.From(inputs[1], inputs[2]);
-            grid.Get(point).tree = Tree.From(inputs);
+            var tree = Tree.From(point, inputs);
+            grid.Get(point).tree = tree;
+            trees.Add(tree);
         }
         int trollsCount = int.Parse(Console.ReadLine()!);
         for (var i = 0; i < trollsCount; i++) {
@@ -154,18 +158,19 @@ class Game {
     bool TryFindChopperTarget(out Point target) {
         target = default;
         foreach (var type in new[] { FruitType.Banana, FruitType.Plum, FruitType.Lemon, FruitType.Apple }) {
-            var enemyPath = pathfinding.Path(grid.enemyShack.point, it => it.tree?.Type == type);
-            if (enemyPath == null) {
-                continue;
+            foreach (var tree in trees.Where(it => it.Type == type)) {
+                var enemyPath = pathfinding.Path(grid.enemyShack.point, tree.Point);
+                if (enemyPath == null) {
+                    continue;
+                }
+                int enemyDistance = enemyPath.Count;
+                var myPath = pathfinding.Path(grid.myShack.point, tree.Point);
+                if (enemyDistance >= myPath!.Count) {
+                    continue;
+                }
+                target = tree.Point;
+                return true;
             }
-            int enemyDistance = enemyPath.Count;
-            var tree = enemyPath.Last();
-            var myPath = pathfinding.Path(grid.myShack.point, tree);
-            if (enemyDistance >= myPath!.Count) {
-                continue;
-            }
-            target = tree;
-            return true;
         }
         return false;
     }
@@ -314,10 +319,10 @@ enum CellType {
 }
 
 [SuppressMessage("ReSharper", "NotAccessedPositionalProperty.Global")]
-record Tree(FruitType Type, int Size, int Health, int Cooldown) {
+record Tree(Point Point, FruitType Type, int Size, int Health, int Cooldown) {
     public int Fruits { get; set; }
 
-    public static Tree From(string[] inputs) {
+    public static Tree From(Point point, string[] inputs) {
         string treeType = inputs[0];
         var type = treeType switch {
             "PLUM" => FruitType.Plum,
@@ -330,7 +335,7 @@ record Tree(FruitType Type, int Size, int Health, int Cooldown) {
         int health = int.Parse(inputs[4]);
         int fruits = int.Parse(inputs[5]);
         int cooldown = int.Parse(inputs[6]);
-        return new Tree(type, size, health, cooldown) { Fruits = fruits };
+        return new Tree(point, type, size, health, cooldown) { Fruits = fruits };
     }
 }
 
