@@ -108,7 +108,7 @@ class Game {
 
     [SuppressMessage("ReSharper", "ConvertIfStatementToReturnStatement")]
     bool CanTrain(out int movementSpeed, out int carryCapacity, out int harvestPower, out int chopPower) {
-        movementSpeed = carryCapacity = harvestPower = 1;
+        movementSpeed = carryCapacity = harvestPower = 2;
         chopPower = 0;
         int trollCount = trolls.Values.Count(it => it.Player == Player.Me);
         if (MyInventory.plum < Required(movementSpeed)) {
@@ -148,8 +148,9 @@ class Game {
         if (troll.IsCarrying) {
             return nearShack ? new Drop(troll.Id) : new Move(troll.Id, grid.myShack.point);
         }
-        var path = pathfinding.Path(troll.Point, it => it.tree is { Fruits: > 0 });
-        return new Move(troll.Id, path![troll.MovementSpeed - 1]);
+        var path = pathfinding.Path(troll.Point, it => it.tree is { Fruits: > 0 })!;
+        int movement = Math.Min(path.Count, troll.MovementSpeed);
+        return new Move(troll.Id, path[movement - 1]);
     }
 
     bool NeedToPlant(out FruitType fruitType) {
