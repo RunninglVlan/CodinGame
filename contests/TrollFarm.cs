@@ -51,7 +51,10 @@ class Game {
 
     public void Loop() {
         ReadInput();
-        Console.WriteLine(string.Join(';', Actions()));
+        var actions = Actions().ToList();
+        actions.Add(new Message($"Trolls: my {trolls.Values.Count(it => it.Player == Player.Me)} "
+                + $"vs {trolls.Values.Count(it => it.Player == Player.Enemy)}"));
+        Console.WriteLine(string.Join(';', actions));
     }
 
     void ReadInput() {
@@ -457,6 +460,10 @@ readonly struct Chop(int trollId) : IAction {
 
 readonly struct Mine(int trollId) : IAction {
     public override string ToString() => $"MINE {trollId}";
+}
+
+readonly struct Message(string value) : IAction {
+    public override string ToString() => $"MSG {value}";
 }
 
 readonly record struct Point(int X, int Y) {
