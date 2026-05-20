@@ -5,17 +5,6 @@ using System.Linq;
 
 namespace TrollFarm;
 
-// TODO: Then update with Bronze rules:
-// Trees grow faster when next to water.
-// Trees differ in cooldown and health as follows:
-//                      PLUM  LEMON APPLE  BANANA
-//  Cooldown            8     8     9      6
-//  Cooldown near water 3     3     2      4
-//  Health (size 1)     6     6     11     3
-//  Health (size 2)     8     8     14     4
-//  Health (size 3)     10    10    17     5
-//  Health (size 4)     12    12    20     6
-
 /// https://www.codingame.com/contests/spring-challenge-2026-troll-farm
 static class TrollFarm {
     [SuppressMessage("ReSharper", "FunctionNeverReturns")]
@@ -113,7 +102,7 @@ class Game {
         }
         // planting
         if (troll.PlantingType != null) {
-            var target = pathfinding.Path(grid.myShack.point, Cell.NoTree)!.Last();
+            var target = pathfinding.Path(grid.myShack.point, NoTreeNearWater)!.Last();
             return target == troll.Point ? troll.Plant() : new Move(troll.Id, target);
         }
         bool nearShack = grid.Neighbors(cell).Any(it => it == grid.myShack);
@@ -169,13 +158,18 @@ class Game {
         return false;
     }
 
+    bool NoTreeNearWater(Cell cell) {
+        bool noTree = cell is { type: CellType.Grass, tree: null };
+        return noTree && grid.Neighbors(cell).Any(it => it.type == CellType.Water);
+    }
+
     bool NeedToPlant(out FruitType fruitType) {
         fruitType = default;
         var shack = grid.myShack.point;
         var treeTuples = Enum.GetValues<FruitType>()
                 .Select(type => (type, distance: PathDistance(it => it.tree?.Type == type)))
                 .OrderByDescending(it => it.distance);
-        int plantingDistance = PathDistance(Cell.NoTree);
+        int plantingDistance = PathDistance(NoTreeNearWater);
         foreach ((var type, int distance) in treeTuples) {
             if (!MyInventory.Has(type) || distance < plantingDistance) {
                 continue;
@@ -264,7 +258,6 @@ class Cell(int x, int y) {
     public Tree? tree;
     public Troll? troll;
     public bool IsWalkable => type == CellType.Grass;
-    public static Predicate<Cell> NoTree { get; } = it => it is { type: CellType.Grass, tree: null };
 
     public void ClearOldData() {
         tree = null;
