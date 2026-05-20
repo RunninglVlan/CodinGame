@@ -14,9 +14,6 @@ namespace TrollFarm;
 //  Any wood that the troll can't carry will just vanish.
 //  Similar to harvesting, both trolls get one wood at a time until they can't carry any more or the wood is completely split up.
 //  The last wood can get duplicated.
-// Training trolls:
-//  chopPower requires IRON
-//  Cost example: 0 chopPower: 2 + 0×0 = 2 IRONs
 // Trees grow faster when next to water.
 // Trees differ in cooldown and health as follows:
 //                      PLUM  LEMON APPLE  BANANA
@@ -98,8 +95,12 @@ class Game {
     }
 
     IEnumerable<IAction> Actions() {
-        if (CanTrain(out int movementSpeed, out int carryCapacity, out int harvestPower, out int chopPower)) {
-            yield return new Train(movementSpeed, carryCapacity, harvestPower, chopPower);
+        const int movementSpeed = 2, carryCapacity = 2, harvestPower = 2;
+        bool haveChopper = trolls.Values.Any(it => it is { Player: Player.Me, IsChopper: true });
+        if (!haveChopper && CanTrain(movementSpeed, carryCapacity, chopPower: Troll.CHOPPER_POWER)) {
+            yield return new Train(movementSpeed, carryCapacity, chopPower: Troll.CHOPPER_POWER);
+        } else if (CanTrain(movementSpeed, carryCapacity, harvestPower)) {
+            yield return new Train(movementSpeed, carryCapacity, harvestPower);
         }
         foreach (var action in trolls.Values.Where(it => it.Player == Player.Me).Select(TrollAction)) {
             yield return action;
@@ -107,9 +108,7 @@ class Game {
     }
 
     [SuppressMessage("ReSharper", "ConvertIfStatementToReturnStatement")]
-    bool CanTrain(out int movementSpeed, out int carryCapacity, out int harvestPower, out int chopPower) {
-        movementSpeed = carryCapacity = harvestPower = 2;
-        chopPower = 0;
+    bool CanTrain(int movementSpeed, int carryCapacity, int harvestPower = 0, int chopPower = 0) {
         int trollCount = trolls.Values.Count(it => it.Player == Player.Me);
         if (MyInventory.plum < Required(movementSpeed)) {
             return false;
@@ -282,8 +281,9 @@ enum FruitType {
 }
 
 /// <param name="MovementSpeed">determines how many cells it can MOVE horizontally or vertically per turn</param>
-[SuppressMessage("ReSharper", "NotAccessedPositionalProperty.Global")]
 record Troll(int Id, Player Player, int MovementSpeed, int CarryCapacity, int HarvestPower, int ChopPower) {
+    public const int CHOPPER_POWER = 2;
+
     public Point Point { get; private set; }
     public int CarryPlum { get; set; }
     public int CarryLemon { get; set; }
@@ -295,6 +295,7 @@ record Troll(int Id, Player Player, int MovementSpeed, int CarryCapacity, int Ha
     int CarryTotal => CarryPlum + CarryLemon + CarryApple + CarryBanana + CarryIron + CarryWood;
     public bool CanCarry => CarryTotal < CarryCapacity;
     public FruitType? PlantingType { get; private set; }
+    public bool IsChopper => ChopPower == CHOPPER_POWER;
 
     public static Troll From(int id, string[] inputs) {
         var player = (Player)int.Parse(inputs[1]);
@@ -385,7 +386,7 @@ readonly struct Move(int trollId, Point point) : IAction {
     public override string ToString() => $"MOVE {trollId} {point.X} {point.Y}";
 }
 
-readonly struct Train(int moveSpeed, int carryCapacity, int harvestPower, int chopPower) : IAction {
+readonly struct Train(int moveSpeed, int carryCapacity, int harvestPower = 0, int chopPower = 0) : IAction {
     public override string ToString() => $"TRAIN {moveSpeed} {carryCapacity} {harvestPower} {chopPower}";
 }
 
