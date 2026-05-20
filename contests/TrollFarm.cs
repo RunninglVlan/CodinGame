@@ -88,10 +88,13 @@ class Game {
     IEnumerable<IAction> Actions() {
         const int movementSpeed = 2, carryCapacity = 2, harvestPower = 2;
         bool haveChopper = trolls.Values.Any(it => it is { Player: Player.Me, IsChopper: true });
-        if (!haveChopper && CanTrain(movementSpeed, carryCapacity, chopPower: Troll.CHOPPER_POWER)) {
-            yield return new Train(movementSpeed, carryCapacity, chopPower: Troll.CHOPPER_POWER);
-        } else if (CanTrain(movementSpeed, carryCapacity, harvestPower)) {
-            yield return new Train(movementSpeed, carryCapacity, harvestPower);
+        switch (haveChopper) {
+            case false when CanTrain(movementSpeed, carryCapacity, chopPower: Troll.CHOPPER_POWER):
+                yield return new Train(movementSpeed, carryCapacity, chopPower: Troll.CHOPPER_POWER);
+                break;
+            case true when CanTrain(movementSpeed, carryCapacity, harvestPower):
+                yield return new Train(movementSpeed, carryCapacity, harvestPower);
+                break;
         }
         foreach (var action in trolls.Values.Where(it => it.Player == Player.Me).Select(TrollAction)) {
             yield return action;
@@ -120,6 +123,16 @@ class Game {
 
     IAction TrollAction(Troll troll) {
         var cell = grid.Get(troll.Point);
+        bool haveChopper = trolls.Values.Any(it => it is { Player: Player.Me, IsChopper: true });
+        bool nearShack = grid.Neighbors(cell).Any(it => it == grid.myShack);
+        // getting resources for chopper
+        if (!haveChopper) {
+            if (troll.IsCarrying) {
+                return nearShack ? new Drop(troll.Id) : new Move(troll.Id, grid.myShack.point);
+            }
+            return MyInventory.iron < RequiredToTrain(Troll.CHOPPER_POWER) ? MineIron(troll) : HarvestTree(troll);
+        }
+        // chopping / mining
         if (troll.IsChopper) {
             return ChopperAction(troll);
         }
@@ -128,7 +141,6 @@ class Game {
             var target = PlantingTarget();
             return target == troll.Point ? troll.Plant() : new Move(troll.Id, target);
         }
-        bool nearShack = grid.Neighbors(cell).Any(it => it == grid.myShack);
         bool planting = trolls.Values.Any(it => it.PlantingType != null);
         if (nearShack && !planting && !troll.IsCarrying && NeedToPlant(out var fruit)) {
             return troll.PickToPlant(fruit);
@@ -145,6 +157,11 @@ class Game {
         if (TryFindChopperTarget(out var target)) {
             return target == troll.Point ? new Chop(troll.Id) : new Move(troll.Id, target);
         }
+        return MineIron(troll);
+    }
+
+    IAction MineIron(Troll troll) {
+        var cell = grid.Get(troll.Point);
         if (grid.Neighbors(cell).Any(IronCell)) {
             return new Mine(troll.Id);
         }
