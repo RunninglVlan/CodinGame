@@ -96,7 +96,7 @@ class Game {
 
     [SuppressMessage("ReSharper", "ConvertIfStatementToReturnStatement")]
     bool CanTrain(int movementSpeed, int carryCapacity, int harvestPower = 0, int chopPower = 0) {
-        int trollCount = trolls.Values.Count(it => it.Player == Player.Me);
+        int myTrolls = trolls.Values.Count(it => it.Player == Player.Me);
         if (MyInventory.plum < Required(movementSpeed)) {
             return false;
         }
@@ -111,7 +111,7 @@ class Game {
         }
         return true;
 
-        int Required(int count) => trollCount + count * count;
+        int Required(int count) => myTrolls + count * count;
     }
 
     IAction TrollAction(Troll troll) {
@@ -129,14 +129,7 @@ class Game {
         if (nearShack && !planting && !troll.IsCarrying && NeedToPlant(out var fruit)) {
             return troll.PickToPlant(fruit);
         }
-        // harvesting
-        if (troll.CanCarry && cell.tree is { Fruits: > 0 }) {
-            return troll.Harvest(cell.tree);
-        }
-        if (troll.IsCarrying) {
-            return nearShack ? new Drop(troll.Id) : new Move(troll.Id, grid.myShack.point);
-        }
-        return new Move(troll.Id, HarvestingTree(troll));
+        return HarvestTree(troll);
     }
 
     IAction ChopperAction(Troll troll) {
@@ -148,7 +141,7 @@ class Game {
         if (TryFindChopperTarget(out var target)) {
             return target == troll.Point ? new Chop(troll.Id) : new Move(troll.Id, target);
         }
-        if (grid.Neighbors(cell).Any(it => it.type == CellType.Iron)) {
+        if (grid.Neighbors(cell).Any(IronCell)) {
             return new Mine(troll.Id);
         }
         var ironTarget = pathfinding.Path(troll.Point, it => grid.Neighbors(it).Any(IronCell))!.Last();
@@ -199,13 +192,25 @@ class Game {
         int PathDistance(Predicate<Cell> predicate) => pathfinding.Path(shack, predicate)?.Count ?? int.MaxValue;
     }
 
-    Point HarvestingTree(Troll troll) {
-        var harvestingPath = Enum.GetValues<FruitType>().OrderBy(it => MyInventory.Count(it))
-                .Select(type => pathfinding.Path(troll.Point, it => it.tree?.Fruits > 0 && it.tree.Type == type))
-                .OfType<List<Point>>()
-                .FirstOrDefault();
-        var path = harvestingPath ?? pathfinding.Path(troll.Point, it => it.tree != null)!;
-        return path.Count == 0 ? troll.Point : path.Last();
+    IAction HarvestTree(Troll troll) {
+        var cell = grid.Get(troll.Point);
+        if (troll.CanCarry && cell.tree is { Fruits: > 0 }) {
+            return troll.Harvest(cell.tree);
+        }
+        bool nearShack = grid.Neighbors(cell).Any(it => it == grid.myShack);
+        if (troll.IsCarrying) {
+            return nearShack ? new Drop(troll.Id) : new Move(troll.Id, grid.myShack.point);
+        }
+        return new Move(troll.Id, HarvestingTree());
+
+        Point HarvestingTree() {
+            var harvestingPath = Enum.GetValues<FruitType>().OrderBy(it => MyInventory.Count(it))
+                    .Select(type => pathfinding.Path(troll.Point, it => it.tree?.Fruits > 0 && it.tree.Type == type))
+                    .OfType<List<Point>>()
+                    .FirstOrDefault();
+            var path = harvestingPath ?? pathfinding.Path(troll.Point, it => it.tree != null)!;
+            return path.Count == 0 ? troll.Point : path.Last();
+        }
     }
 }
 
