@@ -17,19 +17,6 @@ namespace TrollFarm;
 //  Health (size 2)     8     8     14     4
 //  Health (size 3)     10    10    17     5
 //  Health (size 4)     12    12    20     6
-// When a damaged tree grows, it gains the health difference between sizes.
-// The game turn order is:
-//  Move trolls
-//  Harvest
-//  Plant
-//  Chop
-//  Pick
-//  Train
-//  Drop
-//  Mine
-//  Grow trees
-// Actions of the same type occur simultaneously. If both teams harvest or chop the same tree at once, resources are shared equally.
-//  Then both get one item at a time until they can't carry any more or the resource is exhausted. The last item can get duplicated.
 
 /// https://www.codingame.com/contests/spring-challenge-2026-troll-farm
 static class TrollFarm {
