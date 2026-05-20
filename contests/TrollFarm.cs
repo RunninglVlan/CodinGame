@@ -6,8 +6,6 @@ using System.Linq;
 namespace TrollFarm;
 
 // TODO: Then update with Bronze rules:
-// "MINE {id}" Make troll id mine a nearby IRON.
-//  A troll adjacent to an IRON cell can MINE, gaining up to chopPower iron limited by free carryCapacity. Iron resources are infinite.
 // Trees grow faster when next to water.
 // Trees differ in cooldown and health as follows:
 //                      PLUM  LEMON APPLE  BANANA
@@ -143,7 +141,13 @@ class Game {
         if (TryFindChopperTarget(out var target)) {
             return target == troll.Point ? new Chop(troll.Id) : new Move(troll.Id, target);
         }
-        return new Wait();
+        if (grid.Neighbors(cell).Any(it => it.type == CellType.Iron)) {
+            return new Mine(troll.Id);
+        }
+        var ironTarget = pathfinding.Path(troll.Point, it => grid.Neighbors(it).Any(IronCell))!.Last();
+        return new Move(troll.Id, ironTarget);
+
+        bool IronCell(Cell it) => it.type == CellType.Iron;
     }
 
     /// Prioritizing Banana trees as they have less health
@@ -420,8 +424,8 @@ readonly struct Chop(int trollId) : IAction {
     public override string ToString() => $"CHOP {trollId}";
 }
 
-readonly struct Wait : IAction {
-    public override string ToString() => "WAIT";
+readonly struct Mine(int trollId) : IAction {
+    public override string ToString() => $"MINE {trollId}";
 }
 
 readonly record struct Point(int X, int Y) {
