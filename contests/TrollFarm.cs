@@ -113,6 +113,7 @@ class Game {
         if (troll.IsChopper) {
             return ChopperAction(troll);
         }
+        // planting
         if (troll.PlantingType != null) {
             var target = pathfinding.Path(grid.myShack.point, it => it is { type: CellType.Grass, tree: null })!.Last();
             return target == troll.Point ? troll.Plant() : new Move(troll.Id, target);
@@ -122,14 +123,15 @@ class Game {
         if (nearShack && !planting && !troll.IsCarrying && NeedToPlant(out var fruit)) {
             return troll.PickToPlant(fruit);
         }
+        // harvesting
         if (troll.CanCarry && cell.tree is { Fruits: > 0 }) {
             return troll.Harvest(cell.tree);
         }
         if (troll.IsCarrying) {
             return nearShack ? new Drop(troll.Id) : new Move(troll.Id, grid.myShack.point);
         }
-        var path = pathfinding.Path(troll.Point, it => it.tree is { Fruits: > 0 })!;
-        return new Move(troll.Id, path.Last());
+        var tree = pathfinding.Path(troll.Point, it => it.tree is { Fruits: > 0 })!.Last();
+        return new Move(troll.Id, tree);
     }
 
     IAction ChopperAction(Troll troll) {
