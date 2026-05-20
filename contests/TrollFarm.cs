@@ -216,22 +216,24 @@ class Game {
 
     IAction HarvestTree(Troll troll) {
         var cell = grid.Get(troll.Point);
-        if (troll.CanCarry && cell.tree is { Fruits: > 0 }) {
+        var harvestingTree = HarvestingTree();
+        if (troll.CanCarry && cell.tree?.Fruits > 0 && cell.tree.Type == harvestingTree.Type) {
             return troll.Harvest(cell.tree);
         }
         bool nearShack = grid.Neighbors(cell).Any(it => it == grid.myShack);
         if (troll.IsCarrying) {
             return nearShack ? new Drop(troll.Id) : new Move(troll.Id, grid.myShack.point);
         }
-        return new Move(troll.Id, HarvestingTree());
+        return new Move(troll.Id, harvestingTree.Point);
 
-        Point HarvestingTree() {
+        Tree HarvestingTree() {
             var harvestingPath = Enum.GetValues<FruitType>().OrderBy(it => MyInventory.Count(it))
                     .Select(type => pathfinding.Path(troll.Point, it => it.tree?.Fruits > 0 && it.tree.Type == type))
                     .OfType<List<Point>>()
                     .FirstOrDefault();
             var path = harvestingPath ?? pathfinding.Path(troll.Point, it => it.tree != null)!;
-            return path.Count == 0 ? troll.Point : path.Last();
+            var point = path.Count == 0 ? troll.Point : path.Last();
+            return grid.Get(point).tree!;
         }
     }
 }
