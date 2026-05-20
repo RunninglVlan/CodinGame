@@ -131,10 +131,7 @@ class Game {
         var cell = grid.Get(troll.Point);
         if (troll.PlantingType != null) {
             var target = pathfinding.Path(grid.myShack.point, it => it is { type: CellType.Grass, tree: null })!.Last();
-            if (troll.Point != target) {
-                return new Move(troll.Id, target);
-            }
-            return troll.Plant();
+            return target == troll.Point ? troll.Plant() : new Move(troll.Id, target);
         }
         bool nearShack = grid.Neighbors(cell).Any(it => it == grid.myShack);
         bool planting = trolls.Values.Any(it => it.PlantingType != null);
