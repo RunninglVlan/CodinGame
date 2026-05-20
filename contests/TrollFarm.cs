@@ -142,8 +142,7 @@ class Game {
             return nearShack ? new Drop(troll.Id) : new Move(troll.Id, grid.myShack.point);
         }
         var path = pathfinding.Path(troll.Point, it => it.tree is { Fruits: > 0 })!;
-        int movement = Math.Min(path.Count, troll.MovementSpeed);
-        return new Move(troll.Id, path[movement - 1]);
+        return new Move(troll.Id, path.Last());
     }
 
     IAction ChopperAction(Troll troll) {
@@ -310,6 +309,7 @@ enum FruitType {
 }
 
 /// <param name="MovementSpeed">determines how many cells it can MOVE horizontally or vertically per turn</param>
+[SuppressMessage("ReSharper", "NotAccessedPositionalProperty.Global")]
 record Troll(int Id, Player Player, int MovementSpeed, int CarryCapacity, int HarvestPower, int ChopPower) {
     public const int CHOPPER_POWER = 2;
 
