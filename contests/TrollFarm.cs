@@ -8,12 +8,6 @@ namespace TrollFarm;
 // TODO: Then update with Bronze rules:
 // "MINE {id}" Make troll id mine a nearby IRON.
 //  A troll adjacent to an IRON cell can MINE, gaining up to chopPower iron limited by free carryCapacity. Iron resources are infinite.
-// "CHOP {id}" Make troll id chop on its current cell.
-//  A troll can CHOP a tree on the same cell, reducing its health by chopPower.
-//  When health reaches 0, the tree disappears and the troll collects wood equal to its size, capped by free carryCapacity.
-//  Any wood that the troll can't carry will just vanish.
-//  Similar to harvesting, both trolls get one wood at a time until they can't carry any more or the wood is completely split up.
-//  The last wood can get duplicated.
 // Trees grow faster when next to water.
 // Trees differ in cooldown and health as follows:
 //                      PLUM  LEMON APPLE  BANANA
@@ -129,6 +123,9 @@ class Game {
 
     IAction TrollAction(Troll troll) {
         var cell = grid.Get(troll.Point);
+        if (troll.IsChopper) {
+            return ChopperAction(troll);
+        }
         if (troll.PlantingType != null) {
             var target = pathfinding.Path(grid.myShack.point, it => it is { type: CellType.Grass, tree: null })!.Last();
             return target == troll.Point ? troll.Plant() : new Move(troll.Id, target);
@@ -147,6 +144,38 @@ class Game {
         var path = pathfinding.Path(troll.Point, it => it.tree is { Fruits: > 0 })!;
         int movement = Math.Min(path.Count, troll.MovementSpeed);
         return new Move(troll.Id, path[movement - 1]);
+    }
+
+    IAction ChopperAction(Troll troll) {
+        var cell = grid.Get(troll.Point);
+        bool nearShack = grid.Neighbors(cell).Any(it => it == grid.myShack);
+        if (troll.IsCarrying) {
+            return nearShack ? new Drop(troll.Id) : new Move(troll.Id, grid.myShack.point);
+        }
+        if (TryFindChopperTarget(out var target)) {
+            return target == troll.Point ? new Chop(troll.Id) : new Move(troll.Id, target);
+        }
+        return new Wait();
+    }
+
+    /// Prioritizing Banana trees as they have less health
+    bool TryFindChopperTarget(out Point target) {
+        target = default;
+        foreach (var type in new[] { FruitType.Banana, FruitType.Plum, FruitType.Lemon, FruitType.Apple }) {
+            var enemyPath = pathfinding.Path(grid.enemyShack.point, it => it.tree?.Type == type);
+            if (enemyPath == null) {
+                continue;
+            }
+            int enemyDistance = enemyPath.Count;
+            var tree = enemyPath.Last();
+            var myPath = pathfinding.Path(grid.myShack.point, tree);
+            if (enemyDistance >= myPath!.Count) {
+                continue;
+            }
+            target = tree;
+            return true;
+        }
+        return false;
     }
 
     bool NeedToPlant(out FruitType fruitType) {
@@ -172,8 +201,9 @@ class Game {
 class Grid {
     int width, height;
     Cell[,] cells = null!;
-    public Cell myShack = null!;
+    public Cell myShack = null!, enemyShack = null!;
 
+    [SuppressMessage("ReSharper", "ConvertIfStatementToSwitchStatement")]
     public void Init() {
         string[] dimensions = Console.ReadLine()!.Split(' ');
         height = Math.Clamp(int.Parse(dimensions[1]), 8, 11);
@@ -196,6 +226,8 @@ class Grid {
                 };
                 if (cell.type == CellType.MyShack) {
                     myShack = cell;
+                } else if (cell.type == CellType.EnemyShack) {
+                    enemyShack = cell;
                 }
             }
         }
@@ -393,6 +425,14 @@ readonly struct Pick(int trollId, FruitType type) : IAction {
 
 readonly struct Plant(int trollId, FruitType type) : IAction {
     public override string ToString() => $"PLANT {trollId} {type.ToString().ToUpper()}";
+}
+
+readonly struct Chop(int trollId) : IAction {
+    public override string ToString() => $"CHOP {trollId}";
+}
+
+readonly struct Wait : IAction {
+    public override string ToString() => "WAIT";
 }
 
 readonly record struct Point(int X, int Y) {
