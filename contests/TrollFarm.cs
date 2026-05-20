@@ -197,11 +197,12 @@ class Game {
     }
 
     Point HarvestingTree(Troll troll) {
-        var path = Enum.GetValues<FruitType>().OrderBy(it => MyInventory.Count(it))
+        var harvestingPath = Enum.GetValues<FruitType>().OrderBy(it => MyInventory.Count(it))
                 .Select(type => pathfinding.Path(troll.Point, it => it.tree?.Fruits > 0 && it.tree.Type == type))
                 .OfType<List<Point>>()
                 .FirstOrDefault();
-        return path?.Last() ?? pathfinding.Path(troll.Point, it => it.tree != null)!.Last();
+        var path = harvestingPath ?? pathfinding.Path(troll.Point, it => it.tree != null)!;
+        return path.Count == 0 ? troll.Point : path.Last();
     }
 }
 
