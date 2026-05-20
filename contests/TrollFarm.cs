@@ -173,25 +173,27 @@ class Game {
         bool IronCell(Cell it) => it.type == CellType.Iron;
     }
 
-    /// Prioritizing Banana trees as they have less health
     bool TryFindChopperTarget(out Point target) {
         target = default;
-        foreach (var type in new[] { FruitType.Banana, FruitType.Plum, FruitType.Lemon, FruitType.Apple }) {
-            foreach (var tree in trees.Where(it => it.Type == type)) {
-                var enemyPath = pathfinding.Path(grid.enemyShack.point, tree.Point);
-                if (enemyPath == null) {
-                    continue;
-                }
-                int enemyDistance = enemyPath.Count;
-                var myPath = pathfinding.Path(grid.myShack.point, tree.Point);
-                if (enemyDistance >= myPath!.Count) {
-                    continue;
-                }
-                target = tree.Point;
-                return true;
-            }
+        var targets = trees
+                .Select(tree => (tree, enemyPath: pathfinding.Path(grid.enemyShack.point, tree.Point)))
+                .Where(it => it.enemyPath != null)
+                .Select(it => (it.tree, enemyDistance: it.enemyPath!.Count))
+                .OrderBy(it => it.enemyDistance)
+                .Where(it => {
+                    var myPath = pathfinding.Path(grid.myShack.point, it.tree.Point);
+                    if (myPath == null) {
+                        return false;
+                    }
+                    return it.enemyDistance < myPath.Count;
+                })
+                .Select(it => it.tree.Point)
+                .ToArray();
+        if (targets.Length == 0) {
+            return false;
         }
-        return false;
+        target = targets.First();
+        return true;
     }
 
     Point PlantingTarget() => plantingPlaces.Where(it => it.cell.tree == null).Select(it => it.cell.point).First();
