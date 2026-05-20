@@ -23,13 +23,29 @@ class Game {
     readonly Dictionary<int, Troll> trolls = new();
     readonly Inventory[] inventories = new Inventory[Inventory.COUNT];
     Inventory MyInventory => inventories[Inventory.ME];
+    (Cell cell, int score)[] plantingPlaces = null!;
 
     public Game() => pathfinding = new(grid);
 
     public void Init() {
         grid.Init();
+        plantingPlaces = grid.CellsNearWater()
+                .Select(it => (it, score: Score(it)))
+                .Where(it => it.score > int.MinValue)
+                .OrderByDescending(it => it.score)
+                .ToArray();
         for (var i = 0; i < Inventory.COUNT; i++) {
             inventories[i] = new Inventory();
+        }
+        return;
+
+        int Score(Cell cell) {
+            var enemyPath = pathfinding.Path(grid.enemyShack.point, it => it == cell)?.ToArray();
+            var myPath = pathfinding.Path(grid.myShack.point, it => it == cell)?.ToArray();
+            if (enemyPath == null || myPath == null) {
+                return int.MinValue;
+            }
+            return enemyPath.Length - myPath.Length;
         }
     }
 
@@ -102,7 +118,7 @@ class Game {
         }
         // planting
         if (troll.PlantingType != null) {
-            var target = pathfinding.Path(grid.myShack.point, NoTreeNearWater)!.Last();
+            var target = PlantingTarget();
             return target == troll.Point ? troll.Plant() : new Move(troll.Id, target);
         }
         bool nearShack = grid.Neighbors(cell).Any(it => it == grid.myShack);
@@ -158,10 +174,7 @@ class Game {
         return false;
     }
 
-    bool NoTreeNearWater(Cell cell) {
-        bool noTree = cell is { type: CellType.Grass, tree: null };
-        return noTree && grid.Neighbors(cell).Any(it => it.type == CellType.Water);
-    }
+    Point PlantingTarget() => plantingPlaces.Where(it => it.cell.tree == null).Select(it => it.cell.point).First();
 
     bool NeedToPlant(out FruitType fruitType) {
         fruitType = default;
@@ -169,7 +182,8 @@ class Game {
         var treeTuples = Enum.GetValues<FruitType>()
                 .Select(type => (type, distance: PathDistance(it => it.tree?.Type == type)))
                 .OrderByDescending(it => it.distance);
-        int plantingDistance = PathDistance(NoTreeNearWater);
+        var plantingTarget = PlantingTarget();
+        int plantingDistance = PathDistance(it => it.point == plantingTarget);
         foreach ((var type, int distance) in treeTuples) {
             if (!MyInventory.Has(type) || distance < plantingDistance) {
                 continue;
@@ -224,6 +238,22 @@ class Grid {
                 }
             }
         }
+    }
+
+    public HashSet<Cell> CellsNearWater() {
+        HashSet<Cell> cellsNearWater = new();
+        foreach (var cell in cells) {
+            if (cell.type != CellType.Water) {
+                continue;
+            }
+            foreach (var neighbor in Neighbors(cell)) {
+                if (neighbor.type != CellType.Grass) {
+                    continue;
+                }
+                cellsNearWater.Add(neighbor);
+            }
+        }
+        return cellsNearWater;
     }
 
     public Cell Get(Point point) => cells[point.X, point.Y];
