@@ -128,8 +128,7 @@ class Game {
         if (troll.IsCarrying) {
             return nearShack ? new Drop(troll.Id) : new Move(troll.Id, grid.myShack.point);
         }
-        var tree = pathfinding.Path(troll.Point, it => it.tree is { Fruits: > 0 })!.Last();
-        return new Move(troll.Id, tree);
+        return new Move(troll.Id, HarvestingTree(troll));
     }
 
     IAction ChopperAction(Troll troll) {
@@ -187,6 +186,14 @@ class Game {
         return false;
 
         int PathDistance(Predicate<Cell> predicate) => pathfinding.Path(shack, predicate)?.Count ?? int.MaxValue;
+    }
+
+    Point HarvestingTree(Troll troll) {
+        return Enum.GetValues<FruitType>().OrderBy(it => MyInventory.Count(it))
+                .Select(type => pathfinding.Path(troll.Point, it => it.tree?.Fruits > 0 && it.tree.Type == type))
+                .OfType<List<Point>>()
+                .First()
+                .Last();
     }
 }
 
@@ -382,16 +389,15 @@ class Inventory {
         wood = int.Parse(inputs[5]);
     }
 
-    public bool Has(FruitType type) {
-        int count = type switch {
-            FruitType.Plum => plum,
-            FruitType.Lemon => lemon,
-            FruitType.Apple => apple,
-            FruitType.Banana => banana,
-            _ => throw new ArgumentException($"Unexpected fruit type: {type}")
-        };
-        return count > 0;
-    }
+    public bool Has(FruitType type) => Count(type) > 0;
+
+    public int Count(FruitType type) => type switch {
+        FruitType.Plum => plum,
+        FruitType.Lemon => lemon,
+        FruitType.Apple => apple,
+        FruitType.Banana => banana,
+        _ => throw new ArgumentException($"Unexpected fruit type: {type}")
+    };
 }
 
 interface IAction;
