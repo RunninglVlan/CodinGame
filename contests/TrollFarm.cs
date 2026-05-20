@@ -103,23 +103,22 @@ class Game {
 
     [SuppressMessage("ReSharper", "ConvertIfStatementToReturnStatement")]
     bool CanTrain(int movementSpeed, int carryCapacity, int harvestPower = 0, int chopPower = 0) {
-        int myTrolls = trolls.Values.Count(it => it.Player == Player.Me);
-        if (MyInventory.plum < Required(movementSpeed)) {
+        if (MyInventory.plum < RequiredToTrain(movementSpeed)) {
             return false;
         }
-        if (MyInventory.lemon < Required(carryCapacity)) {
+        if (MyInventory.lemon < RequiredToTrain(carryCapacity)) {
             return false;
         }
-        if (MyInventory.apple < Required(harvestPower)) {
+        if (MyInventory.apple < RequiredToTrain(harvestPower)) {
             return false;
         }
-        if (MyInventory.iron < Required(chopPower)) {
+        if (MyInventory.iron < RequiredToTrain(chopPower)) {
             return false;
         }
         return true;
-
-        int Required(int count) => myTrolls + count * count;
     }
+
+    int RequiredToTrain(int count = 0) => trolls.Values.Count(it => it.Player == Player.Me) + count * count;
 
     IAction TrollAction(Troll troll) {
         var cell = grid.Get(troll.Point);
@@ -154,10 +153,13 @@ class Game {
         if (troll.IsCarrying) {
             return nearShack ? new Drop(troll.Id) : new Move(troll.Id, grid.myShack.point);
         }
-        if (TryFindChopperTarget(out var target)) {
-            return target == troll.Point ? new Chop(troll.Id) : new Move(troll.Id, target);
+        int myHarvesters = trolls.Values.Count(it => it is { Player: Player.Me, HarvestPower: > 0 });
+        int enemyHarvesters = trolls.Values.Count(it => it is { Player: Player.Enemy, HarvestPower: > 0 });
+        if (myHarvesters <= enemyHarvesters && MyInventory.iron < RequiredToTrain()
+                || !TryFindChopperTarget(out var target)) {
+            return MineIron(troll);
         }
-        return MineIron(troll);
+        return target == troll.Point ? new Chop(troll.Id) : new Move(troll.Id, target);
     }
 
     IAction MineIron(Troll troll) {
