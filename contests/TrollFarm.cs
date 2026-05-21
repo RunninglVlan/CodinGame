@@ -224,21 +224,38 @@ class Game {
     Point TreePlaceNearWater() => cellsNearWater.Where(it => it.tree == null).Select(it => it.point).First();
 
     bool NeedToPlant(out (FruitType type, Point point) target) {
-        target = default;
         var shack = grid.myShack.point;
-        var treeTuples = Enum.GetValues<FruitType>()
-                .Select(type => (type, distance: PathDistance(it => it.tree?.Type == type)))
-                .OrderByDescending(it => it.distance);
-        var nearWater = TreePlaceNearWater();
-        int plantingDistance = PathDistance(it => it.point == nearWater);
-        foreach ((var type, int distance) in treeTuples) {
-            if (!MyInventory.Has(type) || distance < plantingDistance) {
-                continue;
-            }
-            target = (type, nearWater);
+        var nearShack = pathfinding.Path(shack, it => it is { type: CellType.Grass, tree: null })!.Last();
+        if (TryGetNeededFruit(nearShack, type => PathDistance(it => it.tree?.Type == type), out var fruitType)) {
+            target = (fruitType, nearShack);
             return true;
         }
+        var nearWater = TreePlaceNearWater();
+        if (TryGetNeededFruit(nearWater, type => {
+                    var tree = cellsNearWater.FirstOrDefault(it => it.tree?.Type == type);
+                    return tree != null ? PathDistance(it => it.point == tree.point) : int.MaxValue;
+                }, out fruitType)) {
+            target = (fruitType, nearWater);
+            return true;
+        }
+        target = default;
         return false;
+
+        bool TryGetNeededFruit(Point targetPoint, Func<FruitType, int> findDistance, out FruitType fruit) {
+            fruit = default;
+            var treeTuples = Enum.GetValues<FruitType>()
+                    .Select(type => (type, distance: findDistance(type)))
+                    .OrderByDescending(it => it.distance);
+            int plantingDistance = PathDistance(it => it.point == targetPoint);
+            foreach ((var type, int distance) in treeTuples) {
+                if (!MyInventory.Has(type) || distance < plantingDistance) {
+                    continue;
+                }
+                fruit = type;
+                return true;
+            }
+            return false;
+        }
 
         int PathDistance(Predicate<Cell> predicate) => pathfinding.Path(shack, predicate)?.Count ?? int.MaxValue;
     }
