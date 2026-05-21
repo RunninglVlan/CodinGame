@@ -195,7 +195,7 @@ class Game {
             return CarryResource(troll);
         }
         var choppingTree = trees
-                .Where(it => it.Size == Troll.CHOPPER_CAPACITY)
+                .Where(it => it.Size >= Troll.CHOPPER_CAPACITY)
                 .OrderBy(it => {
                     var trollPath = pathfinding.Path(troll.Point, it.Point);
                     var shackPath = pathfinding.Path(grid.myShack.point, it.Point);
@@ -449,7 +449,7 @@ record Troll(int Id, Player Player, int MovementSpeed, int CarryCapacity, int Ha
     const int DEFAULT_POWER = 1;
     public const int HARVESTER_CAPACITY = 2;
     public const int HARVESTER_POWER = 2;
-    public const int CHOPPER_CAPACITY = 4;
+    public const int CHOPPER_CAPACITY = 3;
     public const int CHOPPER_POWER = 2;
 
     public Point Point { get; private set; }
