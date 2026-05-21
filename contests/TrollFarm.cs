@@ -87,18 +87,27 @@ class Game {
     }
 
     IEnumerable<IAction> Actions() {
-        const int movementSpeed = 2, carryCapacity = 2, harvestPower = 2;
+        const int movementSpeed = 2;
         var myTrolls = trolls.Values.Where(it => it.Player == Player.Me).ToArray();
-        switch (myTrolls.Any(it => it.IsChopper)) {
-            case false when CanTrain(movementSpeed, carryCapacity, chopPower: Troll.CHOPPER_POWER):
-                yield return new Train(movementSpeed, carryCapacity, chopPower: Troll.CHOPPER_POWER);
-                break;
-            case true when CanTrain(movementSpeed, carryCapacity, harvestPower):
-                yield return new Train(movementSpeed, carryCapacity, harvestPower);
-                break;
+        if (!myTrolls.Any(it => it.IsHarvester)) {
+            if (CanTrain(movementSpeed, Troll.HARVESTER_CAPACITY, Troll.HARVESTER_POWER)) {
+                yield return new Train(movementSpeed, Troll.HARVESTER_CAPACITY, Troll.HARVESTER_POWER);
+            }
+        } else if (!myTrolls.Any(it => it.IsChopper)) {
+            if (CanTrain(movementSpeed, Troll.CHOPPER_CAPACITY, chopPower: Troll.CHOPPER_POWER)) {
+                yield return new Train(movementSpeed, Troll.CHOPPER_CAPACITY, chopPower: Troll.CHOPPER_POWER);
+            }
+        } else if (CanTrain(movementSpeed, Troll.HARVESTER_CAPACITY, Troll.HARVESTER_POWER)) {
+            yield return new Train(movementSpeed, Troll.HARVESTER_CAPACITY, Troll.HARVESTER_POWER);
         }
-        foreach (var action in myTrolls.Select(TrollAction)) {
-            yield return action;
+        foreach (var troll in myTrolls) {
+            if (troll.IsDefault) {
+                yield return DefaultAction(troll);
+            } else if (troll.IsHarvester) {
+                yield return HarvesterAction(troll);
+            } else if (troll.IsChopper) {
+                yield return ChopperAction(troll);
+            }
         }
     }
 
@@ -121,27 +130,29 @@ class Game {
 
     int RequiredToTrain(int count = 0) => trolls.Values.Count(it => it.Player == Player.Me) + count * count;
 
-    IAction TrollAction(Troll troll) {
-        var cell = grid.Get(troll.Point);
-        bool haveChopper = trolls.Values.Any(it => it is { Player: Player.Me, IsChopper: true });
-        // getting resources for chopper
-        if (!haveChopper) {
-            if (troll.IsCarrying) {
-                return CarryResource(troll);
-            }
-            return MyInventory.iron < RequiredToTrain(Troll.CHOPPER_POWER) ? MineIron(troll) : HarvestTree(troll);
+    IAction DefaultAction(Troll troll) {
+        bool haveHarvester = trolls.Values.Any(it => it is { Player: Player.Me, IsHarvester: true });
+        if (!haveHarvester) {
+            return HarvestTree(troll);
         }
-        // chopping / mining
-        if (troll.IsChopper) {
-            return ChopperAction(troll);
+        if (MyInventory.iron < RequiredToTrain(Troll.CHOPPER_POWER)) {
+            return troll.IsCarrying ? CarryResource(troll) : MineIron(troll);
         }
-        // planting
+        // harass
+        if (!TryFindEnemyTree(out var target)) {
+            return new Move(troll.Id, grid.enemyShack.point);
+        }
+        return target == troll.Point ? new Chop(troll.Id) : new Move(troll.Id, target);
+    }
+
+    IAction HarvesterAction(Troll troll) {
         if (troll.PlantingType != null) {
             var target = PlantingTarget();
             return target == troll.Point ? troll.Plant() : new Move(troll.Id, target);
         }
+        var cell = grid.Get(troll.Point);
         bool nearShack = grid.Neighbors(cell).Any(it => it == grid.myShack);
-        bool planting = trolls.Values.Any(it => it.PlantingType != null);
+        bool planting = trolls.Values.Any(it => it is { PlantingType: not null, IsHarvester: true });
         if (nearShack && !planting && !troll.IsCarrying && NeedToPlant(out var fruit)) {
             return troll.PickToPlant(fruit);
         }
@@ -156,16 +167,24 @@ class Game {
     }
 
     IAction ChopperAction(Troll troll) {
-        if (troll.IsCarrying) {
+        if (troll.CarryWood > 0) {
             return CarryResource(troll);
         }
-        int myHarvesters = trolls.Values.Count(it => it is { Player: Player.Me, HarvestPower: > 0 });
-        int enemyHarvesters = trolls.Values.Count(it => it is { Player: Player.Enemy, HarvestPower: > 0 });
-        if (myHarvesters <= enemyHarvesters && MyInventory.iron < RequiredToTrain()
-                || !TryFindChopperTarget(out var target)) {
-            return MineIron(troll);
+        var choppingTree = trees
+                .Where(it => it is { Type: FruitType.Banana, Health: Troll.CHOPPER_CAPACITY })
+                .OrderBy(it => pathfinding.Path(troll.Point, it.Point)?.Count ?? int.MaxValue)
+                .FirstOrDefault();
+        if (choppingTree != null) {
+            return choppingTree.Point == troll.Point ? new Chop(troll.Id) : new Move(troll.Id, choppingTree.Point);
         }
-        return target == troll.Point ? new Chop(troll.Id) : new Move(troll.Id, target);
+        if (troll.PlantingType != null) {
+            var target = PlantingTarget();
+            return target == troll.Point ? troll.Plant() : new Move(troll.Id, target);
+        }
+        var cell = grid.Get(troll.Point);
+        return cell == grid.myShack || grid.Neighbors(cell).Any(it => it == grid.myShack)
+                ? troll.PickToPlant(FruitType.Banana)
+                : new Move(troll.Id, grid.myShack.point);
     }
 
     IAction MineIron(Troll troll) {
@@ -179,7 +198,7 @@ class Game {
         bool IronCell(Cell it) => it.type == CellType.Iron;
     }
 
-    bool TryFindChopperTarget(out Point target) {
+    bool TryFindEnemyTree(out Point target) {
         target = default;
         var targets = trees
                 .Select(tree => (tree, enemyPath: pathfinding.Path(grid.enemyShack.point, tree.Point)))
@@ -375,6 +394,10 @@ enum FruitType {
 /// <param name="MovementSpeed">determines how many cells it can MOVE horizontally or vertically per turn</param>
 [SuppressMessage("ReSharper", "NotAccessedPositionalProperty.Global")]
 record Troll(int Id, Player Player, int MovementSpeed, int CarryCapacity, int HarvestPower, int ChopPower) {
+    const int DEFAULT_POWER = 1;
+    public const int HARVESTER_CAPACITY = 2;
+    public const int HARVESTER_POWER = 2;
+    public const int CHOPPER_CAPACITY = 4;
     public const int CHOPPER_POWER = 2;
 
     public Point Point { get; private set; }
@@ -383,11 +406,13 @@ record Troll(int Id, Player Player, int MovementSpeed, int CarryCapacity, int Ha
     int CarryApple { get; set; }
     int CarryBanana { get; set; }
     int CarryIron { get; set; }
-    int CarryWood { get; set; }
+    public int CarryWood { get; private set; }
     public bool IsCarrying => CarryTotal > 0;
     int CarryTotal => CarryPlum + CarryLemon + CarryApple + CarryBanana + CarryIron + CarryWood;
     public bool CanCarry => CarryTotal < CarryCapacity;
     public FruitType? PlantingType { get; private set; }
+    public bool IsDefault => ChopPower == DEFAULT_POWER;
+    public bool IsHarvester => HarvestPower == HARVESTER_POWER;
     public bool IsChopper => ChopPower == CHOPPER_POWER;
 
     public static Troll From(int id, string[] inputs) {
