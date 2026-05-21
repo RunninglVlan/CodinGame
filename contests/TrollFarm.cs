@@ -167,7 +167,10 @@ class Game {
                 .OrderBy(it => {
                     var trollPath = pathfinding.Path(troll.Point, it.Point);
                     var shackPath = pathfinding.Path(grid.myShack.point, it.Point);
-                    return trollPath != null && shackPath != null ? trollPath.Count + shackPath.Count : int.MaxValue;
+                    if (trollPath == null || shackPath == null) {
+                        return int.MaxValue;
+                    }
+                    return trollPath.Count + shackPath.Count + it.Health;
                 })
                 .FirstOrDefault();
         if (choppingTree != null) {
