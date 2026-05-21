@@ -24,16 +24,17 @@ class Game {
     readonly List<Tree> trees = new();
     readonly Inventory[] inventories = new Inventory[Inventory.COUNT];
     Inventory MyInventory => inventories[Inventory.ME];
-    (Cell cell, int score)[] plantingPlaces = null!;
+    Cell[] cellsNearWater = null!;
 
     public Game() => pathfinding = new(grid);
 
     public void Init() {
         grid.Init();
-        plantingPlaces = grid.CellsNearWater()
-                .Select(it => (it, score: Score(it)))
+        cellsNearWater = grid.CellsNearWater()
+                .Select(cell => (cell, score: Score(cell)))
                 .Where(it => it.score > int.MinValue)
                 .OrderByDescending(it => it.score)
+                .Select(it => it.cell)
                 .ToArray();
         for (var i = 0; i < Inventory.COUNT; i++) {
             inventories[i] = new Inventory();
@@ -87,8 +88,8 @@ class Game {
 
     IEnumerable<IAction> Actions() {
         const int movementSpeed = 2, carryCapacity = 2, harvestPower = 2;
-        bool haveChopper = trolls.Values.Any(it => it is { Player: Player.Me, IsChopper: true });
-        switch (haveChopper) {
+        var myTrolls = trolls.Values.Where(it => it.Player == Player.Me).ToArray();
+        switch (myTrolls.Any(it => it.IsChopper)) {
             case false when CanTrain(movementSpeed, carryCapacity, chopPower: Troll.CHOPPER_POWER):
                 yield return new Train(movementSpeed, carryCapacity, chopPower: Troll.CHOPPER_POWER);
                 break;
@@ -96,7 +97,7 @@ class Game {
                 yield return new Train(movementSpeed, carryCapacity, harvestPower);
                 break;
         }
-        foreach (var action in trolls.Values.Where(it => it.Player == Player.Me).Select(TrollAction)) {
+        foreach (var action in myTrolls.Select(TrollAction)) {
             yield return action;
         }
     }
@@ -123,11 +124,10 @@ class Game {
     IAction TrollAction(Troll troll) {
         var cell = grid.Get(troll.Point);
         bool haveChopper = trolls.Values.Any(it => it is { Player: Player.Me, IsChopper: true });
-        bool nearShack = grid.Neighbors(cell).Any(it => it == grid.myShack);
         // getting resources for chopper
         if (!haveChopper) {
             if (troll.IsCarrying) {
-                return nearShack ? new Drop(troll.Id) : new Move(troll.Id, grid.myShack.point);
+                return CarryResource(troll);
             }
             return MyInventory.iron < RequiredToTrain(Troll.CHOPPER_POWER) ? MineIron(troll) : HarvestTree(troll);
         }
@@ -140,6 +140,7 @@ class Game {
             var target = PlantingTarget();
             return target == troll.Point ? troll.Plant() : new Move(troll.Id, target);
         }
+        bool nearShack = grid.Neighbors(cell).Any(it => it == grid.myShack);
         bool planting = trolls.Values.Any(it => it.PlantingType != null);
         if (nearShack && !planting && !troll.IsCarrying && NeedToPlant(out var fruit)) {
             return troll.PickToPlant(fruit);
@@ -147,11 +148,16 @@ class Game {
         return HarvestTree(troll);
     }
 
-    IAction ChopperAction(Troll troll) {
+    IAction CarryResource(Troll troll) {
         var cell = grid.Get(troll.Point);
-        bool nearShack = grid.Neighbors(cell).Any(it => it == grid.myShack);
+        return grid.Neighbors(cell).Any(it => it == grid.myShack)
+                ? new Drop(troll.Id)
+                : new Move(troll.Id, grid.myShack.point);
+    }
+
+    IAction ChopperAction(Troll troll) {
         if (troll.IsCarrying) {
-            return nearShack ? new Drop(troll.Id) : new Move(troll.Id, grid.myShack.point);
+            return CarryResource(troll);
         }
         int myHarvesters = trolls.Values.Count(it => it is { Player: Player.Me, HarvestPower: > 0 });
         int enemyHarvesters = trolls.Values.Count(it => it is { Player: Player.Enemy, HarvestPower: > 0 });
@@ -196,7 +202,7 @@ class Game {
         return true;
     }
 
-    Point PlantingTarget() => plantingPlaces.Where(it => it.cell.tree == null).Select(it => it.cell.point).First();
+    Point PlantingTarget() => cellsNearWater.Where(it => it.tree == null).Select(it => it.point).First();
 
     bool NeedToPlant(out FruitType fruitType) {
         fruitType = default;
@@ -224,14 +230,11 @@ class Game {
         if (troll.CanCarry && cell.tree?.Fruits > 0 && cell.tree.Type == harvestingTree.Type) {
             return troll.Harvest(cell.tree);
         }
-        bool nearShack = grid.Neighbors(cell).Any(it => it == grid.myShack);
-        if (troll.IsCarrying) {
-            return nearShack ? new Drop(troll.Id) : new Move(troll.Id, grid.myShack.point);
-        }
-        return new Move(troll.Id, harvestingTree.Point);
+        return troll.IsCarrying ? CarryResource(troll) : new Move(troll.Id, harvestingTree.Point);
 
         Tree HarvestingTree() {
-            var harvestingPath = Enum.GetValues<FruitType>().OrderBy(it => MyInventory.Count(it))
+            var harvestingPath = Enum.GetValues<FruitType>()
+                    .OrderBy(it => MyInventory.Count(it))
                     .Select(type => pathfinding.Path(troll.Point, it => it.tree?.Fruits > 0 && it.tree.Type == type))
                     .OfType<List<Point>>()
                     .FirstOrDefault();
@@ -375,12 +378,12 @@ record Troll(int Id, Player Player, int MovementSpeed, int CarryCapacity, int Ha
     public const int CHOPPER_POWER = 2;
 
     public Point Point { get; private set; }
-    public int CarryPlum { get; set; }
-    public int CarryLemon { get; set; }
-    public int CarryApple { get; set; }
-    public int CarryBanana { get; set; }
-    public int CarryIron { get; set; }
-    public int CarryWood { get; set; }
+    int CarryPlum { get; set; }
+    int CarryLemon { get; set; }
+    int CarryApple { get; set; }
+    int CarryBanana { get; set; }
+    int CarryIron { get; set; }
+    int CarryWood { get; set; }
     public bool IsCarrying => CarryTotal > 0;
     int CarryTotal => CarryPlum + CarryLemon + CarryApple + CarryBanana + CarryIron + CarryWood;
     public bool CanCarry => CarryTotal < CarryCapacity;
@@ -429,6 +432,7 @@ enum Player {
     Enemy = 1
 }
 
+[SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
 class Inventory {
     public const int COUNT = 2;
     public const int ME = 0;
