@@ -624,7 +624,7 @@ class Pathfinding(Grid grid) {
                 return Reconstruct(startNode, current);
             }
             foreach (var cell in grid.Neighbors(current.cell)) {
-                if (!cell.IsWalkable && !endPredicate(cell)) {
+                if (!cell.IsWalkable) {
                     continue;
                 }
                 if (visited.ContainsKey(cell.point)) {
