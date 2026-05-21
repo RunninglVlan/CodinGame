@@ -164,7 +164,11 @@ class Game {
         }
         var choppingTree = trees
                 .Where(it => it.Size == Troll.CHOPPER_CAPACITY)
-                .OrderBy(it => pathfinding.Path(troll.Point, it.Point)?.Count ?? int.MaxValue)
+                .OrderBy(it => {
+                    var trollPath = pathfinding.Path(troll.Point, it.Point);
+                    var shackPath = pathfinding.Path(grid.myShack.point, it.Point);
+                    return trollPath != null && shackPath != null ? trollPath.Count + shackPath.Count : int.MaxValue;
+                })
                 .FirstOrDefault();
         if (choppingTree != null) {
             return choppingTree.Point == troll.Point ? new Chop(troll.Id) : new Move(troll.Id, choppingTree.Point);
