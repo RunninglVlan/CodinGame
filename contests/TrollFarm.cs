@@ -31,23 +31,15 @@ class Game {
     public void Init() {
         grid.Init();
         cellsNearWater = grid.CellsNearWater()
-                .Select(cell => (cell, score: Score(cell)))
-                .Where(it => it.score > int.MinValue)
-                .OrderByDescending(it => it.score)
+                .Select(cell => {
+                    int distance = pathfinding.Path(grid.myShack.point, it => it == cell)?.Count ?? int.MaxValue;
+                    return (cell, distance);
+                })
+                .OrderBy(it => it.distance)
                 .Select(it => it.cell)
                 .ToArray();
         for (var i = 0; i < Inventory.COUNT; i++) {
             inventories[i] = new Inventory();
-        }
-        return;
-
-        int Score(Cell cell) {
-            var enemyPath = pathfinding.Path(grid.enemyShack.point, it => it == cell)?.ToArray();
-            var myPath = pathfinding.Path(grid.myShack.point, it => it == cell)?.ToArray();
-            if (enemyPath == null || myPath == null) {
-                return int.MinValue;
-            }
-            return enemyPath.Length - myPath.Length;
         }
     }
 
