@@ -248,7 +248,7 @@ class Game {
                     .OrderByDescending(it => it.distance);
             int plantingDistance = PathDistance(it => it.point == targetPoint);
             foreach ((var type, int distance) in treeTuples) {
-                if (!MyInventory.Has(type) || distance < plantingDistance) {
+                if (!MyInventory.Has(type) || distance <= plantingDistance) {
                     continue;
                 }
                 fruit = type;
