@@ -304,14 +304,19 @@ class Game {
         return troll.IsCarrying ? CarryResource(troll) : new Move(troll.Id, harvestingTree.Point);
 
         Tree HarvestingTree() {
-            var harvestingPath = Enum.GetValues<FruitType>()
-                    .OrderBy(it => MyInventory.Count(it))
-                    .Select(type => pathfinding.Path(troll.Point, it => it.tree?.Fruits > 0 && it.tree.Type == type))
-                    .OfType<List<Point>>()
-                    .FirstOrDefault();
-            var path = harvestingPath ?? pathfinding.Path(troll.Point, it => it.tree != null)!;
-            var point = path.Count == 0 ? troll.Point : path.Last();
-            return grid.Get(point).tree!;
+            int maxFruits = Enum.GetValues<FruitType>().Max(it => MyInventory.Count(it));
+            return trees
+                    .Where(it => it.Fruits > 0)
+                    .OrderByDescending(it => {
+                        var path = pathfinding.Path(troll.Point, it.Point);
+                        if (path == null) {
+                            return int.MinValue;
+                        }
+                        int fruits = MyInventory.Count(it.Type);
+                        double scarcity = maxFruits - fruits + 1;
+                        return scarcity / (path.Count + 0.5);
+                    })
+                    .First();
         }
     }
 }
