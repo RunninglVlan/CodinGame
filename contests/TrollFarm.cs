@@ -146,15 +146,15 @@ class Game {
     }
 
     IAction HarvesterAction(Troll troll) {
-        if (troll.PlantingType != null) {
-            var target = PlantingTarget();
-            return target == troll.Point ? troll.Plant() : new Move(troll.Id, target);
+        if (troll.Planting != null) {
+            var plantingTarget = troll.Planting.Value.point;
+            return plantingTarget == troll.Point ? troll.Plant() : new Move(troll.Id, plantingTarget);
         }
         var cell = grid.Get(troll.Point);
         bool nearShack = grid.Neighbors(cell).Any(it => it == grid.myShack);
-        bool planting = trolls.Values.Any(it => it is { PlantingType: not null, IsHarvester: true });
-        if (nearShack && !planting && !troll.IsCarrying && NeedToPlant(out var fruit)) {
-            return troll.PickToPlant(fruit);
+        bool planting = trolls.Values.Any(it => it is { Planting: not null, IsHarvester: true });
+        if (nearShack && !planting && !troll.IsCarrying && NeedToPlant(out var target)) {
+            return troll.PickToPlant(target);
         }
         return HarvestTree(troll);
     }
@@ -177,13 +177,13 @@ class Game {
         if (choppingTree != null) {
             return choppingTree.Point == troll.Point ? new Chop(troll.Id) : new Move(troll.Id, choppingTree.Point);
         }
-        if (troll.PlantingType != null) {
-            var target = PlantingTarget();
+        if (troll.Planting != null) {
+            var target = troll.Planting.Value.point;
             return target == troll.Point ? troll.Plant() : new Move(troll.Id, target);
         }
         var cell = grid.Get(troll.Point);
         return cell == grid.myShack || grid.Neighbors(cell).Any(it => it == grid.myShack)
-                ? troll.PickToPlant(FruitType.Banana)
+                ? troll.PickToPlant((FruitType.Banana, TreePlaceNearWater()))
                 : new Move(troll.Id, grid.myShack.point);
     }
 
@@ -221,21 +221,21 @@ class Game {
         return true;
     }
 
-    Point PlantingTarget() => cellsNearWater.Where(it => it.tree == null).Select(it => it.point).First();
+    Point TreePlaceNearWater() => cellsNearWater.Where(it => it.tree == null).Select(it => it.point).First();
 
-    bool NeedToPlant(out FruitType fruitType) {
-        fruitType = default;
+    bool NeedToPlant(out (FruitType type, Point point) target) {
+        target = default;
         var shack = grid.myShack.point;
         var treeTuples = Enum.GetValues<FruitType>()
                 .Select(type => (type, distance: PathDistance(it => it.tree?.Type == type)))
                 .OrderByDescending(it => it.distance);
-        var plantingTarget = PlantingTarget();
-        int plantingDistance = PathDistance(it => it.point == plantingTarget);
+        var nearWater = TreePlaceNearWater();
+        int plantingDistance = PathDistance(it => it.point == nearWater);
         foreach ((var type, int distance) in treeTuples) {
             if (!MyInventory.Has(type) || distance < plantingDistance) {
                 continue;
             }
-            fruitType = type;
+            target = (type, nearWater);
             return true;
         }
         return false;
@@ -410,7 +410,7 @@ record Troll(int Id, Player Player, int MovementSpeed, int CarryCapacity, int Ha
     public bool IsCarrying => CarryTotal > 0;
     int CarryTotal => CarryPlum + CarryLemon + CarryApple + CarryBanana + CarryIron + CarryWood;
     public bool CanCarry => CarryTotal < CarryCapacity;
-    public FruitType? PlantingType { get; private set; }
+    public (FruitType type, Point point)? Planting { get; private set; }
     public bool IsDefault => ChopPower == DEFAULT_POWER;
     public bool IsHarvester => HarvestPower == HARVESTER_POWER;
     public bool IsChopper => ChopPower == CHOPPER_POWER;
@@ -440,14 +440,14 @@ record Troll(int Id, Player Player, int MovementSpeed, int CarryCapacity, int Ha
         return new Harvest(Id);
     }
 
-    public IAction PickToPlant(FruitType fruitType) {
-        PlantingType = fruitType;
-        return new Pick(Id, fruitType);
+    public IAction PickToPlant((FruitType type, Point point) planting) {
+        Planting = planting;
+        return new Pick(Id, planting.type);
     }
 
     public IAction Plant() {
-        var action = new Plant(Id, PlantingType!.Value);
-        PlantingType = null;
+        var action = new Plant(Id, Planting!.Value.type);
+        Planting = null;
         return action;
     }
 }
