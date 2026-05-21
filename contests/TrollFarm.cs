@@ -22,6 +22,8 @@ class Game {
     readonly Pathfinding pathfinding;
     readonly Dictionary<int, Troll> trolls = new();
     readonly List<Tree> trees = new();
+    readonly HashSet<Cell> myTrees = new();
+    readonly List<Cell> enemyTrees = new();
     readonly Inventory[] inventories = new Inventory[Inventory.COUNT];
     Inventory MyInventory => inventories[Inventory.ME];
     Cell[] cellsNearWater = null!;
@@ -51,7 +53,9 @@ class Game {
         Console.WriteLine(string.Join(';', actions));
     }
 
+    [SuppressMessage("ReSharper", "ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator")]
     void ReadInput() {
+        var previousTrees = trees.Select(it => it.Point).ToHashSet();
         grid.ClearOldData();
         trees.Clear();
         for (var i = 0; i < Inventory.COUNT; i++) {
@@ -59,6 +63,19 @@ class Game {
         }
         ReadTrees();
         ReadTrolls();
+        myTrees.RemoveWhere(it => it.tree == null);
+        enemyTrees.RemoveAll(it => it.tree == null);
+        if (previousTrees.Count == 0) {
+            return;
+        }
+        // new enemyTrees = current trees - previousTress - myTrees
+        foreach (var tree in trees) {
+            var cell = grid.Get(tree.Point);
+            if (previousTrees.Contains(tree.Point) || myTrees.Contains(cell)) {
+                continue;
+            }
+            enemyTrees.Add(cell);
+        }
     }
 
     void ReadTrees() {
@@ -148,7 +165,7 @@ class Game {
     IAction HarvesterAction(Troll troll) {
         if (troll.Planting != null) {
             var plantingTarget = troll.Planting.Value.point;
-            return plantingTarget == troll.Point ? troll.Plant() : new Move(troll.Id, plantingTarget);
+            return plantingTarget == troll.Point ? PlantTree(troll) : new Move(troll.Id, plantingTarget);
         }
         var cell = grid.Get(troll.Point);
         bool nearShack = grid.Neighbors(cell).Any(it => it == grid.myShack);
@@ -157,6 +174,13 @@ class Game {
             return troll.PickToPlant(target);
         }
         return HarvestTree(troll);
+    }
+
+    Plant PlantTree(Troll troll) {
+        var action = new Plant(troll.Id, troll.Planting!.Value.type);
+        troll.Planting = null;
+        myTrees.Add(grid.Get(troll.Point));
+        return action;
     }
 
     IAction CarryResource(Troll troll) {
@@ -186,7 +210,7 @@ class Game {
         }
         if (troll.Planting != null) {
             var target = troll.Planting.Value.point;
-            return target == troll.Point ? troll.Plant() : new Move(troll.Id, target);
+            return target == troll.Point ? PlantTree(troll) : new Move(troll.Id, target);
         }
         var cell = grid.Get(troll.Point);
         return cell == grid.myShack || grid.Neighbors(cell).Any(it => it == grid.myShack)
@@ -207,6 +231,10 @@ class Game {
 
     bool TryFindEnemyTree(out Point target) {
         target = default;
+        if (enemyTrees.Count > 0) {
+            target = enemyTrees.First().point;
+            return true;
+        }
         var targets = trees
                 .Select(tree => (tree, enemyPath: pathfinding.Path(grid.enemyShack.point, tree.Point)))
                 .Where(it => it.enemyPath != null)
@@ -434,7 +462,7 @@ record Troll(int Id, Player Player, int MovementSpeed, int CarryCapacity, int Ha
     public bool IsCarrying => CarryTotal > 0;
     int CarryTotal => CarryPlum + CarryLemon + CarryApple + CarryBanana + CarryIron + CarryWood;
     public bool CanCarry => CarryTotal < CarryCapacity;
-    public (FruitType type, Point point)? Planting { get; private set; }
+    public (FruitType type, Point point)? Planting { get; set; }
     public bool IsDefault => ChopPower == DEFAULT_POWER;
     public bool IsHarvester => HarvestPower == HARVESTER_POWER;
     public bool IsChopper => ChopPower == CHOPPER_POWER;
@@ -467,12 +495,6 @@ record Troll(int Id, Player Player, int MovementSpeed, int CarryCapacity, int Ha
     public IAction PickToPlant((FruitType type, Point point) planting) {
         Planting = planting;
         return new Pick(Id, planting.type);
-    }
-
-    public IAction Plant() {
-        var action = new Plant(Id, Planting!.Value.type);
-        Planting = null;
-        return action;
     }
 }
 
