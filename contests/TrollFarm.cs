@@ -163,7 +163,7 @@ class Game {
             return CarryResource(troll);
         }
         var choppingTree = trees
-                .Where(it => it is { Type: FruitType.Banana, Size: Troll.CHOPPER_CAPACITY })
+                .Where(it => it.Size == Troll.CHOPPER_CAPACITY)
                 .OrderBy(it => pathfinding.Path(troll.Point, it.Point)?.Count ?? int.MaxValue)
                 .FirstOrDefault();
         if (choppingTree != null) {
