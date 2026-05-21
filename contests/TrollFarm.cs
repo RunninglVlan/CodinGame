@@ -57,6 +57,11 @@ class Game {
         for (var i = 0; i < Inventory.COUNT; i++) {
             inventories[i].ReadNewData();
         }
+        ReadTrees();
+        ReadTrolls();
+    }
+
+    void ReadTrees() {
         int treesCount = int.Parse(Console.ReadLine()!);
         for (var i = 0; i < treesCount; i++) {
             string[] inputs = Console.ReadLine()!.Split(' ');
@@ -65,6 +70,9 @@ class Game {
             grid.Get(point).tree = tree;
             trees.Add(tree);
         }
+    }
+
+    void ReadTrolls() {
         int trollsCount = int.Parse(Console.ReadLine()!);
         for (var i = 0; i < trollsCount; i++) {
             string[] inputs = Console.ReadLine()!.Split(' ');
