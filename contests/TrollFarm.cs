@@ -152,11 +152,11 @@ class Game {
     int RequiredToTrain(int count = 0) => trolls.Values.Count(it => it.Player == Player.Me) + count * count;
 
     IAction DefaultAction(Troll troll) {
-        bool haveHarvester = trolls.Values.Any(it => it is { Player: Player.Me, IsHarvester: true });
-        if (!haveHarvester) {
+        var myTrolls = trolls.Values.Where(it => it.Player == Player.Me).ToArray();
+        if (!myTrolls.Any(it => it.IsHarvester)) {
             return HarvestTree(troll);
         }
-        if (MyInventory.iron < RequiredToTrain(Troll.CHOPPER_POWER)) {
+        if (!myTrolls.Any(it => it.IsChopper) && MyInventory.iron < RequiredToTrain(Troll.CHOPPER_POWER)) {
             return troll.IsCarrying ? CarryResource(troll) : MineIron(troll);
         }
         // harass
