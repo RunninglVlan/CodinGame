@@ -138,6 +138,13 @@ class Game {
                 && MyInventory.iron >= RequiredToTrain(target.ChopPower);
     }
 
+    int FruitDeficit(TrainingTarget target, FruitType type) => type switch {
+        FruitType.Plum => Math.Max(0, RequiredToTrain(target.MovementSpeed) - MyInventory.plum),
+        FruitType.Lemon => Math.Max(0, RequiredToTrain(target.CarryCapacity) - MyInventory.lemon),
+        FruitType.Apple => Math.Max(0, RequiredToTrain(target.HarvestPower) - MyInventory.apple),
+        _ => 0
+    };
+
     int RequiredToTrain(int count = 0) => trolls.Values.Count(it => it.Player == Player.Me) + count * count;
 
     IAction DefaultAction(Troll troll) {
@@ -297,6 +304,7 @@ class Game {
         return troll.IsCarrying ? CarryResource(troll) : new Move(troll.Id, harvestingTree.Point);
 
         Tree HarvestingTree() {
+            var target = NextTrainingTarget();
             int maxFruits = Enum.GetValues<FruitType>().Max(it => MyInventory.Count(it));
             return trees
                     .Where(it => it.Fruits > 0)
@@ -305,9 +313,11 @@ class Game {
                         if (path == null) {
                             return int.MinValue;
                         }
-                        int fruits = MyInventory.Count(it.Type);
-                        double scarcity = maxFruits - fruits + 1;
-                        return scarcity / (path.Count + 0.5);
+                        int deficit = FruitDeficit(target, it.Type);
+                        double priorityWeight = deficit > 0
+                                ? deficit * 1000
+                                : maxFruits - MyInventory.Count(it.Type) + 1;
+                        return priorityWeight / (path.Count + 0.5);
                     })
                     .First();
         }
