@@ -104,24 +104,11 @@ class Game {
     }
 
     IEnumerable<IAction> Actions() {
-        const int movementSpeed = 2;
-        var myTrolls = trolls.Values.Where(it => it.Player == Player.Me).ToArray();
-        if (!myTrolls.Any(it => it.IsHarvester)) {
-            if (CanTrain(movementSpeed, Troll.HARVESTER_CAPACITY, Troll.HARVESTER_POWER)) {
-                yield return new Train(movementSpeed, Troll.HARVESTER_CAPACITY, Troll.HARVESTER_POWER);
-            }
-        } else if (!myTrolls.Any(it => it.IsChopper)) {
-            for (int chopPower = Troll.CHOPPER_POWER + 1; chopPower >= Troll.CHOPPER_POWER; chopPower--) {
-                if (!CanTrain(movementSpeed, Troll.CHOPPER_CAPACITY, chopPower: chopPower)) {
-                    continue;
-                }
-                yield return new Train(movementSpeed, Troll.CHOPPER_CAPACITY, chopPower: chopPower);
-                break;
-            }
-        } else if (CanTrain(movementSpeed, Troll.HARVESTER_CAPACITY, Troll.HARVESTER_POWER)) {
-            yield return new Train(movementSpeed, Troll.HARVESTER_CAPACITY, Troll.HARVESTER_POWER);
+        var target = NextTrainingTarget();
+        if (CanTrain(target)) {
+            yield return target.ToAction();
         }
-        foreach (var troll in myTrolls) {
+        foreach (var troll in trolls.Values.Where(it => it.Player == Player.Me)) {
             if (troll.IsDefault) {
                 yield return DefaultAction(troll);
             } else if (troll.IsHarvester) {
@@ -132,21 +119,23 @@ class Game {
         }
     }
 
-    [SuppressMessage("ReSharper", "ConvertIfStatementToReturnStatement")]
-    bool CanTrain(int movementSpeed, int carryCapacity, int harvestPower = 0, int chopPower = 0) {
-        if (MyInventory.plum < RequiredToTrain(movementSpeed)) {
-            return false;
+    TrainingTarget NextTrainingTarget() {
+        const int movementSpeed = 2;
+        var myTrolls = trolls.Values.Where(it => it.Player == Player.Me).ToArray();
+        if (!myTrolls.Any(it => it.IsHarvester) || myTrolls.Any(it => it.IsChopper)) {
+            return new TrainingTarget(movementSpeed, Troll.HARVESTER_CAPACITY, Troll.HARVESTER_POWER, 0);
         }
-        if (MyInventory.lemon < RequiredToTrain(carryCapacity)) {
-            return false;
-        }
-        if (MyInventory.apple < RequiredToTrain(harvestPower)) {
-            return false;
-        }
-        if (MyInventory.iron < RequiredToTrain(chopPower)) {
-            return false;
-        }
-        return true;
+        var bestChopper = new TrainingTarget(movementSpeed, Troll.CHOPPER_CAPACITY, 0, Troll.CHOPPER_POWER + 1);
+        return CanTrain(bestChopper)
+                ? bestChopper
+                : new TrainingTarget(movementSpeed, Troll.CHOPPER_CAPACITY, 0, Troll.CHOPPER_POWER);
+    }
+
+    bool CanTrain(TrainingTarget target) {
+        return MyInventory.plum >= RequiredToTrain(target.MovementSpeed)
+                && MyInventory.lemon >= RequiredToTrain(target.CarryCapacity)
+                && MyInventory.apple >= RequiredToTrain(target.HarvestPower)
+                && MyInventory.iron >= RequiredToTrain(target.ChopPower);
     }
 
     int RequiredToTrain(int count = 0) => trolls.Values.Count(it => it.Player == Player.Me) + count * count;
@@ -227,8 +216,8 @@ class Game {
         if (grid.Neighbors(cell).Any(IronCell)) {
             return new Mine(troll.Id);
         }
-        var ironTarget = pathfinding.Path(troll.Point, it => grid.Neighbors(it).Any(IronCell))!.Last();
-        return new Move(troll.Id, ironTarget);
+        var iron = pathfinding.Path(troll.Point, it => grid.Neighbors(it).Any(IronCell))!.Last();
+        return new Move(troll.Id, iron);
 
         bool IronCell(Cell it) => it.type == CellType.Iron;
     }
@@ -510,6 +499,10 @@ record Troll(int Id, Player Player, int MovementSpeed, int CarryCapacity, int Ha
 enum Player {
     Me = 0,
     Enemy = 1
+}
+
+readonly record struct TrainingTarget(int MovementSpeed, int CarryCapacity, int HarvestPower, int ChopPower) {
+    public Train ToAction() => new(MovementSpeed, CarryCapacity, HarvestPower, ChopPower);
 }
 
 [SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
