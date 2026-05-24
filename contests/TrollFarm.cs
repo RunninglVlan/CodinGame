@@ -111,8 +111,12 @@ class Game {
                 yield return new Train(movementSpeed, Troll.HARVESTER_CAPACITY, Troll.HARVESTER_POWER);
             }
         } else if (!myTrolls.Any(it => it.IsChopper)) {
-            if (CanTrain(movementSpeed, Troll.CHOPPER_CAPACITY, chopPower: Troll.CHOPPER_POWER)) {
-                yield return new Train(movementSpeed, Troll.CHOPPER_CAPACITY, chopPower: Troll.CHOPPER_POWER);
+            for (int chopPower = Troll.CHOPPER_POWER + 1; chopPower >= Troll.CHOPPER_POWER; chopPower--) {
+                if (!CanTrain(movementSpeed, Troll.CHOPPER_CAPACITY, chopPower: chopPower)) {
+                    continue;
+                }
+                yield return new Train(movementSpeed, Troll.CHOPPER_CAPACITY, chopPower: chopPower);
+                break;
             }
         } else if (CanTrain(movementSpeed, Troll.HARVESTER_CAPACITY, Troll.HARVESTER_POWER)) {
             yield return new Train(movementSpeed, Troll.HARVESTER_CAPACITY, Troll.HARVESTER_POWER);
@@ -470,7 +474,7 @@ record Troll(int Id, Player Player, int MovementSpeed, int CarryCapacity, int Ha
     public (FruitType type, Point point)? Planting { get; set; }
     public bool IsDefault => ChopPower == DEFAULT_POWER;
     public bool IsHarvester => HarvestPower == HARVESTER_POWER;
-    public bool IsChopper => ChopPower == CHOPPER_POWER;
+    public bool IsChopper => ChopPower >= CHOPPER_POWER;
 
     public static Troll From(int id, string[] inputs) {
         var player = (Player)int.Parse(inputs[1]);
