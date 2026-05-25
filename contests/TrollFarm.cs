@@ -155,11 +155,10 @@ class Game {
         if (!myTrolls.Any(it => it.IsChopper) && MyInventory.iron < RequiredToTrain(Troll.CHOPPER_POWER)) {
             return troll.IsCarrying ? CarryResource(troll) : MineIron(troll);
         }
-        // harass
-        if (!TryFindEnemyTree(out var target)) {
+        if (!TryFindHarassment(out var tree)) {
             return new Move(troll.Id, grid.enemyShack.point);
         }
-        return target == troll.Point ? new Chop(troll.Id) : new Move(troll.Id, target);
+        return tree == troll.Point ? new Chop(troll.Id) : new Move(troll.Id, tree);
     }
 
     IAction HarvesterAction(Troll troll) {
@@ -194,19 +193,8 @@ class Game {
         if (troll.CarryWood > 0) {
             return CarryResource(troll);
         }
-        var choppingTree = trees
-                .Where(it => it.Size >= Troll.CHOPPER_CAPACITY)
-                .OrderBy(it => {
-                    var trollPath = pathfinding.Path(troll.Point, it.Point);
-                    var shackPath = pathfinding.Path(grid.myShack.point, it.Point);
-                    if (trollPath == null || shackPath == null) {
-                        return int.MaxValue;
-                    }
-                    return trollPath.Count + shackPath.Count + it.Health;
-                })
-                .FirstOrDefault();
-        if (choppingTree != null) {
-            return choppingTree.Point == troll.Point ? new Chop(troll.Id) : new Move(troll.Id, choppingTree.Point);
+        if (TryFindChopping(troll, out var tree)) {
+            return tree == troll.Point ? new Chop(troll.Id) : new Move(troll.Id, tree);
         }
         if (troll.Planting != null) {
             var target = troll.Planting.Value.point;
@@ -229,13 +217,15 @@ class Game {
         bool IronCell(Cell it) => it.type == CellType.Iron;
     }
 
-    bool TryFindEnemyTree(out Point target) {
+    [SuppressMessage("ReSharper", "InvertIf")]
+    bool TryFindHarassment(out Point target) {
         target = default;
-        if (enemyTrees.Count > 0) {
-            target = enemyTrees.First().point;
+        var enemyTree = enemyTrees.FirstOrDefault();
+        if (enemyTree != null) {
+            target = enemyTree.point;
             return true;
         }
-        var targets = trees
+        var tree = trees
                 .Select(tree => (tree, enemyPath: pathfinding.Path(grid.enemyShack.point, tree.Point)))
                 .Where(it => it.enemyPath != null)
                 .Select(it => (it.tree, enemyDistance: it.enemyPath!.Count))
@@ -247,13 +237,34 @@ class Game {
                     }
                     return it.enemyDistance < myPath.Count;
                 })
-                .Select(it => it.tree.Point)
-                .ToArray();
-        if (targets.Length == 0) {
-            return false;
+                .Select(it => it.tree)
+                .FirstOrDefault();
+        if (tree != null) {
+            target = tree.Point;
+            return true;
         }
-        target = targets.First();
-        return true;
+        return false;
+    }
+
+    [SuppressMessage("ReSharper", "InvertIf")]
+    bool TryFindChopping(Troll troll, out Point target) {
+        target = default;
+        var tree = trees
+                .Where(it => it.Size >= troll.CarryCapacity)
+                .OrderBy(it => {
+                    var trollPath = pathfinding.Path(troll.Point, it.Point);
+                    var shackPath = pathfinding.Path(grid.myShack.point, it.Point);
+                    if (trollPath == null || shackPath == null) {
+                        return int.MaxValue;
+                    }
+                    return trollPath.Count + shackPath.Count + it.Health;
+                })
+                .FirstOrDefault();
+        if (tree != null) {
+            target = tree.Point;
+            return true;
+        }
+        return false;
     }
 
     Point TreePlaceNearWater() => cellsNearWater.Where(it => it.tree == null).Select(it => it.point).First();
