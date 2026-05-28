@@ -56,7 +56,23 @@
 class Grid(int width, int height) {
     readonly Cell[,] cells = new Cell[width, height];
     public Cell Get(Point point) => cells[point.X, point.Y];
-    public IEnumerable<Cell> Neighbors(Cell cell) => throw new NotImplementedException();
+
+    public bool TryGet(Point point, out Cell cell) {
+        cell = null!;
+        if (point.X < 0 || point.X >= width || point.Y < 0 || point.Y >= height) {
+            return false;
+        }
+        cell = cells[point.X, point.Y];
+        return true;
+    }
+
+    public IEnumerable<Cell> Neighbors(Cell cell) {
+        foreach (var point in Point.Directions4) {
+            if (TryGet(cell.point + point, out var neighbor)) {
+                yield return neighbor;
+            }
+        }
+    }
 }
 
 /// Stub
