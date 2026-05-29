@@ -29,8 +29,9 @@ class Game {
                 pikaptcha.TurnToSide();
             }
             Cell next;
+            (bool x, bool y) wrapped;
             var originalDirection = pikaptcha.Direction;
-            while (!TryMoveForward(out next)) {
+            while (!TryMoveForward(out next, out wrapped)) {
                 pikaptcha.TurnToOppositeSide();
                 if (pikaptcha.Direction != originalDirection) {
                     continue;
@@ -38,19 +39,19 @@ class Game {
                 Console.Error.WriteLine("Trapped - turned all the way around and found nowhere to go!");
                 return;
             }
-            pikaptcha.Move(next);
+            pikaptcha.Move(next, wrapped);
         }
     }
 
     bool IsWallOnSide() {
         var wallDirection = Screen.Turn(pikaptcha.Direction, pikaptcha.Side);
         var wallToCheck = pikaptcha.Cell.point + wallDirection;
-        return !maze.TryGet(wallToCheck, out var cell) || cell.type == CellType.Wall;
+        return !maze.TryGet(wallToCheck, out var cell, out _) || cell.type == CellType.Wall;
     }
 
-    bool TryMoveForward(out Cell nextCell) {
+    bool TryMoveForward(out Cell nextCell, out (bool x, bool y) wrapped) {
         var nextPoint = pikaptcha.Cell.point + pikaptcha.Direction;
-        return maze.TryGet(nextPoint, out nextCell) && nextCell.type != CellType.Wall;
+        return maze.TryGet(nextPoint, out nextCell, out wrapped) && nextCell.type != CellType.Wall;
     }
 
     public void PrintMaze() => maze.Print();
@@ -60,12 +61,14 @@ class Grid {
     int width, height;
     Cell[,] cells = null!;
 
-    public bool TryGet(Point point, out Cell cell) {
+    public bool TryGet(Point point, out Cell cell, out (bool x, bool y) wrapped) {
         cell = null!;
-        if (point.X < 0 || point.X >= width || point.Y < 0 || point.Y >= height) {
-            return false;
-        }
-        cell = cells[point.X, point.Y];
+        wrapped = (point.X < 0 || point.X >= width, point.Y < 0 || point.Y >= height);
+        int x = point.X;
+        int y = wrapped.x ? height - 1 - point.Y : point.Y;
+        x = (x % width + width) % width;
+        y = (y % height + height) % height;
+        cell = cells[x, y];
         return true;
     }
 
@@ -129,9 +132,15 @@ class Player(Cell cell, Point direction) {
     public void TurnToSide() => Direction = Screen.Turn(Direction, Side);
     public void TurnToOppositeSide() => Direction = Screen.Turn(Direction, OppositeSide);
 
-    public void Move(Cell cell) {
+    public void Move(Cell cell, (bool x, bool y) wrapped) {
         Cell = cell;
         cell.stepped++;
+        if (wrapped.x) {
+            Direction = Direction with { Y = -Direction.Y };
+        }
+        if (wrapped.y) {
+            Side = OppositeSide;
+        }
     }
 }
 
