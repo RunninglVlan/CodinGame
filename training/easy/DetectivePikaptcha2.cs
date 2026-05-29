@@ -21,16 +21,21 @@ class Game {
     public void MoveThroughMaze(Side sideToFollow) {
         var start = pikaptcha.Cell.point;
         while (pikaptcha.Cell.point != start || pikaptcha.Cell.stepped <= 0) {
-            pikaptcha.Cell.stepped++;
             if (!IsWallOnThe(sideToFollow)) {
                 pikaptcha.Turn(sideToFollow);
             }
             Cell next;
+            var originalDirection = pikaptcha.Direction;
             while (!TryMoveForward(out next)) {
                 var oppositeSide = sideToFollow == Side.Right ? Side.Left : Side.Right;
                 pikaptcha.Turn(oppositeSide);
+                if (pikaptcha.Direction != originalDirection) {
+                    continue;
+                }
+                Console.Error.WriteLine("Trapped - turned all the way around and found nowhere to go!");
+                return;
             }
-            pikaptcha.Cell = next;
+            pikaptcha.Move(next);
         }
     }
 
@@ -69,6 +74,7 @@ class Grid {
         cells = new Cell[width, height];
         for (var y = 0; y < height; y++) {
             string characters = Console.ReadLine()!;
+            Console.Error.WriteLine(characters);
             for (var x = 0; x < width; x++) {
                 char c = characters[x];
                 var cell = new Cell(x, y);
@@ -112,10 +118,15 @@ enum CellType {
 }
 
 class Player(Cell cell, Point direction) {
-    public Cell Cell { get; set; } = cell;
+    public Cell Cell { get; private set; } = cell;
     public Point Direction { get; private set; } = direction;
 
     public void Turn(Side side) => Direction = Screen.Turn(Direction, side);
+
+    public void Move(Cell cell) {
+        Cell = cell;
+        cell.stepped++;
+    }
 }
 
 enum Side {
