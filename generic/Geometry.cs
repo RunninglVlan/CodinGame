@@ -90,3 +90,10 @@ readonly record struct Vector(double X, double Y) {
 
     public override string ToString() => $"({X:F1}, {Y:F1})";
 }
+
+static class Screen {
+    public static readonly Point UP = new(0, -1);
+    public static readonly Point DOWN = new(0, 1);
+    public static readonly Point LEFT = new(-1, 0);
+    public static readonly Point RIGHT = new(1, 0);
+}
