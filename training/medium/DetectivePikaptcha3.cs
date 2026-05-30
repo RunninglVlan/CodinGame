@@ -44,12 +44,13 @@ class Game {
     bool IsWallOn(Side side) {
         var wallDirection = Screen.Turn(pikaptcha.Direction, side);
         var wallToCheck = pikaptcha.Cell.point + wallDirection;
-        return !maze.TryGet(wallToCheck, out var cell, out _) || cell.type == CellType.Wall;
+        return maze.Get(wallToCheck, out _).type == CellType.Wall;
     }
 
     bool TryMoveForward(out Cell nextCell, out (bool x, bool y) wrapped) {
         var nextPoint = pikaptcha.Cell.point + pikaptcha.Direction;
-        return maze.TryGet(nextPoint, out nextCell, out wrapped) && nextCell.type != CellType.Wall;
+        nextCell = maze.Get(nextPoint, out wrapped);
+        return nextCell.type != CellType.Wall;
     }
 
     public void PrintMaze() => maze.Print();
@@ -59,15 +60,13 @@ class Grid {
     int width, height;
     Cell[,] cells = null!;
 
-    public bool TryGet(Point point, out Cell cell, out (bool x, bool y) wrapped) {
-        cell = null!;
+    public Cell Get(Point point, out (bool x, bool y) wrapped) {
         wrapped = (point.X < 0 || point.X >= width, point.Y < 0 || point.Y >= height);
         int x = wrapped.y ? ShiftX() : point.X;
         int y = wrapped.x ? height - 1 - point.Y : point.Y;
         x = (x % width + width) % width;
         y = (y % height + height) % height;
-        cell = cells[x, y];
-        return true;
+        return cells[x, y];
 
         int ShiftX() {
             int halfWidth = width / 2;
