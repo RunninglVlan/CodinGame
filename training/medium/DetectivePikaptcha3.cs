@@ -64,7 +64,7 @@ class Grid {
     public bool TryGet(Point point, out Cell cell, out (bool x, bool y) wrapped) {
         cell = null!;
         wrapped = (point.X < 0 || point.X >= width, point.Y < 0 || point.Y >= height);
-        int x = point.X;
+        int x = wrapped.y ? width - 1 - point.X : point.X;
         int y = wrapped.x ? height - 1 - point.Y : point.Y;
         x = (x % width + width) % width;
         y = (y % height + height) % height;
@@ -139,7 +139,7 @@ class Player(Cell cell, Point direction) {
             Direction = Direction with { Y = -Direction.Y };
         }
         if (wrapped.y) {
-            Side = OppositeSide;
+            Direction = Direction with { X = -Direction.X };
         }
     }
 }
