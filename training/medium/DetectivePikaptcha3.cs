@@ -60,9 +60,9 @@ class Grid {
     Cell[,] cells = null!;
 
     public Cell Get(Point point) {
-        (bool x, bool y) wrapped = (point.X < 0 || point.X >= width, point.Y < 0 || point.Y >= height);
-        int x = wrapped.y ? ShiftX() : point.X;
-        int y = wrapped.x ? height - 1 - point.Y : point.Y;
+        bool wrappedY = point.Y < 0 || point.Y >= height;
+        int x = wrappedY ? ShiftX() : point.X;
+        int y = point.Y;
         x = (x % width + width) % width;
         y = (y % height + height) % height;
         return cells[x, y];
