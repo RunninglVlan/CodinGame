@@ -26,9 +26,8 @@ class Game {
                 pikaptcha.Turn(sideToFollow);
             }
             Cell next;
-            (bool x, bool y) wrapped;
             var originalDirection = pikaptcha.Direction;
-            while (!TryMoveForward(out next, out wrapped)) {
+            while (!TryMoveForward(out next)) {
                 var oppositeSide = sideToFollow == Side.Right ? Side.Left : Side.Right;
                 pikaptcha.Turn(oppositeSide);
                 if (pikaptcha.Direction != originalDirection) {
@@ -37,19 +36,19 @@ class Game {
                 Console.Error.WriteLine("Trapped - turned all the way around and found nowhere to go!");
                 return;
             }
-            pikaptcha.Move(next, wrapped);
+            pikaptcha.Move(next);
         }
     }
 
     bool IsWallOn(Side side) {
         var wallDirection = Screen.Turn(pikaptcha.Direction, side);
         var wallToCheck = pikaptcha.Cell.point + wallDirection;
-        return maze.Get(wallToCheck, out _).type == CellType.Wall;
+        return maze.Get(wallToCheck).type == CellType.Wall;
     }
 
-    bool TryMoveForward(out Cell nextCell, out (bool x, bool y) wrapped) {
+    bool TryMoveForward(out Cell nextCell) {
         var nextPoint = pikaptcha.Cell.point + pikaptcha.Direction;
-        nextCell = maze.Get(nextPoint, out wrapped);
+        nextCell = maze.Get(nextPoint);
         return nextCell.type != CellType.Wall;
     }
 
@@ -60,8 +59,8 @@ class Grid {
     int width, height;
     Cell[,] cells = null!;
 
-    public Cell Get(Point point, out (bool x, bool y) wrapped) {
-        wrapped = (point.X < 0 || point.X >= width, point.Y < 0 || point.Y >= height);
+    public Cell Get(Point point) {
+        (bool x, bool y) wrapped = (point.X < 0 || point.X >= width, point.Y < 0 || point.Y >= height);
         int x = wrapped.y ? ShiftX() : point.X;
         int y = wrapped.x ? height - 1 - point.Y : point.Y;
         x = (x % width + width) % width;
@@ -131,15 +130,9 @@ class Player(Cell cell, Point direction) {
 
     public void Turn(Side side) => Direction = Screen.Turn(Direction, side);
 
-    public void Move(Cell cell, (bool x, bool y) wrapped) {
+    public void Move(Cell cell) {
         Cell = cell;
         cell.stepped++;
-        if (wrapped.x) {
-            Direction = Direction with { Y = -Direction.Y };
-        }
-        if (wrapped.y) {
-            Direction = Direction with { X = -Direction.X };
-        }
     }
 }
 
