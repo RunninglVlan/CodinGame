@@ -14,7 +14,7 @@ static class DetectivePikaptcha3 {
 }
 
 class Game {
-    readonly Grid maze = new();
+    readonly MobiusStrip maze = new();
     Player pikaptcha = null!;
 
     public void Init() => maze.Init(out pikaptcha);
@@ -55,7 +55,7 @@ class Game {
     public void PrintMaze() => maze.Print();
 }
 
-class Grid {
+class MobiusStrip {
     int width, height;
     Cell[,] cells = null!;
 
