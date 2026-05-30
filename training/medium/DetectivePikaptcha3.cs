@@ -62,12 +62,17 @@ class Grid {
     public bool TryGet(Point point, out Cell cell, out (bool x, bool y) wrapped) {
         cell = null!;
         wrapped = (point.X < 0 || point.X >= width, point.Y < 0 || point.Y >= height);
-        int x = wrapped.y ? width - 1 - point.X : point.X;
+        int x = wrapped.y ? ShiftX() : point.X;
         int y = wrapped.x ? height - 1 - point.Y : point.Y;
         x = (x % width + width) % width;
         y = (y % height + height) % height;
         cell = cells[x, y];
         return true;
+
+        int ShiftX() {
+            int halfWidth = width / 2;
+            return (point.X + halfWidth) % width;
+        }
     }
 
     public void Init(out Player pikaptcha) {
