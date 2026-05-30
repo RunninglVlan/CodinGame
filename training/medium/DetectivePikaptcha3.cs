@@ -7,7 +7,8 @@ static class DetectivePikaptcha3 {
     static void Main() {
         var game = new Game();
         game.Init();
-        game.MoveThroughMaze();
+        var sideToFollow = Console.ReadLine()! == "R" ? Side.Right : Side.Left;
+        game.MoveThroughMaze(sideToFollow);
         game.PrintMaze();
     }
 }
@@ -16,23 +17,20 @@ class Game {
     readonly Grid maze = new();
     Player pikaptcha = null!;
 
-    public void Init() {
-        maze.Init(out pikaptcha);
-        var sideToFollow = Console.ReadLine()! == "R" ? Side.Right : Side.Left;
-        pikaptcha.Side = sideToFollow;
-    }
+    public void Init() => maze.Init(out pikaptcha);
 
-    public void MoveThroughMaze() {
+    public void MoveThroughMaze(Side sideToFollow) {
         var start = pikaptcha.Cell.point;
         while (pikaptcha.Cell.point != start || pikaptcha.Cell.stepped <= 0) {
-            if (!IsWallOnSide()) {
-                pikaptcha.TurnToSide();
+            if (!IsWallOn(sideToFollow)) {
+                pikaptcha.Turn(sideToFollow);
             }
             Cell next;
             (bool x, bool y) wrapped;
             var originalDirection = pikaptcha.Direction;
             while (!TryMoveForward(out next, out wrapped)) {
-                pikaptcha.TurnToOppositeSide();
+                var oppositeSide = sideToFollow == Side.Right ? Side.Left : Side.Right;
+                pikaptcha.Turn(oppositeSide);
                 if (pikaptcha.Direction != originalDirection) {
                     continue;
                 }
@@ -43,8 +41,8 @@ class Game {
         }
     }
 
-    bool IsWallOnSide() {
-        var wallDirection = Screen.Turn(pikaptcha.Direction, pikaptcha.Side);
+    bool IsWallOn(Side side) {
+        var wallDirection = Screen.Turn(pikaptcha.Direction, side);
         var wallToCheck = pikaptcha.Cell.point + wallDirection;
         return !maze.TryGet(wallToCheck, out var cell, out _) || cell.type == CellType.Wall;
     }
@@ -126,11 +124,8 @@ enum CellType {
 class Player(Cell cell, Point direction) {
     public Cell Cell { get; private set; } = cell;
     public Point Direction { get; private set; } = direction;
-    public Side Side { get; set; }
-    Side OppositeSide => Side == Side.Right ? Side.Left : Side.Right;
 
-    public void TurnToSide() => Direction = Screen.Turn(Direction, Side);
-    public void TurnToOppositeSide() => Direction = Screen.Turn(Direction, OppositeSide);
+    public void Turn(Side side) => Direction = Screen.Turn(Direction, side);
 
     public void Move(Cell cell, (bool x, bool y) wrapped) {
         Cell = cell;
