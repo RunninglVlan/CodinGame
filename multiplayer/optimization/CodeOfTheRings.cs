@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Diagnostics.CodeAnalysis;
-using System.Text;
 
 namespace CodeOfTheRings;
 
@@ -30,12 +29,12 @@ class Game {
     public void ReadPhrase() => phrase = Console.ReadLine()!;
 
     public string SpellOutPhrase() {
-        var actions = new StringBuilder();
+        var actions = string.Empty;
         foreach (char character in phrase) {
-            actions.Append(FindRune(character));
-            actions.Append(Actions.ADD_CHAR);
+            actions += FindRune(character);
+            actions += Actions.ADD_CHAR;
         }
-        return actions.ToString();
+        return actions;
     }
 
     string FindRune(char character) {
