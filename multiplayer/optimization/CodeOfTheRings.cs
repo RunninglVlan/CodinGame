@@ -37,9 +37,6 @@ class Game {
     }
 
     string FindRune(char character) {
-        if (runes[runeIndex].Char == character) {
-            return string.Empty;
-        }
         int? runeDistance = MoveToRune(character);
         if (runeDistance != null) {
             return runeDistance > 0
@@ -63,6 +60,9 @@ class Game {
 
     [SuppressMessage("ReSharper", "InvertIf")]
     int? MoveToRune(char target) {
+        if (runes[runeIndex].Char == target) {
+            return 0;
+        }
         int runeLength = runes.Length;
         int targetIndex = -1;
         for (var i = 1; i <= runeLength / 2; i++) {
@@ -96,6 +96,9 @@ class Rune {
 
     public int ChangeTo(char target) {
         int targetIndex = Index(target);
+        if (targetIndex == charIndex) {
+            return 0;
+        }
         int forwardDistance = (targetIndex - charIndex + CHARACTERS) % CHARACTERS;
         int backwardDistance = (charIndex - targetIndex + CHARACTERS) % CHARACTERS;
         charIndex = targetIndex;
