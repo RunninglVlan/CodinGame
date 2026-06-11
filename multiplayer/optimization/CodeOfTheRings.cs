@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Diagnostics.CodeAnalysis;
 
 namespace CodeOfTheRings;
 
@@ -13,7 +12,7 @@ static class CodeOfTheRings {
 }
 
 class Game {
-    Rune rune = new();
+    readonly Rune rune = new();
     string phrase = null!;
 
     public void ReadPhrase() => phrase = Console.ReadLine()!;
@@ -27,66 +26,33 @@ class Game {
         return actions;
     }
 
-    [SuppressMessage("ReSharper", "InvertIf")]
     string FindRune(char character) {
-        const int maxIterations = 30;
-        if (rune.character == character) {
+        int distance = rune.MoveTo(character);
+        if (distance == 0) {
             return string.Empty;
         }
-        var runeNext = rune.Clone();
-        var runePrevious = rune.Clone();
-        var iterations = 1;
-        for (; iterations < maxIterations; iterations++) {
-            runeNext.Next();
-            runePrevious.Previous();
-            if (runeNext.character == character) {
-                rune = runeNext;
-                break;
-            }
-            if (runePrevious.character == character) {
-                rune = runePrevious;
-                break;
-            }
-        }
-        return rune == runeNext ? new string(Actions.NEXT, iterations) : new string(Actions.PREVIOUS, iterations);
+        return distance > 0
+                ? new string(Actions.NEXT, distance)
+                : new string(Actions.PREVIOUS, -distance);
     }
 }
 
 class Rune {
-    const char SPACE = ' ';
-    public char character = SPACE;
+    const int CHARACTERS = 27;
+    int charIndex;
 
-    public void Next() {
-        switch (character) {
-            case SPACE:
-                character = 'A';
-                break;
-            case 'Z':
-                character = SPACE;
-                break;
-            default:
-                character++;
-                break;
+    public int MoveTo(char target) {
+        int targetIndex = GetCharIndex(target);
+        if (targetIndex == charIndex) {
+            return 0;
         }
+        int forwardDistance = (targetIndex - charIndex + CHARACTERS) % CHARACTERS;
+        int backwardDistance = (charIndex - targetIndex + CHARACTERS) % CHARACTERS;
+        charIndex = targetIndex;
+        return forwardDistance < backwardDistance ? forwardDistance : -backwardDistance;
     }
 
-    public void Previous() {
-        switch (character) {
-            case SPACE:
-                character = 'Z';
-                break;
-            case 'A':
-                character = SPACE;
-                break;
-            default:
-                character--;
-                break;
-        }
-    }
-
-    public Rune Clone() => new() {
-        character = character
-    };
+    static int GetCharIndex(char value) => value == ' ' ? 0 : value - 'A' + 1;
 }
 
 static class Actions {
