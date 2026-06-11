@@ -14,6 +14,8 @@ static class CodeOfTheRings {
 }
 
 class Game {
+    const string WHILE_NOT_SPACE = "[{0}]";
+
     readonly Rune[] runes;
     int runeIndex;
     string phrase = null!;
@@ -43,19 +45,28 @@ class Game {
                     ? new string(Actions.MOVE_RIGHT, runeDistance.Value)
                     : new string(Actions.MOVE_LEFT, -runeDistance.Value);
         }
-        var actions = string.Empty;
-        int? emptyRuneDistance = MoveToRune(Rune.SPACE)!;
-        if (emptyRuneDistance != 0) {
-            actions = emptyRuneDistance > 0
-                    ? new string(Actions.MOVE_RIGHT, emptyRuneDistance.Value)
-                    : new string(Actions.MOVE_LEFT, -emptyRuneDistance.Value);
-        }
+        string actions = FindEmptyRune();
         var rune = runes[runeIndex];
         int charDistance = rune.ChangeTo(character);
         actions += charDistance > 0
                 ? new string(Actions.NEXT_CHAR, charDistance)
                 : new string(Actions.PREVIOUS_CHAR, -charDistance);
         return actions;
+    }
+
+    string FindEmptyRune() {
+        const int loopChars = 3;
+        int? distance = MoveToRune(Rune.SPACE)!;
+        if (distance == 0) {
+            return string.Empty;
+        }
+        if (Math.Abs(distance.Value) < loopChars) {
+            return distance > 0
+                    ? new string(Actions.MOVE_RIGHT, distance.Value)
+                    : new string(Actions.MOVE_LEFT, -distance.Value);
+        }
+        char moveAction = distance > 0 ? Actions.MOVE_RIGHT : Actions.MOVE_LEFT;
+        return string.Format(WHILE_NOT_SPACE, moveAction);
     }
 
     [SuppressMessage("ReSharper", "InvertIf")]
