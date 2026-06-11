@@ -32,7 +32,7 @@ class Game {
         var actions = string.Empty;
         foreach (char character in phrase) {
             actions += FindRune(character);
-            actions += Actions.ADD_CHAR;
+            actions += Action.ADD_CHAR;
         }
         return actions;
     }
@@ -44,15 +44,15 @@ class Game {
         int? runeDistance = MoveToRune(character);
         if (runeDistance != null) {
             return runeDistance > 0
-                    ? new string(Actions.MOVE_RIGHT, runeDistance.Value)
-                    : new string(Actions.MOVE_LEFT, -runeDistance.Value);
+                    ? new string(Action.MOVE_RIGHT, runeDistance.Value)
+                    : new string(Action.MOVE_LEFT, -runeDistance.Value);
         }
         string actions = FindEmptyRune();
         var rune = runes[runeIndex];
         int charDistance = rune.ChangeTo(character);
         actions += charDistance > 0
-                ? new string(Actions.NEXT_CHAR, charDistance)
-                : new string(Actions.PREVIOUS_CHAR, -charDistance);
+                ? new string(Action.NEXT_CHAR, charDistance)
+                : new string(Action.PREVIOUS_CHAR, -charDistance);
         return actions;
     }
 
@@ -64,10 +64,10 @@ class Game {
         }
         if (Math.Abs(distance.Value) < loopChars) {
             return distance > 0
-                    ? new string(Actions.MOVE_RIGHT, distance.Value)
-                    : new string(Actions.MOVE_LEFT, -distance.Value);
+                    ? new string(Action.MOVE_RIGHT, distance.Value)
+                    : new string(Action.MOVE_LEFT, -distance.Value);
         }
-        char moveAction = distance > 0 ? Actions.MOVE_RIGHT : Actions.MOVE_LEFT;
+        char moveAction = distance > 0 ? Action.MOVE_RIGHT : Action.MOVE_LEFT;
         return string.Format(WHILE_NOT_SPACE, moveAction);
     }
 
@@ -105,7 +105,9 @@ class Rune {
     const int CHARACTERS = 27;
 
     int charIndex;
-    public int Char => charIndex == 0 ? SPACE : (char)(charIndex - 1 + 'A');
+    public char Char => charIndex == 0 ? SPACE : (char)(charIndex - 1 + 'A');
+
+    static int Index(char character) => character == SPACE ? 0 : character - 'A' + 1;
 
     public int ChangeTo(char target) {
         int targetIndex = Index(target);
@@ -117,11 +119,9 @@ class Rune {
         charIndex = targetIndex;
         return forwardDistance < backwardDistance ? forwardDistance : -backwardDistance;
     }
-
-    static int Index(char character) => character == SPACE ? 0 : character - 'A' + 1;
 }
 
-static class Actions {
+static class Action {
     public const char NEXT_CHAR = '+';
     public const char PREVIOUS_CHAR = '-';
     public const char ADD_CHAR = '.';
