@@ -39,6 +39,9 @@ class Game {
     }
 
     string FindRune(char character) {
+        if (character == Rune.SPACE) {
+            return FindEmptyRune();
+        }
         int? runeDistance = MoveToRune(character);
         if (runeDistance != null) {
             return runeDistance > 0
