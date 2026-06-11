@@ -6,8 +6,8 @@ namespace CodeOfTheRings;
 static class CodeOfTheRings {
     static void Main() {
         var game = new Game();
-        game.Init();
-        Console.WriteLine(game.GetActions());
+        game.ReadPhrase();
+        Console.WriteLine(game.SpellOutPhrase());
     }
 }
 
@@ -15,21 +15,27 @@ class Game {
     readonly Rune rune = new();
     char[] phrase = null!;
 
-    public void Init() => phrase = Console.ReadLine()!.ToCharArray();
+    public void ReadPhrase() => phrase = Console.ReadLine()!.ToCharArray();
 
-    public string GetActions() {
+    public string SpellOutPhrase() {
         var actions = string.Empty;
         var spelledPhrase = new char[phrase.Length];
-        for (var phraseIndex = 0; phraseIndex < phrase.Length; phraseIndex++) {
-            char currentCharacter = phrase[phraseIndex];
-            while (spelledPhrase[phraseIndex] != currentCharacter) {
-                while (rune.character != currentCharacter) {
-                    rune.Next();
-                    actions += Actions.NEXT;
-                }
+        for (var i = 0; i < phrase.Length; i++) {
+            char currentCharacter = phrase[i];
+            while (spelledPhrase[i] != currentCharacter) {
+                actions += FindRune(currentCharacter);
                 actions += Actions.ADD;
-                spelledPhrase[phraseIndex] = currentCharacter;
+                spelledPhrase[i] = currentCharacter;
             }
+        }
+        return actions;
+    }
+
+    string FindRune(char character) {
+        var actions = string.Empty;
+        while (rune.character != character) {
+            rune.Next();
+            actions += Actions.NEXT;
         }
         return actions;
     }
