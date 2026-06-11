@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 
 namespace CodeOfTheRings;
@@ -60,12 +61,25 @@ class Game {
         return actions;
     }
 
+    [SuppressMessage("ReSharper", "InvertIf")]
     int? MoveToRune(char target) {
-        int targetIndex = Array.FindIndex(runes, it => it.Char == target);
+        int runeLength = runes.Length;
+        int targetIndex = -1;
+        for (var i = 1; i <= runeLength / 2; i++) {
+            int indexNext = (runeIndex + i + runeLength) % runeLength;
+            if (runes[indexNext].Char == target) {
+                targetIndex = indexNext;
+                break;
+            }
+            int indexPrevious = (runeIndex - i + runeLength) % runeLength;
+            if (runes[indexPrevious].Char == target) {
+                targetIndex = indexPrevious;
+                break;
+            }
+        }
         if (targetIndex == -1) {
             return null;
         }
-        int runeLength = runes.Length;
         int forwardDistance = (targetIndex - runeIndex + runeLength) % runeLength;
         int backwardDistance = (runeIndex - targetIndex + runeLength) % runeLength;
         runeIndex = targetIndex;
