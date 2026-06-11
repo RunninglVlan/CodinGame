@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 
 namespace CodeOfTheRings;
 
@@ -12,32 +13,42 @@ static class CodeOfTheRings {
 }
 
 class Game {
-    readonly Rune rune = new();
-    char[] phrase = null!;
+    Rune rune = new();
+    string phrase = null!;
 
-    public void ReadPhrase() => phrase = Console.ReadLine()!.ToCharArray();
+    public void ReadPhrase() => phrase = Console.ReadLine()!;
 
     public string SpellOutPhrase() {
         var actions = string.Empty;
-        var spelledPhrase = new char[phrase.Length];
-        for (var i = 0; i < phrase.Length; i++) {
-            char currentCharacter = phrase[i];
-            while (spelledPhrase[i] != currentCharacter) {
-                actions += FindRune(currentCharacter);
-                actions += Actions.ADD;
-                spelledPhrase[i] = currentCharacter;
-            }
+        foreach (char character in phrase) {
+            actions += FindRune(character);
+            actions += Actions.ADD;
         }
         return actions;
     }
 
+    [SuppressMessage("ReSharper", "InvertIf")]
     string FindRune(char character) {
-        var actions = string.Empty;
-        while (rune.character != character) {
-            rune.Next();
-            actions += Actions.NEXT;
+        const int maxIterations = 30;
+        if (rune.character == character) {
+            return string.Empty;
         }
-        return actions;
+        var runeNext = rune.Clone();
+        var runePrevious = rune.Clone();
+        var iterations = 1;
+        for (; iterations < maxIterations; iterations++) {
+            runeNext.Next();
+            runePrevious.Previous();
+            if (runeNext.character == character) {
+                rune = runeNext;
+                break;
+            }
+            if (runePrevious.character == character) {
+                rune = runePrevious;
+                break;
+            }
+        }
+        return rune == runeNext ? new string(Actions.NEXT, iterations) : new string(Actions.PREVIOUS, iterations);
     }
 }
 
@@ -58,9 +69,28 @@ class Rune {
                 break;
         }
     }
+
+    public void Previous() {
+        switch (character) {
+            case SPACE:
+                character = 'Z';
+                break;
+            case 'A':
+                character = SPACE;
+                break;
+            default:
+                character--;
+                break;
+        }
+    }
+
+    public Rune Clone() => new() {
+        character = character
+    };
 }
 
 static class Actions {
     public const char NEXT = '+';
+    public const char PREVIOUS = '-';
     public const char ADD = '.';
 }
