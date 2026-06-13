@@ -155,7 +155,7 @@ class BestModificationOption(string phrase) : ActionOption {
             }
             int cost = MinDistance(runeIndex, i, runes.Length)
                     + MinDistance(rune.CharIndex, Rune.Index(target), Rune.CHARACTERS);
-            if (rune.Char != target && RemainingCount(phraseIndex + 1, rune.Char) >= 1) {
+            if (rune.Char != target && IsUsedLater(phraseIndex, rune.Char)) {
                 cost += Game.RUNES;
             }
             if (cost < best.cost) {
@@ -174,14 +174,13 @@ class BestModificationOption(string phrase) : ActionOption {
         Instructions = Actions.Length;
     }
 
-    int RemainingCount(int phraseIndex, char target) {
-        var count = 0;
-        for (int i = phraseIndex; i < phrase.Length; i++) {
+    bool IsUsedLater(int phraseIndex, char target) {
+        for (int i = phraseIndex + 1; i < phrase.Length; i++) {
             if (phrase[i] == target) {
-                count++;
+                return true;
             }
         }
-        return count;
+        return false;
     }
 }
 
