@@ -102,6 +102,7 @@ class Game {
         return true;
     }
 
+    /// DFS
     static (Control control, double score) FindBest(Vector p, Vector v, Control current, Point target, int depth) {
         if (depth == 0) {
             double distanceX = Math.Abs(p.X - target.X);

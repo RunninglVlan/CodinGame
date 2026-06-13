@@ -59,7 +59,7 @@ class Grid(int width, int height) {
 
     public bool TryGet(Point point, out Cell cell) {
         cell = null!;
-        if (point.X < 0 || point.X >= width || point.Y < 0 || point.Y >= height) {
+        if (!point.InBounds(width, height)) {
             return false;
         }
         cell = cells[point.X, point.Y];
@@ -84,5 +84,6 @@ class Cell(int x, int y) {
 /// Stub
 readonly record struct Point(int X, int Y) {
     public static Point[] Directions4 { get; } = [];
+    public bool InBounds(int width, int height) => throw new NotImplementedException();
     public static Point operator +(Point a, Point b) => throw new NotImplementedException();
 }

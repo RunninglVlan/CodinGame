@@ -20,7 +20,7 @@ static class DeathFirstSearch2 {
 class Game {
     Node[] nodes = null!;
     readonly HashSet<int> gateways = new();
-    readonly Pathfinding pathfinding = new();
+    readonly Pathfinding<Node> pathfinding = new();
 
     public void Init() {
         string[] inputs = Console.ReadLine()!.Split(' ');
@@ -35,8 +35,8 @@ class Game {
             string[] link = Console.ReadLine()!.Split(' ');
             int node1 = int.Parse(link[0]);
             int node2 = int.Parse(link[1]);
-            nodes[node1].connections.Add(nodes[node2]);
-            nodes[node2].connections.Add(nodes[node1]);
+            nodes[node1].Connections.Add(nodes[node2]);
+            nodes[node2].Connections.Add(nodes[node1]);
         }
         for (var i = 0; i < exits; i++) {
             int gateway = int.Parse(Console.ReadLine()!);
@@ -58,7 +58,7 @@ class Game {
             if (path == null) {
                 return link;
             }
-            var futureAgent = nodes[path.First().i];
+            var futureAgent = nodes[path.First().Id];
             int pathLength = path.Count;
             int nodePath = pathfinding.Path(futureAgent, link.Node)?.Count ?? int.MaxValue;
             int futureBestPath = FutureBestPath(futureAgent, pathLength);
@@ -79,7 +79,7 @@ class Game {
         foreach (var node in nodes) {
             Node? gateway = null;
             var gatewayCount = 0;
-            foreach (var connectedGateway in node.connections.Where(it => gateways.Contains(it.i))) {
+            foreach (var connectedGateway in node.Connections.Where(it => gateways.Contains(it.Id))) {
                 gateway = connectedGateway;
                 gatewayCount++;
             }
@@ -105,60 +105,60 @@ class Game {
     }
 }
 
-class Node(int i) {
-    public readonly int i = i;
-    public readonly List<Node> connections = new();
+class Node(int i) : INode<Node> {
+    public int Id { get; } = i;
+    public List<Node> Connections { get; } = new();
 }
 
 readonly record struct Link(Node Gateway, Node Node, int GatewayCount) {
     public void Cut() {
-        Gateway.connections.Remove(Node);
-        Node.connections.Remove(Gateway);
+        Gateway.Connections.Remove(Node);
+        Node.Connections.Remove(Gateway);
     }
 
     public void Restore() {
-        Gateway.connections.Add(Node);
-        Node.connections.Add(Gateway);
+        Gateway.Connections.Add(Node);
+        Node.Connections.Add(Gateway);
     }
 
-    public override string ToString() => $"{Gateway.i} {Node.i}";
+    public override string ToString() => $"{Gateway.Id} {Node.Id}";
 }
 
-class Pathfinding {
-    readonly List<Node> path = new();
+class Pathfinding<T> where T : INode<T> {
+    readonly List<T> path = new();
     readonly Queue<PathNode> queue = new();
     readonly HashSet<int> visited = new();
 
     /// BFS to end
-    public List<Node>? Path(Node start, Node end) {
-        return Path(start, i => i == end.i);
+    public List<T>? Path(T start, T end) {
+        return Path(start, i => i == end.Id);
     }
 
     /// BFS to endPredicate
-    public List<Node>? Path(Node start, Predicate<int> endPredicate) {
+    public List<T>? Path(T start, Predicate<int> endPredicate) {
         queue.Clear();
         visited.Clear();
         var startNode = new PathNode(start);
         queue.Enqueue(startNode);
-        visited.Add(start.i);
+        visited.Add(start.Id);
         while (queue.Count > 0) {
             var current = queue.Dequeue();
-            if (endPredicate(current.node.i)) {
+            if (endPredicate(current.node.Id)) {
                 return Reconstruct(startNode, current);
             }
-            foreach (var node in current.node.connections) {
-                if (visited.Contains(node.i)) {
+            foreach (var node in current.node.Connections) {
+                if (visited.Contains(node.Id)) {
                     continue;
                 }
                 var neighbor = new PathNode(node) { parent = current };
                 queue.Enqueue(neighbor);
-                visited.Add(node.i);
+                visited.Add(node.Id);
             }
         }
         return null;
     }
 
-    List<Node> Reconstruct(PathNode start, PathNode end) {
+    List<T> Reconstruct(PathNode start, PathNode end) {
         path.Clear();
         var current = end;
         while (current != start) {
@@ -168,9 +168,14 @@ class Pathfinding {
         path.Reverse();
         return path;
     }
+
+    class PathNode(T node) {
+        public readonly T node = node;
+        public PathNode? parent;
+    }
 }
 
-class PathNode(Node node) {
-    public readonly Node node = node;
-    public PathNode? parent;
+interface INode<T> where T : INode<T> {
+    int Id { get; }
+    List<T> Connections { get; }
 }

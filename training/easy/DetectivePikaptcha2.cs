@@ -148,18 +148,8 @@ static class Screen {
     public static readonly Point RIGHT = new(1, 0);
 
     public static Point Turn(Point direction, Side side) {
-        if (direction == UP) {
-            return side == Side.Right ? RIGHT : LEFT;
-        }
-        if (direction == DOWN) {
-            return side == Side.Right ? LEFT : RIGHT;
-        }
-        if (direction == LEFT) {
-            return side == Side.Right ? UP : DOWN;
-        }
-        if (direction == RIGHT) {
-            return side == Side.Right ? DOWN : UP;
-        }
-        throw new ArgumentException($"Unknown screen direction: {direction}");
+        return side == Side.Right 
+                ? new Point(-direction.Y, direction.X) 
+                : new Point(direction.Y, -direction.X);
     }
 }
