@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 
 namespace CodeOfTheRings;
 
@@ -12,19 +13,35 @@ static class CodeOfTheRings {
     }
 }
 
-class Game {
-    const string WHILE_NOT_SPACE = "[{0}]";
+abstract class RuneState {
+    protected readonly Rune[] runes;
+    protected int runeIndex;
 
-    readonly Rune[] runes;
-    int runeIndex;
-    string phrase = null!;
-
-    public Game() {
-        runes = new Rune[30];
-        for (var i = 0; i < runes.Length; i++) {
+    protected RuneState(int length) {
+        runes = new Rune[length];
+        for (var i = 0; i < length; i++) {
             runes[i] = new Rune();
         }
     }
+
+    public void Copy(RuneState from) {
+        for (var i = 0; i < from.runes.Length; i++) {
+            runes[i].CharIndex = from.runes[i].CharIndex;
+        }
+        runeIndex = from.runeIndex;
+    }
+}
+
+class Game() : RuneState(RUNES) {
+    public const int RUNES = 30;
+
+    string phrase = null!;
+
+    readonly ActionOption[] options = [
+        new ExactMatchOption(),
+        new BestModificationOption(),
+        new EmptyRuneOption()
+    ];
 
     public void ReadPhrase() => phrase = Console.ReadLine()!;
 
@@ -38,25 +55,25 @@ class Game {
     }
 
     string FindRune(char character) {
-        if (character == Rune.SPACE) {
-            return FindEmptyRune();
+        foreach (var option in options) {
+            option.Copy(this);
+            option.Calculate(character);
         }
-        int? runeDistance = MoveToRune(character);
-        if (runeDistance != null) {
-            return runeDistance > 0
-                    ? new string(Action.MOVE_RIGHT, runeDistance.Value)
-                    : new string(Action.MOVE_LEFT, -runeDistance.Value);
-        }
-        string actions = FindEmptyRune();
-        var rune = runes[runeIndex];
-        int charDistance = rune.ChangeTo(character);
-        actions += charDistance > 0
-                ? new string(Action.NEXT_CHAR, charDistance)
-                : new string(Action.PREVIOUS_CHAR, -charDistance);
-        return actions;
+        var best = options.OrderBy(it => it.Instructions).First();
+        Copy(best);
+        return best.Actions;
     }
+}
 
-    string FindEmptyRune() {
+abstract class ActionOption() : RuneState(Game.RUNES) {
+    const string WHILE_NOT_SPACE = "[{0}]";
+
+    public int Instructions { get; protected set; }
+    public string Actions { get; protected set; } = null!;
+
+    public abstract void Calculate(char target);
+
+    protected string FindEmptyRune() {
         const int loopChars = 3;
         int? distance = MoveToRune(Rune.SPACE)!;
         if (distance == 0) {
@@ -72,7 +89,7 @@ class Game {
     }
 
     [SuppressMessage("ReSharper", "InvertIf")]
-    int? MoveToRune(char target) {
+    protected int? MoveToRune(char target) {
         if (runes[runeIndex].Char == target) {
             return 0;
         }
@@ -93,31 +110,98 @@ class Game {
         if (targetIndex == -1) {
             return null;
         }
-        int forwardDistance = (targetIndex - runeIndex + runeLength) % runeLength;
-        int backwardDistance = (runeIndex - targetIndex + runeLength) % runeLength;
+        int distance = MinDistance(runeIndex, targetIndex, runes.Length);
         runeIndex = targetIndex;
+        return distance;
+    }
+
+    public static int MinDistance(int sourceIndex, int targetIndex, int length) {
+        int forwardDistance = (targetIndex - sourceIndex + length) % length;
+        int backwardDistance = (sourceIndex - targetIndex + length) % length;
         return forwardDistance < backwardDistance ? forwardDistance : -backwardDistance;
+    }
+}
+
+class ExactMatchOption : ActionOption {
+    public override void Calculate(char target) {
+        if (!Array.Exists(runes, it => it.Char == target)) {
+            Actions = string.Empty;
+            Instructions = int.MaxValue;
+            return;
+        }
+        int runeDistance = MoveToRune(target)!.Value;
+        Actions = runeDistance > 0
+                ? new string(Action.MOVE_RIGHT, runeDistance)
+                : new string(Action.MOVE_LEFT, -runeDistance);
+        Instructions = Actions.Length;
+    }
+}
+
+class BestModificationOption : ActionOption {
+    public override void Calculate(char target) {
+        if (!Array.Exists(runes, it => it.Char != Rune.SPACE)) {
+            Actions = string.Empty;
+            Instructions = int.MaxValue;
+            return;
+        }
+        (int cost, int index) best = (int.MaxValue, -1);
+        for (var i = 0; i < runes.Length; i++) {
+            var rune = runes[i];
+            if (rune.Char == Rune.SPACE) {
+                continue;
+            }
+            int cost = MinDistance(runeIndex, i, runes.Length)
+                    + MinDistance(rune.CharIndex, Rune.Index(target), Rune.CHARACTERS);
+            if (cost < best.cost) {
+                best = (cost, i);
+            }
+        }
+        int moveDistance = MinDistance(runeIndex, best.index, runes.Length);
+        Actions = moveDistance > 0
+                ? new string(Action.MOVE_RIGHT, moveDistance)
+                : new string(Action.MOVE_LEFT, -moveDistance);
+        runeIndex = best.index;
+        int charDistance = runes[runeIndex].ChangeTo(target);
+        Actions += charDistance > 0
+                ? new string(Action.NEXT_CHAR, charDistance)
+                : new string(Action.PREVIOUS_CHAR, -charDistance);
+        Instructions = Actions.Length;
+    }
+}
+
+class EmptyRuneOption : ActionOption {
+    public override void Calculate(char target) {
+        if (!Array.Exists(runes, it => it.Char == Rune.SPACE)) {
+            Actions = string.Empty;
+            Instructions = int.MaxValue;
+            return;
+        }
+        Actions = FindEmptyRune();
+        int charDistance = runes[runeIndex].ChangeTo(target);
+        Actions += charDistance > 0
+                ? new string(Action.NEXT_CHAR, charDistance)
+                : new string(Action.PREVIOUS_CHAR, -charDistance);
+        Instructions = Actions.Length;
     }
 }
 
 class Rune {
     public const char SPACE = ' ';
-    const int CHARACTERS = 27;
+    public const int CHARACTERS = 27;
 
-    int charIndex;
-    public char Char => charIndex == 0 ? SPACE : (char)(charIndex - 1 + 'A');
+    public int CharIndex { get; set; }
+    public char Char => CharIndex == 0 ? SPACE : (char)(CharIndex - 1 + 'A');
 
-    static int Index(char character) => character == SPACE ? 0 : character - 'A' + 1;
+    public static int Index(char character) => character == SPACE ? 0 : character - 'A' + 1;
 
     public int ChangeTo(char target) {
         int targetIndex = Index(target);
-        if (targetIndex == charIndex) {
+        if (targetIndex == CharIndex) {
             return 0;
         }
-        int forwardDistance = (targetIndex - charIndex + CHARACTERS) % CHARACTERS;
-        int backwardDistance = (charIndex - targetIndex + CHARACTERS) % CHARACTERS;
-        charIndex = targetIndex;
-        return forwardDistance < backwardDistance ? forwardDistance : -backwardDistance;
+        int distance = ActionOption.MinDistance(CharIndex, targetIndex, CHARACTERS);
+        CharIndex = targetIndex;
+        return distance;
     }
 }
 
