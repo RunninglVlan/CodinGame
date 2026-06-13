@@ -8,7 +8,7 @@ namespace CodeOfTheRings;
 static class CodeOfTheRings {
     static void Main() {
         var game = new Game();
-        game.ReadPhrase();
+        game.Init();
         Console.WriteLine(game.SpellOutPhrase());
     }
 }
@@ -36,28 +36,31 @@ class Game() : RuneState(RUNES) {
     public const int RUNES = 30;
 
     string phrase = null!;
+    ActionOption[] options = null!;
 
-    readonly ActionOption[] options = [
-        new ExactMatchOption(),
-        new BestModificationOption(),
-        new EmptyRuneOption()
-    ];
-
-    public void ReadPhrase() => phrase = Console.ReadLine()!;
+    public void Init() {
+        phrase = Console.ReadLine()!;
+        options = [
+            new ExactMatchOption(),
+            new BestModificationOption(phrase),
+            new EmptyRuneOption()
+        ];
+    }
 
     public string SpellOutPhrase() {
         var actions = string.Empty;
-        foreach (char character in phrase) {
-            actions += FindRune(character);
+        for (var i = 0; i < phrase.Length; i++) {
+            char character = phrase[i];
+            actions += FindRune(character, i);
             actions += Action.ADD_CHAR;
         }
         return actions;
     }
 
-    string FindRune(char character) {
+    string FindRune(char character, int phraseIndex) {
         foreach (var option in options) {
             option.Copy(this);
-            option.Calculate(character);
+            option.Calculate(character, phraseIndex);
         }
         var best = options.OrderBy(it => it.Instructions).First();
         Copy(best);
@@ -71,7 +74,7 @@ abstract class ActionOption() : RuneState(Game.RUNES) {
     public int Instructions { get; protected set; }
     public string Actions { get; protected set; } = null!;
 
-    public abstract void Calculate(char target);
+    public abstract void Calculate(char target, int phraseIndex);
 
     protected string FindEmptyRune() {
         const int loopChars = 3;
@@ -123,7 +126,7 @@ abstract class ActionOption() : RuneState(Game.RUNES) {
 }
 
 class ExactMatchOption : ActionOption {
-    public override void Calculate(char target) {
+    public override void Calculate(char target, int _) {
         if (!Array.Exists(runes, it => it.Char == target)) {
             Actions = string.Empty;
             Instructions = int.MaxValue;
@@ -137,8 +140,8 @@ class ExactMatchOption : ActionOption {
     }
 }
 
-class BestModificationOption : ActionOption {
-    public override void Calculate(char target) {
+class BestModificationOption(string phrase) : ActionOption {
+    public override void Calculate(char target, int phraseIndex) {
         if (!Array.Exists(runes, it => it.Char != Rune.SPACE)) {
             Actions = string.Empty;
             Instructions = int.MaxValue;
@@ -152,6 +155,9 @@ class BestModificationOption : ActionOption {
             }
             int cost = MinDistance(runeIndex, i, runes.Length)
                     + MinDistance(rune.CharIndex, Rune.Index(target), Rune.CHARACTERS);
+            if (rune.Char != target && RemainingCount(phraseIndex + 1, rune.Char) >= 1) {
+                cost += Game.RUNES;
+            }
             if (cost < best.cost) {
                 best = (cost, i);
             }
@@ -167,10 +173,20 @@ class BestModificationOption : ActionOption {
                 : new string(Action.PREVIOUS_CHAR, -charDistance);
         Instructions = Actions.Length;
     }
+
+    int RemainingCount(int phraseIndex, char target) {
+        var count = 0;
+        for (int i = phraseIndex; i < phrase.Length; i++) {
+            if (phrase[i] == target) {
+                count++;
+            }
+        }
+        return count;
+    }
 }
 
 class EmptyRuneOption : ActionOption {
-    public override void Calculate(char target) {
+    public override void Calculate(char target, int _) {
         if (!Array.Exists(runes, it => it.Char == Rune.SPACE)) {
             Actions = string.Empty;
             Instructions = int.MaxValue;
