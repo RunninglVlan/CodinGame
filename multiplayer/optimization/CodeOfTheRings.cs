@@ -177,7 +177,7 @@ class EmptyRuneOption : ActionOption {
     }
 }
 
-class Rune {
+struct Rune {
     public const char SPACE = ' ';
     public const int CHARACTERS = 27;
 
