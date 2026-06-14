@@ -206,14 +206,13 @@ static class Action {
 }
 
 class Pathfinding {
-    readonly Queue<GameState> queue = new();
+    readonly PriorityQueue<GameState, int> queue = new();
 
-    /// BFS
+    /// Dijkstra
     public string? Actions(GameState start, ActionOption[] options, string target) {
         queue.Clear();
-        queue.Enqueue(start);
-        while (queue.Count > 0) {
-            var current = queue.Dequeue();
+        queue.Enqueue(start, 0);
+        while (queue.TryDequeue(out var current, out int _)) {
             if (current.PhraseIndex == target.Length) {
                 return current.Actions;
             }
@@ -228,7 +227,7 @@ class Pathfinding {
                 next.Load(option.State);
                 next.PhraseIndex = current.PhraseIndex + 1;
                 next.Actions = current.Actions + actions + Action.ADD_CHAR;
-                queue.Enqueue(next);
+                queue.Enqueue(next, next.Actions.Length);
             }
         }
         return null;
