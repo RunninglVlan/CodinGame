@@ -34,6 +34,27 @@ class GameState {
         RuneIndex = from.RuneIndex;
         PhraseIndex = from.PhraseIndex;
     }
+
+    public override bool Equals(object? obj) {
+        if (obj is not GameState other) {
+            return false;
+        }
+        if (PhraseIndex != other.PhraseIndex || RuneIndex != other.RuneIndex) {
+            return false;
+        }
+        return Runes.AsSpan().SequenceEqual(other.Runes);
+    }
+
+    [SuppressMessage("ReSharper", "NonReadonlyMemberInGetHashCode")]
+    public override int GetHashCode() {
+        var hash = new HashCode();
+        hash.Add(PhraseIndex);
+        hash.Add(RuneIndex);
+        for (var i = 0; i < RUNES; i++) {
+            hash.Add(Runes[i].CharIndex);
+        }
+        return hash.ToHashCode();
+    }
 }
 
 public class Game(string phrase) {
@@ -177,7 +198,7 @@ class EmptyRuneOption : ActionOption {
     }
 }
 
-struct Rune {
+record struct Rune {
     public const char SPACE = ' ';
     public const int CHARACTERS = 27;
 
@@ -207,14 +228,19 @@ static class Action {
 
 class Pathfinding {
     readonly PriorityQueue<GameState, int> queue = new();
+    readonly HashSet<GameState> visited = new();
 
     /// Dijkstra
     public string? Actions(GameState start, ActionOption[] options, string target) {
         queue.Clear();
+        visited.Clear();
         queue.Enqueue(start, 0);
         while (queue.TryDequeue(out var current, out int _)) {
             if (current.PhraseIndex == target.Length) {
                 return current.Actions;
+            }
+            if (!visited.Add(current)) {
+                continue;
             }
             char targetChar = target[current.PhraseIndex];
             foreach (var option in options) {
