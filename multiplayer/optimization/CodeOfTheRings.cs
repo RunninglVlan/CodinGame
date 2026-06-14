@@ -7,8 +7,7 @@ namespace CodeOfTheRings;
 /// https://www.codingame.com/multiplayer/optimization/code-of-the-rings
 static class CodeOfTheRings {
     static void Main() {
-        var game = new Game();
-        game.ReadPhrase();
+        var game = new Game(Console.ReadLine()!);
         Console.WriteLine(game.SpellOutPhrase());
     }
 }
@@ -37,11 +36,8 @@ class GameState {
     }
 }
 
-class Game {
+public class Game(string phrase) {
     readonly Pathfinding pathfinding = new();
-    string phrase = null!;
-
-    public void ReadPhrase() => phrase = Console.ReadLine()!;
 
     public string SpellOutPhrase() {
         ActionOption[] options = [
