@@ -53,26 +53,9 @@
 }
 
 /// Stub
-class Grid(int width, int height) {
-    readonly Cell[,] cells = new Cell[width, height];
-    public Cell Get(Point point) => cells[point.X, point.Y];
-
-    public bool TryGet(Point point, out Cell cell) {
-        cell = null!;
-        if (!point.InBounds(width, height)) {
-            return false;
-        }
-        cell = cells[point.X, point.Y];
-        return true;
-    }
-
-    public IEnumerable<Cell> Neighbors(Cell cell) {
-        foreach (var point in Point.Directions4) {
-            if (TryGet(cell.point + point, out var neighbor)) {
-                yield return neighbor;
-            }
-        }
-    }
+class Grid {
+    public Cell Get(Point point) => throw new NotImplementedException();
+    public IEnumerable<Cell> Neighbors(Cell cell) => throw new NotImplementedException();
 }
 
 /// Stub
@@ -82,8 +65,4 @@ class Cell(int x, int y) {
 }
 
 /// Stub
-readonly record struct Point(int X, int Y) {
-    public static Point[] Directions4 { get; } = [];
-    public bool InBounds(int width, int height) => throw new NotImplementedException();
-    public static Point operator +(Point a, Point b) => throw new NotImplementedException();
-}
+readonly record struct Point(int X, int Y);
