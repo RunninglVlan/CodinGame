@@ -1,6 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
 
 namespace CodeOfTheRings;
 
@@ -8,7 +8,7 @@ namespace CodeOfTheRings;
 static class CodeOfTheRings {
     static void Main() {
         var game = new Game();
-        game.Init();
+        game.ReadPhrase();
         Console.WriteLine(game.SpellOutPhrase());
     }
 }
@@ -18,6 +18,8 @@ class GameState {
 
     public Rune[] Runes { get; }
     public int RuneIndex { get; set; }
+    public int PhraseIndex { get; set; }
+    public string Actions { get; set; } = string.Empty;
 
     public GameState() {
         Runes = new Rune[RUNES];
@@ -31,41 +33,23 @@ class GameState {
             Runes[i].CharIndex = from.Runes[i].CharIndex;
         }
         RuneIndex = from.RuneIndex;
+        PhraseIndex = from.PhraseIndex;
     }
 }
 
 class Game {
-    readonly GameState state = new();
+    readonly Pathfinding pathfinding = new();
     string phrase = null!;
-    ActionOption[] options = null!;
 
-    public void Init() {
-        phrase = Console.ReadLine()!;
-        options = [
+    public void ReadPhrase() => phrase = Console.ReadLine()!;
+
+    public string SpellOutPhrase() {
+        ActionOption[] options = [
             new ExactMatchOption(),
             new BestModificationOption(phrase),
             new EmptyRuneOption()
         ];
-    }
-
-    public string SpellOutPhrase() {
-        var actions = string.Empty;
-        for (var i = 0; i < phrase.Length; i++) {
-            char character = phrase[i];
-            actions += FindRune(character, i);
-            actions += Action.ADD_CHAR;
-        }
-        return actions;
-    }
-
-    string FindRune(char character, int phraseIndex) {
-        foreach (var option in options) {
-            option.State.Load(state);
-            option.Calculate(character, phraseIndex);
-        }
-        var best = options.OrderBy(it => it.Instructions).First();
-        state.Load(best.State);
-        return best.Actions;
+        return pathfinding.Actions(new GameState(), options, phrase) ?? string.Empty;
     }
 }
 
@@ -73,10 +57,9 @@ abstract class ActionOption {
     const string WHILE_NOT_SPACE = "[{0}]";
 
     public GameState State { get; } = new();
-    public int Instructions { get; protected set; }
-    public string Actions { get; protected set; } = null!;
 
-    public abstract void Calculate(char target, int phraseIndex);
+    public abstract bool Exists(char target);
+    public abstract string Calculate(char target);
 
     protected string FindEmptyRune() {
         const int loopChars = 3;
@@ -128,27 +111,24 @@ abstract class ActionOption {
 }
 
 class ExactMatchOption : ActionOption {
-    public override void Calculate(char target, int _) {
-        if (!Array.Exists(State.Runes, it => it.Char == target)) {
-            Actions = string.Empty;
-            Instructions = int.MaxValue;
-            return;
-        }
+    public override bool Exists(char target) {
+        return Array.Exists(State.Runes, it => it.Char == target);
+    }
+
+    public override string Calculate(char target) {
         int runeDistance = MoveToRune(target)!.Value;
-        Actions = runeDistance > 0
+        return runeDistance > 0
                 ? new string(Action.MOVE_RIGHT, runeDistance)
                 : new string(Action.MOVE_LEFT, -runeDistance);
-        Instructions = Actions.Length;
     }
 }
 
 class BestModificationOption(string phrase) : ActionOption {
-    public override void Calculate(char target, int phraseIndex) {
-        if (!Array.Exists(State.Runes, it => it.Char != Rune.SPACE)) {
-            Actions = string.Empty;
-            Instructions = int.MaxValue;
-            return;
-        }
+    public override bool Exists(char _) {
+        return Array.Exists(State.Runes, it => it.Char != Rune.SPACE);
+    }
+
+    public override string Calculate(char target) {
         (int cost, int index) best = (int.MaxValue, -1);
         for (var i = 0; i < State.Runes.Length; i++) {
             var rune = State.Runes[i];
@@ -157,7 +137,7 @@ class BestModificationOption(string phrase) : ActionOption {
             }
             int cost = MinDistance(State.RuneIndex, i, State.Runes.Length)
                     + MinDistance(rune.CharIndex, Rune.Index(target), Rune.CHARACTERS);
-            if (rune.Char != target && IsUsedLater(phraseIndex, rune.Char)) {
+            if (rune.Char != target && IsUsedLater(State.PhraseIndex, rune.Char)) {
                 cost += GameState.RUNES;
             }
             if (cost < best.cost) {
@@ -165,15 +145,15 @@ class BestModificationOption(string phrase) : ActionOption {
             }
         }
         int moveDistance = MinDistance(State.RuneIndex, best.index, State.Runes.Length);
-        Actions = moveDistance > 0
+        string actions = moveDistance > 0
                 ? new string(Action.MOVE_RIGHT, moveDistance)
                 : new string(Action.MOVE_LEFT, -moveDistance);
         State.RuneIndex = best.index;
         int charDistance = State.Runes[State.RuneIndex].ChangeTo(target);
-        Actions += charDistance > 0
+        actions += charDistance > 0
                 ? new string(Action.NEXT_CHAR, charDistance)
                 : new string(Action.PREVIOUS_CHAR, -charDistance);
-        Instructions = Actions.Length;
+        return actions;
     }
 
     bool IsUsedLater(int phraseIndex, char target) {
@@ -187,18 +167,17 @@ class BestModificationOption(string phrase) : ActionOption {
 }
 
 class EmptyRuneOption : ActionOption {
-    public override void Calculate(char target, int _) {
-        if (!Array.Exists(State.Runes, it => it.Char == Rune.SPACE)) {
-            Actions = string.Empty;
-            Instructions = int.MaxValue;
-            return;
-        }
-        Actions = FindEmptyRune();
+    public override bool Exists(char _) {
+        return Array.Exists(State.Runes, it => it.Char == Rune.SPACE);
+    }
+
+    public override string Calculate(char target) {
+        string actions = FindEmptyRune();
         int charDistance = State.Runes[State.RuneIndex].ChangeTo(target);
-        Actions += charDistance > 0
+        actions += charDistance > 0
                 ? new string(Action.NEXT_CHAR, charDistance)
                 : new string(Action.PREVIOUS_CHAR, -charDistance);
-        Instructions = Actions.Length;
+        return actions;
     }
 }
 
@@ -228,4 +207,34 @@ static class Action {
     public const char ADD_CHAR = '.';
     public const char MOVE_RIGHT = '>';
     public const char MOVE_LEFT = '<';
+}
+
+class Pathfinding {
+    readonly Queue<GameState> queue = new();
+
+    /// BFS
+    public string? Actions(GameState start, ActionOption[] options, string target) {
+        queue.Clear();
+        queue.Enqueue(start);
+        while (queue.Count > 0) {
+            var current = queue.Dequeue();
+            if (current.PhraseIndex == target.Length) {
+                return current.Actions;
+            }
+            char targetChar = target[current.PhraseIndex];
+            foreach (var option in options) {
+                option.State.Load(current);
+                if (!option.Exists(targetChar)) {
+                    continue;
+                }
+                string actions = option.Calculate(targetChar);
+                var next = new GameState();
+                next.Load(option.State);
+                next.PhraseIndex = current.PhraseIndex + 1;
+                next.Actions = current.Actions + actions + Action.ADD_CHAR;
+                queue.Enqueue(next);
+            }
+        }
+        return null;
+    }
 }
