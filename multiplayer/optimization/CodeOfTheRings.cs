@@ -67,27 +67,12 @@ public class Game(string phrase) {
 }
 
 abstract class ActionOption {
-    const string WHILE_NOT_SPACE = "[{0}]";
+    protected const string WHILE_NOT_SPACE = "[{0}]";
 
     public GameState State { get; } = new();
 
     public abstract bool Exists(char target);
     public abstract string Calculate(char target, int phraseIndex);
-
-    protected string FindEmptyRune() {
-        const int loopChars = 3;
-        int? distance = MoveToRune(Rune.SPACE)!;
-        if (distance == 0) {
-            return string.Empty;
-        }
-        if (Math.Abs(distance.Value) < loopChars) {
-            return distance > 0
-                    ? new string(Action.MOVE_RIGHT, distance.Value)
-                    : new string(Action.MOVE_LEFT, -distance.Value);
-        }
-        char moveAction = distance > 0 ? Action.MOVE_RIGHT : Action.MOVE_LEFT;
-        return string.Format(WHILE_NOT_SPACE, moveAction);
-    }
 
     [SuppressMessage("ReSharper", "InvertIf")]
     protected int? MoveToRune(char target) {
@@ -191,6 +176,21 @@ class EmptyRuneOption : ActionOption {
                 ? new string(Action.NEXT_CHAR, charDistance)
                 : new string(Action.PREVIOUS_CHAR, -charDistance);
         return actions;
+    }
+
+    string FindEmptyRune() {
+        const int loopChars = 3;
+        int? distance = MoveToRune(Rune.SPACE)!;
+        if (distance == 0) {
+            return string.Empty;
+        }
+        if (Math.Abs(distance.Value) < loopChars) {
+            return distance > 0
+                    ? new string(Action.MOVE_RIGHT, distance.Value)
+                    : new string(Action.MOVE_LEFT, -distance.Value);
+        }
+        char moveAction = distance > 0 ? Action.MOVE_RIGHT : Action.MOVE_LEFT;
+        return string.Format(WHILE_NOT_SPACE, moveAction);
     }
 }
 
