@@ -241,15 +241,15 @@ class Pathfinding {
                     string actions = option.Calculate(targetChar, level);
                     var next = new GameState();
                     next.Load(option.State);
-                    if (!visited.Add(next)) {
-                        continue;
-                    }
                     next.Actions = current.Actions + actions + Action.ADD_CHAR;
                     nextLevel.Enqueue(next, next.Actions.Length);
                 }
             }
             currentLevel.Clear();
             while (nextLevel.TryDequeue(out var state, out _) && currentLevel.Count < beamWidth) {
+                if (!visited.Add(state)) {
+                    continue;
+                }
                 currentLevel.Add(state);
             }
             if (currentLevel.Count == 0) {
