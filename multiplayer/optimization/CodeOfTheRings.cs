@@ -61,7 +61,7 @@ public class Game(string phrase) {
             new BestModificationOption(phrase),
             new EmptyRuneOption()
         ];
-        return pathfinding.Actions(new GameState(), options, phrase, beamWidth: 100)
+        return pathfinding.Actions(new GameState(), options, phrase, beamWidth: 250)
                 ?? string.Empty;
     }
 }
