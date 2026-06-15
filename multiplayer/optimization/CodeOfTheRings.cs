@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 
 namespace CodeOfTheRings;
 
@@ -17,7 +18,6 @@ class GameState {
 
     public Rune[] Runes { get; }
     public int RuneIndex { get; set; }
-    public int PhraseIndex { get; set; }
     public string Actions { get; set; } = string.Empty;
 
     public GameState() {
@@ -32,23 +32,18 @@ class GameState {
             Runes[i].CharIndex = from.Runes[i].CharIndex;
         }
         RuneIndex = from.RuneIndex;
-        PhraseIndex = from.PhraseIndex;
     }
 
     public override bool Equals(object? obj) {
         if (obj is not GameState other) {
             return false;
         }
-        if (PhraseIndex != other.PhraseIndex || RuneIndex != other.RuneIndex) {
-            return false;
-        }
-        return Runes.AsSpan().SequenceEqual(other.Runes);
+        return RuneIndex == other.RuneIndex && Runes.AsSpan().SequenceEqual(other.Runes);
     }
 
     [SuppressMessage("ReSharper", "NonReadonlyMemberInGetHashCode")]
     public override int GetHashCode() {
         var hash = new HashCode();
-        hash.Add(PhraseIndex);
         hash.Add(RuneIndex);
         for (var i = 0; i < RUNES; i++) {
             hash.Add(Runes[i].CharIndex);
@@ -76,7 +71,7 @@ abstract class ActionOption {
     public GameState State { get; } = new();
 
     public abstract bool Exists(char target);
-    public abstract string Calculate(char target);
+    public abstract string Calculate(char target, int phraseIndex);
 
     protected string FindEmptyRune() {
         const int loopChars = 3;
@@ -132,7 +127,7 @@ class ExactMatchOption : ActionOption {
         return Array.Exists(State.Runes, it => it.Char == target);
     }
 
-    public override string Calculate(char target) {
+    public override string Calculate(char target, int _) {
         int runeDistance = MoveToRune(target)!.Value;
         return runeDistance > 0
                 ? new string(Action.MOVE_RIGHT, runeDistance)
@@ -145,7 +140,7 @@ class BestModificationOption(string phrase) : ActionOption {
         return Array.Exists(State.Runes, it => it.Char != Rune.SPACE);
     }
 
-    public override string Calculate(char target) {
+    public override string Calculate(char target, int phraseIndex) {
         (int cost, int index) best = (int.MaxValue, -1);
         for (var i = 0; i < State.Runes.Length; i++) {
             var rune = State.Runes[i];
@@ -154,7 +149,7 @@ class BestModificationOption(string phrase) : ActionOption {
             }
             int cost = MinDistance(State.RuneIndex, i, State.Runes.Length)
                     + MinDistance(rune.CharIndex, Rune.Index(target), Rune.CHARACTERS);
-            if (rune.Char != target && IsUsedLater(State.PhraseIndex, rune.Char)) {
+            if (rune.Char != target && IsUsedLater(phraseIndex, rune.Char)) {
                 cost += GameState.RUNES;
             }
             if (cost < best.cost) {
@@ -188,7 +183,7 @@ class EmptyRuneOption : ActionOption {
         return Array.Exists(State.Runes, it => it.Char == Rune.SPACE);
     }
 
-    public override string Calculate(char target) {
+    public override string Calculate(char target, int _) {
         string actions = FindEmptyRune();
         int charDistance = State.Runes[State.RuneIndex].ChangeTo(target);
         actions += charDistance > 0
@@ -227,35 +222,39 @@ static class Action {
 }
 
 class Pathfinding {
-    readonly PriorityQueue<GameState, int> queue = new();
     readonly HashSet<GameState> visited = new();
 
-    /// Dijkstra
-    public string? Actions(GameState start, ActionOption[] options, string target) {
-        queue.Clear();
-        visited.Clear();
-        queue.Enqueue(start, 0);
-        while (queue.TryDequeue(out var current, out int _)) {
-            if (current.PhraseIndex == target.Length) {
-                return current.Actions;
-            }
-            if (!visited.Add(current)) {
-                continue;
-            }
-            char targetChar = target[current.PhraseIndex];
-            foreach (var option in options) {
-                option.State.Load(current);
-                if (!option.Exists(targetChar)) {
-                    continue;
+    /// Beam Search
+    public string? Actions(GameState start, ActionOption[] options, string target, int beamWidth = 10) {
+        var currentLevel = new List<GameState> { start };
+        for (var level = 0; level < target.Length; level++) {
+            char targetChar = target[level];
+            var nextLevel = new PriorityQueue<GameState, int>();
+            visited.Clear();
+            foreach (var current in currentLevel) {
+                foreach (var option in options) {
+                    option.State.Load(current);
+                    if (!option.Exists(targetChar)) {
+                        continue;
+                    }
+                    string actions = option.Calculate(targetChar, level);
+                    var next = new GameState();
+                    next.Load(option.State);
+                    if (!visited.Add(next)) {
+                        continue;
+                    }
+                    next.Actions = current.Actions + actions + Action.ADD_CHAR;
+                    nextLevel.Enqueue(next, next.Actions.Length);
                 }
-                string actions = option.Calculate(targetChar);
-                var next = new GameState();
-                next.Load(option.State);
-                next.PhraseIndex = current.PhraseIndex + 1;
-                next.Actions = current.Actions + actions + Action.ADD_CHAR;
-                queue.Enqueue(next, next.Actions.Length);
+            }
+            currentLevel.Clear();
+            while (nextLevel.TryDequeue(out var state, out _) && currentLevel.Count < beamWidth) {
+                currentLevel.Add(state);
+            }
+            if (currentLevel.Count == 0) {
+                return null;
             }
         }
-        return null;
+        return currentLevel.First().Actions;
     }
 }
