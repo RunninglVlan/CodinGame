@@ -1,13 +1,8 @@
 ﻿using System;
-using System.Diagnostics.CodeAnalysis;
 
-namespace DoNotPanic;
-
-/// https://www.codingame.com/multiplayer/codegolf/don't-panic
 static class DoNotPanic {
     static int[] targets = null!;
 
-    [SuppressMessage("ReSharper", "FunctionNeverReturns")]
     static void Main() {
         Init();
         while (true) {
@@ -15,18 +10,13 @@ static class DoNotPanic {
         }
     }
 
-    [SuppressMessage("ReSharper", "UnusedVariable")]
     static void Init() {
         string[] inputs = Console.ReadLine()!.Split(' ');
         int floors = int.Parse(inputs[0]);
         targets = new int[floors];
-        int width = int.Parse(inputs[1]);
-        int maxRounds = int.Parse(inputs[2]);
         int exitFloor = int.Parse(inputs[3]);
         int exitX = int.Parse(inputs[4]);
         targets[exitFloor] = exitX;
-        int clones = int.Parse(inputs[5]);
-        int additionalElevators = int.Parse(inputs[6]);
         int elevatorCount = int.Parse(inputs[7]);
         for (var i = 0; i < elevatorCount; i++) {
             inputs = Console.ReadLine()!.Split(' ');
