@@ -5,11 +5,11 @@ var l = S();
 var t = new int[15];
 t[P(l[3])] = P(l[4]);
 int e = P(l[7]);
-for (var i = 0; i < e; i++) {
+while (e-->0) {
     l = S();
     t[P(l[0])] = P(l[1]);
 }
-while (true) {
+for (;;) {
     l = S();
     int f = P(l[0]);
     int x = P(l[1]);
