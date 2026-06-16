@@ -19,25 +19,15 @@ while (true) {
     int x = int.Parse(inputs[1]);
     string direction = inputs[2];
     bool noLeadingClone = floor < 0;
-    Console.WriteLine(noLeadingClone ? Actions.WAIT : BlockIfMovingInWrongDirection(x, targets[floor], direction));
+    Console.WriteLine(noLeadingClone ? "WAIT" : BlockIfMovingInWrongDirection(x, targets[floor], direction));
 }
 
 static string BlockIfMovingInWrongDirection(int x, int target, string direction) {
     if (target < x) {
-        return direction == Directions.RIGHT ? Actions.BLOCK : Actions.WAIT;
+        return direction == "RIGHT" ? "BLOCK" : "WAIT";
     }
     if (target > x) {
-        return direction == Directions.LEFT ? Actions.BLOCK : Actions.WAIT;
+        return direction == "LEFT" ? "BLOCK" : "WAIT";
     }
-    return Actions.WAIT;
-}
-
-static class Directions {
-    public const string LEFT = "LEFT";
-    public const string RIGHT = "RIGHT";
-}
-
-static class Actions {
-    public const string WAIT = "WAIT";
-    public const string BLOCK = "BLOCK";
+    return "WAIT";
 }
