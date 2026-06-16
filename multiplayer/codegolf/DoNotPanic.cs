@@ -1,6 +1,6 @@
 ﻿using System;
 Func<string, int> P = int.Parse;
-string[] S() => Console.ReadLine().Split(' ');
+string[] S() => Console.ReadLine().Split();
 var l = S();
 var t = new int[15];
 t[P(l[3])] = P(l[4]);
