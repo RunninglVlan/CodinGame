@@ -12,8 +12,7 @@ for (var i = 0; i < e; i++) {
 while (true) {
     l = S();
     int f = P(l[0]);
-    Console.WriteLine(f < 0 ? "WAIT" : B(P(l[1]), t[f], l[2]));
-}
-static string B(int x, int t, string d) {
-    return t < x && d == "RIGHT" || t > x && d == "LEFT" ? "BLOCK" : "WAIT";
+    int x = P(l[1]);
+    var d = l[2];
+    Console.WriteLine(f < 0 ? "WAIT" : t[f] < x && d == "RIGHT" || t[f] > x && d == "LEFT" ? "BLOCK" : "WAIT");
 }
