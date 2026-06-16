@@ -1,16 +1,18 @@
 ﻿using System;
-var l = Console.ReadLine().Split(' ');
-var t = new int[int.Parse(l[0])];
-t[int.Parse(l[3])] = int.Parse(l[4]);
-int e = int.Parse(l[7]);
+Func<string, int> P = int.Parse;
+string[] S() => Console.ReadLine().Split(' ');
+var l = S();
+var t = new int[P(l[0])];
+t[P(l[3])] = P(l[4]);
+int e = P(l[7]);
 for (var i = 0; i < e; i++) {
-    l = Console.ReadLine().Split(' ');
-    t[int.Parse(l[0])] = int.Parse(l[1]);
+    l = S();
+    t[P(l[0])] = P(l[1]);
 }
 while (true) {
-    l = Console.ReadLine().Split(' ');
-    int f = int.Parse(l[0]);
-    int x = int.Parse(l[1]);
+    l = S();
+    int f = P(l[0]);
+    int x = P(l[1]);
     Console.WriteLine(f < 0 ? "WAIT" : B(x, t[f], l[2]));
 }
 static string B(int x, int t, string d) {
