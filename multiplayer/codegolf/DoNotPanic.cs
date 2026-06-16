@@ -5,21 +5,18 @@ namespace DoNotPanic;
 
 /// https://www.codingame.com/multiplayer/codegolf/don't-panic
 static class DoNotPanic {
+    static int[] targets = null!;
+
     [SuppressMessage("ReSharper", "FunctionNeverReturns")]
     static void Main() {
-        var game = new Game();
-        game.Init();
+        Init();
         while (true) {
-            game.Loop();
+            Loop();
         }
     }
-}
-
-class Game {
-    int[] targets = null!;
 
     [SuppressMessage("ReSharper", "UnusedVariable")]
-    public void Init() {
+    static void Init() {
         string[] inputs = Console.ReadLine()!.Split(' ');
         int floors = int.Parse(inputs[0]);
         targets = new int[floors];
@@ -39,7 +36,7 @@ class Game {
         }
     }
 
-    public void Loop() {
+    static void Loop() {
         string[] inputs = Console.ReadLine()!.Split(' ');
         int leadingCloneFloor = int.Parse(inputs[0]);
         int leadingCloneX = int.Parse(inputs[1]);
@@ -47,12 +44,12 @@ class Game {
         Console.WriteLine(ChooseAction(leadingCloneX, leadingCloneFloor, leadingCloneDirection));
     }
 
-    string ChooseAction(int x, int floor, string direction) {
+    static string ChooseAction(int x, int floor, string direction) {
         bool noLeadingClone = floor < 0;
         return noLeadingClone ? Actions.WAIT : BlockIfMovingInWrongDirection(x, floor, direction);
     }
 
-    string BlockIfMovingInWrongDirection(int x, int floor, string direction) {
+    static string BlockIfMovingInWrongDirection(int x, int floor, string direction) {
         int target = targets[floor];
         if (target < x) {
             return direction == Directions.RIGHT ? Actions.BLOCK : Actions.WAIT;
