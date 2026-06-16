@@ -23,35 +23,31 @@ class Game(int rounds, int cash) {
     public int Cash { get; private set; } = Math.Clamp(cash, 50_000, 100_000);
 
     public static (Call call, int ball) ParsePlay(string value) {
-        string[] splitPlay = value.Split(' ');
-        string call = splitPlay[1];
-        int number = call == Call.PLAIN
-                ? Math.Clamp(int.Parse(splitPlay[2]), 0, MAX_NUMBER)
-                : -1;
+        (string call, int number, int ball) = value.Split(' ') switch {
+            [var b, Call.PLAIN, var n] => (Call.PLAIN, int.Parse(n), int.Parse(b)),
+            [var b, var c] => (c, -1, int.Parse(b)),
+            _ => throw new ArgumentException($"Unrecognized casino play format: {value}")
+        };
         // roulette table result
-        int ball = Math.Clamp(int.Parse(splitPlay[0]), 0, MAX_NUMBER);
-        return (new Call(call, number), ball);
+        ball = Math.Clamp(ball, 0, MAX_NUMBER);
+        return (new Call(call, Math.Clamp(number, -1, MAX_NUMBER)), ball);
     }
 
     public void ProcessRound(Call call, int ball) {
-        int bet = Cash / 4;
-        if (Cash % 4 != 0) {
-            bet++;
-        }
+        // round up if bet is fractional
+        var bet = (int)Math.Ceiling(Cash / 4.0);
         Cash -= bet;
         Cash += Payout(ball, call, bet);
     }
 
     static int Payout(int ball, Call call, int bet) {
         bool isEven = ball % 2 == 0;
-        if (call.Value == Call.EVEN && isEven && ball != 0
-                || call.Value == Call.ODD && !isEven) {
-            return bet * 2;
-        }
-        if (ball == call.Number) {
-            return bet * 36;
-        }
-        return 0;
+        return (call.Value, isEven) switch {
+            (Call.EVEN, true) when ball != 0 => bet * 2,
+            (Call.ODD, false) => bet * 2,
+            (Call.PLAIN, _) when ball == call.Number => bet * 36,
+            _ => 0
+        };
     }
 }
 
