@@ -1,33 +1,26 @@
 ﻿using System;
 
-string[] inputs = Console.ReadLine()!.Split(' ');
-int floors = int.Parse(inputs[0]);
-var targets = new int[floors];
-int exitFloor = int.Parse(inputs[3]);
-int exitX = int.Parse(inputs[4]);
-targets[exitFloor] = exitX;
-int elevatorCount = int.Parse(inputs[7]);
-for (var i = 0; i < elevatorCount; i++) {
-    inputs = Console.ReadLine()!.Split(' ');
-    int elevatorFloor = int.Parse(inputs[0]);
-    int elevatorX = int.Parse(inputs[1]);
-    targets[elevatorFloor] = elevatorX;
+var l = Console.ReadLine()!.Split(' ');
+var t = new int[int.Parse(l[0])];
+t[int.Parse(l[3])] = int.Parse(l[4]);
+int e = int.Parse(l[7]);
+for (var i = 0; i < e; i++) {
+    l = Console.ReadLine()!.Split(' ');
+    t[int.Parse(l[0])] = int.Parse(l[1]);
 }
 while (true) {
-    inputs = Console.ReadLine()!.Split(' ');
-    int floor = int.Parse(inputs[0]);
-    int x = int.Parse(inputs[1]);
-    string direction = inputs[2];
-    bool noLeadingClone = floor < 0;
-    Console.WriteLine(noLeadingClone ? "WAIT" : BlockIfMovingInWrongDirection(x, targets[floor], direction));
+    l = Console.ReadLine()!.Split(' ');
+    int f = int.Parse(l[0]);
+    int x = int.Parse(l[1]);
+    Console.WriteLine(f < 0 ? "WAIT" : B(x, t[f], l[2]));
 }
 
-static string BlockIfMovingInWrongDirection(int x, int target, string direction) {
-    if (target < x) {
-        return direction == "RIGHT" ? "BLOCK" : "WAIT";
+static string B(int x, int t, string d) {
+    if (t < x) {
+        return d == "RIGHT" ? "BLOCK" : "WAIT";
     }
-    if (target > x) {
-        return direction == "LEFT" ? "BLOCK" : "WAIT";
+    if (t > x) {
+        return d == "LEFT" ? "BLOCK" : "WAIT";
     }
     return "WAIT";
 }
