@@ -4,15 +4,13 @@ string[] S() => Console.ReadLine().Split(' ');
 var l = S();
 var t = new int[15];
 t[P(l[3])] = P(l[4]);
-int e = P(l[7]);
+int e = P(l[7]),f,x;
 while (e-->0) {
     l = S();
     t[P(l[0])] = P(l[1]);
 }
-for (;;) {
+for (;;Console.WriteLine(f < 0 ? "WAIT" : t[f] < x && l[2] == "RIGHT" || t[f] > x && l[2] == "LEFT" ? "BLOCK" : "WAIT")) {
     l = S();
-    int f = P(l[0]);
-    int x = P(l[1]);
-    var d = l[2];
-    Console.WriteLine(f < 0 ? "WAIT" : t[f] < x && d == "RIGHT" || t[f] > x && d == "LEFT" ? "BLOCK" : "WAIT");
+    f = P(l[0]);
+    x = P(l[1]);
 }
