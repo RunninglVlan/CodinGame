@@ -15,11 +15,5 @@ while (true) {
     Console.WriteLine(f < 0 ? "WAIT" : B(P(l[1]), t[f], l[2]));
 }
 static string B(int x, int t, string d) {
-    if (t < x) {
-        return d == "RIGHT" ? "BLOCK" : "WAIT";
-    }
-    if (t > x) {
-        return d == "LEFT" ? "BLOCK" : "WAIT";
-    }
-    return "WAIT";
+    return t < x && d == "RIGHT" || t > x && d == "LEFT" ? "BLOCK" : "WAIT";
 }
