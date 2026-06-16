@@ -9,7 +9,7 @@ while (e-->0) {
     l = S();
     t[P(l[0])] = P(l[1]);
 }
-for (;;Console.WriteLine(f < 0 ? "WAIT" : t[f] < x && l[2] == "RIGHT" || t[f] > x && l[2] == "LEFT" ? "BLOCK" : "WAIT")) {
+for (;;Console.WriteLine(f < 0 ? "WAIT" : t[f] < x && l[2][0] == 'R' || t[f] > x && l[2][0] == 'L' ? "BLOCK" : "WAIT")) {
     l = S();
     f = P(l[0]);
     x = P(l[1]);
