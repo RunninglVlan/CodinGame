@@ -2,7 +2,7 @@
 Func<string, int> P = int.Parse;
 string[] S() => Console.ReadLine().Split(' ');
 var l = S();
-var t = new int[P(l[0])];
+var t = new int[15];
 t[P(l[3])] = P(l[4]);
 int e = P(l[7]);
 for (var i = 0; i < e; i++) {
