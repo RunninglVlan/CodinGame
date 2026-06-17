@@ -16,13 +16,13 @@ static class DoNotPanic2 {
 }
 
 class Game {
-    int[] targets = null!;
+    int?[] targets = null!;
 
     [SuppressMessage("ReSharper", "UnusedVariable")]
     public void Init() {
         string[] inputs = Console.ReadLine()!.Split(' ');
         int floors = int.Parse(inputs[0]);
-        targets = new int[floors];
+        targets = new int?[floors];
         int width = int.Parse(inputs[1]);
         int maxRounds = int.Parse(inputs[2]);
         int exitFloor = int.Parse(inputs[3]);
@@ -47,13 +47,21 @@ class Game {
         Console.WriteLine(ChooseAction(leadingCloneX, leadingCloneFloor, leadingCloneDirection));
     }
 
+    [SuppressMessage("ReSharper", "InvertIf")]
     string ChooseAction(int x, int floor, string direction) {
         bool noLeadingClone = floor < 0;
-        return noLeadingClone ? Actions.WAIT : BlockIfMovingInWrongDirection(x, floor, direction);
+        if (noLeadingClone) {
+            return Actions.WAIT;
+        }
+        int? target = targets[floor];
+        if (target == null) {
+            targets[floor] = x;
+            return Actions.ELEVATOR;
+        }
+        return BlockIfMovingInWrongDirection(x, target.Value, direction);
     }
 
-    string BlockIfMovingInWrongDirection(int x, int floor, string direction) {
-        int target = targets[floor];
+    static string BlockIfMovingInWrongDirection(int x, int target, string direction) {
         if (target < x) {
             return direction == Directions.RIGHT ? Actions.BLOCK : Actions.WAIT;
         }
@@ -72,4 +80,5 @@ static class Directions {
 static class Actions {
     public const string WAIT = "WAIT";
     public const string BLOCK = "BLOCK";
+    public const string ELEVATOR = "ELEVATOR";
 }
