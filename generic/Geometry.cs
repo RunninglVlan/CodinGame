@@ -101,6 +101,8 @@ static class Screen {
     public static readonly Point LEFT = new(-1, 0);
     public static readonly Point RIGHT = new(1, 0);
 
+    public static Point[] Directions4 { get; } = [RIGHT, LEFT, UP, DOWN];
+
     public static string ToString(Point direction) => direction switch {
         (0, -1) => nameof(UP),
         (0, 1) => nameof(DOWN),

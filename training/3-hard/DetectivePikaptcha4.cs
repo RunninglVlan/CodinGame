@@ -38,7 +38,7 @@ class Game {
                 Console.Error.WriteLine("Trapped - turned all the way around and found nowhere to go!");
                 return;
             }
-            pikaptcha.Move(next);
+            pikaptcha.Move(next, maze);
         }
     }
 
@@ -60,40 +60,40 @@ class Game {
 class Cube {
     const int FACES = 6;
 
-    readonly Dictionary<(int, Point), (int face, TargetAxis x, TargetAxis y)> topology = new();
+    readonly Dictionary<(int, Point), (int face, TargetAxis x, TargetAxis y, Point direction)> topology = new();
     int size;
     Cell[][,] faces = null!;
 
     public Cube() {
-        topology[(0, Screen.LEFT)] = (1, TargetAxis.Y, TargetAxis.Min);
-        topology[(0, Screen.RIGHT)] = (3, TargetAxis.YInverted, TargetAxis.Min);
-        topology[(0, Screen.UP)] = (5, TargetAxis.X, TargetAxis.Max);
-        topology[(0, Screen.DOWN)] = (2, TargetAxis.X, TargetAxis.Min);
+        topology[(0, Screen.LEFT)] = (1, TargetAxis.Y, TargetAxis.Min, Screen.DOWN);
+        topology[(0, Screen.RIGHT)] = (3, TargetAxis.YInverted, TargetAxis.Min, Screen.DOWN);
+        topology[(0, Screen.UP)] = (5, TargetAxis.X, TargetAxis.Max, Screen.UP);
+        topology[(0, Screen.DOWN)] = (2, TargetAxis.X, TargetAxis.Min, Screen.DOWN);
 
-        topology[(1, Screen.LEFT)] = (5, TargetAxis.Min, TargetAxis.YInverted);
-        topology[(1, Screen.RIGHT)] = (2, TargetAxis.Min, TargetAxis.Y);
-        topology[(1, Screen.UP)] = (0, TargetAxis.Min, TargetAxis.X);
-        topology[(1, Screen.DOWN)] = (4, TargetAxis.Min, TargetAxis.XInverted);
+        topology[(1, Screen.LEFT)] = (5, TargetAxis.Min, TargetAxis.YInverted, Screen.RIGHT);
+        topology[(1, Screen.RIGHT)] = (2, TargetAxis.Min, TargetAxis.Y, Screen.RIGHT);
+        topology[(1, Screen.UP)] = (0, TargetAxis.Min, TargetAxis.X, Screen.RIGHT);
+        topology[(1, Screen.DOWN)] = (4, TargetAxis.Min, TargetAxis.XInverted, Screen.RIGHT);
 
-        topology[(2, Screen.LEFT)] = (1, TargetAxis.Max, TargetAxis.Y);
-        topology[(2, Screen.RIGHT)] = (3, TargetAxis.Min, TargetAxis.Y);
-        topology[(2, Screen.UP)] = (0, TargetAxis.X, TargetAxis.Max);
-        topology[(2, Screen.DOWN)] = (4, TargetAxis.X, TargetAxis.Min);
+        topology[(2, Screen.LEFT)] = (1, TargetAxis.Max, TargetAxis.Y, Screen.LEFT);
+        topology[(2, Screen.RIGHT)] = (3, TargetAxis.Min, TargetAxis.Y, Screen.RIGHT);
+        topology[(2, Screen.UP)] = (0, TargetAxis.X, TargetAxis.Max, Screen.UP);
+        topology[(2, Screen.DOWN)] = (4, TargetAxis.X, TargetAxis.Min, Screen.DOWN);
 
-        topology[(3, Screen.LEFT)] = (2, TargetAxis.Max, TargetAxis.Y);
-        topology[(3, Screen.RIGHT)] = (5, TargetAxis.Max, TargetAxis.YInverted);
-        topology[(3, Screen.UP)] = (0, TargetAxis.Max, TargetAxis.XInverted);
-        topology[(3, Screen.DOWN)] = (4, TargetAxis.Max, TargetAxis.X);
+        topology[(3, Screen.LEFT)] = (2, TargetAxis.Max, TargetAxis.Y, Screen.LEFT);
+        topology[(3, Screen.RIGHT)] = (5, TargetAxis.Max, TargetAxis.YInverted, Screen.LEFT);
+        topology[(3, Screen.UP)] = (0, TargetAxis.Max, TargetAxis.XInverted, Screen.LEFT);
+        topology[(3, Screen.DOWN)] = (4, TargetAxis.Max, TargetAxis.X, Screen.LEFT);
 
-        topology[(4, Screen.LEFT)] = (1, TargetAxis.YInverted, TargetAxis.Max);
-        topology[(4, Screen.RIGHT)] = (3, TargetAxis.Y, TargetAxis.Max);
-        topology[(4, Screen.UP)] = (2, TargetAxis.X, TargetAxis.Max);
-        topology[(4, Screen.DOWN)] = (5, TargetAxis.X, TargetAxis.Min);
+        topology[(4, Screen.LEFT)] = (1, TargetAxis.YInverted, TargetAxis.Max, Screen.UP);
+        topology[(4, Screen.RIGHT)] = (3, TargetAxis.Y, TargetAxis.Max, Screen.UP);
+        topology[(4, Screen.UP)] = (2, TargetAxis.X, TargetAxis.Max, Screen.UP);
+        topology[(4, Screen.DOWN)] = (5, TargetAxis.X, TargetAxis.Min, Screen.DOWN);
 
-        topology[(5, Screen.LEFT)] = (1, TargetAxis.Min, TargetAxis.YInverted);
-        topology[(5, Screen.RIGHT)] = (3, TargetAxis.Max, TargetAxis.YInverted);
-        topology[(5, Screen.UP)] = (4, TargetAxis.X, TargetAxis.Max);
-        topology[(5, Screen.DOWN)] = (0, TargetAxis.X, TargetAxis.Min);
+        topology[(5, Screen.LEFT)] = (1, TargetAxis.Min, TargetAxis.YInverted, Screen.RIGHT);
+        topology[(5, Screen.RIGHT)] = (3, TargetAxis.Max, TargetAxis.YInverted, Screen.LEFT);
+        topology[(5, Screen.UP)] = (4, TargetAxis.X, TargetAxis.Max, Screen.UP);
+        topology[(5, Screen.DOWN)] = (0, TargetAxis.X, TargetAxis.Min, Screen.DOWN);
     }
 
     public void Init(out Player pikaptcha) {
@@ -173,6 +173,13 @@ class Cube {
             }
         }
     }
+
+    public Point NextFaceDirection(int source, Point direction) {
+        return topology.TryGetValue((source, direction), out var next)
+                ? next.direction
+                : throw new ArgumentException(
+                        $"No topology mapping for face {source} and direction {Screen.ToString(direction)}");
+    }
 }
 
 enum TargetAxis {
@@ -201,17 +208,9 @@ class Player(Cell cell, Point direction) {
 
     public void Turn(Side side) => Direction = Screen.Turn(Direction, side);
 
-    public void Move(Cell next) {
+    public void Move(Cell next, Cube maze) {
         if (next.Face != Cell.Face) {
-            Direction = (Cell.Face, next.Face) switch {
-                (0, 1) or (0, 3) => Screen.DOWN,
-                (1, 0) or (1, 4) or (1, 5) => Screen.RIGHT,
-                (3, 0) or (3, 4) or (3, 5) => Screen.LEFT,
-                (4, 1) or (4, 3) => Screen.UP,
-                (5, 1) => Screen.RIGHT,
-                (5, 3) => Screen.LEFT,
-                _ => Direction
-            };
+            Direction = maze.NextFaceDirection(Cell.Face, Direction);
         }
         Cell = next;
         Cell.Stepped++;
@@ -241,6 +240,8 @@ static class Screen {
     public static readonly Point DOWN = new(0, 1);
     public static readonly Point LEFT = new(-1, 0);
     public static readonly Point RIGHT = new(1, 0);
+
+    public static Point[] Directions4 { get; } = [RIGHT, LEFT, UP, DOWN];
 
     public static Point Turn(Point direction, Side side) {
         return side == Side.Right
