@@ -18,20 +18,18 @@ static class DoNotPanic2 {
 }
 
 class Game {
-    List<int>[] targets = null!;
+    Grid drive = null!;
 
     [SuppressMessage("ReSharper", "UnusedVariable")]
     public void Init() {
         string[] inputs = Console.ReadLine()!.Split(' ');
         int floors = int.Parse(inputs[0]);
-        targets = Enumerable.Range(0, floors)
-                .Select(_ => new List<int>())
-                .ToArray();
         int width = int.Parse(inputs[1]);
+        drive = new Grid(width, floors);
         int maxRounds = int.Parse(inputs[2]);
         int exitFloor = int.Parse(inputs[3]);
         int exitX = int.Parse(inputs[4]);
-        targets[exitFloor].Add(exitX);
+        drive.Get(exitX, exitFloor).type = CellType.Exit;
         int clones = int.Parse(inputs[5]);
         int additionalElevators = int.Parse(inputs[6]);
         Console.Error.WriteLine($"additionalElevators: {additionalElevators}");
@@ -40,7 +38,7 @@ class Game {
             inputs = Console.ReadLine()!.Split(' ');
             int elevatorFloor = int.Parse(inputs[0]);
             int elevatorX = int.Parse(inputs[1]);
-            targets[elevatorFloor].Add(elevatorX);
+            drive.Get(elevatorX, elevatorFloor).type = CellType.Elevator;
         }
     }
 
@@ -57,12 +55,12 @@ class Game {
         if (noLeadingClone) {
             return Actions.WAIT;
         }
-        var floorTargets = targets[floor];
-        if (floorTargets.Count == 0) {
-            floorTargets.Add(x);
+        var targets = drive.GetFloor(floor).Where(it => it.type is CellType.Elevator or CellType.Exit).ToArray();
+        if (targets.Length == 0) {
+            drive.Get(x, floor).type = CellType.Elevator;
             return Actions.ELEVATOR;
         }
-        int target = floorTargets.MinBy(it => Math.Abs(it - x));
+        int target = targets.Select(it => it.point.X).MinBy(it => Math.Abs(it - x));
         return BlockIfMovingInWrongDirection(x, target, direction);
     }
 
@@ -77,6 +75,40 @@ class Game {
     }
 }
 
+class Grid {
+    readonly int width;
+    readonly Cell[,] cells;
+
+    public Grid(int width, int floors) {
+        this.width = width;
+        cells = new Cell[width, floors];
+        for (var floor = 0; floor < floors; floor++) {
+            for (var x = 0; x < width; x++) {
+                cells[x, floor] = new Cell(x, floor);
+            }
+        }
+    }
+
+    public Cell Get(int x, int floor) => cells[x, floor];
+
+    public IEnumerable<Cell> GetFloor(int y) {
+        for (var x = 0; x < width; x++) {
+            yield return cells[x, y];
+        }
+    }
+}
+
+class Cell(int x, int y) {
+    public Point point = new(x, y);
+    public CellType type = CellType.Empty;
+}
+
+enum CellType {
+    Empty,
+    Elevator,
+    Exit
+}
+
 static class Directions {
     public const string LEFT = "LEFT";
     public const string RIGHT = "RIGHT";
@@ -87,3 +119,5 @@ static class Actions {
     public const string BLOCK = "BLOCK";
     public const string ELEVATOR = "ELEVATOR";
 }
+
+readonly record struct Point(int X, int Y);
