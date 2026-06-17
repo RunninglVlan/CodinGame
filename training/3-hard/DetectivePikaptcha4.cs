@@ -20,8 +20,8 @@ class Game {
     public void Init() => maze.Init(out pikaptcha);
 
     public void MoveThroughMaze(Side sideToFollow) {
-        var start = pikaptcha.Cell.Point;
-        while (pikaptcha.Cell.Point != start || pikaptcha.Cell.Stepped <= 0) {
+        var start = pikaptcha.Cell;
+        while (pikaptcha.Cell != start || pikaptcha.Cell.Stepped <= 0) {
             if (!IsWallOn(sideToFollow)) {
                 pikaptcha.Turn(sideToFollow);
             }
@@ -158,9 +158,20 @@ class Player(Cell cell, Point direction) {
 
     public void Turn(Side side) => Direction = Screen.Turn(Direction, side);
 
-    public void Move(Cell cell) {
-        Cell = cell;
-        cell.Stepped++;
+    public void Move(Cell next) {
+        if (next.Face != Cell.Face) {
+            Direction = (Cell.Face, next.Face) switch {
+                (0, 1) or (0, 3) => Screen.DOWN,
+                (1, 0) or (1, 4) or (1, 5) => Screen.RIGHT,
+                (3, 0) or (3, 4) or (3, 5) => Screen.LEFT,
+                (4, 1) or (4, 3) => Screen.UP,
+                (5, 1) => Screen.RIGHT,
+                (5, 3) => Screen.LEFT,
+                _ => Direction
+            };
+        }
+        Cell = next;
+        Cell.Stepped++;
     }
 }
 
