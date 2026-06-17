@@ -101,6 +101,7 @@ class Cube {
         size = Math.Clamp(int.Parse(Console.ReadLine()!), 1, 100);
         faces = new Cell[FACES][,];
         for (var f = 0; f < FACES; f++) {
+            Console.Error.WriteLine(f);
             faces[f] = new Cell[size, size];
             for (var y = 0; y < size; y++) {
                 string characters = Console.ReadLine()!;
