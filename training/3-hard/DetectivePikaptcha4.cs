@@ -21,6 +21,7 @@ class Game {
 
     public void MoveThroughMaze(Side sideToFollow) {
         var start = pikaptcha.Cell;
+        Console.Error.WriteLine($"Starting at {pikaptcha}, following {sideToFollow} side");
         while (pikaptcha.Cell != start || pikaptcha.Cell.Stepped <= 0) {
             if (!IsWallOn(sideToFollow)) {
                 pikaptcha.Turn(sideToFollow);
@@ -145,6 +146,8 @@ class Cube {
 
 record Cell(int Face, Point Point, CellType Type) {
     public int Stepped { get; set; }
+
+    public override string ToString() => $"[{Face}]{Point}";
 }
 
 enum CellType {
@@ -173,6 +176,8 @@ class Player(Cell cell, Point direction) {
         Cell = next;
         Cell.Stepped++;
     }
+
+    public override string ToString() => $"{Cell} moving {Screen.ToString(Direction)}";
 }
 
 enum Side {
@@ -198,4 +203,12 @@ static class Screen {
                 ? new Point(-direction.Y, direction.X)
                 : new Point(direction.Y, -direction.X);
     }
+
+    public static string ToString(Point direction) => direction switch {
+        (0, -1) => nameof(UP),
+        (0, 1) => nameof(DOWN),
+        (-1, 0) => nameof(LEFT),
+        (1, 0) => nameof(RIGHT),
+        _ => direction.ToString()
+    };
 }

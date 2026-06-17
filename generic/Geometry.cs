@@ -100,4 +100,12 @@ static class Screen {
     public static readonly Point DOWN = new(0, 1);
     public static readonly Point LEFT = new(-1, 0);
     public static readonly Point RIGHT = new(1, 0);
+
+    public static string ToString(Point direction) => direction switch {
+        (0, -1) => nameof(UP),
+        (0, 1) => nameof(DOWN),
+        (-1, 0) => nameof(LEFT),
+        (1, 0) => nameof(RIGHT),
+        _ => direction.ToString()
+    };
 }
