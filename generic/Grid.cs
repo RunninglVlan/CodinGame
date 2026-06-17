@@ -17,8 +17,8 @@ class Grid(int width, int height) {
     }
 
     public IEnumerable<Cell> Neighbors(Cell cell) {
-        foreach (var point in Point.Directions4) {
-            if (TryGet(cell.point + point, out var neighbor)) {
+        foreach (var direction in Point.Directions4) {
+            if (TryGet(cell.point + direction, out var neighbor)) {
                 yield return neighbor;
             }
         }
