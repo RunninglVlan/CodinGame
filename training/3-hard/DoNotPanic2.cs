@@ -23,29 +23,29 @@ class Game {
     [SuppressMessage("ReSharper", "UnusedVariable")]
     public void Init() {
         string[] inputs = Console.ReadLine()!.Split(' ');
-        int floors = int.Parse(inputs[0]);
-        int width = int.Parse(inputs[1]);
+        int floors = Math.Clamp(int.Parse(inputs[0]), 1, 15);
+        int width = Math.Clamp(int.Parse(inputs[1]), 5, 100);
         drive = new Grid(width, floors);
-        int maxRounds = int.Parse(inputs[2]);
-        int exitFloor = int.Parse(inputs[3]);
-        int exitX = int.Parse(inputs[4]);
+        int maxRounds = Math.Clamp(int.Parse(inputs[2]), 10, 200);
+        int exitFloor = Math.Clamp(int.Parse(inputs[3]), 0, floors);
+        int exitX = Math.Clamp(int.Parse(inputs[4]), 0, width);
         drive.Get(exitX, exitFloor).type = CellType.Exit;
-        int clones = int.Parse(inputs[5]);
+        int clones = Math.Clamp(int.Parse(inputs[5]), 2, 50);
         int additionalElevators = int.Parse(inputs[6]);
         Console.Error.WriteLine($"additionalElevators: {additionalElevators}");
-        int elevatorCount = int.Parse(inputs[7]);
+        int elevatorCount = Math.Clamp(int.Parse(inputs[7]), 0, 100);
         for (var i = 0; i < elevatorCount; i++) {
             inputs = Console.ReadLine()!.Split(' ');
-            int elevatorFloor = int.Parse(inputs[0]);
-            int elevatorX = int.Parse(inputs[1]);
+            int elevatorFloor = Math.Clamp(int.Parse(inputs[0]), 0, floors);
+            int elevatorX = Math.Clamp(int.Parse(inputs[1]), 0, width);
             drive.Get(elevatorX, elevatorFloor).type = CellType.Elevator;
         }
     }
 
     public void Loop() {
         string[] inputs = Console.ReadLine()!.Split(' ');
-        int leadingCloneFloor = int.Parse(inputs[0]);
-        int leadingCloneX = int.Parse(inputs[1]);
+        int leadingCloneFloor = Math.Clamp(int.Parse(inputs[0]), -1, drive.Floors);
+        int leadingCloneX = Math.Clamp(int.Parse(inputs[1]), -1, drive.Width);
         string leadingCloneDirection = inputs[2];
         Console.WriteLine(ChooseAction(leadingCloneX, leadingCloneFloor, leadingCloneDirection));
     }
@@ -83,11 +83,13 @@ class Game {
 }
 
 class Grid {
-    readonly int width;
+    public int Width { get; }
+    public int Floors { get; }
     readonly Cell[,] cells;
 
     public Grid(int width, int floors) {
-        this.width = width;
+        Width = width;
+        Floors = floors;
         cells = new Cell[width, floors];
         for (var floor = 0; floor < floors; floor++) {
             for (var x = 0; x < width; x++) {
@@ -99,7 +101,7 @@ class Grid {
     public Cell Get(int x, int floor) => cells[x, floor];
 
     public IEnumerable<Cell> GetFloor(int y) {
-        for (var x = 0; x < width; x++) {
+        for (var x = 0; x < Width; x++) {
             yield return cells[x, y];
         }
     }
