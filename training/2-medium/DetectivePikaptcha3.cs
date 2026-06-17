@@ -155,8 +155,8 @@ static class Screen {
     public static readonly Point RIGHT = new(1, 0);
 
     public static Point Turn(Point direction, Side side) {
-        return side == Side.Right 
-                ? new Point(-direction.Y, direction.X) 
+        return side == Side.Right
+                ? new Point(-direction.Y, direction.X)
                 : new Point(direction.Y, -direction.X);
     }
 }
