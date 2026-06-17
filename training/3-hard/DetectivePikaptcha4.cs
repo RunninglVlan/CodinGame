@@ -93,7 +93,7 @@ class Cube {
     }
 
     public Cell Get(int f, Point point) {
-        if (point.X >= 0 && point.X < size && point.Y >= 0 && point.Y < size) {
+        if (point.InBounds(size, size)) {
             return faces[f][point.X, point.Y];
         }
         return f switch {
@@ -186,6 +186,10 @@ enum Side {
 }
 
 readonly record struct Point(int X, int Y) {
+    public bool InBounds(int width, int height) {
+        return X >= 0 && X < width && Y >= 0 && Y < height;
+    }
+
     public static Point operator +(Point a, Point b) => new(a.X + b.X, a.Y + b.Y);
     public static Point operator -(Point a, Point b) => new(a.X - b.X, a.Y - b.Y);
 
