@@ -127,6 +127,7 @@ class Grid {
         }
     }
 
+    // TODO: remove down neighbor
     public IEnumerable<Cell> Neighbors(Cell cell) => Point.Directions4.Select(it => cell.point + it)
             .Where(it => it.InBounds(Width, Floors))
             .Select(Get)
@@ -184,6 +185,7 @@ class Pathfinding(Grid grid) {
     }
 
     static int Count(Node start, Node end) {
+        // TODO: directional change costs 3 turns
         var count = 0;
         var current = end;
         for (; current != start; count++) {
