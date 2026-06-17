@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace DetectivePikaptcha4;
 
@@ -59,8 +60,41 @@ class Game {
 class Cube {
     const int FACES = 6;
 
+    readonly Dictionary<(int, Point), (int face, TargetAxis x, TargetAxis y)> topology = new();
     int size;
     Cell[][,] faces = null!;
+
+    public Cube() {
+        topology[(0, Screen.LEFT)] = (1, TargetAxis.Y, TargetAxis.Min);
+        topology[(0, Screen.RIGHT)] = (3, TargetAxis.YInverted, TargetAxis.Min);
+        topology[(0, Screen.UP)] = (5, TargetAxis.X, TargetAxis.Max);
+        topology[(0, Screen.DOWN)] = (2, TargetAxis.X, TargetAxis.Min);
+
+        topology[(1, Screen.LEFT)] = (5, TargetAxis.Min, TargetAxis.YInverted);
+        topology[(1, Screen.RIGHT)] = (2, TargetAxis.Min, TargetAxis.Y);
+        topology[(1, Screen.UP)] = (0, TargetAxis.Min, TargetAxis.X);
+        topology[(1, Screen.DOWN)] = (4, TargetAxis.Min, TargetAxis.XInverted);
+
+        topology[(2, Screen.LEFT)] = (1, TargetAxis.Max, TargetAxis.Y);
+        topology[(2, Screen.RIGHT)] = (3, TargetAxis.Min, TargetAxis.Y);
+        topology[(2, Screen.UP)] = (0, TargetAxis.X, TargetAxis.Max);
+        topology[(2, Screen.DOWN)] = (4, TargetAxis.X, TargetAxis.Min);
+
+        topology[(3, Screen.LEFT)] = (2, TargetAxis.Max, TargetAxis.Y);
+        topology[(3, Screen.RIGHT)] = (5, TargetAxis.Max, TargetAxis.YInverted);
+        topology[(3, Screen.UP)] = (0, TargetAxis.Max, TargetAxis.XInverted);
+        topology[(3, Screen.DOWN)] = (4, TargetAxis.Max, TargetAxis.X);
+
+        topology[(4, Screen.LEFT)] = (1, TargetAxis.YInverted, TargetAxis.Max);
+        topology[(4, Screen.RIGHT)] = (3, TargetAxis.Y, TargetAxis.Max);
+        topology[(4, Screen.UP)] = (2, TargetAxis.X, TargetAxis.Max);
+        topology[(4, Screen.DOWN)] = (5, TargetAxis.X, TargetAxis.Min);
+
+        topology[(5, Screen.LEFT)] = (1, TargetAxis.Min, TargetAxis.YInverted);
+        topology[(5, Screen.RIGHT)] = (3, TargetAxis.Max, TargetAxis.YInverted);
+        topology[(5, Screen.UP)] = (4, TargetAxis.X, TargetAxis.Max);
+        topology[(5, Screen.DOWN)] = (0, TargetAxis.X, TargetAxis.Min);
+    }
 
     public void Init(out Player pikaptcha) {
         pikaptcha = null!;
@@ -96,38 +130,34 @@ class Cube {
         if (point.InBounds(size, size)) {
             return faces[f][point.X, point.Y];
         }
-        return f switch {
-            0 when point.X < 0 => faces[1][point.Y, 0],
-            0 when point.X >= size => faces[3][size - 1 - point.Y, 0],
-            0 when point.Y < 0 => faces[5][point.X, size - 1],
-            0 when point.Y >= size => faces[2][point.X, 0],
-
-            1 when point.X < 0 => faces[5][0, size - 1 - point.Y],
-            1 when point.X >= size => faces[2][0, point.Y],
-            1 when point.Y < 0 => faces[0][0, point.X],
-            1 when point.Y >= size => faces[4][0, size - 1 - point.X],
-
-            2 when point.X < 0 => faces[1][size - 1, point.Y],
-            2 when point.X >= size => faces[3][0, point.Y],
-            2 when point.Y < 0 => faces[0][point.X, size - 1],
-            2 when point.Y >= size => faces[4][point.X, 0],
-
-            3 when point.X < 0 => faces[2][size - 1, point.Y],
-            3 when point.X >= size => faces[5][size - 1, size - 1 - point.Y],
-            3 when point.Y < 0 => faces[0][size - 1, size - 1 - point.X],
-            3 when point.Y >= size => faces[4][size - 1, point.X],
-
-            4 when point.X < 0 => faces[1][size - 1 - point.Y, size - 1],
-            4 when point.X >= size => faces[3][point.Y, size - 1],
-            4 when point.Y < 0 => faces[2][point.X, size - 1],
-            4 when point.Y >= size => faces[5][point.X, 0],
-
-            5 when point.X < 0 => faces[1][0, size - 1 - point.Y],
-            5 when point.X >= size => faces[3][size - 1, size - 1 - point.Y],
-            5 when point.Y < 0 => faces[4][point.X, size - 1],
-            5 when point.Y >= size => faces[0][point.X, 0],
-            _ => throw new ArgumentException($"Unexpected face: {f} and point: {point}")
+        var direction = point switch {
+            { X: < 0 } => Screen.LEFT,
+            { X: var x } when x >= size => Screen.RIGHT,
+            { Y: < 0 } => Screen.UP,
+            { Y: var y } when y >= size => Screen.DOWN,
+            _ => throw new ArgumentException($"Unexpected point: {point}")
         };
+        if (!topology.TryGetValue((f, direction), out var next)) {
+            throw new ArgumentException($"No topology mapping for face {f} and direction {Screen.ToString(direction)}");
+        }
+        var pointNext = (next.x, next.y) switch {
+            (TargetAxis.X, TargetAxis.Min) => point with { Y = 0 },
+            (TargetAxis.X, TargetAxis.Max) => point with { Y = size - 1 },
+            (TargetAxis.Y, TargetAxis.Min) => new Point(point.Y, 0),
+            (TargetAxis.Y, TargetAxis.Max) => new Point(point.Y, size - 1),
+            (TargetAxis.YInverted, TargetAxis.Min) => new Point(size - 1 - point.Y, 0),
+            (TargetAxis.YInverted, TargetAxis.Max) => new Point(size - 1 - point.Y, size - 1),
+            (TargetAxis.Min, TargetAxis.X) => new Point(0, point.X),
+            (TargetAxis.Min, TargetAxis.XInverted) => new Point(0, size - 1 - point.X),
+            (TargetAxis.Min, TargetAxis.Y) => point with { X = 0 },
+            (TargetAxis.Min, TargetAxis.YInverted) => new Point(0, size - 1 - point.Y),
+            (TargetAxis.Max, TargetAxis.Y) => point with { X = size - 1 },
+            (TargetAxis.Max, TargetAxis.YInverted) => new Point(size - 1, size - 1 - point.Y),
+            (TargetAxis.Max, TargetAxis.X) => new Point(size - 1, point.X),
+            (TargetAxis.Max, TargetAxis.XInverted) => new Point(size - 1, size - 1 - point.X),
+            _ => throw new ArgumentException($"Unexpected target axes: {next.x}, {next.y}")
+        };
+        return faces[next.face][pointNext.X, pointNext.Y];
     }
 
     public void Print() {
@@ -142,6 +172,15 @@ class Cube {
             }
         }
     }
+}
+
+enum TargetAxis {
+    X,
+    Y,
+    XInverted,
+    YInverted,
+    Min,
+    Max
 }
 
 record Cell(int Face, Point Point, CellType Type) {
