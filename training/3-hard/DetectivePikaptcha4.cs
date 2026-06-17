@@ -102,7 +102,7 @@ class Cube {
             0 when point.Y < 0 => faces[5][point.X, size - 1],
             0 when point.Y >= size => faces[2][point.X, 0],
 
-            1 when point.X < 0 => faces[5][size - 1 - point.Y, 0],
+            1 when point.X < 0 => faces[5][0, size - 1 - point.Y],
             1 when point.X >= size => faces[2][0, point.Y],
             1 when point.Y < 0 => faces[0][0, point.X],
             1 when point.Y >= size => faces[4][0, size - 1 - point.X],
