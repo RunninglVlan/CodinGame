@@ -242,8 +242,6 @@ static class Screen {
     public static readonly Point LEFT = new(-1, 0);
     public static readonly Point RIGHT = new(1, 0);
 
-    public static Point[] Directions4 { get; } = [RIGHT, LEFT, UP, DOWN];
-
     public static Point Turn(Point direction, Side side) {
         return side == Side.Right
                 ? new Point(-direction.Y, direction.X)
