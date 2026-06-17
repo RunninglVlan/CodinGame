@@ -60,7 +60,14 @@ class Game {
             drive.Get(x, floor).type = CellType.Elevator;
             return Actions.ELEVATOR;
         }
-        int target = targets.Select(it => it.point.X).MinBy(it => Math.Abs(it - x));
+        int target = targets
+                .Select(it => it.point.X)
+                .MinBy(targetX => {
+                    int distance = Math.Abs(targetX - x);
+                    bool sameDirection = targetX < x && direction == Directions.LEFT
+                            || targetX > x && direction == Directions.RIGHT;
+                    return (distance, !sameDirection);
+                });
         return BlockIfMovingInWrongDirection(x, target, direction);
     }
 
