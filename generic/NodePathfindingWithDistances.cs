@@ -1,4 +1,6 @@
-﻿class Pathfinding<T> where T : INode<T> {
+﻿using System.Collections.Generic;
+
+class Pathfinding<T> where T : INode<T> {
     readonly List<T> path = new();
     readonly PriorityQueue<T, int> queue = new();
     readonly Dictionary<int, int> distances = new();

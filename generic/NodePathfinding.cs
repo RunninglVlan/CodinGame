@@ -1,4 +1,7 @@
-﻿class Pathfinding<T> where T : INode<T> {
+﻿using System;
+using System.Collections.Generic;
+
+class Pathfinding<T> where T : INode<T> {
     readonly List<T> path = new();
     readonly Queue<PathNode> queue = new();
     readonly HashSet<int> visited = new();

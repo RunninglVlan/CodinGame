@@ -1,4 +1,7 @@
-﻿class Pathfinding(Grid grid) {
+﻿using System;
+using System.Collections.Generic;
+
+class Pathfinding(Grid grid) {
     readonly List<Point> path = new();
     readonly Queue<Node> queue = new();
     readonly Dictionary<Point, Node> visited = new();

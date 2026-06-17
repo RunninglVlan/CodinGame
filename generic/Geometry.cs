@@ -1,4 +1,6 @@
-﻿readonly record struct Point(int X, int Y) {
+﻿using System;
+
+readonly record struct Point(int X, int Y) {
     public static readonly Point UP = new(0, 1);
     public static readonly Point DOWN = new(0, -1);
     public static readonly Point LEFT = new(-1, 0);
