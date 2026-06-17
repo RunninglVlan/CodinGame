@@ -20,8 +20,8 @@ class Game {
     public void Init() => maze.Init(out pikaptcha);
 
     public void MoveThroughMaze(Side sideToFollow) {
-        var start = pikaptcha.Cell.point;
-        while (pikaptcha.Cell.point != start || pikaptcha.Cell.stepped <= 0) {
+        var start = pikaptcha.Cell.Point;
+        while (pikaptcha.Cell.Point != start || pikaptcha.Cell.Stepped <= 0) {
             if (!IsWallOn(sideToFollow)) {
                 pikaptcha.Turn(sideToFollow);
             }
@@ -42,14 +42,14 @@ class Game {
 
     bool IsWallOn(Side side) {
         var wallDirection = Screen.Turn(pikaptcha.Direction, side);
-        var wallToCheck = pikaptcha.Cell.point + wallDirection;
-        return maze.Get(pikaptcha.Cell.Face, wallToCheck).type == CellType.Wall;
+        var wallToCheck = pikaptcha.Cell.Point + wallDirection;
+        return maze.Get(pikaptcha.Cell.Face, wallToCheck).Type == CellType.Wall;
     }
 
     bool TryMoveForward(out Cell nextCell) {
-        var nextPoint = pikaptcha.Cell.point + pikaptcha.Direction;
+        var nextPoint = pikaptcha.Cell.Point + pikaptcha.Direction;
         nextCell = maze.Get(pikaptcha.Cell.Face, nextPoint);
-        return nextCell.type != CellType.Wall;
+        return nextCell.Type != CellType.Wall;
     }
 
     public void PrintMaze() => maze.Print();
@@ -72,9 +72,9 @@ class Cube {
                 Console.Error.WriteLine(characters);
                 for (var x = 0; x < size; x++) {
                     char c = characters[x];
-                    var cell = new Cell(f, x, y);
+                    var type = c == '#' ? CellType.Wall : CellType.Passage;
+                    var cell = new Cell(f, new Point(x, y), type);
                     faces[f][x, y] = cell;
-                    cell.type = c == '#' ? CellType.Wall : CellType.Passage;
                     Point? direction = c switch {
                         '^' => Screen.UP,
                         'v' => Screen.DOWN,
@@ -135,7 +135,7 @@ class Cube {
             for (var y = 0; y < size; y++) {
                 for (var x = 0; x < size; x++) {
                     var cell = face[x, y];
-                    Console.Write(cell.type == CellType.Wall ? "#" : cell.stepped);
+                    Console.Write(cell.Type == CellType.Wall ? "#" : cell.Stepped);
                 }
                 Console.WriteLine();
             }
@@ -143,11 +143,8 @@ class Cube {
     }
 }
 
-class Cell(int face, int x, int y) {
-    public int Face => face;
-    public Point point = new(x, y);
-    public CellType type;
-    public int stepped;
+record Cell(int Face, Point Point, CellType Type) {
+    public int Stepped { get; set; }
 }
 
 enum CellType {
@@ -163,7 +160,7 @@ class Player(Cell cell, Point direction) {
 
     public void Move(Cell cell) {
         Cell = cell;
-        cell.stepped++;
+        cell.Stepped++;
     }
 }
 
