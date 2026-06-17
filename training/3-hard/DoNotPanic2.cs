@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 
 namespace DoNotPanic2;
 
@@ -16,26 +18,29 @@ static class DoNotPanic2 {
 }
 
 class Game {
-    int?[] targets = null!;
+    List<int>[] targets = null!;
 
     [SuppressMessage("ReSharper", "UnusedVariable")]
     public void Init() {
         string[] inputs = Console.ReadLine()!.Split(' ');
         int floors = int.Parse(inputs[0]);
-        targets = new int?[floors];
+        targets = Enumerable.Range(0, floors)
+                .Select(_ => new List<int>())
+                .ToArray();
         int width = int.Parse(inputs[1]);
         int maxRounds = int.Parse(inputs[2]);
         int exitFloor = int.Parse(inputs[3]);
         int exitX = int.Parse(inputs[4]);
-        targets[exitFloor] = exitX;
+        targets[exitFloor].Add(exitX);
         int clones = int.Parse(inputs[5]);
         int additionalElevators = int.Parse(inputs[6]);
+        Console.Error.WriteLine($"additionalElevators: {additionalElevators}");
         int elevatorCount = int.Parse(inputs[7]);
         for (var i = 0; i < elevatorCount; i++) {
             inputs = Console.ReadLine()!.Split(' ');
             int elevatorFloor = int.Parse(inputs[0]);
             int elevatorX = int.Parse(inputs[1]);
-            targets[elevatorFloor] = elevatorX;
+            targets[elevatorFloor].Add(elevatorX);
         }
     }
 
@@ -47,18 +52,18 @@ class Game {
         Console.WriteLine(ChooseAction(leadingCloneX, leadingCloneFloor, leadingCloneDirection));
     }
 
-    [SuppressMessage("ReSharper", "InvertIf")]
     string ChooseAction(int x, int floor, string direction) {
         bool noLeadingClone = floor < 0;
         if (noLeadingClone) {
             return Actions.WAIT;
         }
-        int? target = targets[floor];
-        if (target == null) {
-            targets[floor] = x;
+        var floorTargets = targets[floor];
+        if (floorTargets.Count == 0) {
+            floorTargets.Add(x);
             return Actions.ELEVATOR;
         }
-        return BlockIfMovingInWrongDirection(x, target.Value, direction);
+        int target = floorTargets.MinBy(it => Math.Abs(it - x));
+        return BlockIfMovingInWrongDirection(x, target, direction);
     }
 
     static string BlockIfMovingInWrongDirection(int x, int target, string direction) {
