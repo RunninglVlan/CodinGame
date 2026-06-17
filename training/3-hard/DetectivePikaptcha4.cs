@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 
 namespace DetectivePikaptcha4;
 
@@ -20,6 +21,7 @@ class Game {
 
     public void Init() => maze.Init(out pikaptcha);
 
+    [SuppressMessage("ReSharper", "InvertIf")]
     public void MoveThroughMaze(Side sideToFollow) {
         var start = pikaptcha.Cell;
         Console.Error.WriteLine($"Starting at {pikaptcha}, following {sideToFollow} side");
@@ -32,11 +34,10 @@ class Game {
             while (!TryMoveForward(out next)) {
                 var oppositeSide = sideToFollow == Side.Right ? Side.Left : Side.Right;
                 pikaptcha.Turn(oppositeSide);
-                if (pikaptcha.Direction != originalDirection) {
-                    continue;
+                if (pikaptcha.Direction == originalDirection) {
+                    Console.Error.WriteLine("Trapped - turned all the way around and found nowhere to go!");
+                    return;
                 }
-                Console.Error.WriteLine("Trapped - turned all the way around and found nowhere to go!");
-                return;
             }
             pikaptcha.Move(next, maze);
         }
