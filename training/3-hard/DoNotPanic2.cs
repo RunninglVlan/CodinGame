@@ -52,51 +52,59 @@ class Game {
         string[] inputs = Console.ReadLine()!.Split(' ');
         int leadingCloneFloor = Math.Clamp(int.Parse(inputs[0]), -1, drive.Floors);
         int leadingCloneX = Math.Clamp(int.Parse(inputs[1]), -1, drive.Width);
-        string leadingCloneDirection = inputs[2];
+        var leadingCloneDirection = inputs[2] == "LEFT" ? Point.LEFT : Point.RIGHT;
         Console.WriteLine(ChooseAction(leadingCloneX, leadingCloneFloor, leadingCloneDirection));
         turns--;
     }
 
-    string ChooseAction(int x, int floor, string direction) {
+    string ChooseAction(int x, int floor, Point direction) {
         bool noLeadingClone = floor < 0;
         if (noLeadingClone) {
             return Actions.WAIT;
         }
         var targets = drive.GetFloor(floor).Where(it => it.type is CellType.Elevator or CellType.Exit).ToArray();
-        if (targets.Length == 0 && additionalElevators > 0) {
-            additionalElevators--;
-            drive.Get(x, floor).type = CellType.Elevator;
+        if (TryBuildElevator(targets, x, floor)) {
             return Actions.ELEVATOR;
-        }
-        if (additionalElevators > 0 && drive.Get(x, floor).type == CellType.Empty) {
-            const int elevatorCost = 3;
-            var start = new Point(x, floor);
-            int? without = pathfinding.Path(start, end.point);
-            drive.Get(start).type = CellType.Elevator;
-            int? with = pathfinding.Path(start, end.point);
-            if (with < without && with + elevatorCost < turns) {
-                additionalElevators--;
-                return Actions.ELEVATOR;
-            }
-            drive.Get(start).type = CellType.Empty;
         }
         int target = targets
                 .Select(it => it.point.X)
                 .MinBy(targetX => {
                     int distance = Math.Abs(targetX - x);
-                    bool sameDirection = targetX < x && direction == Directions.LEFT
-                            || targetX > x && direction == Directions.RIGHT;
+                    bool sameDirection = targetX < x && direction == Point.LEFT
+                            || targetX > x && direction == Point.RIGHT;
                     return (distance, !sameDirection);
                 });
         return BlockIfMovingInWrongDirection(x, target, direction);
     }
 
-    static string BlockIfMovingInWrongDirection(int x, int target, string direction) {
+    bool TryBuildElevator(Cell[] targets, int x, int floor) {
+        const int elevatorCost = 3;
+        if (targets.Length == 0 && additionalElevators > 0) {
+            additionalElevators--;
+            drive.Get(x, floor).type = CellType.Elevator;
+            return true;
+        }
+        if (additionalElevators <= 0 || drive.Get(x, floor).type != CellType.Empty) {
+            return false;
+        }
+        var start = new Point(x, floor);
+        int? without = pathfinding.Path(start, end.point);
+        drive.Get(start).type = CellType.Elevator;
+        int? with = pathfinding.Path(start, end.point);
+        if (with < without && with + elevatorCost < turns) {
+            additionalElevators--;
+            return true;
+        }
+        drive.Get(start).type = CellType.Empty;
+        return false;
+    }
+
+    static string BlockIfMovingInWrongDirection(int x, int target, Point direction) {
         if (target < x) {
-            return direction == Directions.RIGHT ? Actions.BLOCK : Actions.WAIT;
+            return direction == Point.RIGHT ? Actions.BLOCK : Actions.WAIT;
         }
         if (target > x) {
-            return direction == Directions.LEFT ? Actions.BLOCK : Actions.WAIT;
+            return direction == Point.LEFT ? Actions.BLOCK : Actions.WAIT;
         }
         return Actions.WAIT;
     }
@@ -129,8 +137,8 @@ class Grid {
 
     public IEnumerable<Cell> Neighbors(Cell cell) => Point.Directions4.Select(it => cell.point + it)
             .Where(it => it.InBounds(Width, Floors))
-            .Select(Get)
-            .Where(it => it.point.Y == cell.point.Y || cell.type == CellType.Elevator && it.point.Y > cell.point.Y);
+            .Where(it => it.Y == cell.point.Y || cell.type == CellType.Elevator && it.Y > cell.point.Y)
+            .Select(Get);
 }
 
 class Cell(int x, int y) {
@@ -142,11 +150,6 @@ enum CellType {
     Empty,
     Elevator,
     Exit
-}
-
-static class Directions {
-    public const string LEFT = "LEFT";
-    public const string RIGHT = "RIGHT";
 }
 
 static class Actions {
@@ -200,10 +203,10 @@ class Pathfinding(Grid grid) {
 }
 
 readonly record struct Point(int X, int Y) {
-    static readonly Point UP = new(0, 1);
-    static readonly Point DOWN = new(0, -1);
-    static readonly Point LEFT = new(-1, 0);
-    static readonly Point RIGHT = new(1, 0);
+    public static readonly Point UP = new(0, 1);
+    public static readonly Point DOWN = new(0, -1);
+    public static readonly Point LEFT = new(-1, 0);
+    public static readonly Point RIGHT = new(1, 0);
 
     public static Point[] Directions4 { get; } = [RIGHT, LEFT, UP, DOWN];
 
