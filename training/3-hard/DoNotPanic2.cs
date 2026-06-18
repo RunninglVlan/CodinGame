@@ -63,7 +63,7 @@ class Game {
             return Actions.WAIT;
         }
         var targets = drive.GetFloor(floor).Where(it => it.type is CellType.Elevator or CellType.Exit).ToArray();
-        if (TryBuildElevator(targets, x, floor)) {
+        if (TryBuildElevator(targets, x, floor, direction)) {
             return Actions.ELEVATOR;
         }
         int target = targets
@@ -77,7 +77,7 @@ class Game {
         return BlockIfMovingInWrongDirection(x, target, direction);
     }
 
-    bool TryBuildElevator(Cell[] targets, int x, int floor) {
+    bool TryBuildElevator(Cell[] targets, int x, int floor, Point direction) {
         const int elevatorCost = 3;
         if (targets.Length == 0 && additionalElevators > 0) {
             additionalElevators--;
@@ -88,15 +88,36 @@ class Game {
             return false;
         }
         var start = new Point(x, floor);
-        int? without = pathfinding.Path(start, end.point);
+        var withoutPath = pathfinding.Path(start, end.point);
+        int? without = CountPath(start, withoutPath, direction);
         drive.Get(start).type = CellType.Elevator;
-        int? with = pathfinding.Path(start, end.point);
+        var withPath = pathfinding.Path(start, end.point);
+        int? with = CountPath(start, withPath, direction);
         if (with < without && with + elevatorCost < turns) {
             additionalElevators--;
             return true;
         }
         drive.Get(start).type = CellType.Empty;
         return false;
+    }
+
+    static int? CountPath(Point current, List<Point>? path, Point direction) {
+        const int blockCost = 3;
+        if (path == null) {
+            return null;
+        }
+        var count = 0;
+        foreach (var next in path) {
+            var nextExpected = current + direction;
+            count++;
+            if (next == nextExpected || next.X == current.X) {
+            } else {
+                direction = direction == Point.LEFT ? Point.RIGHT : Point.LEFT;
+                count += blockCost;
+            }
+            current = next;
+        }
+        return count;
     }
 
     static string BlockIfMovingInWrongDirection(int x, int target, Point direction) {
@@ -163,7 +184,7 @@ class Pathfinding(Grid grid) {
     readonly Dictionary<Point, Node> visited = new();
 
     /// BFS
-    public int? Path(Point start, Point end) {
+    public List<Point>? Path(Point start, Point end) {
         queue.Clear();
         visited.Clear();
         var startNode = new Node(grid.Get(start));
@@ -172,7 +193,7 @@ class Pathfinding(Grid grid) {
         while (queue.Count > 0) {
             var current = queue.Dequeue();
             if (current.cell.point == end) {
-                return Count(startNode, current);
+                return Reconstruct(startNode, current);
             }
             foreach (var cell in grid.Neighbors(current.cell)) {
                 if (visited.ContainsKey(cell.point)) {
@@ -186,14 +207,15 @@ class Pathfinding(Grid grid) {
         return null;
     }
 
-    static int Count(Node start, Node end) {
-        // TODO: directional change costs 3 turns
-        var count = 0;
+    static List<Point> Reconstruct(Node start, Node end) {
+        var path = new List<Point>();
         var current = end;
-        for (; current != start; count++) {
-            current = current!.parent;
+        while (current != start) {
+            path.Add(current!.cell.point);
+            current = current.parent;
         }
-        return count;
+        path.Reverse();
+        return path;
     }
 
     class Node(Cell cell) {
