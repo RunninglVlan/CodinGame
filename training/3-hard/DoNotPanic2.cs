@@ -127,11 +127,10 @@ class Grid {
         }
     }
 
-    // TODO: remove down neighbor
     public IEnumerable<Cell> Neighbors(Cell cell) => Point.Directions4.Select(it => cell.point + it)
             .Where(it => it.InBounds(Width, Floors))
             .Select(Get)
-            .Where(it => it.point.Y == cell.point.Y || cell.type == CellType.Elevator);
+            .Where(it => it.point.Y == cell.point.Y || cell.type == CellType.Elevator && it.point.Y > cell.point.Y);
 }
 
 class Cell(int x, int y) {
