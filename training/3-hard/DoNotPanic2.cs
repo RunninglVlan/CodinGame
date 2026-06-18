@@ -158,7 +158,7 @@ class Grid {
 
     public IEnumerable<Cell> Neighbors(Cell cell) => Point.Directions4.Select(it => cell.point + it)
             .Where(it => it.InBounds(Width, Floors))
-            .Where(it => it.Y == cell.point.Y || cell.type == CellType.Elevator && it.Y > cell.point.Y)
+            .Where(it => cell.type == CellType.Elevator ? it.Y > cell.point.Y : it.Y == cell.point.Y)
             .Select(Get);
 }
 
