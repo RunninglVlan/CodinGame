@@ -80,37 +80,33 @@ record Grid(int Width, int Floors) {
     public void Set(Point point, CellType type) => cells[point.X, point.Y] = type;
     CellType Get(Point point) => cells[point.X, point.Y];
 
-    public IEnumerable<PathState> Next(PathState current) {
+    public IEnumerable<(PathState, int turns)> Next(PathState current) {
         if (!current.Point.InBounds(Width, Floors)) {
             yield break;
         }
         if (Get(current.Point) == CellType.Elevator) {
-            yield return current with {
+            yield return (current with {
                 Point = current.Point + Point.UP,
-                Turns = current.Turns + 1,
                 Action = Actions.WAIT
-            };
+            }, 1);
             yield break;
         }
-        yield return current with {
+        yield return (current with {
             Point = current.Point + current.Direction,
-            Turns = current.Turns + 1,
             Action = Actions.WAIT
-        };
+        }, 1);
         var otherDirection = current.Direction * -1;
-        yield return current with {
+        yield return (current with {
             Point = current.Point + otherDirection,
             Direction = otherDirection,
-            Turns = current.Turns + 4,
             Action = Actions.BLOCK
-        };
+        }, 4);
         if (current.Elevators > 0) {
-            yield return current with {
+            yield return (current with {
                 Point = current.Point + Point.UP,
-                Turns = current.Turns + 4,
                 Elevators = current.Elevators - 1,
                 Action = Actions.ELEVATOR
-            };
+            }, 4);
         }
     }
 }
@@ -128,7 +124,6 @@ static class Actions {
 }
 
 record PathState(Point Point, Point Direction, int Elevators) {
-    public int Turns { get; init; }
     public string? Action { get; init; }
 
     public virtual bool Equals(PathState? other) {
@@ -159,18 +154,18 @@ class Pathfinding(Grid grid) {
         var startNode = new Node(start);
         queue.Enqueue(startNode, 0);
         visited.Add(start, 0);
-        while (queue.Count > 0) {
-            var current = queue.Dequeue();
+        while (queue.TryDequeue(out var current, out int currentTurns)) {
             if (current.state.Point == end) {
                 return Reconstruct(startNode, current);
             }
-            foreach (var nextState in grid.Next(current.state)) {
-                if (visited.TryGetValue(nextState, out int bestTurns) && nextState.Turns >= bestTurns) {
+            foreach ((var nextState, int turns) in grid.Next(current.state)) {
+                int newTurns = currentTurns + turns;
+                if (newTurns >= visited.GetValueOrDefault(nextState, int.MaxValue)) {
                     continue;
                 }
                 var next = new Node(nextState) { parent = current };
-                queue.Enqueue(next, nextState.Turns);
-                visited[nextState] = nextState.Turns;
+                queue.Enqueue(next, newTurns);
+                visited[nextState] = newTurns;
             }
         }
         return null;
