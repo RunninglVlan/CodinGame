@@ -21,7 +21,6 @@ class Game {
     Grid drive = null!;
     Pathfinding pathfinding = null!;
     Point end;
-    int maxTurns;
     int additionalElevators;
     Dictionary<Point, string>? path;
     readonly HashSet<Point> visited = new();
@@ -33,7 +32,7 @@ class Game {
         int width = Math.Clamp(int.Parse(inputs[1]), 5, 100);
         drive = new Grid(width, floors);
         pathfinding = new Pathfinding(drive);
-        maxTurns = Math.Clamp(int.Parse(inputs[2]), 10, 200);
+        int maxTurns = Math.Clamp(int.Parse(inputs[2]), 10, 200);
         int exitFloor = Math.Clamp(int.Parse(inputs[3]), 0, floors);
         int exitX = Math.Clamp(int.Parse(inputs[4]), 0, width);
         end = new Point(exitX, exitFloor);
@@ -63,9 +62,7 @@ class Game {
             return;
         }
         if (path == null) {
-            var start = new PathState(point, leadingCloneDirection, additionalElevators) {
-                Turns = maxTurns
-            };
+            var start = new PathState(point, leadingCloneDirection, additionalElevators);
             var valueTuples = pathfinding.Path(start, end);
             path = valueTuples!.ToDictionary(it => it.point, it => it.action);
         }
@@ -84,33 +81,33 @@ record Grid(int Width, int Floors) {
     CellType Get(Point point) => cells[point.X, point.Y];
 
     public IEnumerable<PathState> Next(PathState current) {
-        if (!current.Point.InBounds(Width, Floors) || current.Turns <= 0) {
+        if (!current.Point.InBounds(Width, Floors)) {
             yield break;
         }
         if (Get(current.Point) == CellType.Elevator) {
             yield return current with {
                 Point = current.Point + Point.UP,
-                Turns = current.Turns - 1,
+                Turns = current.Turns + 1,
                 Action = Actions.WAIT
             };
             yield break;
         }
         yield return current with {
             Point = current.Point + current.Direction,
-            Turns = current.Turns - 1,
+            Turns = current.Turns + 1,
             Action = Actions.WAIT
         };
         var otherDirection = current.Direction * -1;
         yield return current with {
             Point = current.Point + otherDirection,
             Direction = otherDirection,
-            Turns = current.Turns - 4,
+            Turns = current.Turns + 4,
             Action = Actions.BLOCK
         };
         if (current.Elevators > 0) {
             yield return current with {
                 Point = current.Point + Point.UP,
-                Turns = current.Turns - 4,
+                Turns = current.Turns + 4,
                 Elevators = current.Elevators - 1,
                 Action = Actions.ELEVATOR
             };
@@ -133,30 +130,47 @@ static class Actions {
 record PathState(Point Point, Point Direction, int Elevators) {
     public int Turns { get; init; }
     public string? Action { get; init; }
+
+    public virtual bool Equals(PathState? other) {
+        if (other is null) {
+            return false;
+        }
+        if (ReferenceEquals(this, other)) {
+            return true;
+        }
+        return Point.Equals(other.Point)
+                && Direction.Equals(other.Direction)
+                && Elevators == other.Elevators;
+    }
+
+    public override int GetHashCode() {
+        return HashCode.Combine(Point, Direction, Elevators);
+    }
 }
 
 class Pathfinding(Grid grid) {
-    readonly Queue<Node> queue = new();
-    readonly HashSet<PathState> visited = new();
+    readonly PriorityQueue<Node, int> queue = new();
+    readonly Dictionary<PathState, int> visited = new();
 
-    /// BFS
+    /// Dijkstra
     public List<(Point point, string action)>? Path(PathState start, Point end) {
         queue.Clear();
         visited.Clear();
         var startNode = new Node(start);
-        queue.Enqueue(startNode);
-        visited.Add(start);
+        queue.Enqueue(startNode, 0);
+        visited.Add(start, 0);
         while (queue.Count > 0) {
             var current = queue.Dequeue();
             if (current.state.Point == end) {
                 return Reconstruct(startNode, current);
             }
             foreach (var nextState in grid.Next(current.state)) {
-                if (!visited.Add(nextState)) {
+                if (visited.TryGetValue(nextState, out int bestTurns) && nextState.Turns >= bestTurns) {
                     continue;
                 }
                 var next = new Node(nextState) { parent = current };
-                queue.Enqueue(next);
+                queue.Enqueue(next, nextState.Turns);
+                visited[nextState] = nextState.Turns;
             }
         }
         return null;
