@@ -1,55 +1,50 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 
 class Pathfinding<T> where T : INode<T> {
-    readonly List<T> path = new();
-    readonly Queue<PathNode> queue = new();
+    readonly Queue<T> queue = new();
+    readonly Dictionary<int, T> parents = new();
     readonly HashSet<int> visited = new();
 
     /// BFS to end
     public List<T>? Path(T start, T end) {
-        return Path(start, i => i == end.Id);
+        return Path(start, it => it.Id == end.Id);
     }
 
     /// BFS to endPredicate
-    public List<T>? Path(T start, Predicate<int> endPredicate) {
+    [SuppressMessage("ReSharper", "ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator")]
+    public List<T>? Path(T start, Predicate<T> endPredicate) {
         queue.Clear();
+        parents.Clear();
         visited.Clear();
-        var startNode = new PathNode(start);
-        queue.Enqueue(startNode);
+        queue.Enqueue(start);
         visited.Add(start.Id);
         while (queue.Count > 0) {
             var current = queue.Dequeue();
-            if (endPredicate(current.node.Id)) {
-                return Reconstruct(startNode, current);
+            if (endPredicate(current)) {
+                return Reconstruct(start, current);
             }
-            foreach (var node in current.node.Connections) {
-                if (visited.Contains(node.Id)) {
+            foreach (var next in current.Connections) {
+                if (!visited.Add(next.Id)) {
                     continue;
                 }
-                var neighbor = new PathNode(node) { parent = current };
-                queue.Enqueue(neighbor);
-                visited.Add(node.Id);
+                queue.Enqueue(next);
+                parents[next.Id] = current;
             }
         }
         return null;
     }
 
-    List<T> Reconstruct(PathNode start, PathNode end) {
-        path.Clear();
+    List<T> Reconstruct(T start, T end) {
+        var path = new List<T>();
         var current = end;
-        while (current != start) {
-            path.Add(current!.node);
-            current = current.parent;
+        while (current.Id != start.Id) {
+            path.Add(current);
+            current = parents[current.Id];
         }
         path.Reverse();
         return path;
-    }
-
-    // TODO: Replace with Dictionary<int, T> parents?
-    class PathNode(T node) {
-        public readonly T node = node;
-        public PathNode? parent;
     }
 }
 
