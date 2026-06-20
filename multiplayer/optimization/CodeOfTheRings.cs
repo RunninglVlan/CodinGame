@@ -13,7 +13,7 @@ static class CodeOfTheRings {
     }
 }
 
-class GameState {
+class GameState : IState {
     public const int RUNES = 30;
 
     public Rune[] Runes { get; }
@@ -34,12 +34,17 @@ class GameState {
         RuneIndex = from.RuneIndex;
     }
 
-    public override bool Equals(object? obj) {
-        if (obj is not GameState other) {
+    public bool Equals(IState? other) {
+        if (other is not GameState that) {
             return false;
         }
-        return RuneIndex == other.RuneIndex && Runes.AsSpan().SequenceEqual(other.Runes);
+        if (ReferenceEquals(this, that)) {
+            return true;
+        }
+        return RuneIndex == that.RuneIndex && Runes.AsSpan().SequenceEqual(that.Runes);
     }
+
+    public override bool Equals(object? other) => Equals(other as IState);
 
     [SuppressMessage("ReSharper", "NonReadonlyMemberInGetHashCode")]
     public override int GetHashCode() {
@@ -52,17 +57,39 @@ class GameState {
     }
 }
 
-public class Game(string phrase) {
-    readonly Pathfinding pathfinding = new();
+class Game : IGame<GameState> {
+    readonly string phrase;
+    readonly BeamSearch<GameState> beamSearch;
+    readonly ActionOption[] options;
 
-    public string SpellOutPhrase() {
-        ActionOption[] options = [
+    public Game(string phrase) {
+        this.phrase = phrase;
+        beamSearch = new(this);
+        options = [
             new ExactMatchOption(),
             new BestModificationOption(phrase),
             new EmptyRuneOption()
         ];
-        return pathfinding.Actions(new GameState(), options, phrase, beamWidth: 250)
+    }
+
+    public string SpellOutPhrase() {
+        return beamSearch.FindBest(new GameState(), phrase.Length, beamWidth: 250)?.Actions
                 ?? string.Empty;
+    }
+
+    public IEnumerable<(GameState, int cost)> Next(GameState current, int level) {
+        char targetChar = phrase[level];
+        foreach (var option in options) {
+            option.State.Load(current);
+            if (!option.Exists(targetChar)) {
+                continue;
+            }
+            string actions = option.Calculate(targetChar, level);
+            var next = new GameState();
+            next.Load(option.State);
+            next.Actions = current.Actions + actions + Action.ADD_CHAR;
+            yield return (next, next.Actions.Length);
+        }
     }
 }
 
@@ -222,27 +249,17 @@ static class Action {
     public const char MOVE_LEFT = '<';
 }
 
-class Pathfinding {
-    readonly HashSet<GameState> visited = new();
+class BeamSearch<T>(IGame<T> game) where T : class, IState {
+    readonly HashSet<T> visited = new();
 
-    /// Beam Search
-    public string? Actions(GameState start, ActionOption[] options, string target, int beamWidth = 10) {
-        var currentLevel = new List<GameState> { start };
-        for (var level = 0; level < target.Length; level++) {
-            char targetChar = target[level];
-            var nextLevel = new PriorityQueue<GameState, int>();
+    public T? FindBest(T start, int levels, int beamWidth = 10) {
+        var currentLevel = new List<T> { start };
+        for (var level = 0; level < levels; level++) {
+            var nextLevel = new PriorityQueue<T, int>();
             visited.Clear();
             foreach (var current in currentLevel) {
-                foreach (var option in options) {
-                    option.State.Load(current);
-                    if (!option.Exists(targetChar)) {
-                        continue;
-                    }
-                    string actions = option.Calculate(targetChar, level);
-                    var next = new GameState();
-                    next.Load(option.State);
-                    next.Actions = current.Actions + actions + Action.ADD_CHAR;
-                    nextLevel.Enqueue(next, next.Actions.Length);
+                foreach ((var next, int cost) in game.Next(current, level)) {
+                    nextLevel.Enqueue(next, cost);
                 }
             }
             currentLevel.Clear();
@@ -256,6 +273,12 @@ class Pathfinding {
                 return null;
             }
         }
-        return currentLevel.First().Actions;
+        return currentLevel.First();
     }
 }
+
+interface IGame<TState> {
+    IEnumerable<(TState, int cost)> Next(TState current, int level);
+}
+
+interface IState : IEquatable<IState>;
