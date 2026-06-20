@@ -2,9 +2,8 @@
 using System.Collections.Generic;
 
 class Pathfinding(Grid grid) {
-    readonly List<Point> path = new();
     readonly Queue<Node> queue = new();
-    readonly Dictionary<Point, Node> visited = new();
+    readonly HashSet<Point> visited = new();
 
     /// BFS to end
     public List<Point>? Path(Point start, Point end) {
@@ -17,29 +16,25 @@ class Pathfinding(Grid grid) {
         visited.Clear();
         var startNode = new Node(grid.Get(start));
         queue.Enqueue(startNode);
-        visited.Add(start, startNode);
+        visited.Add(start);
         while (queue.Count > 0) {
             var current = queue.Dequeue();
             if (endPredicate(current.cell)) {
                 return Reconstruct(startNode, current);
             }
-            foreach (var cell in grid.Neighbors(current.cell)) {
-                if (!cell.IsWalkable) {
+            foreach (var nextCell in grid.Next(current.cell)) {
+                if (!visited.Add(nextCell.point)) {
                     continue;
                 }
-                if (visited.ContainsKey(cell.point)) {
-                    continue;
-                }
-                var neighbor = new Node(cell) { parent = current };
-                queue.Enqueue(neighbor);
-                visited.Add(cell.point, neighbor);
+                var next = new Node(nextCell) { parent = current };
+                queue.Enqueue(next);
             }
         }
         return null;
     }
 
-    List<Point> Reconstruct(Node start, Node end) {
-        path.Clear();
+    static List<Point> Reconstruct(Node start, Node end) {
+        var path = new List<Point>();
         var current = end;
         while (current != start) {
             path.Add(current!.cell.point);
@@ -58,13 +53,12 @@ class Pathfinding(Grid grid) {
 /// Stub
 class Grid {
     public Cell Get(Point point) => throw new NotImplementedException();
-    public IEnumerable<Cell> Neighbors(Cell cell) => throw new NotImplementedException();
+    public IEnumerable<Cell> Next(Cell cell) => throw new NotImplementedException();
 }
 
 /// Stub
 class Cell(int x, int y) {
     public Point point = new(x, y);
-    public bool IsWalkable { get; }
 }
 
 /// Stub

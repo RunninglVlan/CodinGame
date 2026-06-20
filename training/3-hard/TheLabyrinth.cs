@@ -16,7 +16,7 @@ static class TheLabyrinth {
 }
 
 class Game {
-    readonly Maze maze;
+    readonly Grid maze;
     readonly Pathfinding pathfinding;
 
     /// number of rounds between the time the alarm countdown is activated and the time the alarm goes off
@@ -32,7 +32,7 @@ class Game {
         string[] inputs = Console.ReadLine()!.Split(' ');
         int height = int.Parse(inputs[0]);
         int width = int.Parse(inputs[1]);
-        maze = new Maze(width, height);
+        maze = new Grid(width, height);
         pathfinding = new(maze);
         alarmRounds = int.Parse(inputs[2]);
     }
@@ -83,8 +83,8 @@ class Game {
     }
 }
 
-class Maze {
-    public static Point[] FourDirections { get; } = [
+class Grid {
+    static Point[] FourDirections { get; } = [
         Point.RIGHT, Point.LEFT, Point.UP, Point.DOWN
     ];
 
@@ -94,7 +94,7 @@ class Maze {
     public Point start;
     public Point? controlRoom;
 
-    public Maze(int width, int height) {
+    public Grid(int width, int height) {
         this.width = width;
         this.height = height;
         cells = new Cell[width * height];
@@ -109,7 +109,7 @@ class Maze {
     Cell Get(int x, int y) => cells[width * y + x];
     public Cell Get(Point point) => Get(point.x, point.y);
 
-    public bool TryGet(Point point, out Cell cell) {
+    bool TryGet(Point point, out Cell cell) {
         cell = null!;
         if (point.x < 0 || point.x >= width || point.y < 0 || point.y >= height) {
             return false;
@@ -147,12 +147,24 @@ class Maze {
             }
         }
     }
+
+    public IEnumerable<Cell> Next(Cell cell) {
+        foreach (var direction in FourDirections) {
+            if (!TryGet(cell.point + direction, out var neighbor)) {
+                continue;
+            }
+            if (!neighbor.IsWalkable) {
+                continue;
+            }
+            yield return neighbor;
+        }
+    }
 }
 
 class Cell(int x, int y) {
     public Point point = new(x, y);
     public CellType type;
-    public bool IsWalkable => type is CellType.Empty or CellType.Start;
+    public bool IsWalkable => type is CellType.Empty or CellType.Start or CellType.Control or CellType.Unknown;
 }
 
 enum CellType {
@@ -206,10 +218,9 @@ static class Action {
     };
 }
 
-class Pathfinding(Maze maze) {
-    readonly List<Point> path = new();
-    readonly Queue<PathNode> queue = new();
-    readonly Dictionary<Point, PathNode> visited = new();
+class Pathfinding(Grid grid) {
+    readonly Queue<Node> queue = new();
+    readonly HashSet<Point> visited = new();
 
     /// BFS to end
     public List<Point>? Path(Point start, Point end) {
@@ -220,35 +231,27 @@ class Pathfinding(Maze maze) {
     public List<Point>? Path(Point start, Predicate<Cell> endPredicate) {
         queue.Clear();
         visited.Clear();
-        var startNode = new PathNode(maze.Get(start));
+        var startNode = new Node(grid.Get(start));
         queue.Enqueue(startNode);
-        visited.Add(start, startNode);
+        visited.Add(start);
         while (queue.Count > 0) {
             var current = queue.Dequeue();
             if (endPredicate(current.cell)) {
                 return Reconstruct(startNode, current);
             }
-            foreach (var direction in Maze.FourDirections) {
-                var neighborPoint = current.cell.point + direction;
-                if (!maze.TryGet(neighborPoint, out var cell)) {
+            foreach (var nextCell in grid.Next(current.cell)) {
+                if (!visited.Add(nextCell.point)) {
                     continue;
                 }
-                if (!cell.IsWalkable && !endPredicate(cell)) {
-                    continue;
-                }
-                if (visited.ContainsKey(cell.point)) {
-                    continue;
-                }
-                var neighbor = new PathNode(cell) { parent = current };
-                queue.Enqueue(neighbor);
-                visited.Add(cell.point, neighbor);
+                var next = new Node(nextCell) { parent = current };
+                queue.Enqueue(next);
             }
         }
         return null;
     }
 
-    List<Point> Reconstruct(PathNode start, PathNode end) {
-        path.Clear();
+    static List<Point> Reconstruct(Node start, Node end) {
+        var path = new List<Point>();
         var current = end;
         while (current != start) {
             path.Add(current!.cell.point);
@@ -257,9 +260,9 @@ class Pathfinding(Maze maze) {
         path.Reverse();
         return path;
     }
-}
 
-class PathNode(Cell cell) {
-    public readonly Cell cell = cell;
-    public PathNode? parent;
+    class Node(Cell cell) {
+        public readonly Cell cell = cell;
+        public Node? parent;
+    }
 }
