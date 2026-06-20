@@ -23,7 +23,7 @@ class Game {
     Point end;
     int additionalElevators;
     Dictionary<Point, string>? path;
-    readonly HashSet<Point> visited = new();
+    readonly HashSet<Point> used = new();
 
     [SuppressMessage("ReSharper", "UnusedVariable")]
     public void Init() {
@@ -63,14 +63,14 @@ class Game {
         }
         if (path == null) {
             var start = new PathState(point, leadingCloneDirection, additionalElevators);
-            var valueTuples = pathfinding.Path(start, end);
-            path = valueTuples!.ToDictionary(it => it.point, it => it.action);
+            path = pathfinding.Path(start, end)!.ToDictionary(it => it.point, it => it.action);
+            path[end] = Actions.WAIT;
         }
-        if (!visited.Add(point) || !path.TryGetValue(point, out string? action)) {
+        if (!used.Add(point)) {
             Console.WriteLine(Actions.WAIT);
             return;
         }
-        Console.WriteLine(action);
+        Console.WriteLine(path[point]);
     }
 }
 
