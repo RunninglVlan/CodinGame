@@ -51,7 +51,7 @@ public class Grid {
         Point.RIGHT, Point.LEFT, Point.UP, Point.DOWN
     ];
 
-    public static Point[] EightDirections { get; } = [
+    static Point[] EightDirections { get; } = [
         Point.RIGHT, Point.LEFT, Point.UP, Point.DOWN,
         new(1, 1), new(-1, 1), new(1, -1), new(-1, -1)
     ];
@@ -147,6 +147,50 @@ public class Grid {
     }
 
     bool IsOutside(int x, int y) => x < 0 || x >= width || y < 0 || y >= height;
+
+    [SuppressMessage("ReSharper", "LoopCanBeConvertedToQuery")]
+    public IEnumerable<(Cell, int)> Next(Point point, Point end) {
+        foreach (var direction in FourDirections) {
+            var cell = Get(point + direction);
+            if (cell.IsEmpty || cell.type == CellType.Power && cell.point == end) {
+                yield return (cell, NewGCost(cell));
+            }
+        }
+    }
+
+    int NewGCost(Cell cell) {
+        if (cell.type == CellType.Power) {
+            return 0;
+        }
+        var cost = 10;
+        for (var distance = 1; distance <= 3; distance++) {
+            var pointBelow = cell.point + new Point(0, distance);
+            // prefer ledges
+            if (Get(pointBelow).type != CellType.Platform) {
+                continue;
+            }
+            cost = distance;
+            break;
+        }
+        if (IsOpponentNearby(cell.point)) {
+            cost += 20;
+        }
+        if (cell.type == CellType.EmptySide) {
+            cost += 20;
+        }
+        return cost;
+    }
+
+    [SuppressMessage("ReSharper", "LoopCanBeConvertedToQuery")]
+    bool IsOpponentNearby(Point point) {
+        foreach (var direction in EightDirections) {
+            var neighborPoint = point + direction;
+            if (Get(neighborPoint).type == CellType.EnemySnakeHead) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     /// For copying challenge parameters and using them in local tests
     public override string ToString() {
@@ -450,22 +494,21 @@ static class Action {
 }
 
 public class Pathfinding(Grid grid) {
-    readonly Dictionary<Point, PathNode> nodes = new();
-    readonly List<Point> path = new();
-    readonly PriorityQueue<PathNode, int> openQueue = new();
+    readonly Dictionary<Point, Node> nodes = new();
+    readonly PriorityQueue<Node, int> queue = new();
 
     /// A*
     public (List<Point>?, int cost) Path(Point start, Point end) {
         nodes.Clear();
-        openQueue.Clear();
-        var startNode = new PathNode(start) {
+        queue.Clear();
+        var startNode = new Node(start) {
             gCost = 0,
             hCost = Point.ManhattanDistance(start, end)
         };
         nodes.Add(start, startNode);
-        openQueue.Enqueue(startNode, startNode.Priority);
-        while (openQueue.Count > 0) {
-            var current = openQueue.Dequeue();
+        queue.Enqueue(startNode, startNode.Priority);
+        while (queue.Count > 0) {
+            var current = queue.Dequeue();
             // ignore stale nodes
             if (current.isClosed) {
                 continue;
@@ -476,69 +519,30 @@ public class Pathfinding(Grid grid) {
                 return (Reconstruct(startNode, current), current.gCost);
             }
 
-            foreach (var direction in Grid.FourDirections) {
-                var neighborPoint = current.point + direction;
-                var cell = grid.Get(neighborPoint);
-                if (!cell.IsEmpty && (cell.type != CellType.Power || cell.point != end)) {
-                    continue;
-                }
+            foreach ((var cell, int cellGCost) in grid.Next(current.point, end)) {
                 if (!nodes.TryGetValue(cell.point, out var neighbor)) {
-                    neighbor = new PathNode(cell.point);
+                    neighbor = new Node(cell.point);
                     nodes.Add(cell.point, neighbor);
                 }
                 if (neighbor.isClosed) {
                     continue;
                 }
-                int gCost = current.gCost + NewGCost(cell);
+                int gCost = current.gCost + cellGCost;
                 if (gCost >= neighbor.gCost && neighbor.isOpen) {
                     continue;
                 }
                 neighbor.gCost = gCost;
-                neighbor.hCost = Point.ManhattanDistance(neighborPoint, end);
+                neighbor.hCost = Point.ManhattanDistance(cell.point, end);
                 neighbor.parent = current;
-                openQueue.Enqueue(neighbor, neighbor.Priority);
+                queue.Enqueue(neighbor, neighbor.Priority);
                 neighbor.isOpen = true;
             }
         }
         return (null, int.MaxValue);
     }
 
-    int NewGCost(Cell cell) {
-        if (cell.type == CellType.Power) {
-            return 0;
-        }
-        var cost = 10;
-        for (var distance = 1; distance <= 3; distance++) {
-            var pointBelow = cell.point + new Point(0, distance);
-            // prefer ledges
-            if (grid.Get(pointBelow).type != CellType.Platform) {
-                continue;
-            }
-            cost = distance;
-            break;
-        }
-        if (IsOpponentNearby(cell.point)) {
-            cost += 20;
-        }
-        if (cell.type == CellType.EmptySide) {
-            cost += 20;
-        }
-        return cost;
-    }
-
-    [SuppressMessage("ReSharper", "LoopCanBeConvertedToQuery")]
-    bool IsOpponentNearby(Point point) {
-        foreach (var direction in Grid.EightDirections) {
-            var neighborPoint = point + direction;
-            if (grid.Get(neighborPoint).type == CellType.EnemySnakeHead) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    List<Point> Reconstruct(PathNode start, PathNode end) {
-        path.Clear();
+    static List<Point> Reconstruct(Node start, Node end) {
+        var path = new List<Point>();
         var current = end;
         while (current != start) {
             path.Add(current!.point);
@@ -547,23 +551,23 @@ public class Pathfinding(Grid grid) {
         path.Reverse();
         return path;
     }
-}
 
-class PathNode(Point point) {
-    public Point point = point;
+    class Node(Point point) {
+        public readonly Point point = point;
 
-    /// Distance from start
-    public int gCost = int.MaxValue;
+        /// Distance from start
+        public int gCost = int.MaxValue;
 
-    /// Distance to end
-    public int hCost = int.MaxValue;
+        /// Distance to end
+        public int hCost = int.MaxValue;
 
-    public PathNode? parent;
-    public bool isOpen;
-    public bool isClosed;
+        public Node? parent;
+        public bool isOpen;
+        public bool isClosed;
 
-    int FCost => gCost + hCost;
+        int FCost => gCost + hCost;
 
-    /// Order by FCost, then hCost
-    public int Priority => FCost * 1000 + hCost;
+        /// Order by FCost, then hCost
+        public int Priority => FCost * 1000 + hCost;
+    }
 }
