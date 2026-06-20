@@ -20,9 +20,11 @@ static class DoNotPanic2 {
 class Game {
     Grid drive = null!;
     Pathfinding pathfinding = null!;
-    Cell end = null!;
-    int turns;
+    Point end;
+    int maxTurns;
     int additionalElevators;
+    Dictionary<Point, string>? path;
+    readonly HashSet<Point> visited = new();
 
     [SuppressMessage("ReSharper", "UnusedVariable")]
     public void Init() {
@@ -31,11 +33,11 @@ class Game {
         int width = Math.Clamp(int.Parse(inputs[1]), 5, 100);
         drive = new Grid(width, floors);
         pathfinding = new Pathfinding(drive);
-        turns = Math.Clamp(int.Parse(inputs[2]), 10, 200);
+        maxTurns = Math.Clamp(int.Parse(inputs[2]), 10, 200);
         int exitFloor = Math.Clamp(int.Parse(inputs[3]), 0, floors);
         int exitX = Math.Clamp(int.Parse(inputs[4]), 0, width);
-        end = drive.Get(exitX, exitFloor);
-        end.type = CellType.Exit;
+        end = new Point(exitX, exitFloor);
+        drive.Set(end, CellType.Exit);
         int clones = Math.Clamp(int.Parse(inputs[5]), 2, 50);
         additionalElevators = int.Parse(inputs[6]);
         Console.Error.WriteLine($"additionalElevators: {additionalElevators}");
@@ -44,7 +46,8 @@ class Game {
             inputs = Console.ReadLine()!.Split(' ');
             int elevatorFloor = Math.Clamp(int.Parse(inputs[0]), 0, floors);
             int elevatorX = Math.Clamp(int.Parse(inputs[1]), 0, width);
-            drive.Get(elevatorX, elevatorFloor).type = CellType.Elevator;
+            var elevator = new Point(elevatorX, elevatorFloor);
+            drive.Set(elevator, CellType.Elevator);
         }
     }
 
@@ -52,119 +55,67 @@ class Game {
         string[] inputs = Console.ReadLine()!.Split(' ');
         int leadingCloneFloor = Math.Clamp(int.Parse(inputs[0]), -1, drive.Floors);
         int leadingCloneX = Math.Clamp(int.Parse(inputs[1]), -1, drive.Width);
+        var point = new Point(leadingCloneX, leadingCloneFloor);
         var leadingCloneDirection = inputs[2] == "LEFT" ? Point.LEFT : Point.RIGHT;
-        Console.WriteLine(ChooseAction(leadingCloneX, leadingCloneFloor, leadingCloneDirection));
-        turns--;
-    }
-
-    string ChooseAction(int x, int floor, Point direction) {
-        bool noLeadingClone = floor < 0;
+        bool noLeadingClone = leadingCloneFloor < 0;
         if (noLeadingClone) {
-            return Actions.WAIT;
+            Console.WriteLine(Actions.WAIT);
+            return;
         }
-        var targets = drive.GetFloor(floor).Where(it => it.type is CellType.Elevator or CellType.Exit).ToArray();
-        if (TryBuildElevator(targets, x, floor, direction)) {
-            return Actions.ELEVATOR;
-        }
-        int target = targets
-                .Select(it => it.point.X)
-                .MinBy(targetX => {
-                    int distance = Math.Abs(targetX - x);
-                    bool sameDirection = targetX < x && direction == Point.LEFT
-                            || targetX > x && direction == Point.RIGHT;
-                    return (distance, !sameDirection);
-                });
-        return BlockIfMovingInWrongDirection(x, target, direction);
-    }
-
-    bool TryBuildElevator(Cell[] targets, int x, int floor, Point direction) {
-        const int elevatorCost = 3;
-        if (targets.Length == 0 && additionalElevators > 0) {
-            additionalElevators--;
-            drive.Get(x, floor).type = CellType.Elevator;
-            return true;
-        }
-        if (additionalElevators <= 0 || drive.Get(x, floor).type != CellType.Empty) {
-            return false;
-        }
-        var start = new Point(x, floor);
-        var withoutPath = pathfinding.Path(start, end.point);
-        int? without = CountPath(start, withoutPath, direction);
-        drive.Get(start).type = CellType.Elevator;
-        var withPath = pathfinding.Path(start, end.point);
-        int? with = CountPath(start, withPath, direction);
-        if (with < without && with + elevatorCost < turns) {
-            additionalElevators--;
-            return true;
-        }
-        drive.Get(start).type = CellType.Empty;
-        return false;
-    }
-
-    static int? CountPath(Point current, List<Point>? path, Point direction) {
-        const int blockCost = 3;
         if (path == null) {
-            return null;
+            var start = new PathState(point, leadingCloneDirection, additionalElevators) {
+                Turns = maxTurns
+            };
+            var valueTuples = pathfinding.Path(start, end);
+            path = valueTuples!.ToDictionary(it => it.point, it => it.action);
         }
-        var count = 0;
-        foreach (var next in path) {
-            var nextExpected = current + direction;
-            count++;
-            if (next == nextExpected || next.X == current.X) {
-            } else {
-                direction = direction == Point.LEFT ? Point.RIGHT : Point.LEFT;
-                count += blockCost;
-            }
-            current = next;
+        if (!visited.Add(point) || !path.TryGetValue(point, out string? action)) {
+            Console.WriteLine(Actions.WAIT);
+            return;
         }
-        return count;
-    }
-
-    static string BlockIfMovingInWrongDirection(int x, int target, Point direction) {
-        if (target < x) {
-            return direction == Point.RIGHT ? Actions.BLOCK : Actions.WAIT;
-        }
-        if (target > x) {
-            return direction == Point.LEFT ? Actions.BLOCK : Actions.WAIT;
-        }
-        return Actions.WAIT;
+        Console.WriteLine(action);
     }
 }
 
-class Grid {
-    public int Width { get; }
-    public int Floors { get; }
-    readonly Cell[,] cells;
+record Grid(int Width, int Floors) {
+    readonly CellType[,] cells = new CellType[Width, Floors];
 
-    public Grid(int width, int floors) {
-        Width = width;
-        Floors = floors;
-        cells = new Cell[width, floors];
-        for (var floor = 0; floor < floors; floor++) {
-            for (var x = 0; x < width; x++) {
-                cells[x, floor] = new Cell(x, floor);
-            }
+    public void Set(Point point, CellType type) => cells[point.X, point.Y] = type;
+    CellType Get(Point point) => cells[point.X, point.Y];
+
+    public IEnumerable<PathState> Next(PathState current) {
+        if (!current.Point.InBounds(Width, Floors) || current.Turns <= 0) {
+            yield break;
+        }
+        if (Get(current.Point) == CellType.Elevator) {
+            yield return current with {
+                Point = current.Point + Point.UP,
+                Turns = current.Turns - 1,
+                Action = Actions.WAIT
+            };
+            yield break;
+        }
+        yield return current with {
+            Point = current.Point + current.Direction,
+            Turns = current.Turns - 1,
+            Action = Actions.WAIT
+        };
+        var otherDirection = current.Direction * -1;
+        yield return current with {
+            Point = current.Point + otherDirection,
+            Direction = otherDirection,
+            Turns = current.Turns - 4,
+            Action = Actions.BLOCK
+        };
+        if (current.Elevators > 0) {
+            yield return current with {
+                Point = current.Point + Point.UP,
+                Turns = current.Turns - 4,
+                Elevators = current.Elevators - 1,
+                Action = Actions.ELEVATOR
+            };
         }
     }
-
-    public Cell Get(int x, int floor) => cells[x, floor];
-    public Cell Get(Point point) => Get(point.X, point.Y);
-
-    public IEnumerable<Cell> GetFloor(int y) {
-        for (var x = 0; x < Width; x++) {
-            yield return cells[x, y];
-        }
-    }
-
-    public IEnumerable<Cell> Neighbors(Cell cell) => Point.Directions4.Select(it => cell.point + it)
-            .Where(it => it.InBounds(Width, Floors))
-            .Where(it => cell.type == CellType.Elevator ? it.Y > cell.point.Y : it.Y == cell.point.Y)
-            .Select(Get);
-}
-
-class Cell(int x, int y) {
-    public Point point = new(x, y);
-    public CellType type = CellType.Empty;
 }
 
 enum CellType {
@@ -179,47 +130,52 @@ static class Actions {
     public const string ELEVATOR = "ELEVATOR";
 }
 
+record PathState(Point Point, Point Direction, int Elevators) {
+    public int Turns { get; init; }
+    public string? Action { get; init; }
+}
+
 class Pathfinding(Grid grid) {
     readonly Queue<Node> queue = new();
-    readonly Dictionary<Point, Node> visited = new();
+    readonly HashSet<PathState> visited = new();
 
     /// BFS
-    public List<Point>? Path(Point start, Point end) {
+    public List<(Point point, string action)>? Path(PathState start, Point end) {
         queue.Clear();
         visited.Clear();
-        var startNode = new Node(grid.Get(start));
+        var startNode = new Node(start);
         queue.Enqueue(startNode);
-        visited.Add(start, startNode);
+        visited.Add(start);
         while (queue.Count > 0) {
             var current = queue.Dequeue();
-            if (current.cell.point == end) {
+            if (current.state.Point == end) {
                 return Reconstruct(startNode, current);
             }
-            foreach (var cell in grid.Neighbors(current.cell)) {
-                if (visited.ContainsKey(cell.point)) {
+            foreach (var nextState in grid.Next(current.state)) {
+                if (!visited.Add(nextState)) {
                     continue;
                 }
-                var neighbor = new Node(cell) { parent = current };
-                queue.Enqueue(neighbor);
-                visited.Add(cell.point, neighbor);
+                var next = new Node(nextState) { parent = current };
+                queue.Enqueue(next);
             }
         }
         return null;
     }
 
-    static List<Point> Reconstruct(Node start, Node end) {
-        var path = new List<Point>();
+    static List<(Point, string)> Reconstruct(Node start, Node end) {
+        var path = new List<(Point, string)>();
         var current = end;
         while (current != start) {
-            path.Add(current!.cell.point);
+            string action = current.state.Action!;
             current = current.parent;
+            path.Add((current!.state.Point, action));
         }
         path.Reverse();
         return path;
     }
 
-    class Node(Cell cell) {
-        public readonly Cell cell = cell;
+    class Node(PathState state) {
+        public readonly PathState state = state;
         public Node? parent;
     }
 }
@@ -230,13 +186,12 @@ readonly record struct Point(int X, int Y) {
     public static readonly Point LEFT = new(-1, 0);
     public static readonly Point RIGHT = new(1, 0);
 
-    public static Point[] Directions4 { get; } = [RIGHT, LEFT, UP, DOWN];
-
     public bool InBounds(int width, int height) {
         return X >= 0 && X < width && Y >= 0 && Y < height;
     }
 
     public static Point operator +(Point a, Point b) => new(a.X + b.X, a.Y + b.Y);
+    public static Point operator *(Point a, int value) => new(a.X * value, a.Y * value);
 
     public override string ToString() => $"({X}, {Y})";
 }
