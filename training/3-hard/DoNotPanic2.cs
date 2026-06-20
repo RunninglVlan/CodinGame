@@ -19,7 +19,7 @@ static class DoNotPanic2 {
 
 class Game {
     Grid drive = null!;
-    Pathfinding pathfinding = null!;
+    Pathfinding<GameState> pathfinding = null!;
     Point end;
     int additionalElevators;
     Dictionary<Point, string>? path;
@@ -31,7 +31,7 @@ class Game {
         int floors = Math.Clamp(int.Parse(inputs[0]), 1, 15);
         int width = Math.Clamp(int.Parse(inputs[1]), 5, 100);
         drive = new Grid(width, floors);
-        pathfinding = new Pathfinding(drive);
+        pathfinding = new Pathfinding<GameState>(drive);
         int maxTurns = Math.Clamp(int.Parse(inputs[2]), 10, 200);
         int exitFloor = Math.Clamp(int.Parse(inputs[3]), 0, floors);
         int exitX = Math.Clamp(int.Parse(inputs[4]), 0, width);
@@ -62,7 +62,7 @@ class Game {
             return;
         }
         if (path == null) {
-            var start = new PathState(point, leadingCloneDirection, additionalElevators);
+            var start = new GameState(point, leadingCloneDirection, additionalElevators);
             path = pathfinding.Path(start, end)!.ToDictionary(it => it.point, it => it.action);
             path[end] = Actions.WAIT;
         }
@@ -74,13 +74,13 @@ class Game {
     }
 }
 
-record Grid(int Width, int Floors) {
+record Grid(int Width, int Floors) : IGraph<GameState> {
     readonly CellType[,] cells = new CellType[Width, Floors];
 
     public void Set(Point point, CellType type) => cells[point.X, point.Y] = type;
     CellType Get(Point point) => cells[point.X, point.Y];
 
-    public IEnumerable<(PathState, int turns)> Next(PathState current) {
+    public IEnumerable<(GameState, int cost)> Next(GameState current) {
         if (!current.Point.InBounds(Width, Floors)) {
             yield break;
         }
@@ -123,10 +123,10 @@ static class Actions {
     public const string ELEVATOR = "ELEVATOR";
 }
 
-record PathState(Point Point, Point Direction, int Elevators) {
-    public string? Action { get; init; }
+record GameState(Point Point, Point Direction, int Elevators) : IState {
+    public string Action { get; init; } = string.Empty;
 
-    public virtual bool Equals(PathState? other) {
+    public virtual bool Equals(GameState? other) {
         if (other is null) {
             return false;
         }
@@ -138,44 +138,48 @@ record PathState(Point Point, Point Direction, int Elevators) {
                 && Elevators == other.Elevators;
     }
 
+    public bool Equals(IState? other) => Equals(other as GameState);
+
     public override int GetHashCode() {
         return HashCode.Combine(Point, Direction, Elevators);
     }
 }
 
-class Pathfinding(Grid grid) {
+class Pathfinding<T>(IGraph<T> graph) where T : IState {
     readonly PriorityQueue<Node, int> queue = new();
-    readonly Dictionary<PathState, int> visited = new();
+    readonly Dictionary<T, int> visited = new();
 
     /// Dijkstra
-    public List<(Point point, string action)>? Path(PathState start, Point end) {
+    public List<(Point point, string action)>? Path(T start, Point end) {
         queue.Clear();
         visited.Clear();
         var startNode = new Node(start);
         queue.Enqueue(startNode, 0);
         visited.Add(start, 0);
-        while (queue.TryDequeue(out var current, out int currentTurns)) {
+        while (queue.TryDequeue(out var current, out int currentCost)) {
             if (current.state.Point == end) {
                 return Reconstruct(startNode, current);
             }
-            foreach ((var nextState, int turns) in grid.Next(current.state)) {
-                int newTurns = currentTurns + turns;
-                if (newTurns >= visited.GetValueOrDefault(nextState, int.MaxValue)) {
+            foreach ((var nextState, int cost) in graph.Next(current.state)) {
+                int newCost = currentCost + cost;
+                if (newCost >= visited.GetValueOrDefault(nextState, int.MaxValue)) {
                     continue;
                 }
                 var next = new Node(nextState) { parent = current };
-                queue.Enqueue(next, newTurns);
-                visited[nextState] = newTurns;
+                queue.Enqueue(next, newCost);
+                visited[nextState] = newCost;
             }
         }
         return null;
     }
 
+    /// Constructs path from start to end consisting of actions
+    /// that need to happen at specific point to get to the next point
     static List<(Point, string)> Reconstruct(Node start, Node end) {
         var path = new List<(Point, string)>();
         var current = end;
         while (current != start) {
-            string action = current.state.Action!;
+            string action = current.state.Action;
             current = current.parent;
             path.Add((current!.state.Point, action));
         }
@@ -183,10 +187,19 @@ class Pathfinding(Grid grid) {
         return path;
     }
 
-    class Node(PathState state) {
-        public readonly PathState state = state;
+    class Node(T state) {
+        public readonly T state = state;
         public Node? parent;
     }
+}
+
+interface IGraph<TState> {
+    IEnumerable<(TState, int cost)> Next(TState current);
+}
+
+interface IState : IEquatable<IState> {
+    Point Point { get; }
+    string Action { get; }
 }
 
 readonly record struct Point(int X, int Y) {
