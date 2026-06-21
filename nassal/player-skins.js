@@ -103,7 +103,7 @@ async function runPlayerProcessor(durationMs, anchorOffset) {
 
 runPlayerProcessor(12_000, 460);
 
-function runScreensaver() {
+function runScreensaver(holdTime = 10000, fadeIn = 1200, fadeOut = 800) {
     const images = [
         "/assets/Ara_1-CkFafYHh.webp",
         "/assets/Ara_2-BDRrl0qB.webp",
@@ -143,10 +143,11 @@ function runScreensaver() {
         "/assets/Zu_3-CDgYhke-.webp"
     ];
 
-    const HOLD_TIME = 10000;
-    const FADE_OUT = 800;
+    const HOLD_TIME = holdTime;
+    const FADE_OUT = fadeOut;
+    const FADE_IN = fadeIn;
 
-    let currentIndex = 0;
+    let ssCurrentIndex = 0;
     let ssTimer = null;
     let ssOverlay = null;
 
@@ -156,8 +157,8 @@ function runScreensaver() {
     ssOverlay.className = 'screensaver';
     ssOverlay.style.cssText = `
         position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        z-index: 9999; background: black; pointer-events: all;
-        --screensaver-fade-in-ms: 1200ms;
+        z-index: 9999; background: white; pointer-events: all;
+        --screensaver-fade-in-ms: ${FADE_IN}ms;
         --screensaver-fade-out-ms: ${FADE_OUT}ms;
     `;
 
@@ -179,16 +180,21 @@ function runScreensaver() {
     function showNext() {
         if (!ssOverlay) return;
 
-        const url = images[currentIndex];
-        currentIndex = (currentIndex + 1) % images.length;
-        const side = currentIndex % 2 === 0 ? 'left' : 'right';
+        const url = images[ssCurrentIndex];
+        ssCurrentIndex = (ssCurrentIndex + 1) % images.length;
+        const side = ssCurrentIndex % 2 === 0 ? 'left' : 'right';
 
         ssOverlay.innerHTML = `
             <div class="screensaver__stage">
                 <div class="screensaver__frame screensaver__frame--${side}">
                     <div class="screensaver__zoom">
-                        <img class="screensaver__image" src="${url}" style="opacity: 0; transition: opacity 1.2s">
+                        <img class="screensaver__image" src="${url}" style="opacity: 0; transition: opacity ${FADE_IN}ms">
                     </div>
+                </div>
+            </div>
+            <div class="screensaver__brand">
+                <div class="site-brand-container">
+                    <img alt="Nassal" class="site-brand-image" src="/assets/nassal-Cc58TuAC.webp">
                 </div>
             </div>
         `;
