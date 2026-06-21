@@ -16,32 +16,21 @@
 
     var steps = avatarDots.length;
 
-    // -----------------------------
-    // RESET AVATAR (stable but simple)
-    // -----------------------------
+    // RESET AVATAR
     for (var i = 0; i < steps; i++) {
         backBtn.click();
         await new Promise(r => requestAnimationFrame(r));
     }
 
-    // -----------------------------
     // LET LAYOUT SETTLE (ONCE)
-    // -----------------------------
     await new Promise(r => requestAnimationFrame(r));
 
-    // -----------------------------
-    // YOUR ORIGINAL WORKING ANCHOR LOGIC
-    // -----------------------------
     var baseScroll = anchor.offsetTop - scroller.offsetTop;
-
-    // optional: start above anchor
     var startScroll = Math.max(0, baseScroll - offsetAboveAnchor);
 
     scroller.scrollTop = startScroll;
 
-    // -----------------------------
     // ANIMATION SETUP
-    // -----------------------------
     var startTime = performance.now();
     var lastStep = -1;
 
