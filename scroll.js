@@ -91,10 +91,8 @@ async function runPlayerProcessor(durationMs, anchorOffset) {
 
         await syncScrollAndAvatar(durationMs, anchorOffset);
 
-        const secondaryClickables = document.querySelectorAll('.title-clickable');
-        if (secondaryClickables.length > 1) {
-            secondaryClickables[1].click();
-        }
+        const back = document.querySelector('.title-right');
+        back.click();
 
         // Brief pause between players to allow the list page to load/settle
         await new Promise(r => setTimeout(r, 500));
