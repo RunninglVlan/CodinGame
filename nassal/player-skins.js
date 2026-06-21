@@ -103,7 +103,7 @@ async function runPlayerProcessor(durationMs, anchorOffset) {
 
 runPlayerProcessor(12_000, 460);
 
-function runScreensaver(holdTime = 10000, fadeIn = 1200, fadeOut = 800) {
+function runScreensaver(displayTime = 2000) {
     const images = [
         "/assets/Ara_1-CkFafYHh.webp",
         "/assets/Ara_2-BDRrl0qB.webp",
@@ -143,9 +143,11 @@ function runScreensaver(holdTime = 10000, fadeIn = 1200, fadeOut = 800) {
         "/assets/Zu_3-CDgYhke-.webp"
     ];
 
-    const HOLD_TIME = holdTime;
-    const FADE_OUT = fadeOut;
-    const FADE_IN = fadeIn;
+    // Use displayTime as the full duration.
+    // Fades are kept consistent with the site (1.2s and 0.8s) unless displayTime is very short.
+    const FADE_IN = Math.min(1200, displayTime * 0.3);
+    const FADE_OUT = Math.min(800, displayTime * 0.2);
+    const HOLD_TIME = Math.max(0, displayTime - FADE_OUT);
 
     let ssCurrentIndex = 0;
     let ssTimer = null;
