@@ -103,4 +103,4 @@ async function runPlayerProcessor(durationMs, anchorOffset) {
     console.log('Finished processing all players.');
 }
 
-runPlayerProcessor(1000, 460);
+runPlayerProcessor(12_000, 460);
