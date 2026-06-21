@@ -56,7 +56,8 @@
         scroller.scrollTop = startScroll * (1 - e);
 
         // Map linear t (0 to 1) to step index (0 to steps - 1)
-        var currentStep = Math.floor(t * (steps - 1));
+        // Using Math.floor(t * steps) ensures each avatar gets 1/steps of the duration
+        var currentStep = Math.min(steps - 1, Math.floor(t * steps));
 
         if (currentStep > lastStep) {
             lastStep = currentStep;
