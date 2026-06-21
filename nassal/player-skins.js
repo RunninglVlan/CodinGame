@@ -164,6 +164,16 @@ function runScreensaver(displayTime = 2000) {
         --screensaver-fade-out-ms: ${FADE_OUT}ms;
     `;
 
+    // Initialize the static structure once
+    ssOverlay.innerHTML = `
+        <div class="screensaver__stage"></div>
+        <div class="screensaver__brand">
+            <div class="site-brand-container">
+                <img alt="Nassal" class="site-brand-image" src="/assets/nassal-Cc58TuAC.webp">
+            </div>
+        </div>
+    `;
+
     const close = () => {
         if (!ssOverlay) return;
         clearTimeout(ssTimer);
@@ -186,22 +196,16 @@ function runScreensaver(displayTime = 2000) {
         ssCurrentIndex = (ssCurrentIndex + 1) % images.length;
         const side = ssCurrentIndex % 2 === 0 ? 'left' : 'right';
 
-        ssOverlay.innerHTML = `
-            <div class="screensaver__stage">
-                <div class="screensaver__frame screensaver__frame--${side}">
-                    <div class="screensaver__zoom">
-                        <img class="screensaver__image" src="${url}" style="opacity: 0; transition: opacity ${FADE_IN}ms">
-                    </div>
-                </div>
-            </div>
-            <div class="screensaver__brand">
-                <div class="site-brand-container">
-                    <img alt="Nassal" class="site-brand-image" src="/assets/nassal-Cc58TuAC.webp">
+        const stage = ssOverlay.querySelector('.screensaver__stage');
+        stage.innerHTML = `
+            <div class="screensaver__frame screensaver__frame--${side}">
+                <div class="screensaver__zoom">
+                    <img class="screensaver__image" src="${url}" style="opacity: 0; transition: opacity ${FADE_IN}ms">
                 </div>
             </div>
         `;
 
-        const img = ssOverlay.querySelector('.screensaver__image');
+        const img = stage.querySelector('.screensaver__image');
         requestAnimationFrame(() => { if (img) img.style.opacity = '1'; });
 
         ssTimer = setTimeout(() => {
