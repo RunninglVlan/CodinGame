@@ -20,13 +20,12 @@ class Game {
     readonly Landing landing = null!;
 
     public Game() {
-        // 2 ≤ number < 30
-        int numberOfSurfacePoints = int.Parse(Console.ReadLine()!);
+        int numberOfSurfacePoints = Math.Clamp(int.Parse(Console.ReadLine()!), 2, 30 - 1);
         Point? previousPoint = null;
         for (var i = 0; i < numberOfSurfacePoints; i++) {
             string[] position = Console.ReadLine()!.Split(' ');
             var point = Point.From(position[0], position[1]);
-            if (previousPoint == null || point.y != previousPoint.Value.y) {
+            if (previousPoint == null || point.Y != previousPoint.Value.Y) {
                 previousPoint = point;
                 continue;
             }
@@ -56,28 +55,26 @@ class Game {
         string[] inputs = Console.ReadLine()!.Split(' ');
         var point = Point.From(inputs[0], inputs[1]);
         var speed = Speed.From(inputs[2], inputs[3]);
-        // 0 ≤ fuel ≤ 2000
-        int fuel = int.Parse(inputs[4]);
-        // -90 (right) ≤ angle ≤ 90 (left)
-        int angle = int.Parse(inputs[5]);
-        // 0 ≤ power ≤ 4
-        int power = int.Parse(inputs[6]);
+        int fuel = Math.Clamp(int.Parse(inputs[4]), 0, 2000);
+        // negative is right, positive is left
+        int angle = Math.Clamp(int.Parse(inputs[5]), -90, 90);
+        int power = Math.Clamp(int.Parse(inputs[6]), 0, 4);
         return (point, speed, fuel, new Control(angle, power));
     }
 
     /// DFS
     static (Control control, double score) FindBest(Vector p, Vector v, Control current, Vector target, int depth) {
         if (depth == 0) {
-            double distanceX = Math.Abs(p.x - target.x);
-            double distanceY = Math.Abs(p.y - target.y);
+            double distanceX = Math.Abs(p.X - target.X);
+            double distanceY = Math.Abs(p.Y - target.Y);
             double speedPenalty = 0;
-            if (!Speed.IsSafeX(v.x)) {
+            if (!Speed.IsSafeX(v.X)) {
                 // being faster is worse
-                speedPenalty += 10_000 + Math.Abs(v.x) * 100;
+                speedPenalty += 10_000 + Math.Abs(v.X) * 100;
             }
-            if (!Speed.IsSafeY(v.y)) {
+            if (!Speed.IsSafeY(v.Y)) {
                 // unsafe vertical speed is penalized more
-                speedPenalty += 20_000 + Math.Abs(v.y) * 100;
+                speedPenalty += 20_000 + Math.Abs(v.Y) * 100;
             }
             // vertical distance is less important
             return (default, distanceX + distanceY * 0.5 + speedPenalty);
@@ -110,27 +107,25 @@ class Game {
     static (Vector, Vector) SimulateNext(Vector p, Vector v, int nextAngle, int nextPower, int iterations) {
         double radians = nextAngle * Math.PI / 180;
         var thrust = new Vector(-nextPower * Math.Sin(radians), nextPower * Math.Cos(radians));
-        var a = new Vector(thrust.x, thrust.y - GRAVITY);
+        var a = thrust with { Y = thrust.Y - GRAVITY };
         for (var i = 0; i < iterations; i++) {
-            v = new Vector(v.x + a.x, v.y + a.y);
-            p = new Vector(p.x + v.x - 0.5 * a.x, p.y + v.y - 0.5 * a.y);
+            v = new Vector(v.X + a.X, v.Y + a.Y);
+            p = new Vector(p.X + v.X - 0.5 * a.X, p.Y + v.Y - 0.5 * a.Y);
         }
         return (p, v);
     }
 }
 
-// 0 ≤ x < 7000, 0 ≤ y < 3000
-readonly struct Point(int x, int y) {
-    public readonly int x = x;
-    public readonly int y = y;
-
+readonly record struct Point(int X, int Y) {
     public static Point From(string x, string y) {
-        return new Point(int.Parse(x), int.Parse(y));
+        return new Point(
+                Math.Clamp(int.Parse(x), 0, 7000 - 1),
+                Math.Clamp(int.Parse(y), 0, 3000 - 1));
     }
 
-    public static implicit operator Vector(Point value) => new(value.x, value.y);
+    public static implicit operator Vector(Point value) => new(value.X, value.Y);
 
-    public override string ToString() => $"({x}, {y})";
+    public override string ToString() => $"({X}, {Y})";
 }
 
 class Landing(Point start, Point end) {
@@ -138,48 +133,38 @@ class Landing(Point start, Point end) {
     public bool reached;
 
     public void SetReached(Point point) {
-        reached = point.x > start.x && point.x < end.x;
+        reached = point.X > start.X && point.X < end.X;
     }
 }
 
-readonly struct Vector(double x, double y) {
-    public readonly double x = x;
-    public readonly double y = y;
+readonly record struct Vector(double X, double Y) {
+    public static Vector operator +(Vector a, Vector b) => new(a.X + b.X, a.Y + b.Y);
+    public static Vector operator /(Vector a, double value) => new(a.X / value, a.Y / value);
 
-    public static Vector operator +(Vector a, Vector b) {
-        return new Vector(a.x + b.x, a.y + b.y);
-    }
-
-    public static Vector operator /(Vector a, double divisor) {
-        return new Vector(a.x / divisor, a.y / divisor);
-    }
-
-    public override string ToString() => $"({x:F1}, {y:F1})";
+    public override string ToString() => $"({X:F1}, {Y:F1})";
 }
 
-// -500 < horizontal, vertical < 500, in m/s
-readonly struct Speed(int x, int y) {
+/// Speed in m/s
+/// <param name="X">horizontal</param>
+/// <param name="Y">vertical</param>
+readonly record struct Speed(int X, int Y) {
     /// actual safe horizontal speed is less than or equals 20
     const int SAFE_X = 15;
 
     /// actual safe vertical speed is less than or equals 40
     const int SAFE_Y = 35;
 
-    /// horizontal
-    public readonly int x = x;
-
-    /// vertical
-    public readonly int y = y;
-
-    public bool IsSafe => Math.Abs(x) < SAFE_X && Math.Abs(y) < SAFE_Y;
+    public bool IsSafe => Math.Abs(X) < SAFE_X && Math.Abs(Y) < SAFE_Y;
     public static bool IsSafeX(double value) => Math.Abs(value) < SAFE_X;
     public static bool IsSafeY(double value) => Math.Abs(value) < SAFE_Y;
 
     public static Speed From(string x, string y) {
-        return new Speed(int.Parse(x), int.Parse(y));
+        return new Speed(
+                Math.Clamp(int.Parse(x), -500 + 1, 500 - 1),
+                Math.Clamp(int.Parse(y), -500 + 1, 500 - 1));
     }
 
-    public static implicit operator Vector(Speed value) => new(value.x, value.y);
+    public static implicit operator Vector(Speed value) => new(value.X, value.Y);
 }
 
 struct Control(int angle, int power) {
