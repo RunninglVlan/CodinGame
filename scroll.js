@@ -1,5 +1,5 @@
 ﻿async function syncScrollAndAvatar(durationMs = 1000, offsetAboveAnchor = 200) {
-    console.log(`${new Date().toLocaleTimeString()}: start`);
+    console.log(`[${getTime()}] start`);
     var scroller = document.querySelector('.ScrollbarsCustom-Scroller');
     var anchor = document.querySelector('.player-history-previous-events-title');
 
@@ -41,6 +41,13 @@
             : 1 - Math.pow(-2 * t + 2, 2) / 2;
     }
 
+    function getTime() {
+        var now = new Date();
+        var s = String(now.getSeconds()).padStart(2, '0');
+        var ms = String(now.getMilliseconds()).padStart(3, '0');
+        return `${s}.${ms}`;
+    }
+
     function step(now) {
         var t = Math.min(1, (now - startTime) / durationMs);
         var e = ease(t);
@@ -54,7 +61,7 @@
         if (currentStep > lastStep) {
             lastStep = currentStep;
             nextBtn.click();
-            console.log(`${new Date().toLocaleTimeString()}: click ${lastStep} (at t=${t.toFixed(2)})`);
+            console.log(`[${getTime()}] click ${lastStep} (at t=${t.toFixed(2)})`);
         }
 
         if (t < 1) {
