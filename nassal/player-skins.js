@@ -105,6 +105,7 @@ runPlayerProcessor(12_000, 460);
 
 function runScreensaver() {
     const images = [
+        "/assets/Ara_1-CkFafYHh.webp",
         "https://auc.nassal.pro/img/screensavers/Ara_1.webp", "https://auc.nassal.pro/img/screensavers/Ara_2.webp",
         "https://auc.nassal.pro/img/screensavers/Cake_1.webp", "https://auc.nassal.pro/img/screensavers/Cake_2.webp",
         "https://auc.nassal.pro/img/screensavers/Dund_1.webp", "https://auc.nassal.pro/img/screensavers/Dund_2.webp",
@@ -187,3 +188,5 @@ function runScreensaver() {
     document.body.appendChild(ssOverlay);
     showNext();
 }
+
+runScreensaver();
