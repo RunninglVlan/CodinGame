@@ -1,5 +1,4 @@
 ﻿async function syncScrollAndAvatar(durationMs = 1000, offsetAboveAnchor = 200) {
-    console.log(`[${getTime()}] start`);
     var scroller = document.querySelector('.ScrollbarsCustom-Scroller');
     var anchor = document.querySelector('.player-history-previous-events-title');
 
