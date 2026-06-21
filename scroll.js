@@ -32,7 +32,8 @@
 
     // ANIMATION SETUP
     var startTime = performance.now();
-    var lastStep = -1;
+    // Start at 0 to skip the first click
+    var lastStep = 0;
 
     function ease(t) {
         return t < 0.5
@@ -47,16 +48,13 @@
         // scroll from anchored position → top
         scroller.scrollTop = startScroll * (1 - e);
 
-        // FIXED: correct step mapping (no off-by-one click drift)
-        var currentStep = Math.min(
-            steps - 1,
-            Math.floor(e * (steps - 1))
-        );
+        // Map e (0 to 1) to step index (0 to steps - 1)
+        var currentStep = Math.floor(e * (steps - 1));
 
-        if (currentStep !== lastStep) {
+        if (currentStep > lastStep) {
             lastStep = currentStep;
             nextBtn.click();
-            console.log(`${new Date().toLocaleTimeString()}: click`);
+            console.log(`${new Date().toLocaleTimeString()}: click ${lastStep}`);
         }
 
         if (t < 1) {
