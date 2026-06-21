@@ -15,12 +15,15 @@
 
     var steps = avatarDots.length;
 
+    var avatarImg = document.querySelector('.player-history-avatar');
+    avatarImg.style.visibility = 'hidden';
     // RESET AVATAR
     for (var i = 0; i < steps; i++) {
         backBtn.click();
         // wait for layout to settle
         await new Promise(r => requestAnimationFrame(r));
     }
+    avatarImg.style.visibility = 'visible';
 
     var startScroll = 0;
     if (!anchor) {
