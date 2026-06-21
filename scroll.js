@@ -18,9 +18,9 @@
     // RESET AVATAR
     for (var i = 0; i < steps; i++) {
         backBtn.click();
+        // wait for layout to settle
+        await new Promise(r => requestAnimationFrame(r));
     }
-    // LET LAYOUT SETTLE
-    await new Promise(r => requestAnimationFrame(r));
 
     var startScroll = 0;
     if (!anchor) {
