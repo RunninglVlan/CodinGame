@@ -157,7 +157,7 @@ function runScreensaver(holdTime = 10000, fadeIn = 1200, fadeOut = 800) {
     ssOverlay.className = 'screensaver';
     ssOverlay.style.cssText = `
         position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        z-index: 9999; background: white; pointer-events: all;
+        z-index: 9999; pointer-events: all;
         --screensaver-fade-in-ms: ${FADE_IN}ms;
         --screensaver-fade-out-ms: ${FADE_OUT}ms;
     `;
