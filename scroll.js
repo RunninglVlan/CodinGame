@@ -48,13 +48,13 @@
         // scroll from anchored position → top
         scroller.scrollTop = startScroll * (1 - e);
 
-        // Map e (0 to 1) to step index (0 to steps - 1)
-        var currentStep = Math.floor(e * (steps - 1));
+        // Map linear t (0 to 1) to step index (0 to steps - 1)
+        var currentStep = Math.floor(t * (steps - 1));
 
         if (currentStep > lastStep) {
             lastStep = currentStep;
             nextBtn.click();
-            console.log(`${new Date().toLocaleTimeString()}: click ${lastStep}`);
+            console.log(`${new Date().toLocaleTimeString()}: click ${lastStep} (at t=${t.toFixed(2)})`);
         }
 
         if (t < 1) {
