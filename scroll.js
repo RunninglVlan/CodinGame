@@ -9,7 +9,7 @@
     var backBtn = avatarBtns[1];
     var nextBtn = avatarBtns[0];
 
-    if (!scroller || !anchor || !backBtn || !nextBtn || !avatarDots.length) {
+    if (!scroller || !backBtn || !nextBtn || !avatarDots.length) {
         console.warn('Missing required elements');
         return;
     }
@@ -25,10 +25,15 @@
     // LET LAYOUT SETTLE (ONCE)
     await new Promise(r => requestAnimationFrame(r));
 
-    var baseScroll = anchor.offsetTop - scroller.offsetTop;
-    var startScroll = Math.max(0, baseScroll - offsetAboveAnchor);
-
-    scroller.scrollTop = startScroll;
+    var startScroll = 0;
+    if (!anchor) {
+        startScroll = scroller.scrollHeight - scroller.clientHeight;
+        scroller.scrollTop = startScroll;
+    } else {
+        var baseScroll = anchor.offsetTop - scroller.offsetTop;
+        startScroll = Math.max(0, baseScroll - offsetAboveAnchor);
+        scroller.scrollTop = startScroll;
+    }
 
     // ANIMATION SETUP
     var startTime = performance.now();
