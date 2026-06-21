@@ -105,25 +105,24 @@ runPlayerProcessor(12_000, 460);
 
 function runScreensaver() {
     const images = [
-        "/assets/Ara_1-CkFafYHh.webp",
-        "https://auc.nassal.pro/img/screensavers/Ara_1.webp", "https://auc.nassal.pro/img/screensavers/Ara_2.webp",
-        "https://auc.nassal.pro/img/screensavers/Cake_1.webp", "https://auc.nassal.pro/img/screensavers/Cake_2.webp",
-        "https://auc.nassal.pro/img/screensavers/Dund_1.webp", "https://auc.nassal.pro/img/screensavers/Dund_2.webp",
-        "https://auc.nassal.pro/img/screensavers/Dund_3.webp", "https://auc.nassal.pro/img/screensavers/Flash_1.webp",
-        "https://auc.nassal.pro/img/screensavers/Flash_2.webp", "https://auc.nassal.pro/img/screensavers/Glad_1.webp",
-        "https://auc.nassal.pro/img/screensavers/Glad_2.webp", "https://auc.nassal.pro/img/screensavers/Karm_1.webp",
-        "https://auc.nassal.pro/img/screensavers/Karm_2.webp", "https://auc.nassal.pro/img/screensavers/Karm_3.webp",
-        "https://auc.nassal.pro/img/screensavers/Lasqa_1.webp", "https://auc.nassal.pro/img/screensavers/Lasqa_2.webp",
-        "https://auc.nassal.pro/img/screensavers/Lasqa_3.webp", "https://auc.nassal.pro/img/screensavers/Lasqa_4.webp",
-        "https://auc.nassal.pro/img/screensavers/Mad_1.webp", "https://auc.nassal.pro/img/screensavers/Mad_2.webp",
-        "https://auc.nassal.pro/img/screensavers/Mad_3.webp", "https://auc.nassal.pro/img/screensavers/Mel_1.webp",
-        "https://auc.nassal.pro/img/screensavers/Mel_2.webp", "https://auc.nassal.pro/img/screensavers/Mel_3.webp",
-        "https://auc.nassal.pro/img/screensavers/Mel_4.webp", "https://auc.nassal.pro/img/screensavers/Norm_1.webp",
-        "https://auc.nassal.pro/img/screensavers/Norm_2.webp", "https://auc.nassal.pro/img/screensavers/Norm_3.webp",
-        "https://auc.nassal.pro/img/screensavers/Norm_4.webp", "https://auc.nassal.pro/img/screensavers/Prad_1.webp",
-        "https://auc.nassal.pro/img/screensavers/Prad_2.webp", "https://auc.nassal.pro/img/screensavers/Prad_3.webp",
-        "https://auc.nassal.pro/img/screensavers/Prad_4.webp", "https://auc.nassal.pro/img/screensavers/Zu_1.webp",
-        "https://auc.nassal.pro/img/screensavers/Zu_2.webp", "https://auc.nassal.pro/img/screensavers/Zu_3.webp"
+        "/assets/Ara_1-CkFafYHh.webp", "/assets/Ara_2-BDRrl0qB.webp",
+        "/assets/Cake_1-tGRT4L6q.webp", "/assets/Cake_2-B_Y-qeco.webp",
+        "/assets/Dund_1-BhP8X1cS.webp", "/assets/Dund_2-zzoJ56ti.webp",
+        "/assets/Dund_3-BPdkgaXU.webp", "/assets/Flash_1-DdmM_bKw.webp",
+        "/assets/Flash_2-CksyExgh.webp", "/assets/Glad_1-BRXBdiiP.webp",
+        "/assets/Glad_2-CCBhjd--.webp", "/assets/Karm_1-WKmhemyN.webp",
+        "/assets/Karm_2-By-zY-BM.webp", "/assets/Karm_3-zi9Bvx5O.webp",
+        "/assets/Lasqa_1-C5j9xBqu.webp", "/assets/Lasqa_2-L2nCtAfl.webp",
+        "/assets/Lasqa_3-Cx2z_VWs.webp", "/assets/Lasqa_4-Dcl6P0yr.webp",
+        "/assets/Mad_1-CoaQsIRS.webp", "/assets/Mad_2-m-VnY4bg.webp",
+        "/assets/Mad_3-D_tEE39u.webp", "/assets/Mel_1-ClTujBap.webp",
+        "/assets/Mel_2-k83W14nW.webp", "/assets/Mel_3-BDhNVuga.webp",
+        "/assets/Mel_4-CQtuwBLT.webp", "/assets/Norm_1-C4iqeMaj.webp",
+        "/assets/Norm_2-B-AIAiwE.webp", "/assets/Norm_3-C6ELycvo.webp",
+        "/assets/Norm_4-2dBfHAAw.webp", "/assets/Prad_1-Dmh9E29X.webp",
+        "/assets/Prad_2-CwjUKP7W.webp", "/assets/Prad_3--0za6PY0.webp",
+        "/assets/Prad_4-DmZt086d.webp", "/assets/Zu_1-D6mY4El1.webp",
+        "/assets/Zu_2-BH_eLQmy.webp", "/assets/Zu_3-CDgYhke-.webp"
     ];
 
     const HOLD_TIME = 10000;
