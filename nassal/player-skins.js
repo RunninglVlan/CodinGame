@@ -1,4 +1,72 @@
-﻿async function syncScrollAndAvatar(displayTime = 2000, anchorOffset = 200) {
+﻿async function run(displayTime) {
+    await showPlayerSkins(displayTime, 460);
+    showScreensaverSkins(displayTime);
+}
+
+async function showPlayerSkins(displayTime, anchorOffset) {
+    const avatars = [
+        '/assets/FLASH_v2-CH9tn0y7.webp',
+        '/assets/DUND_v2-BjJZSVOU.webp',
+        '/assets/MEL_v2-Bk6vvp3N.webp',
+        '/assets/KARM_v2-Ds90Gkdq.webp',
+        '/assets/LASQA_v2-DnoodyAh.webp',
+        '/assets/PRAD_v2-B46QNEEZ.webp',
+        '/assets/MAD_v2-CW0lC5s0.webp',
+        '/assets/CAKE_v2-CCS8umQY.webp',
+        '/assets/Zu_v2-B8RkTGuj.webp',
+        '/assets/GLAD_v2-CXuF-H8c.webp',
+        '/assets/ARA_v2-TwhOKf9-.webp',
+        '/assets/NORM_v3-I9eMrLXJ.webp'
+    ];
+    let playersCount = avatars.length;
+    console.log(`Processing ${playersCount} players...`);
+
+    for (let i = 0; i < playersCount; i++) {
+        // Re-query players because the page might have changed/refreshed
+        const players = document.querySelectorAll('.player-row');
+        if (!players[i]) {
+            console.warn(`Player at index ${i} no longer exists.`);
+            continue;
+        }
+
+        console.log(`Processing player ${i + 1}/${playersCount}`);
+        players[i].click();
+
+        const resetAvatar = () => {
+            const avatarImg = document.querySelector('.player-history-avatar');
+            if (avatarImg) {
+                avatarImg.src = avatars[i];
+                avatarImg.style.visibility = 'hidden';
+                return true;
+            }
+            return false;
+        };
+
+        if (!resetAvatar()) {
+            const observer = new MutationObserver(() => {
+                if (resetAvatar()) observer.disconnect();
+            });
+            observer.observe(document.body, {childList: true, subtree: true});
+            // Safety timeout to stop observer if it never appears
+            setTimeout(() => observer.disconnect(), 2000);
+        }
+
+        // Wait a bit for the player content to load/transition
+        await new Promise(r => setTimeout(r, 500));
+
+        await syncScrollAndAvatar(displayTime, anchorOffset);
+
+        const back = document.querySelector('.title-right');
+        back.click();
+
+        // Brief pause between players to allow the list page to load/settle
+        await new Promise(r => setTimeout(r, 500));
+    }
+
+    console.log('Finished processing all players.');
+}
+
+async function syncScrollAndAvatar(displayTime = 2000, anchorOffset = 200) {
     var scroller = document.querySelector('.ScrollbarsCustom-Scroller');
     var anchor = document.querySelector('.player-history-previous-events-title');
 
@@ -71,69 +139,6 @@
         }
         requestAnimationFrame(step);
     });
-}
-
-async function showPlayerSkins(displayTime, anchorOffset) {
-    const avatars = [
-        '/assets/FLASH_v2-CH9tn0y7.webp',
-        '/assets/DUND_v2-BjJZSVOU.webp',
-        '/assets/MEL_v2-Bk6vvp3N.webp',
-        '/assets/KARM_v2-Ds90Gkdq.webp',
-        '/assets/LASQA_v2-DnoodyAh.webp',
-        '/assets/PRAD_v2-B46QNEEZ.webp',
-        '/assets/MAD_v2-CW0lC5s0.webp',
-        '/assets/CAKE_v2-CCS8umQY.webp',
-        '/assets/Zu_v2-B8RkTGuj.webp',
-        '/assets/GLAD_v2-CXuF-H8c.webp',
-        '/assets/ARA_v2-TwhOKf9-.webp',
-        '/assets/NORM_v3-I9eMrLXJ.webp'
-    ];
-    let playersCount = avatars.length;
-    console.log(`Processing ${playersCount} players...`);
-
-    for (let i = 0; i < playersCount; i++) {
-        // Re-query players because the page might have changed/refreshed
-        const players = document.querySelectorAll('.player-row');
-        if (!players[i]) {
-            console.warn(`Player at index ${i} no longer exists.`);
-            continue;
-        }
-
-        console.log(`Processing player ${i + 1}/${playersCount}`);
-        players[i].click();
-
-        const resetAvatar = () => {
-            const avatarImg = document.querySelector('.player-history-avatar');
-            if (avatarImg) {
-                avatarImg.src = avatars[i];
-                avatarImg.style.visibility = 'hidden';
-                return true;
-            }
-            return false;
-        };
-
-        if (!resetAvatar()) {
-            const observer = new MutationObserver(() => {
-                if (resetAvatar()) observer.disconnect();
-            });
-            observer.observe(document.body, {childList: true, subtree: true});
-            // Safety timeout to stop observer if it never appears
-            setTimeout(() => observer.disconnect(), 2000);
-        }
-
-        // Wait a bit for the player content to load/transition
-        await new Promise(r => setTimeout(r, 500));
-
-        await syncScrollAndAvatar(displayTime, anchorOffset);
-
-        const back = document.querySelector('.title-right');
-        back.click();
-
-        // Brief pause between players to allow the list page to load/settle
-        await new Promise(r => setTimeout(r, 500));
-    }
-
-    console.log('Finished processing all players.');
 }
 
 function showScreensaverSkins(displayTime = 2000) {
@@ -249,11 +254,6 @@ function showScreensaverSkins(displayTime = 2000) {
 
     document.body.appendChild(ssOverlay);
     showNext();
-}
-
-async function run(displayTime) {
-    await showPlayerSkins(displayTime, 460);
-    showScreensaverSkins(displayTime);
 }
 
 run(2000);
