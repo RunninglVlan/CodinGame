@@ -293,8 +293,13 @@ function showScreensaverSkins(displayTime = 2000) {
     function showNext() {
         if (!ssOverlay) return;
 
+        if (ssCurrentIndex >= images.length) {
+            ssTimer = setTimeout(close, 500);
+            return;
+        }
+
         const url = images[ssCurrentIndex];
-        ssCurrentIndex = (ssCurrentIndex + 1) % images.length;
+        ssCurrentIndex++;
         const side = ssCurrentIndex % 2 === 0 ? 'left' : 'right';
 
         const stage = ssOverlay.querySelector('.screensaver__stage');
