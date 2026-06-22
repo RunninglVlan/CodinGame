@@ -62,6 +62,17 @@ async function waitAfterClick(waitMs = 500) {
     await new Promise(r => setTimeout(r, waitMs));
 }
 
+function scrollerStart(anchorOffset) {
+    var scroller = document.querySelector('.ScrollbarsCustom-Scroller');
+    var anchor = document.querySelector('.player-history-previous-events-title');
+    if (!anchor) {
+        return scroller.scrollHeight - scroller.clientHeight;
+    } else {
+        var baseScroll = anchor.offsetTop - scroller.offsetTop;
+        return Math.max(0, baseScroll - anchorOffset);
+    }
+}
+
 async function showPlayerSkins(displayTime, anchorOffset) {
     const avatars = [
         '/assets/FLASH_v2-CH9tn0y7.webp',
@@ -97,6 +108,16 @@ async function showPlayerSkins(displayTime, anchorOffset) {
             if (avatarImg) {
                 avatarImg.src = avatars[i];
                 avatarImg.style.visibility = 'hidden';
+                return true;
+            }
+            return false;
+        })
+
+        // resetScroller
+        doOnRender(() => {
+            const scroller = document.querySelector('.player-history-actions .ScrollbarsCustom-Scroller');
+            if (scroller) {
+                scroller.scrollTop = scrollerStart(anchorOffset);
                 return true;
             }
             return false;
@@ -140,14 +161,7 @@ async function syncScrollAndAvatar(displayTime = 2000, anchorOffset = 200) {
     var avatarImg = document.querySelector('.player-history-avatar');
     avatarImg.style.visibility = 'visible';
 
-    var startScroll = 0;
-    if (!anchor) {
-        startScroll = scroller.scrollHeight - scroller.clientHeight;
-    } else {
-        var baseScroll = anchor.offsetTop - scroller.offsetTop;
-        startScroll = Math.max(0, baseScroll - anchorOffset);
-    }
-    scroller.scrollTop = startScroll;
+    var startScroll = scrollerStart(anchorOffset);
 
     // ANIMATION SETUP
     var startTime = performance.now();
@@ -226,7 +240,8 @@ function showScreensaverSkins(displayTime = 2000) {
         "/assets/Prad_4-DmZt086d.webp",
         "/assets/Zu_1-D6mY4El1.webp",
         "/assets/Zu_2-BH_eLQmy.webp",
-        "/assets/Zu_3-CDgYhke-.webp"
+        "/assets/Zu_3-CDgYhke-.webp",
+        "/assets/hova-LjT4xJQT.webp"
     ];
 
     // displayTime is the "visible" time (HOLD_TIME).
@@ -310,9 +325,9 @@ doOnRender(() => {
     var phoneReady = document.querySelector('.webgl-phone-anchor--unity-ready');
     if (phoneReady) {
         var start = document.querySelector('.intro-start-hitbox');
-        start.onclick = () => run(2000);
+        start.onclick = () => run(2200);
         start.click();
         return true;
     }
     return false;
-}, 10_000)
+}, 20_000)
