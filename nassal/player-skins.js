@@ -307,9 +307,11 @@ function showScreensaverSkins(displayTime = 2000) {
 hideVideoButtons();
 
 doOnRender(() => {
-    var start = document.querySelector('.intro-start-hitbox');
-    if (start) {
+    var phoneReady = document.querySelector('.webgl-phone-anchor--unity-ready');
+    if (phoneReady) {
+        var start = document.querySelector('.intro-start-hitbox');
         start.onclick = () => run(2000);
+        start.click();
         return true;
     }
     return false;
