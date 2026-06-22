@@ -1,21 +1,21 @@
 ﻿async function run(displayTime) {
     hideVideoButtons();
 
-    doOnRender(() => {
+    await doOnRender(async () => {
         var statistics = document.querySelector('.members-list-btn');
         if (statistics) {
             statistics.click();
 
-            await waitAfterClick();
+            await waitAfterClick(2000);
             await showPlayerSkins(displayTime, 460);
             showScreensaverSkins(displayTime);
             return true;
         }
         return false;
-    })
+    }, 5000)
 
     // hideResults
-    doOnRender(() => {
+    await doOnRender(() => {
         const results = document.querySelector('.laptop-result-button');
         if (results) {
             results.style.opacity = 0;
@@ -30,19 +30,27 @@ function hideVideoButtons() {
     videoButtons.style.display = 'none';
 }
 
-function doOnRender(f) {
-    if (!f()) {
-        const observer = new MutationObserver(() => {
-            if (f()) observer.disconnect();
+async function doOnRender(f, waitMs = 2000) {
+    if (await f()) return;
+
+    return new Promise((resolve) => {
+        const observer = new MutationObserver(async () => {
+            if (await f()) {
+                observer.disconnect();
+                resolve();
+            }
         });
         observer.observe(document.body, {childList: true, subtree: true});
         // Safety timeout to stop observer if it never appears
-        setTimeout(() => observer.disconnect(), 2000);
-    }
+        setTimeout(() => {
+            observer.disconnect();
+            resolve();
+        }, waitMs);
+    });
 }
 
-async function waitAfterClick() {
-    await new Promise(r => setTimeout(r, 500));
+async function waitAfterClick(waitMs = 500) {
+    await new Promise(r => setTimeout(r, waitMs));
 }
 
 async function showPlayerSkins(displayTime, anchorOffset) {
@@ -75,7 +83,7 @@ async function showPlayerSkins(displayTime, anchorOffset) {
         players[i].click();
 
         // resetAvatar
-        doOnRender(() => {
+        await doOnRender(() => {
             const avatarImg = document.querySelector('.player-history-avatar');
             if (avatarImg) {
                 avatarImg.src = avatars[i];
