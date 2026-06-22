@@ -3,6 +3,21 @@
     showScreensaverSkins(displayTime);
 }
 
+function doOnRender(f) {
+    if (!f()) {
+        const observer = new MutationObserver(() => {
+            if (f()) observer.disconnect();
+        });
+        observer.observe(document.body, {childList: true, subtree: true});
+        // Safety timeout to stop observer if it never appears
+        setTimeout(() => observer.disconnect(), 2000);
+    }
+}
+
+async function waitAfterClick() {
+    await new Promise(r => setTimeout(r, 500));
+}
+
 async function showPlayerSkins(displayTime, anchorOffset) {
     const avatars = [
         '/assets/FLASH_v2-CH9tn0y7.webp',
@@ -32,7 +47,8 @@ async function showPlayerSkins(displayTime, anchorOffset) {
         console.log(`Processing player ${i + 1}/${playersCount}`);
         players[i].click();
 
-        const resetAvatar = () => {
+        // resetAvatar
+        doOnRender(() => {
             const avatarImg = document.querySelector('.player-history-avatar');
             if (avatarImg) {
                 avatarImg.src = avatars[i];
@@ -40,27 +56,15 @@ async function showPlayerSkins(displayTime, anchorOffset) {
                 return true;
             }
             return false;
-        };
+        })
 
-        if (!resetAvatar()) {
-            const observer = new MutationObserver(() => {
-                if (resetAvatar()) observer.disconnect();
-            });
-            observer.observe(document.body, {childList: true, subtree: true});
-            // Safety timeout to stop observer if it never appears
-            setTimeout(() => observer.disconnect(), 2000);
-        }
-
-        // Wait a bit for the player content to load/transition
-        await new Promise(r => setTimeout(r, 500));
+        await waitAfterClick();
 
         await syncScrollAndAvatar(displayTime, anchorOffset);
 
         const back = document.querySelector('.title-right');
         back.click();
-
-        // Brief pause between players to allow the list page to load/settle
-        await new Promise(r => setTimeout(r, 500));
+        await waitAfterClick();
     }
 
     console.log('Finished processing all players.');
