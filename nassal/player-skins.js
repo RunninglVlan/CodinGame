@@ -1,4 +1,4 @@
-﻿async function syncScrollAndAvatar(durationMs = 1000, anchorOffset = 200) {
+﻿async function syncScrollAndAvatar(displayTime = 2000, anchorOffset = 200) {
     var scroller = document.querySelector('.ScrollbarsCustom-Scroller');
     var anchor = document.querySelector('.player-history-previous-events-title');
 
@@ -14,6 +14,7 @@
     }
 
     var steps = avatarDots.length;
+    var durationMs = displayTime * steps;
     // RESET AVATAR
     for (var i = 0; i < steps; i++) {
         backBtn.click();
@@ -72,7 +73,7 @@
     });
 }
 
-async function showPlayerSkins(durationMs, anchorOffset) {
+async function showPlayerSkins(displayTime, anchorOffset) {
     const avatars = [
         '/assets/FLASH_v2-CH9tn0y7.webp',
         '/assets/DUND_v2-BjJZSVOU.webp',
@@ -123,7 +124,7 @@ async function showPlayerSkins(durationMs, anchorOffset) {
         // Wait a bit for the player content to load/transition
         await new Promise(r => setTimeout(r, 500));
 
-        await syncScrollAndAvatar(durationMs, anchorOffset);
+        await syncScrollAndAvatar(displayTime, anchorOffset);
 
         const back = document.querySelector('.title-right');
         back.click();
@@ -175,11 +176,11 @@ function showScreensaverSkins(displayTime = 2000) {
         "/assets/Zu_3-CDgYhke-.webp"
     ];
 
-    // Use displayTime as the full duration.
+    // displayTime is the "visible" time (HOLD_TIME).
     // Fades are kept consistent with the site (1.2s and 0.8s) unless displayTime is very short.
-    const FADE_IN = Math.min(1200, displayTime * 0.3);
-    const FADE_OUT = Math.min(800, displayTime * 0.2);
-    const HOLD_TIME = Math.max(0, displayTime - FADE_OUT);
+    const FADE_IN = 1200;
+    const FADE_OUT = 800;
+    const HOLD_TIME = displayTime;
 
     let ssCurrentIndex = 0;
     let ssTimer = null;
@@ -250,9 +251,9 @@ function showScreensaverSkins(displayTime = 2000) {
     showNext();
 }
 
-async function run(avatarDurationMs) {
-    await showPlayerSkins(avatarDurationMs, 460);
-    showScreensaverSkins();
+async function run(displayTime) {
+    await showPlayerSkins(displayTime, 460);
+    showScreensaverSkins(displayTime);
 }
 
-run(12_000);
+run(2000);
