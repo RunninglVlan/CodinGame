@@ -294,10 +294,10 @@ function showScreensaverSkins(displayTime = 2000) {
         `;
 
         const img = stage.querySelector('.screensaver__image');
-        requestAnimationFrame(() => { if (img) img.style.opacity = '1'; });
+        requestAnimationFrame(() => { if (img) img.style.opacity = 1; });
 
         ssTimer = setTimeout(() => {
-            if (img) img.style.opacity = '0';
+            if (img) img.style.opacity = 0;
             ssTimer = setTimeout(showNext, FADE_OUT);
         }, HOLD_TIME);
     }
