@@ -241,6 +241,8 @@ function showScreensaverSkins(displayTime = 2000) {
         "/assets/Zu_1-D6mY4El1.webp",
         "/assets/Zu_2-BH_eLQmy.webp",
         "/assets/Zu_3-CDgYhke-.webp",
+        // bonus
+        "/assets/FAK-2ktTVOwh.webp",
         "/assets/hova-LjT4xJQT.webp"
     ];
 
