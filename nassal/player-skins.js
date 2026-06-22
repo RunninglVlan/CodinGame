@@ -1,7 +1,17 @@
 ﻿async function run(displayTime) {
     hideVideoButtons();
 
-    await doOnRender(async () => {
+    // hideResults
+    doOnRender(() => {
+        const results = document.querySelector('.laptop-result-button');
+        if (results) {
+            results.style.display = 'none';
+            return true;
+        }
+        return false;
+    }, 5000)
+
+    await doOnRenderAsync(async () => {
         var statistics = document.querySelector('.members-list-btn');
         if (statistics) {
             statistics.click();
@@ -13,16 +23,6 @@
         }
         return false;
     }, 5000)
-
-    // hideResults
-    await doOnRender(() => {
-        const results = document.querySelector('.laptop-result-button');
-        if (results) {
-            results.style.opacity = 0;
-            return true;
-        }
-        return false;
-    })
 }
 
 function hideVideoButtons() {
@@ -30,7 +30,7 @@ function hideVideoButtons() {
     videoButtons.style.display = 'none';
 }
 
-async function doOnRender(f, waitMs = 2000) {
+async function doOnRenderAsync(f, waitMs = 2000) {
     if (await f()) return;
 
     return new Promise((resolve) => {
@@ -47,6 +47,17 @@ async function doOnRender(f, waitMs = 2000) {
             resolve();
         }, waitMs);
     });
+}
+
+function doOnRender(f, waitMs = 2000) {
+    if (!f()) {
+        const observer = new MutationObserver(() => {
+            if (f()) observer.disconnect();
+        });
+        observer.observe(document.body, {childList: true, subtree: true});
+        // Safety timeout to stop observer if it never appears
+        setTimeout(() => observer.disconnect(), waitMs);
+    }
 }
 
 async function waitAfterClick(waitMs = 500) {
@@ -83,7 +94,7 @@ async function showPlayerSkins(displayTime, anchorOffset) {
         players[i].click();
 
         // resetAvatar
-        await doOnRender(() => {
+        await doOnRenderAsync(() => {
             const avatarImg = document.querySelector('.player-history-avatar');
             if (avatarImg) {
                 avatarImg.src = avatars[i];
