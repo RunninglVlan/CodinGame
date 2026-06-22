@@ -72,7 +72,7 @@
     });
 }
 
-async function runPlayerProcessor(durationMs, anchorOffset) {
+async function showPlayerSkins(durationMs, anchorOffset) {
     const avatars = [
         '/assets/FLASH_v2-CH9tn0y7.webp',
         '/assets/DUND_v2-BjJZSVOU.webp',
@@ -135,9 +135,7 @@ async function runPlayerProcessor(durationMs, anchorOffset) {
     console.log('Finished processing all players.');
 }
 
-runPlayerProcessor(12_000, 460);
-
-function runScreensaver(displayTime = 2000) {
+function showScreensaverSkins(displayTime = 2000) {
     const images = [
         "/assets/Ara_1-CkFafYHh.webp",
         "/assets/Ara_2-BDRrl0qB.webp",
@@ -252,4 +250,9 @@ function runScreensaver(displayTime = 2000) {
     showNext();
 }
 
-runScreensaver();
+async function run(avatarDurationMs) {
+    await showPlayerSkins(avatarDurationMs, 460);
+    showScreensaverSkins();
+}
+
+run(12_000);
