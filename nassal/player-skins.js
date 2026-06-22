@@ -94,7 +94,7 @@ async function showPlayerSkins(displayTime, anchorOffset) {
         players[i].click();
 
         // resetAvatar
-        await doOnRenderAsync(() => {
+        doOnRender(() => {
             const avatarImg = document.querySelector('.player-history-avatar');
             if (avatarImg) {
                 avatarImg.src = avatars[i];
