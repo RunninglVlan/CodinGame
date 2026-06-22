@@ -1,6 +1,4 @@
 ﻿async function run(displayTime) {
-    hideVideoButtons();
-
     // hideResults
     doOnRender(() => {
         const results = document.querySelector('.laptop-result-button');
@@ -306,5 +304,13 @@ function showScreensaverSkins(displayTime = 2000) {
     showNext();
 }
 
-var start = document.querySelector('.intro-start-hitbox');
-start.onclick = () => run(2000);
+hideVideoButtons();
+
+doOnRender(() => {
+    var start = document.querySelector('.intro-start-hitbox');
+    if (start) {
+        start.onclick = () => run(2000);
+        return true;
+    }
+    return false;
+}, 10_000)
