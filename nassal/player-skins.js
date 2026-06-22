@@ -14,15 +14,13 @@
     }
 
     var steps = avatarDots.length;
-
-    var avatarImg = document.querySelector('.player-history-avatar');
-    avatarImg.style.visibility = 'hidden';
     // RESET AVATAR
     for (var i = 0; i < steps; i++) {
         backBtn.click();
         // wait for layout to settle
         await new Promise(r => requestAnimationFrame(r));
     }
+    var avatarImg = document.querySelector('.player-history-avatar');
     avatarImg.style.visibility = 'visible';
 
     var startScroll = 0;
@@ -75,7 +73,21 @@
 }
 
 async function runPlayerProcessor(durationMs, anchorOffset) {
-    let playersCount = document.querySelectorAll('.player-row').length;
+    const avatars = [
+        '/assets/FLASH_v2-CH9tn0y7.webp',
+        '/assets/DUND_v2-BjJZSVOU.webp',
+        '/assets/MEL_v2-Bk6vvp3N.webp',
+        '/assets/KARM_v2-Ds90Gkdq.webp',
+        '/assets/LASQA_v2-DnoodyAh.webp',
+        '/assets/PRAD_v2-B46QNEEZ.webp',
+        '/assets/MAD_v2-CW0lC5s0.webp',
+        '/assets/CAKE_v2-CCS8umQY.webp',
+        '/assets/Zu_v2-B8RkTGuj.webp',
+        '/assets/GLAD_v2-CXuF-H8c.webp',
+        '/assets/ARA_v2-TwhOKf9-.webp',
+        '/assets/NORM_v3-I9eMrLXJ.webp'
+    ];
+    let playersCount = avatars.length;
     console.log(`Processing ${playersCount} players...`);
 
     for (let i = 0; i < playersCount; i++) {
@@ -88,6 +100,25 @@ async function runPlayerProcessor(durationMs, anchorOffset) {
 
         console.log(`Processing player ${i + 1}/${playersCount}`);
         players[i].click();
+
+        const resetAvatar = () => {
+            const avatarImg = document.querySelector('.player-history-avatar');
+            if (avatarImg) {
+                avatarImg.src = avatars[i];
+                avatarImg.style.visibility = 'hidden';
+                return true;
+            }
+            return false;
+        };
+
+        if (!resetAvatar()) {
+            const observer = new MutationObserver(() => {
+                if (resetAvatar()) observer.disconnect();
+            });
+            observer.observe(document.body, {childList: true, subtree: true});
+            // Safety timeout to stop observer if it never appears
+            setTimeout(() => observer.disconnect(), 2000);
+        }
 
         // Wait a bit for the player content to load/transition
         await new Promise(r => setTimeout(r, 500));
