@@ -7,6 +7,7 @@ namespace MarsLander3;
 static class MarsLander3 {
     static void Main() {
         var game = new Game();
+        game.Init();
         while (true) {
             game.Loop();
         }
@@ -17,19 +18,19 @@ static class MarsLander3 {
 class Game {
     const float GRAVITY = 3.711f;
 
-    readonly Landing landing = null!;
+    Landing landing = null!;
 
-    public Game() {
-        int numberOfSurfacePoints = Math.Clamp(int.Parse(Console.ReadLine()!), 2, 30 - 1);
-        Point? previousPoint = null;
-        for (var i = 0; i < numberOfSurfacePoints; i++) {
+    public void Init() {
+        int surfacePoints = Math.Clamp(int.Parse(Console.ReadLine()!), 2, 30 - 1);
+        Point? previous = null;
+        for (var i = 0; i < surfacePoints; i++) {
             string[] position = Console.ReadLine()!.Split(' ');
             var point = Point.From(position[0], position[1]);
-            if (previousPoint == null || point.Y != previousPoint.Value.Y) {
-                previousPoint = point;
+            if (previous == null || point.Y != previous.Value.Y) {
+                previous = point;
                 continue;
             }
-            landing = new Landing(previousPoint.Value, point);
+            landing = new Landing(previous.Value, point);
             Console.Error.WriteLine($"Landing center: {landing.center}");
         }
     }
@@ -43,11 +44,11 @@ class Game {
         var (nextControl, _) = FindBest(p, v, currentControl, landing.center, 5);
         if (landing.reached && speed.IsSafe) {
             // make sure we're landing with 0 angle
-            nextControl.angle = 0;
+            nextControl.Angle = 0;
             // prevents hovering over landing
-            nextControl.power = 3;
+            nextControl.Power = 3;
         }
-        Console.WriteLine($"{nextControl.angle} {nextControl.power}");
+        Console.WriteLine(nextControl);
     }
 
     [SuppressMessage("ReSharper", "UnusedTupleComponentInReturnValue")]
@@ -67,23 +68,23 @@ class Game {
         if (depth == 0) {
             double distanceX = Math.Abs(p.X - target.X);
             double distanceY = Math.Abs(p.Y - target.Y);
-            double speedPenalty = 0;
+            // vertical distance is less important
+            double score = distanceX + distanceY * 0.5;
             if (!Speed.IsSafeX(v.X)) {
                 // being faster is worse
-                speedPenalty += 10_000 + Math.Abs(v.X) * 100;
+                score += 10_000 + Math.Abs(v.X) * 100;
             }
             if (!Speed.IsSafeY(v.Y)) {
                 // unsafe vertical speed is penalized more
-                speedPenalty += 20_000 + Math.Abs(v.Y) * 100;
+                score += 20_000 + Math.Abs(v.Y) * 100;
             }
-            // vertical distance is less important
-            return (default, distanceX + distanceY * 0.5 + speedPenalty);
+            return (default, score);
         }
         (Control control, double score) best = (default, double.MaxValue);
         for (int angle = -15; angle <= 15; angle += 15) {
-            int nextAngle = Math.Clamp(current.angle + angle, -90, 90);
+            int nextAngle = Math.Clamp(current.Angle + angle, -90, 90);
             for (int power = -1; power <= 1; power++) {
-                int nextPower = Math.Clamp(current.power + power, 0, 4);
+                int nextPower = Math.Clamp(current.Power + power, 0, 4);
                 var (pNew, vNew) = SimulateNext(p, v, nextAngle, nextPower, 5);
                 (_, double score) = FindBest(pNew, vNew, new Control(nextAngle, nextPower), target, depth - 1);
                 if (score >= best.score) {
@@ -128,12 +129,12 @@ readonly record struct Point(int X, int Y) {
     public override string ToString() => $"({X}, {Y})";
 }
 
-class Landing(Point start, Point end) {
-    public Vector center = ((Vector)start + end) / 2.0;
+class Landing(Point left, Point right) {
+    public Vector center = ((Vector)left + right) / 2;
     public bool reached;
 
     public void SetReached(Point point) {
-        reached = point.X > start.X && point.X < end.X;
+        reached = point.X > left.X && point.X < right.X;
     }
 }
 
@@ -167,7 +168,6 @@ readonly record struct Speed(int X, int Y) {
     public static implicit operator Vector(Speed value) => new(value.X, value.Y);
 }
 
-struct Control(int angle, int power) {
-    public int angle = angle;
-    public int power = power;
+record struct Control(int Angle, int Power) {
+    public override string ToString() => $"{Angle} {Power}";
 }

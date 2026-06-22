@@ -188,8 +188,8 @@ readonly record struct Vector(double X, double Y) {
         return new Vector(a.X + b.X, a.Y + b.Y);
     }
 
-    public static Vector operator /(Vector a, double divisor) {
-        return new Vector(a.X / divisor, a.Y / divisor);
+    public static Vector operator /(Vector a, double value) {
+        return new Vector(a.X / value, a.Y / value);
     }
 
     public override string ToString() => $"({X:F1}, {Y:F1})";
