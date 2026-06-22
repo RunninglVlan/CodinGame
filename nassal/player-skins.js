@@ -1,6 +1,33 @@
 ﻿async function run(displayTime) {
-    await showPlayerSkins(displayTime, 460);
-    showScreensaverSkins(displayTime);
+    hideVideoButtons();
+
+    doOnRender(() => {
+        var statistics = document.querySelector('.members-list-btn');
+        if (statistics) {
+            statistics.click();
+
+            await waitAfterClick();
+            await showPlayerSkins(displayTime, 460);
+            showScreensaverSkins(displayTime);
+            return true;
+        }
+        return false;
+    })
+
+    // hideResults
+    doOnRender(() => {
+        const results = document.querySelector('.laptop-result-button');
+        if (results) {
+            results.style.opacity = 0;
+            return true;
+        }
+        return false;
+    })
+}
+
+function hideVideoButtons() {
+    var videoButtons = document.querySelector('#detach-button-host').shadowRoot.querySelector('.underwave');
+    videoButtons.style.display = 'none';
 }
 
 function doOnRender(f) {
