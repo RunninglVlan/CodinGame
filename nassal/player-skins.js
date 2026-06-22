@@ -38,7 +38,7 @@ async function doOnRenderAsync(f, waitMs = 2000) {
                 resolve();
             }
         });
-        observer.observe(document.body, {childList: true, subtree: true});
+        observer.observe(document.body, {childList: true, subtree: true, attributes: true});
         // Safety timeout to stop observer if it never appears
         setTimeout(() => {
             observer.disconnect();
@@ -52,7 +52,7 @@ function doOnRender(f, waitMs = 2000) {
         const observer = new MutationObserver(() => {
             if (f()) observer.disconnect();
         });
-        observer.observe(document.body, {childList: true, subtree: true});
+        observer.observe(document.body, {childList: true, subtree: true, attributes: true});
         // Safety timeout to stop observer if it never appears
         setTimeout(() => observer.disconnect(), waitMs);
     }
