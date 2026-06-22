@@ -306,4 +306,5 @@ function showScreensaverSkins(displayTime = 2000) {
     showNext();
 }
 
-run(2000);
+var start = document.querySelector('.intro-start-hitbox');
+start.onclick = () => run(2000);
