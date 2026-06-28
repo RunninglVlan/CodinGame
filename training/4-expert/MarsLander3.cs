@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
+using System.Text;
 
 namespace MarsLander3;
 
@@ -29,13 +31,55 @@ class Game {
             string[] position = Console.ReadLine()!.Split(' ');
             var point = Point.From(position[0], position[1]);
             surface[i] = point;
+            Console.Error.WriteLine($"Surface point: {point}");
             if (previous == null || point.Y != previous.Value.Y) {
                 previous = point;
                 continue;
             }
             landing = new Landing(previous.Value, point);
-            Console.Error.WriteLine($"Landing center: {landing.center}");
+            Console.Error.WriteLine($" Landing center: {landing.center}");
         }
+        LogSurfaceMap();
+    }
+
+    void LogSurfaceMap() {
+        const int consoleWidth = 120;
+        // each column slot is 3 chars wide (2 digits + separator)
+        const int totalSlots = consoleWidth / 3;
+        var min = new Point(surface.Min(it => it.X), surface.Min(it => it.Y));
+        var max = new Point(surface.Max(it => it.X), surface.Max(it => it.Y));
+        var span = max - min;
+        int scaleY = span.Y / 20;
+        int rows = span.Y / scaleY + 1;
+        var grid = new Point?[rows, totalSlots];
+        foreach (var point in surface) {
+            int row = Math.Clamp((max.Y - point.Y) / scaleY, 0, rows - 1);
+            var slot = (int)Math.Round((double)(point.X - min.X) / span.X * (totalSlots - 1));
+            slot = Math.Clamp(slot, 0, totalSlots - 1);
+            grid[row, slot] = point / 100;
+        }
+        var lines = new StringBuilder();
+        for (var row = 0; row < rows; row++) {
+            StringBuilder lineX = new(), lineY = new();
+            var rowHasData = false;
+            for (var slot = 0; slot < totalSlots; slot++) {
+                var data = grid[row, slot];
+                if (data == null) {
+                    lineX.Append("   ");
+                    lineY.Append("   ");
+                } else {
+                    rowHasData = true;
+                    lineX.Append($"{data.Value.X:D2} ");
+                    lineY.Append($"{data.Value.Y:D2} ");
+                }
+            }
+            if (!rowHasData) {
+                continue;
+            }
+            lines.AppendLine(lineX.ToString().TrimEnd());
+            lines.AppendLine(lineY.ToString().TrimEnd());
+        }
+        Console.Error.Write(lines);
     }
 
     public void Loop() {
@@ -46,6 +90,7 @@ class Game {
         Vector v = speed;
         var target = landing.Nearest(point);
         if (IsObstacleInWay(point, target, 100, out var obstacle)) {
+            Console.Error.WriteLine($" Obstacle in the way, target {target} -> {obstacle}");
             target = obstacle;
         }
         var (nextControl, _) = FindBest(p, v, currentControl, target, landing.reached, 5);
@@ -157,6 +202,9 @@ readonly record struct Point(int X, int Y) {
                 Math.Clamp(int.Parse(x), 0, 7000 - 1),
                 Math.Clamp(int.Parse(y), 0, 3000 - 1));
     }
+
+    public static Point operator -(Point a, Point b) => new(a.X - b.X, a.Y - b.Y);
+    public static Point operator /(Point a, int value) => new(a.X / value, a.Y / value);
 
     public static implicit operator Vector(Point value) => new(value.X, value.Y);
 
