@@ -115,6 +115,9 @@ class Game {
         return (point, speed, fuel, new Control(angle, power));
     }
 
+    /// A surface point is considered an obstacle if it rises above the flight line
+    /// by more than <paramref name="margin" /> units. Among all such points, the one
+    /// that violates the line the most is selected as the most dangerous.
     bool IsObstacleInWay(Point current, Point target, int margin, out Point obstacle) {
         // straight line: y = mx + b
         double m = (double)(target.Y - current.Y) / (target.X - current.X);
