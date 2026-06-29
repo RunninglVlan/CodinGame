@@ -71,7 +71,7 @@ class Game {
             }
         }
         score += routes
-                .Where(it => !it.IsCompleted && it.CanComplete(trainCars, cards, useWild: true))
+                .Where(it => !it.IsCompleted && it.CanComplete(trainCars, cards, useWildAndProcessGray: true))
                 .Sum(it => it.Complete(ref trainCars, cards));
         return score;
     }
@@ -131,28 +131,35 @@ record Route(int Length, int RequiredEngines, Card Color, string CityA, string C
 
     public bool IsCompleted { get; private set; }
 
-    public bool CanComplete(int trainCars, Dictionary<Card, int> cards, bool useWild = false) {
+    public bool CanComplete(int trainCars, Dictionary<Card, int> cards, bool useWildAndProcessGray = false) {
         if (trainCars < Length) {
             return false;
         }
-        int requiredCards = cards[Color];
-        if (requiredCards >= Length) {
+        if (Color != Card.Gray && cards[Color] >= Length) {
             return true;
         }
-        if (!useWild) {
+        if (!useWildAndProcessGray) {
             return false;
         }
-        return requiredCards + cards[Card.Engine] >= Length;
+        if (Color != Card.Gray) {
+            return cards[Color] + cards[Card.Engine] >= Length;
+        }
+        return cards.Values.Any(count => count >= Length);
     }
 
     public int Complete(ref int trainCars, Dictionary<Card, int> cards) {
         trainCars -= Length;
-        int requiredCards = cards[Color];
-        if (requiredCards >= Length) {
-            cards[Color] -= Length;
+        if (Color != Card.Gray) {
+            int requiredCards = cards[Color];
+            if (requiredCards >= Length) {
+                cards[Color] -= Length;
+            } else {
+                cards[Color] = 0;
+                cards[Card.Engine] -= Length - requiredCards;
+            }
         } else {
-            cards[Color] = 0;
-            cards[Card.Engine] -= Length - requiredCards;
+            var anyCard = cards.First(it => it.Value >= Length).Key;
+            cards[anyCard] -= Length;
         }
         IsCompleted = true;
         return lengthScore[Length];
