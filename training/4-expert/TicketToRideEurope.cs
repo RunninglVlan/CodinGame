@@ -32,11 +32,12 @@ class Game {
         int ticketLength = Math.Clamp(int.Parse(inputs[1]), 0, 29);
         int routeLength = Math.Clamp(int.Parse(inputs[2]), 0, 29);
         inputs = Console.ReadLine()!.Split(' ');
-        foreach (var value in Enum.GetValues<Card>()) {
-            if (value == Card.Gray) {
+        foreach (var type in Enum.GetValues<Card>()) {
+            if (type == Card.Gray) {
                 break;
             }
-            cards[value] = int.Parse(inputs[(int)value]);
+            cards[type] = int.Parse(inputs[(int)type]);
+            Console.Error.WriteLine($"{type}: {cards[type]}");
         }
         for (var i = 0; i < ticketLength; i++) {
             inputs = Console.ReadLine()!.Split(' ');
