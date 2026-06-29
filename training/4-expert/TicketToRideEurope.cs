@@ -132,21 +132,31 @@ record Route(int Length, int RequiredEngines, Card Color, string CityA, string C
     public bool IsCompleted { get; private set; }
 
     public bool CanComplete(int trainCars, Dictionary<Card, int> cards, bool useWildAndProcessGray = false) {
+        return TryComplete(ref trainCars, new Dictionary<Card, int>(cards), useWildAndProcessGray);
+    }
+
+    public int Complete(ref int trainCars, Dictionary<Card, int> cards) {
+        TryComplete(ref trainCars, cards);
+        IsCompleted = true;
+        return lengthScore[Length];
+    }
+
+    bool TryComplete(ref int trainCars, Dictionary<Card, int> cards, bool useWildAndProcessGray = false) {
         if (trainCars < Length) {
             return false;
         }
         if (!useWildAndProcessGray) {
-            return Color != Card.Gray && cards[Color] >= Length;
+            if (Color == Card.Gray || cards[Color] < Length) {
+                return false;
+            }
+            cards[Color] -= Length;
+            trainCars -= Length;
+            return true;
         }
         if (Color != Card.Gray) {
-            return cards[Color] + cards[Card.Engine] >= Length;
-        }
-        return CanCompleteGray(cards);
-    }
-
-    public int Complete(ref int trainCars, Dictionary<Card, int> cards) {
-        trainCars -= Length;
-        if (Color != Card.Gray) {
+            if (cards[Color] + cards[Card.Engine] < Length) {
+                return false;
+            }
             int requiredCards = cards[Color];
             if (requiredCards >= Length) {
                 cards[Color] -= Length;
@@ -154,44 +164,32 @@ record Route(int Length, int RequiredEngines, Card Color, string CityA, string C
                 cards[Color] = 0;
                 cards[Card.Engine] -= Length - requiredCards;
             }
-        } else {
-            CompleteGray(cards);
+            trainCars -= Length;
+            return true;
         }
-        IsCompleted = true;
-        return lengthScore[Length];
+        if (!TryCompleteGray(cards)) {
+            return false;
+        }
+        trainCars -= Length;
+        return true;
     }
 
-    bool CanCompleteGray(Dictionary<Card, int> cards) {
+    bool TryCompleteGray(Dictionary<Card, int> cards) {
         int required = Length;
-        int engineCards = cards[Card.Engine];
         if (RequiredEngines > 0) {
-            if (engineCards < RequiredEngines) {
+            if (cards[Card.Engine] < RequiredEngines) {
                 return false;
             }
-            required -= RequiredEngines;
-            engineCards -= RequiredEngines;
-        }
-        int bestNonEngine = cards.Where(it => it.Key != Card.Engine).Max(it => it.Value);
-        required = Math.Max(0, required - engineCards);
-        return bestNonEngine >= required;
-    }
-
-    void CompleteGray(Dictionary<Card, int> cards) {
-        int required = Length;
-        if (RequiredEngines > 0) {
             required -= RequiredEngines;
             cards[Card.Engine] -= RequiredEngines;
         }
         if (UseNonEngineCards()) {
-            return;
+            return true;
         }
         int used = Math.Min(required, cards[Card.Engine]);
         cards[Card.Engine] -= used;
         required -= used;
-        if (required > 0) {
-            UseNonEngineCards();
-        }
-        return;
+        return required == 0 || UseNonEngineCards();
 
         bool UseNonEngineCards() {
             foreach ((var color, int count) in cards) {
