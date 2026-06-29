@@ -64,13 +64,9 @@ class Game {
                 score -= ticket.Points;
             }
         }
+        routes.Sort((a, b) => b.Length.CompareTo(a.Length));
         foreach (var route in routes) {
             Console.Error.WriteLine(route);
-            if (!route.IsCompleted && route.TryCompleteSimple(ref trainCars, cards, out int points)) {
-                score += points;
-            }
-        }
-        foreach (var route in routes) {
             if (!route.IsCompleted && route.TryComplete(ref trainCars, cards, out int points)) {
                 score += points;
             }
