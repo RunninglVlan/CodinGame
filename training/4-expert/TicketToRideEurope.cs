@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 
 namespace TicketToRideEurope;
 
@@ -12,8 +14,20 @@ static class TicketToRideEurope {
 }
 
 class Game {
+    /// Resource #1
     int trainCars;
+
+    /// Resource #2
     readonly Dictionary<Card, int> cards = new();
+
+    readonly Dictionary<int, int> routeLengthScore = new() {
+        { 1, 1 },
+        { 2, 2 },
+        { 3, 4 },
+        { 4, 7 },
+        { 6, 15 }
+    };
+
     readonly List<Ticket> tickets = new();
     readonly List<Route> routes = new();
 
@@ -48,7 +62,49 @@ class Game {
     }
 
     public int CalculateScore() {
-        return 0;
+        var score = 0;
+        foreach (var ticket in tickets) {
+            Console.Error.WriteLine(ticket);
+            if (CanConnectCities(ticket, out int routeScore)) {
+                score += ticket.Points;
+                score += routeScore;
+            } else {
+                score -= ticket.Points;
+            }
+        }
+        foreach (var route in routes) {
+            Console.Error.WriteLine(route);
+        }
+        return score;
+    }
+
+    [SuppressMessage("ReSharper", "ConvertIfStatementToSwitchStatement")]
+    bool CanConnectCities(Ticket ticket, out int score) {
+        score = 0;
+        string currentCity = ticket.CityA;
+        while (currentCity != ticket.CityB) {
+            var foundRoutes = routes.Where(it => it.CityA == currentCity).ToArray();
+            if (foundRoutes.Length == 0) {
+                Console.Error.WriteLine($" No route found with {nameof(Route.CityA)}: {currentCity}");
+                return false;
+            }
+            if (foundRoutes.Length > 1) {
+                throw new ArgumentException(
+                        $"More than 1 route found with {nameof(Route.CityA)}: {currentCity} - {foundRoutes.Length}");
+            }
+            var route = foundRoutes.First();
+            if (trainCars < route.Length) {
+                throw new ArgumentException($"Not enough {nameof(trainCars)} to complete {route}");
+            }
+            if (cards[route.Color] < route.Length) {
+                throw new ArgumentException($"Not enough {nameof(cards)} to complete {route}");
+            }
+            trainCars -= route.Length;
+            cards[route.Color] -= route.Length;
+            score += routeLengthScore[route.Length];
+            currentCity = route.CityB;
+        }
+        return true;
     }
 }
 
