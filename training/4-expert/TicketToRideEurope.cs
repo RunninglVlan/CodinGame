@@ -75,10 +75,18 @@ class Game {
 
     public int CalculateScore() {
         var score = 0;
+        var ticketRoutes = new List<(Ticket, List<Route> routes)>();
         foreach (var ticket in tickets) {
-            if (CanConnectCities(ticket, out int routeScore)) {
-                score += ticket.Points;
-                score += routeScore;
+            if (CanConnectCities(ticket, out var foundRoutes)) {
+                ticketRoutes.Add((ticket, foundRoutes));
+            } else {
+                score -= ticket.Points;
+            }
+        }
+        ticketRoutes = ticketRoutes.OrderBy(it => it.routes.Any(route => route.Color == Card.Gray)).ToList();
+        foreach (var (ticket, foundRoutes) in ticketRoutes) {
+            if (ticket.TryComplete(ref trainCars, cards, foundRoutes, out int points)) {
+                score += points;
             } else {
                 score -= ticket.Points;
             }
@@ -92,8 +100,8 @@ class Game {
         return score;
     }
 
-    bool CanConnectCities(Ticket ticket, out int score) {
-        score = 0;
+    bool CanConnectCities(Ticket ticket, out List<Route> foundRoutes) {
+        foundRoutes = null!;
         if (!cities.TryGetValue(ticket.CityFrom, out var cityFrom)) {
             Console.Error.WriteLine($"No route with city {ticket.CityFrom}");
             return false;
@@ -107,18 +115,10 @@ class Game {
             Console.Error.WriteLine($"No path found from {ticket.CityFrom} to {ticket.CityTo}");
             return false;
         }
-        var foundRoutes = path.Zip(path.Skip(1), (a, b) => routes.First(it =>
+        foundRoutes = path.Zip(path.Skip(1), (a, b) => routes.First(it =>
                         it.CityA == a.Name && it.CityB == b.Name || it.CityB == a.Name && it.CityA == b.Name))
-                .OrderByDescending(it => it.Length);
-        foreach (var route in foundRoutes) {
-            if (!route.TryComplete(ref trainCars, cards, out int points)) {
-                string cardCount = route.Color != Card.Gray ? cards[route.Color].ToString() : "?";
-                Console.Error.WriteLine(
-                        $"Not enough {nameof(trainCars)}: {trainCars} or {nameof(cards)}: {cardCount} to complete {route}");
-                return false;
-            }
-            score += points;
-        }
+                .OrderByDescending(it => it.Length)
+                .ToList();
         return true;
     }
 }
@@ -139,7 +139,22 @@ enum Card {
     Gray
 }
 
-record Ticket(int Points, string CityFrom, string CityTo);
+record Ticket(int Points, string CityFrom, string CityTo) {
+    public bool TryComplete(ref int trainCars, Dictionary<Card, int> cards, IEnumerable<Route> routes, out int score) {
+        score = 0;
+        foreach (var route in routes) {
+            if (!route.TryComplete(ref trainCars, cards, out int routePoints)) {
+                string cardCount = route.Color != Card.Gray ? cards[route.Color].ToString() : "?";
+                Console.Error.WriteLine(
+                        $"Not enough {nameof(trainCars)}: {trainCars} or {nameof(cards)}: {cardCount} to complete {route}");
+                return false;
+            }
+            score += routePoints;
+        }
+        score += Points;
+        return true;
+    }
+}
 
 record Route(int Length, int RequiredEngines, Card Color, string CityA, string CityB) {
     readonly Dictionary<int, int> lengthScore = new() {
