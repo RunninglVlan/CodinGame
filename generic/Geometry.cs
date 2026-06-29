@@ -89,6 +89,11 @@ readonly record struct Vector(double X, double Y) {
         return delta;
     }
 
+    /// Returns Z component of 3D cross product of two 2D vectors.
+    /// Positive = <paramref name="b"/> is to the left of <paramref name="a"/>,
+    /// negative = right, zero = collinear (parallel).
+    public static double Cross(Vector a, Vector b) => a.X * b.Y - a.Y * b.X;
+
     public static Vector operator +(Vector a, Vector b) => new(a.X + b.X, a.Y + b.Y);
     public static Vector operator -(Vector a, Vector b) => new(a.X - b.X, a.Y - b.Y);
     public static Vector operator *(Vector a, double value) => new(a.X * value, a.Y * value);

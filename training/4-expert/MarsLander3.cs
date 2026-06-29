@@ -21,7 +21,9 @@ class Game {
     const float GRAVITY = 3.711f;
 
     Point[] surface = null!;
+    int surfaceMaxY = int.MinValue;
     Landing landing = null!;
+    Point? start;
 
     public void Init() {
         int surfacePoints = Math.Clamp(int.Parse(Console.ReadLine()!), 2, 30 - 1);
@@ -31,6 +33,7 @@ class Game {
             string[] position = Console.ReadLine()!.Split(' ');
             var point = Point.From(position[0], position[1]);
             surface[i] = point;
+            surfaceMaxY = Math.Max(point.Y, surfaceMaxY);
             Console.Error.WriteLine($"Surface point: {point}");
             if (previous == null || point.Y != previous.Value.Y) {
                 previous = point;
@@ -84,12 +87,25 @@ class Game {
 
     public void Loop() {
         var (point, speed, _, currentControl) = ReadInput();
-        landing.SetReached(point);
-        Console.Error.WriteLine(!landing.reached ? "Moving to landing" : "Reached landing");
+        start ??= point;
         var target = landing.Nearest(point);
-        if (IsObstacleInWay(point, target, 100, out var obstacle)) {
+        bool surfaceInWay = IsSurfaceInWay(point, target);
+        landing.SetReached(point, surfaceInWay);
+        Console.Error.WriteLine(!landing.reached ? "Moving to landing" : "Reached landing");
+        if (landing.reached) {
+            target = landing.center;
+        } else if (IsObstacleInWay(point, target, 100, out var obstacle)) {
             Console.Error.WriteLine($" Obstacle in the way, target {target} -> {obstacle}");
             target = obstacle;
+            if (IsSurfaceInWay(point, target)) {
+                target = SurfaceEdge(point);
+                Console.Error.WriteLine($"  Still surface in the way, flying to the edge: {target}");
+            }
+        } else if (surfaceInWay) {
+            target = SurfaceEdge(point);
+            Console.Error.WriteLine($" Surface in the way, flying to the edge: {target}");
+        } else {
+            target = landing.center;
         }
         Vector p = point;
         Vector v = speed;
@@ -141,6 +157,35 @@ class Game {
         }
         obstacle = mostDangerous.point.Value with { Y = mostDangerous.point.Value.Y + margin };
         return true;
+    }
+
+    /// Checks whether any surface segment obstructs the straight-line path from
+    /// <paramref name="current"/> to <paramref name="target"/>.
+    bool IsSurfaceInWay(Point current, Point target) {
+        int startI = current.X > target.X ? surface.Length - 2 : 0;
+        int endI = current.X > target.X ? -1 : surface.Length - 1;
+        int step = current.X > target.X ? -1 : 1;
+        for (int i = startI; i != endI; i += step) {
+            var a = surface[i];
+            var b = surface[i + 1];
+            if (LinesIntersect(current, target, a, b)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    static bool LinesIntersect(Point aLineP1, Point aLineP2, Point bLineP1, Point bLineP2) {
+        var aLineVector = aLineP2 - aLineP1;
+        var bLineVector = bLineP2 - bLineP1;
+        double aLineSides = Vector.Cross(bLineVector, aLineP1 - bLineP1) * Vector.Cross(bLineVector, aLineP2 - bLineP1);
+        double bLineSides = Vector.Cross(aLineVector, bLineP1 - aLineP1) * Vector.Cross(aLineVector, bLineP2 - aLineP1);
+        return aLineSides < 0 && bLineSides < 0;
+    }
+
+    Point SurfaceEdge(Point point) {
+        var edge = start!.Value.X < point.X ? surface[^1] : surface[0];
+        return edge with { Y = surfaceMaxY };
     }
 
     /// DFS
@@ -220,16 +265,19 @@ class Landing(Point left, Point right) {
     /// Landing is flat, so left.Y == right.Y
     public Point center = left with { X = (left.X + right.X) / 2 };
 
-    public Point Nearest(Point point) {
-        return point.X < left.X ? left : point.X > right.X ? right : new Point(point.X, center.Y);
-    }
+    public Point Nearest(Point point) => point.X < left.X ? left : right;
 
-    public void SetReached(Point point) {
-        reached = point.X > left.X && point.X < right.X;
+    public void SetReached(Point point, bool surfaceInWay) {
+        reached = point.X > left.X && point.X < right.X && !surfaceInWay;
     }
 }
 
 readonly record struct Vector(double X, double Y) {
+    /// Returns Z component of 3D cross product of two 2D vectors.
+    /// Positive = <paramref name="b"/> is to the left of <paramref name="a"/>,
+    /// negative = right, zero = collinear (parallel).
+    public static double Cross(Vector a, Vector b) => a.X * b.Y - a.Y * b.X;
+
     public static Vector operator +(Vector a, Vector b) => new(a.X + b.X, a.Y + b.Y);
     public static Vector operator /(Vector a, double value) => new(a.X / value, a.Y / value);
 
