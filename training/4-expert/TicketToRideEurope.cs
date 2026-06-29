@@ -154,6 +154,10 @@ record Ticket(int Points, string CityFrom, string CityTo) {
         score += Points;
         return true;
     }
+
+    public override string ToString() {
+        return $"{nameof(Ticket)}(P: {Points}, {CityFrom} -> {CityTo})";
+    }
 }
 
 record Route(int Length, int RequiredEngines, Card Color, string CityA, string CityB) {
@@ -230,6 +234,10 @@ record Route(int Length, int RequiredEngines, Card Color, string CityA, string C
             }
             return false;
         }
+    }
+
+    public override string ToString() {
+        return $"{nameof(Route)}(L: {Length}, RE: {RequiredEngines}, C: {Color}, {CityA} - {CityB})";
     }
 }
 
