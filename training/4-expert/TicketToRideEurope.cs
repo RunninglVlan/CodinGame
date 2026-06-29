@@ -66,13 +66,15 @@ class Game {
         }
         foreach (var route in routes) {
             Console.Error.WriteLine(route);
-            if (!route.IsCompleted && route.CanComplete(trainCars, cards)) {
-                score += route.Complete(ref trainCars, cards);
+            if (!route.IsCompleted && route.TryCompleteSimple(ref trainCars, cards, out int points)) {
+                score += points;
             }
         }
-        score += routes
-                .Where(it => !it.IsCompleted && it.CanComplete(trainCars, cards, useWildAndProcessGray: true))
-                .Sum(it => it.Complete(ref trainCars, cards));
+        foreach (var route in routes) {
+            if (!route.IsCompleted && route.TryComplete(ref trainCars, cards, out int points)) {
+                score += points;
+            }
+        }
         return score;
     }
 
@@ -91,11 +93,11 @@ class Game {
                         $"More than 1 route found with {nameof(Route.CityA)}: {currentCity} - {foundRoutes.Length}");
             }
             var route = foundRoutes.First();
-            if (!route.CanComplete(trainCars, cards)) {
+            if (!route.TryCompleteSimple(ref trainCars, cards, out int points)) {
                 throw new ArgumentException(
                         $"Not enough {nameof(trainCars)}: {trainCars} or {nameof(cards)}: {cards[route.Color]} to complete {route}");
             }
-            score += route.Complete(ref trainCars, cards);
+            score += points;
             currentCity = route.CityB;
         }
         return true;
@@ -131,17 +133,16 @@ record Route(int Length, int RequiredEngines, Card Color, string CityA, string C
 
     public bool IsCompleted { get; private set; }
 
-    public bool CanComplete(int trainCars, Dictionary<Card, int> cards, bool useWildAndProcessGray = false) {
-        return TryComplete(ref trainCars, new Dictionary<Card, int>(cards), useWildAndProcessGray);
+    public bool TryCompleteSimple(ref int trainCars, Dictionary<Card, int> cards, out int points) {
+        return TryComplete(ref trainCars, cards, useWildAndProcessGray: false, out points);
     }
 
-    public int Complete(ref int trainCars, Dictionary<Card, int> cards) {
-        TryComplete(ref trainCars, cards);
-        IsCompleted = true;
-        return lengthScore[Length];
+    public bool TryComplete(ref int trainCars, Dictionary<Card, int> cards, out int points) {
+        return TryComplete(ref trainCars, cards, useWildAndProcessGray: true, out points);
     }
 
-    bool TryComplete(ref int trainCars, Dictionary<Card, int> cards, bool useWildAndProcessGray = false) {
+    bool TryComplete(ref int trainCars, Dictionary<Card, int> cards, bool useWildAndProcessGray, out int points) {
+        points = 0;
         if (trainCars < Length) {
             return false;
         }
@@ -150,8 +151,7 @@ record Route(int Length, int RequiredEngines, Card Color, string CityA, string C
                 return false;
             }
             cards[Color] -= Length;
-            trainCars -= Length;
-            return true;
+            return Complete(ref trainCars, out points);
         }
         if (Color != Card.Gray) {
             if (cards[Color] + cards[Card.Engine] < Length) {
@@ -164,13 +164,22 @@ record Route(int Length, int RequiredEngines, Card Color, string CityA, string C
                 cards[Color] = 0;
                 cards[Card.Engine] -= Length - requiredCards;
             }
-            trainCars -= Length;
-            return true;
+            return Complete(ref trainCars, out points);
         }
-        if (!TryCompleteGray(cards)) {
+        var cardsCopy = new Dictionary<Card, int>(cards);
+        if (!TryCompleteGray(cardsCopy)) {
             return false;
         }
+        foreach ((var color, int value) in cardsCopy) {
+            cards[color] = value;
+        }
+        return Complete(ref trainCars, out points);
+    }
+
+    bool Complete(ref int trainCars, out int points) {
+        IsCompleted = true;
         trainCars -= Length;
+        points = lengthScore[Length];
         return true;
     }
 
