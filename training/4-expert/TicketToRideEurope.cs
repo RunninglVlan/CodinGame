@@ -111,9 +111,10 @@ class Game {
             var b = path[i + 1];
             var route = routes
                     .First(it => it.CityA == a.Name && it.CityB == b.Name || it.CityB == a.Name && it.CityA == b.Name);
-            if (!route.TryCompleteSimple(ref trainCars, cards, out int points)) {
-                throw new ArgumentException(
+            if (!route.TryComplete(ref trainCars, cards, out int points)) {
+                Console.Error.WriteLine(
                         $"Not enough {nameof(trainCars)}: {trainCars} or {nameof(cards)}: {cards[route.Color]} to complete {route}");
+                return false;
             }
             score += points;
         }
@@ -150,25 +151,10 @@ record Route(int Length, int RequiredEngines, Card Color, string CityA, string C
 
     public bool IsCompleted { get; private set; }
 
-    public bool TryCompleteSimple(ref int trainCars, Dictionary<Card, int> cards, out int points) {
-        return TryComplete(ref trainCars, cards, useWildAndProcessGray: false, out points);
-    }
-
     public bool TryComplete(ref int trainCars, Dictionary<Card, int> cards, out int points) {
-        return TryComplete(ref trainCars, cards, useWildAndProcessGray: true, out points);
-    }
-
-    bool TryComplete(ref int trainCars, Dictionary<Card, int> cards, bool useWildAndProcessGray, out int points) {
         points = 0;
         if (trainCars < Length) {
             return false;
-        }
-        if (!useWildAndProcessGray) {
-            if (Color == Card.Gray || cards[Color] < Length) {
-                return false;
-            }
-            cards[Color] -= Length;
-            return Complete(ref trainCars, out points);
         }
         if (Color != Card.Gray) {
             if (cards[Color] + cards[Card.Engine] < Length) {
@@ -197,6 +183,7 @@ record Route(int Length, int RequiredEngines, Card Color, string CityA, string C
         IsCompleted = true;
         trainCars -= Length;
         points = lengthScore[Length];
+        Console.Error.WriteLine($"Completed {this}");
         return true;
     }
 
