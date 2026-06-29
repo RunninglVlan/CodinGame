@@ -43,7 +43,9 @@ class Game {
             int points = int.Parse(inputs[0]);
             string cityA = inputs[1];
             string cityB = inputs[2];
-            tickets.Add(new Ticket(points, cityA, cityB));
+            var ticket = new Ticket(points, cityA, cityB);
+            tickets.Add(ticket);
+            Console.Error.WriteLine(ticket);
         }
         ReadRoutes(routeLength);
     }
@@ -56,7 +58,9 @@ class Game {
             string color = inputs[2];
             string cityAName = inputs[3];
             string cityBName = inputs[4];
-            routes.Add(new Route(length, requiredEngines, Enum.Parse<Card>(color), cityAName, cityBName));
+            var route = new Route(length, requiredEngines, Enum.Parse<Card>(color), cityAName, cityBName);
+            routes.Add(route);
+            Console.Error.WriteLine(route);
             if (!cities.TryGetValue(cityAName, out var cityA)) {
                 cities[cityAName] = cityA = new City(cityAName);
             }
@@ -71,7 +75,6 @@ class Game {
     public int CalculateScore() {
         var score = 0;
         foreach (var ticket in tickets) {
-            Console.Error.WriteLine(ticket);
             if (CanConnectCities(ticket, out int routeScore)) {
                 score += ticket.Points;
                 score += routeScore;
@@ -81,7 +84,6 @@ class Game {
         }
         routes.Sort((a, b) => b.Length.CompareTo(a.Length));
         foreach (var route in routes) {
-            Console.Error.WriteLine(route);
             if (!route.IsCompleted && route.TryComplete(ref trainCars, cards, out int points)) {
                 score += points;
             }
@@ -92,16 +94,16 @@ class Game {
     bool CanConnectCities(Ticket ticket, out int score) {
         score = 0;
         if (!cities.TryGetValue(ticket.CityFrom, out var cityFrom)) {
-            Console.Error.WriteLine($" No route with city {ticket.CityFrom}");
+            Console.Error.WriteLine($"No route with city {ticket.CityFrom}");
             return false;
         }
         if (!cities.TryGetValue(ticket.CityTo, out var cityTo)) {
-            Console.Error.WriteLine($" No route with city {ticket.CityTo}");
+            Console.Error.WriteLine($"No route with city {ticket.CityTo}");
             return false;
         }
         var path = pathfinding.Path(cityFrom, cityTo);
         if (path == null) {
-            Console.Error.WriteLine($" No path found from {ticket.CityFrom} to {ticket.CityTo}");
+            Console.Error.WriteLine($"No path found from {ticket.CityFrom} to {ticket.CityTo}");
             return false;
         }
         for (var i = 0; i < path.Count - 1; i++) {
