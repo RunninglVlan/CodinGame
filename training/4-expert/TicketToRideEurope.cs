@@ -135,11 +135,8 @@ record Route(int Length, int RequiredEngines, Card Color, string CityA, string C
         if (trainCars < Length) {
             return false;
         }
-        if (Color != Card.Gray && cards[Color] >= Length) {
-            return true;
-        }
         if (!useWildAndProcessGray) {
-            return false;
+            return Color != Card.Gray && cards[Color] >= Length;
         }
         if (Color != Card.Gray) {
             return cards[Color] + cards[Card.Engine] >= Length;
@@ -174,35 +171,37 @@ record Route(int Length, int RequiredEngines, Card Color, string CityA, string C
             required -= RequiredEngines;
             engineCards -= RequiredEngines;
         }
-        if (required == 0 || cards.Any(it => it.Key != Card.Engine && it.Value >= required)) {
-            return true;
-        }
-        if (engineCards > 0) {
-            required -= Math.Min(required, engineCards);
-        }
-        return required == 0 || cards.Any(it => it.Key != Card.Engine && it.Value >= required);
+        int bestNonEngine = cards.Where(it => it.Key != Card.Engine).Max(it => it.Value);
+        required = Math.Max(0, required - engineCards);
+        return bestNonEngine >= required;
     }
 
-    [SuppressMessage("ReSharper", "InvertIf")]
     void CompleteGray(Dictionary<Card, int> cards) {
         int required = Length;
         if (RequiredEngines > 0) {
             required -= RequiredEngines;
             cards[Card.Engine] -= RequiredEngines;
         }
-        if (required != 0 && cards.Any(it => it.Key != Card.Engine && it.Value >= required)) {
-            var anyCard = cards.First(it => it.Key != Card.Engine && it.Value >= required).Key;
-            cards[anyCard] -= required;
+        if (UseNonEngineCards()) {
             return;
         }
-        if (cards[Card.Engine] > 0) {
-            int used = Math.Min(required, cards[Card.Engine]);
-            required -= used;
-            cards[Card.Engine] -= used;
+        int used = Math.Min(required, cards[Card.Engine]);
+        cards[Card.Engine] -= used;
+        required -= used;
+        if (required > 0) {
+            UseNonEngineCards();
         }
-        if (required != 0) {
-            var anyCard = cards.First(it => it.Key != Card.Engine && it.Value >= required).Key;
-            cards[anyCard] -= required;
+        return;
+
+        bool UseNonEngineCards() {
+            foreach ((var color, int count) in cards) {
+                if (color == Card.Engine || count < required) {
+                    continue;
+                }
+                cards[color] -= required;
+                return true;
+            }
+            return false;
         }
     }
 }
