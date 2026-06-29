@@ -86,13 +86,13 @@ class Game {
         var (point, speed, _, currentControl) = ReadInput();
         landing.SetReached(point);
         Console.Error.WriteLine(!landing.reached ? "Moving to landing" : "Reached landing");
-        Vector p = point;
-        Vector v = speed;
         var target = landing.Nearest(point);
         if (IsObstacleInWay(point, target, 100, out var obstacle)) {
             Console.Error.WriteLine($" Obstacle in the way, target {target} -> {obstacle}");
             target = obstacle;
         }
+        Vector p = point;
+        Vector v = speed;
         var (nextControl, _) = FindBest(p, v, currentControl, target, landing.reached, 5);
         if (landing.reached && speed.IsSafe) {
             // make sure we're landing with 0 angle
