@@ -20,14 +20,6 @@ class Game {
     /// Resource #2
     readonly Dictionary<Card, int> cards = new();
 
-    readonly Dictionary<int, int> routeLengthScore = new() {
-        { 1, 1 },
-        { 2, 2 },
-        { 3, 4 },
-        { 4, 7 },
-        { 6, 15 }
-    };
-
     readonly List<Ticket> tickets = new();
     readonly List<Route> routes = new();
 
@@ -74,6 +66,9 @@ class Game {
         }
         foreach (var route in routes) {
             Console.Error.WriteLine(route);
+            if (!route.IsCompleted && route.CanComplete(trainCars, cards)) {
+                score += route.Complete(ref trainCars, cards);
+            }
         }
         return score;
     }
@@ -93,15 +88,11 @@ class Game {
                         $"More than 1 route found with {nameof(Route.CityA)}: {currentCity} - {foundRoutes.Length}");
             }
             var route = foundRoutes.First();
-            if (trainCars < route.Length) {
-                throw new ArgumentException($"Not enough {nameof(trainCars)} to complete {route}");
+            if (!route.CanComplete(trainCars, cards)) {
+                throw new ArgumentException(
+                        $"Not enough {nameof(trainCars)}: {trainCars} or {nameof(cards)}: {cards[route.Color]} to complete {route}");
             }
-            if (cards[route.Color] < route.Length) {
-                throw new ArgumentException($"Not enough {nameof(cards)} to complete {route}");
-            }
-            trainCars -= route.Length;
-            cards[route.Color] -= route.Length;
-            score += routeLengthScore[route.Length];
+            score += route.Complete(ref trainCars, cards);
             currentCity = route.CityB;
         }
         return true;
@@ -123,4 +114,25 @@ enum Card {
 
 record Ticket(int Points, string CityA, string CityB);
 
-record Route(int Length, int RequiredEngines, Card Color, string CityA, string CityB);
+record Route(int Length, int RequiredEngines, Card Color, string CityA, string CityB) {
+    readonly Dictionary<int, int> lengthScore = new() {
+        { 1, 1 },
+        { 2, 2 },
+        { 3, 4 },
+        { 4, 7 },
+        { 6, 15 }
+    };
+
+    public bool IsCompleted { get; private set; }
+
+    public bool CanComplete(int trainCars, Dictionary<Card, int> cards) {
+        return trainCars >= Length && cards[Color] >= Length;
+    }
+
+    public int Complete(ref int trainCars, Dictionary<Card, int> cards) {
+        trainCars -= Length;
+        cards[Color] -= Length;
+        IsCompleted = true;
+        return lengthScore[Length];
+    }
+}
