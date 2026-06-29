@@ -91,7 +91,15 @@ class Game {
 
     bool CanConnectCities(Ticket ticket, out int score) {
         score = 0;
-        var path = pathfinding.Path(cities[ticket.CityFrom], cities[ticket.CityTo]);
+        if (!cities.TryGetValue(ticket.CityFrom, out var cityFrom)) {
+            Console.Error.WriteLine($" No route with city {ticket.CityFrom}");
+            return false;
+        }
+        if (!cities.TryGetValue(ticket.CityTo, out var cityTo)) {
+            Console.Error.WriteLine($" No route with city {ticket.CityTo}");
+            return false;
+        }
+        var path = pathfinding.Path(cityFrom, cityTo);
         if (path == null) {
             Console.Error.WriteLine($" No path found from {ticket.CityFrom} to {ticket.CityTo}");
             return false;
