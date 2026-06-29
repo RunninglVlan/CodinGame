@@ -70,6 +70,9 @@ class Game {
                 score += route.Complete(ref trainCars, cards);
             }
         }
+        score += routes
+                .Where(it => !it.IsCompleted && it.CanComplete(trainCars, cards, useWild: true))
+                .Sum(it => it.Complete(ref trainCars, cards));
         return score;
     }
 
@@ -108,7 +111,10 @@ enum Card {
     Black,
     Orange,
     Pink,
+
+    /// Wild card - can be used as a substitute for any colored card
     Engine,
+
     Gray
 }
 
@@ -125,13 +131,29 @@ record Route(int Length, int RequiredEngines, Card Color, string CityA, string C
 
     public bool IsCompleted { get; private set; }
 
-    public bool CanComplete(int trainCars, Dictionary<Card, int> cards) {
-        return trainCars >= Length && cards[Color] >= Length;
+    public bool CanComplete(int trainCars, Dictionary<Card, int> cards, bool useWild = false) {
+        if (trainCars < Length) {
+            return false;
+        }
+        int requiredCards = cards[Color];
+        if (requiredCards >= Length) {
+            return true;
+        }
+        if (!useWild) {
+            return false;
+        }
+        return requiredCards + cards[Card.Engine] >= Length;
     }
 
     public int Complete(ref int trainCars, Dictionary<Card, int> cards) {
         trainCars -= Length;
-        cards[Color] -= Length;
+        int requiredCards = cards[Color];
+        if (requiredCards >= Length) {
+            cards[Color] -= Length;
+        } else {
+            cards[Color] = 0;
+            cards[Card.Engine] -= Length - requiredCards;
+        }
         IsCompleted = true;
         return lengthScore[Length];
     }
