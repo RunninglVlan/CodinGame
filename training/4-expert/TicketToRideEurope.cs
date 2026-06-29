@@ -107,11 +107,10 @@ class Game {
             Console.Error.WriteLine($"No path found from {ticket.CityFrom} to {ticket.CityTo}");
             return false;
         }
-        for (var i = 0; i < path.Count - 1; i++) {
-            var a = path[i];
-            var b = path[i + 1];
-            var route = routes
-                    .First(it => it.CityA == a.Name && it.CityB == b.Name || it.CityB == a.Name && it.CityA == b.Name);
+        var foundRoutes = path.Zip(path.Skip(1), (a, b) => routes.First(it =>
+                        it.CityA == a.Name && it.CityB == b.Name || it.CityB == a.Name && it.CityA == b.Name))
+                .OrderByDescending(it => it.Length);
+        foreach (var route in foundRoutes) {
             if (!route.TryComplete(ref trainCars, cards, out int points)) {
                 string cardCount = route.Color != Card.Gray ? cards[route.Color].ToString() : "?";
                 Console.Error.WriteLine(
