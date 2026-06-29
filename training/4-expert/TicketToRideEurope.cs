@@ -112,8 +112,9 @@ class Game {
             var route = routes
                     .First(it => it.CityA == a.Name && it.CityB == b.Name || it.CityB == a.Name && it.CityA == b.Name);
             if (!route.TryComplete(ref trainCars, cards, out int points)) {
+                string cardCount = route.Color != Card.Gray ? cards[route.Color].ToString() : "?";
                 Console.Error.WriteLine(
-                        $"Not enough {nameof(trainCars)}: {trainCars} or {nameof(cards)}: {cards[route.Color]} to complete {route}");
+                        $"Not enough {nameof(trainCars)}: {trainCars} or {nameof(cards)}: {cardCount} to complete {route}");
                 return false;
             }
             score += points;
