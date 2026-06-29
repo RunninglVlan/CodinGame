@@ -14,6 +14,8 @@ static class TicketToRideEurope {
 }
 
 class Game {
+    readonly Pathfinding<City> pathfinding = new();
+
     /// Resource #1
     int trainCars;
 
@@ -22,6 +24,7 @@ class Game {
 
     readonly List<Ticket> tickets = new();
     readonly List<Route> routes = new();
+    readonly Dictionary<string, City> cities = new();
 
     public void ReadInput() {
         string[] inputs = Console.ReadLine()!.Split(' ');
@@ -42,14 +45,26 @@ class Game {
             string cityB = inputs[2];
             tickets.Add(new Ticket(points, cityA, cityB));
         }
+        ReadRoutes(routeLength);
+    }
+
+    void ReadRoutes(int routeLength) {
         for (var i = 0; i < routeLength; i++) {
-            inputs = Console.ReadLine()!.Split(' ');
+            string[] inputs = Console.ReadLine()!.Split(' ');
             int length = int.Parse(inputs[0]);
             int requiredEngines = int.Parse(inputs[1]);
             string color = inputs[2];
-            string cityA = inputs[3];
-            string cityB = inputs[4];
-            routes.Add(new Route(length, requiredEngines, Enum.Parse<Card>(color), cityA, cityB));
+            string cityAName = inputs[3];
+            string cityBName = inputs[4];
+            routes.Add(new Route(length, requiredEngines, Enum.Parse<Card>(color), cityAName, cityBName));
+            if (!cities.TryGetValue(cityAName, out var cityA)) {
+                cities[cityAName] = cityA = new City(cityAName);
+            }
+            if (!cities.TryGetValue(cityBName, out var cityB)) {
+                cities[cityBName] = cityB = new City(cityBName);
+            }
+            cities[cityAName].Connections.Add(cityB);
+            cities[cityBName].Connections.Add(cityA);
         }
     }
 
@@ -74,27 +89,23 @@ class Game {
         return score;
     }
 
-    [SuppressMessage("ReSharper", "ConvertIfStatementToSwitchStatement")]
     bool CanConnectCities(Ticket ticket, out int score) {
         score = 0;
-        string currentCity = ticket.CityA;
-        while (currentCity != ticket.CityB) {
-            var foundRoutes = routes.Where(it => it.CityA == currentCity).ToArray();
-            if (foundRoutes.Length == 0) {
-                Console.Error.WriteLine($" No route found with {nameof(Route.CityA)}: {currentCity}");
-                return false;
-            }
-            if (foundRoutes.Length > 1) {
-                throw new ArgumentException(
-                        $"More than 1 route found with {nameof(Route.CityA)}: {currentCity} - {foundRoutes.Length}");
-            }
-            var route = foundRoutes.First();
+        var path = pathfinding.Path(cities[ticket.CityFrom], cities[ticket.CityTo]);
+        if (path == null) {
+            Console.Error.WriteLine($" No path found from {ticket.CityFrom} to {ticket.CityTo}");
+            return false;
+        }
+        for (var i = 0; i < path.Count - 1; i++) {
+            var a = path[i];
+            var b = path[i + 1];
+            var route = routes
+                    .First(it => it.CityA == a.Name && it.CityB == b.Name || it.CityB == a.Name && it.CityA == b.Name);
             if (!route.TryCompleteSimple(ref trainCars, cards, out int points)) {
                 throw new ArgumentException(
                         $"Not enough {nameof(trainCars)}: {trainCars} or {nameof(cards)}: {cards[route.Color]} to complete {route}");
             }
             score += points;
-            currentCity = route.CityB;
         }
         return true;
     }
@@ -116,7 +127,7 @@ enum Card {
     Gray
 }
 
-record Ticket(int Points, string CityA, string CityB);
+record Ticket(int Points, string CityFrom, string CityTo);
 
 record Route(int Length, int RequiredEngines, Card Color, string CityA, string CityB) {
     readonly Dictionary<int, int> lengthScore = new() {
@@ -207,4 +218,56 @@ record Route(int Length, int RequiredEngines, Card Color, string CityA, string C
             return false;
         }
     }
+}
+
+record City(string Name) : INode<City> {
+    public int Id { get; } = Name.GetHashCode();
+    public List<City> Connections { get; } = [];
+}
+
+class Pathfinding<T> where T : INode<T> {
+    readonly Queue<T> queue = new();
+    readonly Dictionary<int, T> parents = new();
+    readonly HashSet<int> visited = new();
+
+    /// BFS to end
+    [SuppressMessage("ReSharper", "ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator")]
+    public List<T>? Path(T start, T end) {
+        queue.Clear();
+        parents.Clear();
+        visited.Clear();
+        queue.Enqueue(start);
+        visited.Add(start.Id);
+        while (queue.Count > 0) {
+            var current = queue.Dequeue();
+            if (current.Id == end.Id) {
+                return Reconstruct(start, current);
+            }
+            foreach (var next in current.Connections) {
+                if (!visited.Add(next.Id)) {
+                    continue;
+                }
+                queue.Enqueue(next);
+                parents[next.Id] = current;
+            }
+        }
+        return null;
+    }
+
+    List<T> Reconstruct(T start, T end) {
+        var path = new List<T>();
+        var current = end;
+        while (current.Id != start.Id) {
+            path.Add(current);
+            current = parents[current.Id];
+        }
+        path.Add(start);
+        path.Reverse();
+        return path;
+    }
+}
+
+interface INode<T> where T : INode<T> {
+    int Id { get; }
+    List<T> Connections { get; }
 }
