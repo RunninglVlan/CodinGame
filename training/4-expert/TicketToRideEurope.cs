@@ -13,9 +13,9 @@ static class TicketToRideEurope {
 class Game {
     public void ReadInput() {
         string[] inputs = Console.ReadLine()!.Split(' ');
-        int trainCars = int.Parse(inputs[0]);
-        int tickets = int.Parse(inputs[1]);
-        int routes = int.Parse(inputs[2]);
+        int trainCars = Math.Clamp(int.Parse(inputs[0]), 0, 29);
+        int tickets = Math.Clamp(int.Parse(inputs[1]), 0, 29);
+        int routes = Math.Clamp(int.Parse(inputs[2]), 0, 29);
         inputs = Console.ReadLine()!.Split(' ');
         int red = int.Parse(inputs[0]);
         int yellow = int.Parse(inputs[1]);
