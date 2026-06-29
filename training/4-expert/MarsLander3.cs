@@ -88,25 +88,11 @@ class Game {
     public void Loop() {
         var (point, speed, _, currentControl) = ReadInput();
         start ??= point;
-        var target = landing.Nearest(point);
-        bool surfaceInWay = IsSurfaceInWay(point, target);
+        var nearestLanding = landing.Nearest(point);
+        bool surfaceInWay = IsSurfaceInWay(point, nearestLanding);
         landing.SetReached(point, surfaceInWay);
         Console.Error.WriteLine(!landing.reached ? "Moving to landing" : "Reached landing");
-        if (landing.reached) {
-            target = landing.center;
-        } else if (IsObstacleInWay(point, target, 100, out var obstacle)) {
-            Console.Error.WriteLine($" Obstacle in the way, target {target} -> {obstacle}");
-            target = obstacle;
-            if (IsSurfaceInWay(point, target)) {
-                target = SurfaceEdge(point);
-                Console.Error.WriteLine($"  Still surface in the way, flying to the edge: {target}");
-            }
-        } else if (surfaceInWay) {
-            target = SurfaceEdge(point);
-            Console.Error.WriteLine($" Surface in the way, flying to the edge: {target}");
-        } else {
-            target = landing.center;
-        }
+        var target = Target(point, nearestLanding, surfaceInWay);
         Vector p = point;
         Vector v = speed;
         var (nextControl, _) = FindBest(p, v, currentControl, target, landing.reached, 5);
@@ -129,6 +115,51 @@ class Game {
         int angle = Math.Clamp(int.Parse(inputs[5]), -90, 90);
         int power = Math.Clamp(int.Parse(inputs[6]), 0, 4);
         return (point, speed, fuel, new Control(angle, power));
+    }
+
+    /// Checks whether any surface segment obstructs the straight-line path from
+    /// <paramref name="current"/> to <paramref name="target"/>.
+    bool IsSurfaceInWay(Point current, Point target) {
+        int startI = current.X > target.X ? surface.Length - 2 : 0;
+        int endI = current.X > target.X ? -1 : surface.Length - 1;
+        int step = current.X > target.X ? -1 : 1;
+        for (int i = startI; i != endI; i += step) {
+            var a = surface[i];
+            var b = surface[i + 1];
+            if (LinesIntersect(current, target, a, b)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    static bool LinesIntersect(Point aLineP1, Point aLineP2, Point bLineP1, Point bLineP2) {
+        var aLineVector = aLineP2 - aLineP1;
+        var bLineVector = bLineP2 - bLineP1;
+        double aLineSides = Vector.Cross(bLineVector, aLineP1 - bLineP1) * Vector.Cross(bLineVector, aLineP2 - bLineP1);
+        double bLineSides = Vector.Cross(aLineVector, bLineP1 - aLineP1) * Vector.Cross(aLineVector, bLineP2 - aLineP1);
+        return aLineSides < 0 && bLineSides < 0;
+    }
+
+    [SuppressMessage("ReSharper", "InvertIf")]
+    Point Target(Point point, Point target, bool surfaceInWay) {
+        if (landing.reached) {
+            return landing.center;
+        }
+        if (IsObstacleInWay(point, target, 100, out var obstacle)) {
+            Console.Error.WriteLine($" Obstacle in the way: {obstacle}");
+            surfaceInWay = IsSurfaceInWay(point, obstacle);
+            if (!surfaceInWay) {
+                return obstacle;
+            }
+        }
+        if (surfaceInWay) {
+            var surfaceEdge = start!.Value.X < point.X ? surface[^1] : surface[0];
+            surfaceEdge = surfaceEdge with { Y = surfaceMaxY };
+            Console.Error.WriteLine($" Surface in the way, flying to the edge: {surfaceEdge}");
+            return surfaceEdge;
+        }
+        return landing.center;
     }
 
     /// A surface point is considered an obstacle if it rises above the flight line
@@ -157,35 +188,6 @@ class Game {
         }
         obstacle = mostDangerous.point.Value with { Y = mostDangerous.point.Value.Y + margin };
         return true;
-    }
-
-    /// Checks whether any surface segment obstructs the straight-line path from
-    /// <paramref name="current"/> to <paramref name="target"/>.
-    bool IsSurfaceInWay(Point current, Point target) {
-        int startI = current.X > target.X ? surface.Length - 2 : 0;
-        int endI = current.X > target.X ? -1 : surface.Length - 1;
-        int step = current.X > target.X ? -1 : 1;
-        for (int i = startI; i != endI; i += step) {
-            var a = surface[i];
-            var b = surface[i + 1];
-            if (LinesIntersect(current, target, a, b)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    static bool LinesIntersect(Point aLineP1, Point aLineP2, Point bLineP1, Point bLineP2) {
-        var aLineVector = aLineP2 - aLineP1;
-        var bLineVector = bLineP2 - bLineP1;
-        double aLineSides = Vector.Cross(bLineVector, aLineP1 - bLineP1) * Vector.Cross(bLineVector, aLineP2 - bLineP1);
-        double bLineSides = Vector.Cross(aLineVector, bLineP1 - aLineP1) * Vector.Cross(aLineVector, bLineP2 - aLineP1);
-        return aLineSides < 0 && bLineSides < 0;
-    }
-
-    Point SurfaceEdge(Point point) {
-        var edge = start!.Value.X < point.X ? surface[^1] : surface[0];
-        return edge with { Y = surfaceMaxY };
     }
 
     /// DFS
