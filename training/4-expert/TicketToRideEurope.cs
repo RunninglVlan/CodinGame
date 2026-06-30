@@ -20,7 +20,7 @@ class Game {
     int trainCars;
 
     /// Resource #2
-    readonly Dictionary<Card, int> cards = new();
+    Dictionary<Card, int> cards = new();
 
     readonly List<Ticket> tickets = new();
     readonly List<Route> routes = new();
@@ -83,14 +83,7 @@ class Game {
                 score -= ticket.Points;
             }
         }
-        ticketRoutes = ticketRoutes.OrderBy(it => it.routes.Any(route => route.Color == Card.Gray)).ToList();
-        foreach (var (ticket, foundRoutes) in ticketRoutes) {
-            if (ticket.TryComplete(ref trainCars, cards, foundRoutes, out int points)) {
-                score += points;
-            } else {
-                score -= ticket.Points;
-            }
-        }
+        score += BestScore(ticketRoutes);
         routes.Sort((a, b) => b.Length.CompareTo(a.Length));
         foreach (var route in routes) {
             if (!route.IsCompleted && route.TryComplete(ref trainCars, cards, out int points)) {
@@ -121,6 +114,44 @@ class Game {
                 .ToList();
         return true;
     }
+
+    int BestScore(List<(Ticket, List<Route>)> ticketRoutes) {
+        (int score, int trainCars, Dictionary<Card, int> cards, List<Route> completedRoutes) best =
+                (int.MinValue, 0, null!, null!);
+        foreach (var permutation in Permutations(ticketRoutes)) {
+            (int score, int trainCars, Dictionary<Card, int> cards, List<Route> completedRoutes) current =
+                    (0, trainCars, new Dictionary<Card, int>(cards), new List<Route>());
+            foreach (var (ticket, foundRoutes) in permutation) {
+                if (ticket.TryComplete(ref current.trainCars, current.cards, foundRoutes, out int points)) {
+                    current.score += points;
+                    current.completedRoutes.AddRange(foundRoutes.Where(it => it.IsCompleted));
+                } else {
+                    current.score -= ticket.Points;
+                }
+            }
+            current.completedRoutes.ForEach(it => it.IsCompleted = false);
+            if (current.score > best.score) {
+                best = current;
+            }
+        }
+        trainCars = best.trainCars;
+        cards = best.cards;
+        best.completedRoutes.ForEach(it => it.IsCompleted = true);
+        return best.score;
+    }
+
+    static IEnumerable<List<T>> Permutations<T>(List<T> items) {
+        if (items.Count <= 1) {
+            yield return items;
+            yield break;
+        }
+        for (var i = 0; i < items.Count; i++) {
+            var rest = items.Where((_, index) => index != i).ToList();
+            foreach (var permutation in Permutations(rest)) {
+                yield return permutation.Prepend(items[i]).ToList();
+            }
+        }
+    }
 }
 
 enum Card {
@@ -140,13 +171,11 @@ enum Card {
 }
 
 record Ticket(int Points, string CityFrom, string CityTo) {
-    public bool TryComplete(ref int trainCars, Dictionary<Card, int> cards, IEnumerable<Route> routes, out int score) {
+    public bool TryComplete(ref int trainCars, Dictionary<Card, int> cards, List<Route> routes, out int score) {
         score = 0;
-        foreach (var route in routes) {
+        foreach (var route in routes.Where(it => !it.IsCompleted)) {
             if (!route.TryComplete(ref trainCars, cards, out int routePoints)) {
-                string cardCount = route.Color != Card.Gray ? cards[route.Color].ToString() : "?";
-                Console.Error.WriteLine(
-                        $"Not enough {nameof(trainCars)}: {trainCars} or {nameof(cards)}: {cardCount} to complete {route}");
+                Console.Error.WriteLine($" Not enough resources for {nameof(Route)} {route.Length}");
                 return false;
             }
             score += routePoints;
@@ -169,7 +198,7 @@ record Route(int Length, int RequiredEngines, Card Color, string CityA, string C
         { 6, 15 }
     };
 
-    public bool IsCompleted { get; private set; }
+    public bool IsCompleted { get; set; }
 
     public bool TryComplete(ref int trainCars, Dictionary<Card, int> cards, out int points) {
         points = 0;
@@ -203,7 +232,7 @@ record Route(int Length, int RequiredEngines, Card Color, string CityA, string C
         IsCompleted = true;
         trainCars -= Length;
         points = lengthScore[Length];
-        Console.Error.WriteLine($"Completed {this}");
+        Console.Error.WriteLine($" Completed {nameof(Route)} {Length}");
         return true;
     }
 
