@@ -152,12 +152,12 @@ class Game {
     int BestRouteScore() {
         var uncompletedRoutes = routes.Where(it => !it.IsCompleted).ToList();
         var best = int.MinValue;
-        foreach (var permutation in Permutations(uncompletedRoutes)) {
+        foreach (var subset in Subsets(uncompletedRoutes)) {
             var score = 0;
             int trainCarsCopy = trainCars;
             var cardsCopy = new Dictionary<Card, int>(cards);
             var completedRoutes = new List<Route>();
-            foreach (var route in permutation.Where(it => !it.IsCompleted)) {
+            foreach (var route in subset.Where(it => !it.IsCompleted)) {
                 if (!route.TryComplete(ref trainCarsCopy, cardsCopy, out int points)) {
                     continue;
                 }
@@ -170,6 +170,13 @@ class Game {
             }
         }
         return best;
+    }
+
+    static IEnumerable<List<T>> Subsets<T>(List<T> items) {
+        for (var mask = 0; mask < 1 << items.Count; mask++) {
+            var subset = items.Where((_, i) => (mask & 1 << i) != 0).ToList();
+            yield return subset;
+        }
     }
 }
 
