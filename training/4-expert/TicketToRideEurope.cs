@@ -120,10 +120,10 @@ class Game {
             foreach (var (ticket, foundRoutes) in permutation) {
                 if (ticket.TryComplete(ref current.trainCars, current.cards, foundRoutes, out int points)) {
                     current.score += points;
-                    current.completedRoutes.AddRange(foundRoutes.Where(it => it.IsCompleted));
                 } else {
                     current.score -= ticket.Points;
                 }
+                current.completedRoutes.AddRange(foundRoutes.Where(it => it.IsCompleted));
             }
             current.completedRoutes.ForEach(it => it.IsCompleted = false);
             if (current.score > best.score) {
