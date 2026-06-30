@@ -83,13 +83,8 @@ class Game {
                 score -= ticket.Points;
             }
         }
-        score += BestScore(ticketRoutes);
-        routes.Sort((a, b) => b.Length.CompareTo(a.Length));
-        foreach (var route in routes) {
-            if (!route.IsCompleted && route.TryComplete(ref trainCars, cards, out int points)) {
-                score += points;
-            }
-        }
+        score += BestTicketScore(ticketRoutes);
+        score += BestRouteScore();
         return score;
     }
 
@@ -115,7 +110,7 @@ class Game {
         return true;
     }
 
-    int BestScore(List<(Ticket, List<Route>)> ticketRoutes) {
+    int BestTicketScore(List<(Ticket, List<Route>)> ticketRoutes) {
         (int score, int trainCars, Dictionary<Card, int> cards, List<Route> completedRoutes) best =
                 (int.MinValue, 0, null!, null!);
         foreach (var permutation in Permutations(ticketRoutes)) {
@@ -151,6 +146,28 @@ class Game {
                 yield return permutation.Prepend(items[i]).ToList();
             }
         }
+    }
+
+    int BestRouteScore() {
+        var best = int.MinValue;
+        foreach (var permutation in Permutations(routes)) {
+            var score = 0;
+            int trainCarsCopy = trainCars;
+            var cardsCopy = new Dictionary<Card, int>(cards);
+            var completedRoutes = new List<Route>();
+            foreach (var route in permutation.Where(it => !it.IsCompleted)) {
+                if (!route.TryComplete(ref trainCarsCopy, cardsCopy, out int points)) {
+                    continue;
+                }
+                score += points;
+                completedRoutes.Add(route);
+            }
+            completedRoutes.ForEach(it => it.IsCompleted = false);
+            if (score > best) {
+                best = score;
+            }
+        }
+        return best;
     }
 }
 
