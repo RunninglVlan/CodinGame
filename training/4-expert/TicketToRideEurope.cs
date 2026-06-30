@@ -201,7 +201,7 @@ record Ticket(int Points, string CityFrom, string CityTo) {
         score = 0;
         foreach (var route in routes.Where(it => !it.IsCompleted)) {
             if (!route.TryComplete(ref trainCars, cards, out int routePoints)) {
-                Console.Error.WriteLine($" Not enough resources for {nameof(Route)} {route.Length}");
+                Console.Error.WriteLine($" Not enough resources for {route.ToShort()}");
                 return false;
             }
             score += routePoints;
@@ -210,9 +210,8 @@ record Ticket(int Points, string CityFrom, string CityTo) {
         return true;
     }
 
-    public override string ToString() {
-        return $"{nameof(Ticket)}(P: {Points}, {CityFrom} -> {CityTo})";
-    }
+    public override string ToString() => $"{nameof(Ticket)} {{ P: {Points}, {CityFrom} -> {CityTo} }}";
+    public string ToShort() => $"T {{ {Points} {CityFrom[..2]}->{CityTo[..2]} }}";
 }
 
 record Route(int Length, int RequiredEngines, Card Color, string CityA, string CityB) {
@@ -258,7 +257,7 @@ record Route(int Length, int RequiredEngines, Card Color, string CityA, string C
         IsCompleted = true;
         trainCars -= Length;
         points = lengthScore[Length];
-        Console.Error.WriteLine($" Completed {nameof(Route)} {Length}");
+        Console.Error.WriteLine($" Completed {ToShort()}");
         return true;
     }
 
@@ -292,8 +291,10 @@ record Route(int Length, int RequiredEngines, Card Color, string CityA, string C
     }
 
     public override string ToString() {
-        return $"{nameof(Route)}(L: {Length}, RE: {RequiredEngines}, C: {Color}, {CityA} - {CityB})";
+        return $"{nameof(Route)} {{ L: {Length}, RE: {RequiredEngines}, C: {Color}, {CityA} - {CityB} }}";
     }
+
+    public string ToShort() => $"R {{ {Length} {CityA[..2]}-{CityB[..2]} }}";
 }
 
 record City(string Name) : INode<City> {
