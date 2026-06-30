@@ -150,8 +150,9 @@ class Game {
     }
 
     int BestRouteScore() {
+        var uncompletedRoutes = routes.Where(it => !it.IsCompleted).ToList();
         var best = int.MinValue;
-        foreach (var permutation in Permutations(routes)) {
+        foreach (var permutation in Permutations(uncompletedRoutes)) {
             var score = 0;
             int trainCarsCopy = trainCars;
             var cardsCopy = new Dictionary<Card, int>(cards);
