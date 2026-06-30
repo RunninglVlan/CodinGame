@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
-using System.Text;
 
 namespace TicketToRideEurope;
 
@@ -22,7 +21,7 @@ class Game {
     int trainCars;
 
     /// Resource #2
-    Dictionary<Card, int> cards = new();
+    readonly Dictionary<Card, int> cards = new();
 
     readonly List<Ticket> tickets = new();
     readonly List<Route> routes = new();
@@ -78,18 +77,13 @@ class Game {
     }
 
     public int CalculateScore() {
-        var score = 0;
-        var ticketRoutes = new List<(Ticket, List<Route> routes)>();
+        var ticketRoutes = new Dictionary<Ticket, List<Route>>();
         foreach (var ticket in tickets) {
             if (CanConnectCities(ticket, out var foundRoutes)) {
-                ticketRoutes.Add((ticket, foundRoutes));
-            } else {
-                score -= ticket.Points;
+                ticketRoutes.Add(ticket, foundRoutes);
             }
         }
-        score += BestTicketScore(ticketRoutes);
-        score += BestRouteScore();
-        return score;
+        return BestScore(ticketRoutes);
     }
 
     bool CanConnectCities(Ticket ticket, out List<Route> foundRoutes) {
@@ -114,34 +108,31 @@ class Game {
         return true;
     }
 
-    int BestTicketScore(List<(Ticket, List<Route>)> ticketRoutes) {
-        var log = new StringBuilder();
-        (int score, int trainCars, Dictionary<Card, int> cards, List<Route> completedRoutes) best =
-                (int.MinValue, 0, null!, null!);
-        foreach (var permutation in Permutations(ticketRoutes)) {
-            log.Clear();
-            (int score, int trainCars, Dictionary<Card, int> cards, List<Route> completedRoutes) current =
-                    (0, trainCars, new Dictionary<Card, int>(cards), new List<Route>());
-            foreach (var (ticket, foundRoutes) in permutation) {
-                if (ticket.TryComplete(ref current.trainCars, current.cards, foundRoutes, out int points, log)) {
-                    current.score += points;
-                } else {
-                    current.score -= ticket.Points;
+    int BestScore(Dictionary<Ticket, List<Route>> ticketRoutes) {
+        var best = int.MinValue;
+        foreach (var permutation in Permutations(routes)) {
+            int trainCarsCopy = trainCars;
+            var cardsCopy = new Dictionary<Card, int>(cards);
+            var completedRoutes = new HashSet<Route>();
+            var routeScore = 0;
+            foreach (var route in permutation) {
+                if (!route.TryComplete(ref trainCarsCopy, cardsCopy, out int points)) {
+                    continue;
                 }
-                current.completedRoutes.AddRange(foundRoutes.Where(it => it.IsCompleted));
+                routeScore += points;
+                completedRoutes.Add(route);
             }
-            current.completedRoutes.ForEach(it => it.IsCompleted = false);
-            if (current.score <= best.score) {
-                continue;
+            var ticketScore = 0;
+            foreach (var ticket in tickets) {
+                bool completed = ticketRoutes.TryGetValue(ticket, out var path) && path.All(completedRoutes.Contains);
+                ticketScore += completed ? ticket.Points : -ticket.Points;
             }
-            best = current;
-            Console.Error.Write($"New best ticket score: {best.score}\n{log}");
+            int score = routeScore + ticketScore;
+            if (score > best) {
+                best = score;
+            }
         }
-        trainCars = best.trainCars;
-        cards = best.cards;
-        LogCards();
-        best.completedRoutes.ForEach(it => it.IsCompleted = true);
-        return best.score;
+        return best;
     }
 
     static IEnumerable<List<T>> Permutations<T>(List<T> items) {
@@ -154,36 +145,6 @@ class Game {
             foreach (var permutation in Permutations(rest)) {
                 yield return permutation.Prepend(items[i]).ToList();
             }
-        }
-    }
-
-    int BestRouteScore() {
-        var uncompletedRoutes = routes.Where(it => !it.IsCompleted).ToList();
-        var best = int.MinValue;
-        foreach (var subset in Subsets(uncompletedRoutes)) {
-            var score = 0;
-            int trainCarsCopy = trainCars;
-            var cardsCopy = new Dictionary<Card, int>(cards);
-            var completedRoutes = new List<Route>();
-            foreach (var route in subset.Where(it => !it.IsCompleted)) {
-                if (!route.TryComplete(ref trainCarsCopy, cardsCopy, out int points)) {
-                    continue;
-                }
-                score += points;
-                completedRoutes.Add(route);
-            }
-            completedRoutes.ForEach(it => it.IsCompleted = false);
-            if (score > best) {
-                best = score;
-            }
-        }
-        return best;
-    }
-
-    static IEnumerable<List<T>> Subsets<T>(List<T> items) {
-        for (var mask = 0; mask < 1 << items.Count; mask++) {
-            var subset = items.Where((_, i) => (mask & 1 << i) != 0).ToList();
-            yield return subset;
         }
     }
 }
@@ -205,33 +166,6 @@ enum Card {
 }
 
 record Ticket(int Points, string CityFrom, string CityTo) {
-    public bool TryComplete(ref int trainCars, Dictionary<Card, int> cards, List<Route> routes, out int score,
-            StringBuilder log) {
-        var completed = new List<Route>();
-        score = 0;
-        foreach (var route in routes.Where(it => !it.IsCompleted)) {
-            if (!route.TryComplete(ref trainCars, cards, out int routePoints)) {
-                log.AppendLine($"❌ {ToShort()}: -{Points}, ❌ {route.ToShort()}");
-                LogCompleted();
-                return false;
-            }
-            completed.Add(route);
-            score += routePoints;
-        }
-        log.AppendLine($"✅ {ToShort()}: +{Points}");
-        LogCompleted();
-        score += Points;
-        return true;
-
-        void LogCompleted() {
-            if (completed.Count <= 0) {
-                return;
-            }
-            var routesWithScore = completed.Select(it => $"{it.ToShort()}: +{it.Score}");
-            log.AppendLine($" ✅ {string.Join(", ", routesWithScore)}");
-        }
-    }
-
     public override string ToString() => $"{nameof(Ticket)} {{ P: {Points}, {CityFrom} -> {CityTo} }}";
     public string ToShort() => $"T({Points} {CityFrom[..2]}->{CityTo[..2]})";
 }
@@ -244,9 +178,6 @@ record Route(int Length, int RequiredEngines, Card Color, string CityA, string C
         { 4, 7 },
         { 6, 15 }
     };
-
-    public bool IsCompleted { get; set; }
-    public int Score => lengthScore[Length];
 
     public bool TryComplete(ref int trainCars, Dictionary<Card, int> cards, out int points) {
         points = 0;
@@ -277,9 +208,8 @@ record Route(int Length, int RequiredEngines, Card Color, string CityA, string C
     }
 
     bool Complete(ref int trainCars, out int points) {
-        IsCompleted = true;
         trainCars -= Length;
-        points = Score;
+        points = lengthScore[Length];
         return true;
     }
 
