@@ -5,6 +5,7 @@ using System.Linq;
 
 namespace TicketToRideEurope;
 
+/// https://www.codingame.com/training/expert/ticket-to-ride-europe
 static class TicketToRideEurope {
     static void Main() {
         var game = new Game();
