@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Text;
 
 namespace TicketToRideEurope;
 
@@ -21,7 +22,7 @@ class Game {
     int trainCars;
 
     /// Resource #2
-    readonly Dictionary<Card, int> cards = new();
+    Dictionary<Card, int> cards = new();
 
     readonly List<Ticket> tickets = new();
     readonly List<Route> routes = new();
@@ -77,16 +78,13 @@ class Game {
     }
 
     public int CalculateScore() {
-        var ticketRoutes = new Dictionary<Ticket, List<Route>>();
-        foreach (var ticket in tickets) {
-            if (CanConnectCities(ticket, out var foundRoutes)) {
-                ticketRoutes.Add(ticket, foundRoutes);
-            }
-        }
-        return BestScore(ticketRoutes);
+        var ticketRoutes = tickets
+                .ToDictionary(it => it, it => CanConnectCities(it, out var foundRoutes) ? foundRoutes : []);
+        // return BestScore(ticketRoutes);
+        return BestTicketScore(ticketRoutes.Select(it => (it.Key, it.Value)).ToList()) + BestRouteScore();
     }
 
-    bool CanConnectCities(Ticket ticket, out List<Route> foundRoutes) {
+    bool CanConnectCities(Ticket ticket, out Route[] foundRoutes) {
         foundRoutes = null!;
         if (!cities.TryGetValue(ticket.CityFrom, out var cityFrom)) {
             Console.Error.WriteLine($"No route with city {ticket.CityFrom}");
@@ -104,7 +102,7 @@ class Game {
         foundRoutes = path.Zip(path.Skip(1), (a, b) => routes.First(it =>
                         it.CityA == a.Name && it.CityB == b.Name || it.CityB == a.Name && it.CityA == b.Name))
                 .OrderByDescending(it => it.Length)
-                .ToList();
+                .ToArray();
         return true;
     }
 
@@ -128,6 +126,84 @@ class Game {
                 ticketScore += completed ? ticket.Points : -ticket.Points;
             }
             int score = routeScore + ticketScore;
+            if (score > best) {
+                best = score;
+            }
+        }
+        return best;
+    }
+
+    int BestTicketScore(List<(Ticket, Route[])> ticketRoutes) {
+        var log = new StringBuilder();
+        (int score, int trainCars, Dictionary<Card, int> cards, List<Route>? completedRoutes) best =
+                (int.MinValue, 0, null!, null!);
+        foreach (var permutation in Permutations(ticketRoutes)) {
+            log.Clear();
+            (int score, int trainCars, Dictionary<Card, int> cards, List<Route> completedRoutes) current =
+                    (0, trainCars, new Dictionary<Card, int>(cards), new List<Route>());
+            foreach (var (ticket, foundRoutes) in permutation) {
+                if (!TryCompleteTicket(ticket, foundRoutes, ref current)) {
+                    current.score -= ticket.Points;
+                    continue;
+                }
+                current.score += ticket.Points;
+                log.AppendLine($"✅ {ticket.ToShort()}: +{ticket.Points}");
+                LogCompleted(current.completedRoutes);
+            }
+            current.completedRoutes.ForEach(it => it.IsCompleted = false);
+            if (current.score <= best.score) {
+                continue;
+            }
+            best = current;
+            Console.Error.Write($"New best ticket score: {best.score}\n{log}");
+        }
+        trainCars = best.trainCars;
+        cards = best.cards;
+        best.completedRoutes.ForEach(it => it.IsCompleted = true);
+        LogCards();
+        return best.score;
+
+        bool TryCompleteTicket(Ticket ticket, Route[] foundRoutes,
+                ref (int score, int trainCars, Dictionary<Card, int> cards, List<Route> completedRoutes) current) {
+            bool completed = foundRoutes.Length > 0;
+            foreach (var route in foundRoutes.Where(it => !it.IsCompleted)) {
+                if (!route.TryComplete(ref current.trainCars, current.cards, out int points)) {
+                    completed = false;
+                    log.AppendLine($"❌ {ticket.ToShort()}: -{ticket.Points}, ❌ {route.ToShort()}");
+                    LogCompleted(current.completedRoutes);
+                    break;
+                }
+                current.score += points;
+                current.completedRoutes.Add(route);
+            }
+            return completed;
+        }
+
+        void LogCompleted(List<Route> list) {
+            if (list.Count <= 0) {
+                return;
+            }
+            var routesWithScore = list.Select(it => $"{it.ToShort()}: +{it.Score}");
+            log.AppendLine($" ✅ {string.Join(", ", routesWithScore)}");
+        }
+    }
+
+    int BestRouteScore() {
+        var uncompletedRoutes = routes.Where(it => !it.IsCompleted).ToList();
+        var best = int.MinValue;
+        foreach (var permutation in Permutations(uncompletedRoutes)) {
+            var score = 0;
+            int trainCarsCopy = trainCars;
+            var cardsCopy = new Dictionary<Card, int>(cards);
+            var completedRoutes = new List<Route>();
+            foreach (var route in permutation.Where(it => !it.IsCompleted)) {
+                if (!route.TryComplete(ref trainCarsCopy, cardsCopy, out int points)) {
+                    continue;
+                }
+                score += points;
+                completedRoutes.Add(route);
+            }
+            completedRoutes.ForEach(it => it.IsCompleted = false);
             if (score > best) {
                 best = score;
             }
@@ -179,6 +255,9 @@ record Route(int Length, int RequiredEngines, Card Color, string CityA, string C
         { 6, 15 }
     };
 
+    public bool IsCompleted { get; set; }
+    public int Score => lengthScore[Length];
+
     public bool TryComplete(ref int trainCars, Dictionary<Card, int> cards, out int points) {
         points = 0;
         if (trainCars < Length) {
@@ -208,8 +287,9 @@ record Route(int Length, int RequiredEngines, Card Color, string CityA, string C
     }
 
     bool Complete(ref int trainCars, out int points) {
+        IsCompleted = true;
         trainCars -= Length;
-        points = lengthScore[Length];
+        points = Score;
         return true;
     }
 
