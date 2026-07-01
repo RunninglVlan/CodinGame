@@ -77,13 +77,32 @@ class Game {
     }
 
     public int CalculateScore() {
-        var ticketRoutes = new Dictionary<Ticket, List<Route>>();
-        foreach (var ticket in tickets) {
-            if (CanConnectCities(ticket, out var foundRoutes)) {
-                ticketRoutes.Add(ticket, foundRoutes);
+        var ticketRoutes = tickets
+                .ToDictionary(it => it, it => CanConnectCities(it, out var foundRoutes) ? foundRoutes : []);
+        var best = int.MinValue;
+        foreach (var permutation in Permutations(routes)) {
+            int trainCarsCopy = trainCars;
+            var cardsCopy = new Dictionary<Card, int>(cards);
+            var completedRoutes = new HashSet<Route>();
+            var routeScore = 0;
+            foreach (var route in permutation) {
+                if (!route.TryComplete(ref trainCarsCopy, cardsCopy, out int points)) {
+                    continue;
+                }
+                routeScore += points;
+                completedRoutes.Add(route);
+            }
+            var ticketScore = 0;
+            foreach (var (ticket, path) in ticketRoutes) {
+                bool completed = path.Count > 0 && path.All(completedRoutes.Contains);
+                ticketScore += completed ? ticket.Points : -ticket.Points;
+            }
+            int score = routeScore + ticketScore;
+            if (score > best) {
+                best = score;
             }
         }
-        return BestScore(ticketRoutes);
+        return best;
     }
 
     bool CanConnectCities(Ticket ticket, out List<Route> foundRoutes) {
@@ -106,33 +125,6 @@ class Game {
                 .OrderByDescending(it => it.Length)
                 .ToList();
         return true;
-    }
-
-    int BestScore(Dictionary<Ticket, List<Route>> ticketRoutes) {
-        var best = int.MinValue;
-        foreach (var permutation in Permutations(routes)) {
-            int trainCarsCopy = trainCars;
-            var cardsCopy = new Dictionary<Card, int>(cards);
-            var completedRoutes = new HashSet<Route>();
-            var routeScore = 0;
-            foreach (var route in permutation) {
-                if (!route.TryComplete(ref trainCarsCopy, cardsCopy, out int points)) {
-                    continue;
-                }
-                routeScore += points;
-                completedRoutes.Add(route);
-            }
-            var ticketScore = 0;
-            foreach (var ticket in tickets) {
-                bool completed = ticketRoutes.TryGetValue(ticket, out var path) && path.All(completedRoutes.Contains);
-                ticketScore += completed ? ticket.Points : -ticket.Points;
-            }
-            int score = routeScore + ticketScore;
-            if (score > best) {
-                best = score;
-            }
-        }
-        return best;
     }
 
     static IEnumerable<List<T>> Permutations<T>(List<T> items) {
