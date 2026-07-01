@@ -1,0 +1,1 @@
+﻿Console.Out.WriteLine(Math.Pow(2, 10));
