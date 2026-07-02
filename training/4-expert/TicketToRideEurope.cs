@@ -163,14 +163,7 @@ class Game : IGame<GameState> {
                 yield return NextState(current, route, cardsCopy, i);
                 continue;
             }
-            foreach ((var type, int count) in current.Cards) {
-                if (type == Card.Engine || count == 0) {
-                    continue;
-                }
-                var cardsCopy = new Dictionary<Card, int>(current.Cards);
-                if (!route.TryCompleteGray(cardsCopy, type)) {
-                    continue;
-                }
+            foreach (var cardsCopy in route.CompleteGray(current.Cards)) {
                 yield return NextState(current, route, cardsCopy, i);
             }
         }
@@ -269,30 +262,43 @@ record Route(int Length, int RequiredEngines, Card Color, string CityA, string C
         return true;
     }
 
-    public bool TryCompleteGray(Dictionary<Card, int> cards, Card nonEngineCard) {
+    public IEnumerable<Dictionary<Card, int>> CompleteGray(Dictionary<Card, int> cards) {
         int required = Length;
+        var cardsCopy = new Dictionary<Card, int>(cards);
         if (RequiredEngines > 0) {
-            if (cards[Card.Engine] < RequiredEngines) {
-                return false;
+            if (cardsCopy[Card.Engine] < RequiredEngines) {
+                yield break;
             }
             required -= RequiredEngines;
-            cards[Card.Engine] -= RequiredEngines;
+            cardsCopy[Card.Engine] -= RequiredEngines;
         }
-        if (UseNonEngineCard()) {
-            return true;
-        }
-        int used = Math.Min(required, cards[Card.Engine]);
-        cards[Card.Engine] -= used;
-        required -= used;
-        return required == 0 || UseNonEngineCard();
-
-        bool UseNonEngineCard() {
-            int count = cards[nonEngineCard];
-            if (count < required) {
-                return false;
+        var usedNonEngineCards = UseNonEngineCards(required).ToArray();
+        if (usedNonEngineCards.Length > 0) {
+            foreach (var newCards in usedNonEngineCards) {
+                yield return newCards;
             }
-            cards[nonEngineCard] -= required;
-            return true;
+        }
+        int used = Math.Min(required, cardsCopy[Card.Engine]);
+        cardsCopy[Card.Engine] -= used;
+        required -= used;
+        if (required == 0) {
+            yield return cardsCopy;
+            yield break;
+        }
+        foreach (var newCards in UseNonEngineCards(required)) {
+            yield return newCards;
+        }
+        yield break;
+
+        IEnumerable<Dictionary<Card, int>> UseNonEngineCards(int length) {
+            foreach ((var color, int count) in cardsCopy) {
+                if (color == Card.Engine || count < length) {
+                    continue;
+                }
+                var newCards = new Dictionary<Card, int>(cardsCopy);
+                newCards[color] -= length;
+                yield return newCards;
+            }
         }
     }
 
@@ -359,7 +365,7 @@ class BeamSearch<T>(IGame<T> game) where T : class, IState {
     readonly HashSet<T> visited = new();
 
     [SuppressMessage("ReSharper", "ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator")]
-    public T FindBest(T start, int levels, int beamWidth = 30) {
+    public T FindBest(T start, int levels, int beamWidth = 100) {
         var best = start;
         Console.Error.WriteLine($"New: {game.ToString(best)}");
         var currentLevel = new List<T> { start };
