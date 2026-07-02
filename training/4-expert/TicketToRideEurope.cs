@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Text;
 
 namespace TicketToRideEurope;
 
@@ -89,7 +90,6 @@ class Game : IGame<GameState> {
             }
             cards[type] = int.Parse(inputs[(int)type]);
         }
-        LogCards();
         for (var i = 0; i < ticketLength; i++) {
             inputs = Console.ReadLine()!.Split(' ');
             int points = int.Parse(inputs[0]);
@@ -103,8 +103,6 @@ class Game : IGame<GameState> {
         ticketRoutes = tickets
                 .ToDictionary(it => it, it => CanConnectCities(it, out var foundRoutes) ? foundRoutes : []);
     }
-
-    void LogCards() => Console.Error.WriteLine(string.Join(", ", cards.Select(it => $"{it.Key}: {it.Value}")));
 
     void ReadRoutes(int routeLength) {
         for (var i = 0; i < routeLength; i++) {
@@ -196,6 +194,19 @@ class Game : IGame<GameState> {
             }
             return uncompleted == 0;
         }
+    }
+
+    string IGame<GameState>.ToString(GameState state) {
+        var text = new StringBuilder();
+        text.AppendLine($"Score: {state.Score} = {state.RouteScore} + {state.TicketScore}");
+        text.AppendLine($"TrainCars: {state.TrainCars}");
+        text.AppendLine(string.Join(", ", state.Cards.Select(it => $"{it.Key}: {it.Value}")));
+        var lines = state.CompletedRoutes
+                .Select((completed, i) => (completed, route: routes[i]))
+                .Where(it => it.completed)
+                .Select(it => $" ✅ {it.route.ToShort()}");
+        text.Append(string.Join(Environment.NewLine, lines));
+        return text.ToString();
     }
 }
 
@@ -357,8 +368,10 @@ class BeamSearch<T>(IGame<T> game) where T : class, IState {
     [SuppressMessage("ReSharper", "ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator")]
     public T FindBest(T start, int levels, int beamWidth = 10) {
         var best = start;
+        Console.Error.WriteLine($"New: {game.ToString(best)}");
         var currentLevel = new List<T> { start };
         for (var level = 0; level < levels; level++) {
+            Console.Error.WriteLine($"Level: {level}");
             var nextLevel = new List<T>();
             visited.Clear();
             foreach (var current in currentLevel) {
@@ -379,9 +392,11 @@ class BeamSearch<T>(IGame<T> game) where T : class, IState {
                 break;
             }
             var bestCurrent = currentLevel.First();
-            if (best.Score < bestCurrent.Score) {
-                best = bestCurrent;
+            if (best.Score >= bestCurrent.Score) {
+                continue;
             }
+            best = bestCurrent;
+            Console.Error.WriteLine($"New: {game.ToString(best)}");
         }
         return best;
     }
@@ -389,6 +404,7 @@ class BeamSearch<T>(IGame<T> game) where T : class, IState {
 
 interface IGame<TState> {
     IEnumerable<TState> Next(TState current);
+    string ToString(TState state);
 }
 
 interface IState : IEquatable<IState> {
