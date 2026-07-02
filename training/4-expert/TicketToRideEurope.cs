@@ -245,25 +245,18 @@ record Route(int Length, int RequiredEngines, Card Color, string CityA, string C
         if (state.TrainCars < Length) {
             return false;
         }
-        if (Color != Card.Gray) {
-            if (state.Cards[Color] + state.Cards[Card.Engine] < Length) {
-                return false;
-            }
-            int requiredCards = state.Cards[Color];
-            if (requiredCards >= Length) {
-                state.Cards[Color] -= Length;
-            } else {
-                state.Cards[Color] = 0;
-                state.Cards[Card.Engine] -= Length - requiredCards;
-            }
-            return Complete(state, out points);
+        if (Color == Card.Gray) {
+            return TryCompleteGray(state.Cards) && Complete(state, out points);
         }
-        var cardsCopy = new Dictionary<Card, int>(state.Cards);
-        if (!TryCompleteGray(cardsCopy)) {
+        if (state.Cards[Color] + state.Cards[Card.Engine] < Length) {
             return false;
         }
-        foreach ((var color, int value) in cardsCopy) {
-            state.Cards[color] = value;
+        int requiredCards = state.Cards[Color];
+        if (requiredCards >= Length) {
+            state.Cards[Color] -= Length;
+        } else {
+            state.Cards[Color] = 0;
+            state.Cards[Card.Engine] -= Length - requiredCards;
         }
         return Complete(state, out points);
     }
