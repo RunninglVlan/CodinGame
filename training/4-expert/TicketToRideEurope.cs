@@ -19,7 +19,7 @@ record struct GameState(int Score, int TrainCars, Dictionary<Card, int> Cards, L
     public static GameState NewBest => new(int.MinValue, 0, null!, null!);
 
     public static GameState CurrentFrom(GameState state) {
-        return new GameState(0, state.TrainCars, new Dictionary<Card, int>(state.Cards), new List<Route>());
+        return new GameState(0, state.TrainCars, new Dictionary<Card, int>(state.Cards), []);
     }
 
     public override string ToString() {
@@ -41,8 +41,8 @@ class Game {
     /// Resource #2
     Dictionary<Card, int> cards = new();
 
-    readonly List<Ticket> tickets = new();
-    readonly List<Route> routes = new();
+    readonly List<Ticket> tickets = [];
+    readonly List<Route> routes = [];
     readonly Dictionary<string, City> cities = new();
 
     public void ReadInput() {
@@ -122,7 +122,7 @@ class Game {
     }
 
     int BestTicketScore(List<(Ticket, List<List<Route>>)> ticketRoutes) {
-        var start = new GameState(0, trainCars, cards, new List<Route>());
+        var start = new GameState(0, trainCars, cards, []);
         var best = GameState.NewBest;
         foreach (var permutation in Permutations(ticketRoutes)) {
             var current = GameState.CurrentFrom(start);
@@ -193,7 +193,7 @@ class Game {
         var uncompletedRoutes = routes.Where(it => !it.IsCompleted).ToList();
         var best = int.MinValue;
         foreach (var subset in Subsets(uncompletedRoutes)) {
-            var state = new GameState(0, trainCars, new Dictionary<Card, int>(cards), new List<Route>());
+            var state = new GameState(0, trainCars, new Dictionary<Card, int>(cards), []);
             foreach (var route in subset.Where(it => !it.IsCompleted)) {
                 if (!route.TryComplete(ref state, out int points)) {
                     continue;
