@@ -19,6 +19,9 @@ record struct GameState(int RouteScore, int TicketScore,
         int TrainCars, Dictionary<Card, int> Cards, List<Route> CompletedRoutes) {
     public int Score => RouteScore + TicketScore;
 
+    public static GameState Copy(GameState state) => new(state.RouteScore, state.TicketScore, state.TrainCars,
+            new Dictionary<Card, int>(state.Cards), [..state.CompletedRoutes]);
+
     public override string ToString() {
         var text = new StringBuilder();
         text.AppendLine($" Score: {Score} = {RouteScore} + {TicketScore}");
@@ -116,46 +119,43 @@ class Game {
 
     public int CalculateScore() {
         var best = int.MinValue;
-        foreach (var permutation in Permutations(routes)) {
-            var state = new GameState(0, 0, trainCars, new Dictionary<Card, int>(cards), []);
-            foreach (var route in permutation) {
-                if (!route.TryComplete(ref state, out int points)) {
-                    continue;
-                }
-                state.RouteScore += points;
-                state.CompletedRoutes.Add(route);
-            }
-            state.TicketScore = TicketScore(state.CompletedRoutes);
-            if (state.Score <= best) {
-                continue;
-            }
-            best = state.Score;
-            Console.Error.WriteLine("New best");
-            Console.Error.WriteLine(state);
-        }
+        var current = new GameState(0, 0, trainCars, new Dictionary<Card, int>(cards), []);
+        Backtrack();
         return best;
 
-        int TicketScore(List<Route> completedRoutes) {
-            var score = 0;
-            foreach (var (ticket, paths) in ticketRoutes) {
-                bool completed = paths.Any(it => it.Count > 0 && it.All(completedRoutes.Contains));
-                score += completed ? ticket.Points : -ticket.Points;
+        void Backtrack() {
+            current.TicketScore = TicketScore(current.CompletedRoutes);
+            if (current.Score > best) {
+                best = current.Score;
+                Console.Error.WriteLine("New best");
+                Console.Error.WriteLine(current);
             }
-            return score;
+            for (var i = 0; i < routes.Count; i++) {
+                var route = routes[i];
+                if (current.TrainCars < route.Length) {
+                    continue;
+                }
+                var previous = GameState.Copy(current);
+                routes.RemoveAt(i);
+                if (route.TryComplete(current.Cards)) {
+                    current.RouteScore += route.Score;
+                    current.TrainCars -= route.Length;
+                    current.CompletedRoutes.Add(route);
+                    Backtrack();
+                    current = previous;
+                }
+                routes.Insert(i, route);
+            }
         }
     }
 
-    static IEnumerable<List<T>> Permutations<T>(List<T> items) {
-        if (items.Count <= 1) {
-            yield return items;
-            yield break;
+    int TicketScore(List<Route> completedRoutes) {
+        var score = 0;
+        foreach (var (ticket, paths) in ticketRoutes) {
+            bool completed = paths.Any(it => it.Count > 0 && it.All(completedRoutes.Contains));
+            score += completed ? ticket.Points : -ticket.Points;
         }
-        for (var i = 0; i < items.Count; i++) {
-            var rest = items.Where((_, index) => index != i).ToList();
-            foreach (var permutation in Permutations(rest)) {
-                yield return permutation.Prepend(items[i]).ToList();
-            }
-        }
+        return score;
     }
 }
 
@@ -189,30 +189,22 @@ record Route(int Length, int RequiredEngines, Card Color, string CityA, string C
         { 6, 15 }
     };
 
-    public bool TryComplete(ref GameState state, out int points) {
-        points = 0;
-        if (state.TrainCars < Length) {
-            return false;
-        }
-        if (Color == Card.Gray) {
-            return TryCompleteGray(state.Cards) && Complete(ref state, out points);
-        }
-        if (state.Cards[Color] + state.Cards[Card.Engine] < Length) {
-            return false;
-        }
-        int requiredCards = state.Cards[Color];
-        if (requiredCards >= Length) {
-            state.Cards[Color] -= Length;
-        } else {
-            state.Cards[Color] = 0;
-            state.Cards[Card.Engine] -= Length - requiredCards;
-        }
-        return Complete(ref state, out points);
-    }
+    public int Score => lengthScore[Length];
 
-    bool Complete(ref GameState state, out int points) {
-        state.TrainCars -= Length;
-        points = lengthScore[Length];
+    public bool TryComplete(Dictionary<Card, int> cards) {
+        if (Color == Card.Gray) {
+            return TryCompleteGray(cards);
+        }
+        if (cards[Color] + cards[Card.Engine] < Length) {
+            return false;
+        }
+        int requiredCards = cards[Color];
+        if (requiredCards >= Length) {
+            cards[Color] -= Length;
+        } else {
+            cards[Color] = 0;
+            cards[Card.Engine] -= Length - requiredCards;
+        }
         return true;
     }
 
