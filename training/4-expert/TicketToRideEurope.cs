@@ -156,9 +156,11 @@ class Game : IGame<GameState> {
                 continue;
             }
             if (route.Color != Card.Gray) {
-                foreach (var cardsCopy in route.Complete(current.Cards)) {
-                    yield return NextState(current, route, cardsCopy, i);
+                var cardsCopy = new Dictionary<Card, int>(current.Cards);
+                if (!route.TryComplete(cardsCopy)) {
+                    continue;
                 }
+                yield return NextState(current, route, cardsCopy, i);
                 continue;
             }
             foreach (var cardsCopy in route.CompleteGray(current.Cards)) {
@@ -246,17 +248,18 @@ record Route(int Length, int RequiredEngines, Card Color, string CityA, string C
 
     public int Score => lengthScore[Length];
 
-    public IEnumerable<Dictionary<Card, int>> Complete(Dictionary<Card, int> cards) {
-        for (var wild = 0; wild <= Math.Min(Length, cards[Card.Engine]); wild++) {
-            int count = Length - wild;
-            if (cards[Color] < count) {
-                continue;
-            }
-            var cardsCopy = new Dictionary<Card, int>(cards);
-            cardsCopy[Color] -= count;
-            cardsCopy[Card.Engine] -= wild;
-            yield return cardsCopy;
+    public bool TryComplete(Dictionary<Card, int> cards) {
+        if (cards[Color] + cards[Card.Engine] < Length) {
+            return false;
         }
+        int requiredCards = cards[Color];
+        if (requiredCards >= Length) {
+            cards[Color] -= Length;
+        } else {
+            cards[Color] = 0;
+            cards[Card.Engine] -= Length - requiredCards;
+        }
+        return true;
     }
 
     public IEnumerable<Dictionary<Card, int>> CompleteGray(Dictionary<Card, int> cards) {
