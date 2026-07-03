@@ -13,23 +13,30 @@ static class TicketToRideEurope {
     static void Main() {
         var stopwatch = Stopwatch.StartNew();
         const string testCase = """
-                                16 4 9
-                                0 0 2 1 3 4 3 1 4
+                                16 5 15
+                                3 2 0 2 4 3 3 2 5
+                                3 Berlin Wien
+                                9 Berlin Roma
                                 3 London Paris
-                                3 Berlin Wein
-                                5 Frankfurt Kobenhavn
-                                5 Athena Angora
-                                3 0 Green Berlin Wein
-                                2 0 Green Frankfurt Essen
-                                3 1 Gray Kobenhavn Essen
+                                5 Dieppe Marseille
+                                7 Brest Marseille
+                                2 1 Gray Dieppe London
                                 1 0 Pink Dieppe Paris
-                                2 1 Gray Athina Smyrna
-                                3 0 Black Frankfurt Berlin
-                                2 0 Blue Berlin Essen
-                                6 2 Gray Smyrna Palermo
-                                3 0 Orange Angora Smyrna
+                                4 0 Gray Paris Marseille
+                                3 0 Black Brest Paris
+                                4 0 Red Marseille Pamplona
+                                3 0 Gray Paris Zurich
+                                2 0 Pink Zurich Marseille
+                                3 0 Green Berlin Wien
+                                2 0 Gray Zagrab Wien
+                                2 0 Gray Zagrab Venezia
+                                2 0 Black Roma Venezia
+                                4 0 Orange London Edinburgh
+                                2 0 Orange Dieppe Brest
+                                1 0 Black Amsterdam Bruxelles
+                                2 2 Gray London Amsterdam
                                 """;
-        const int expected = 21;
+        const int expected = 41;
         Console.SetIn(new StringReader(testCase));
         var game = new Game();
         game.ReadInput();
@@ -39,53 +46,25 @@ static class TicketToRideEurope {
     }
 }
 
-class GameState(int routeLength) : IState {
-    public int RouteScore { get; set; }
-    public int TicketScore { get; set; }
+record struct GameState(int RouteScore, int TicketScore,
+        int TrainCars, Dictionary<Card, int> Cards, List<Route> CompletedRoutes) {
     public int Score => RouteScore + TicketScore;
-    public int TrainCars { get; set; }
-    public Dictionary<Card, int> Cards { get; set; } = null!;
-    public bool[] CompletedRoutes { get; } = new bool[routeLength];
 
-    public void Load(GameState from) {
-        RouteScore = from.RouteScore;
-        TrainCars = from.TrainCars;
-        Cards = new Dictionary<Card, int>(from.Cards);
-        Array.Copy(from.CompletedRoutes, CompletedRoutes, CompletedRoutes.Length);
-    }
+    public static GameState Copy(GameState state) => new(state.RouteScore, state.TicketScore, state.TrainCars,
+            new Dictionary<Card, int>(state.Cards), [..state.CompletedRoutes]);
 
-    public bool Equals(IState? other) {
-        if (other is not GameState that) {
-            return false;
-        }
-        if (ReferenceEquals(this, that)) {
-            return true;
-        }
-        if (TrainCars != that.TrainCars || !CompletedRoutes.SequenceEqual(that.CompletedRoutes)) {
-            return false;
-        }
-        return Cards.Keys.All(type => Cards[type] == that.Cards[type]);
-    }
-
-    public override bool Equals(object? other) => Equals(other as IState);
-
-    [SuppressMessage("ReSharper", "NonReadonlyMemberInGetHashCode")]
-    public override int GetHashCode() {
-        var hash = new HashCode();
-        hash.Add(TrainCars);
-        foreach (int count in Cards.Values) {
-            hash.Add(count);
-        }
-        foreach (bool route in CompletedRoutes) {
-            hash.Add(route);
-        }
-        return hash.ToHashCode();
+    public override string ToString() {
+        var text = new StringBuilder();
+        text.AppendLine($" Score: {Score} = {RouteScore} + {TicketScore}");
+        text.AppendLine($" TrainCars: {TrainCars}");
+        text.AppendLine(' ' + string.Join(", ", Cards.Select(it => $"{it.Key}: {it.Value}")));
+        text.Append(string.Join(Environment.NewLine, CompletedRoutes.Select(it => $"  ✅ {it.ToShort()}")));
+        return text.ToString();
     }
 }
 
-class Game : IGame<GameState> {
+class Game {
     readonly Pathfinding<City> pathfinding = new();
-    readonly BeamSearch<GameState> beamSearch;
 
     /// Resource #1
     int trainCars;
@@ -93,14 +72,10 @@ class Game : IGame<GameState> {
     /// Resource #2
     readonly Dictionary<Card, int> cards = new();
 
-    readonly List<Ticket> tickets = new();
-    readonly List<Route> routes = new();
+    readonly List<Ticket> tickets = [];
+    readonly List<Route> routes = [];
     readonly Dictionary<string, City> cities = new();
     Dictionary<Ticket, List<List<Route>>> ticketRoutes = null!;
-
-    public Game() {
-        beamSearch = new BeamSearch<GameState>(this);
-    }
 
     public void ReadInput() {
         string[] inputs = Console.ReadLine()!.Split(' ');
@@ -125,7 +100,7 @@ class Game : IGame<GameState> {
         }
         ReadRoutes(routeLength);
         ticketRoutes = tickets
-                .ToDictionary(it => it, it => CanConnectCities(it, out var foundRoutes) ? foundRoutes : []);
+                .ToDictionary(it => it, it => CanConnectCities(it, out var foundRoutes) ? foundRoutes : [[]]);
     }
 
     void ReadRoutes(int routeLength) {
@@ -174,69 +149,44 @@ class Game : IGame<GameState> {
     }
 
     public int CalculateScore() {
-        var start = new GameState(routes.Count) {
-            TrainCars = trainCars,
-            Cards = new Dictionary<Card, int>(cards)
-        };
-        start.TicketScore = TicketScore(start.CompletedRoutes);
-        return beamSearch.FindBest(start, routes.Count).Score;
-    }
+        var best = int.MinValue;
+        var current = new GameState(0, 0, trainCars, new Dictionary<Card, int>(cards), []);
+        Backtrack();
+        return best;
 
-    IEnumerable<GameState> IGame<GameState>.Next(GameState current) {
-        for (var i = 0; i < current.CompletedRoutes.Length; i++) {
-            if (current.CompletedRoutes[i]) {
-                continue;
+        void Backtrack() {
+            current.TicketScore = TicketScore(current.CompletedRoutes);
+            if (current.Score > best) {
+                best = current.Score;
+                Console.Error.WriteLine("New best");
+                Console.Error.WriteLine(current);
             }
-            var route = routes[i];
-            var next = new GameState(routes.Count);
-            next.Load(current);
-            if (!route.TryComplete(next, out int points)) {
-                continue;
+            for (var i = 0; i < routes.Count; i++) {
+                var route = routes[i];
+                if (current.TrainCars < route.Length) {
+                    continue;
+                }
+                var previous = GameState.Copy(current);
+                routes.RemoveAt(i);
+                if (route.TryComplete(current.Cards)) {
+                    current.RouteScore += route.Score;
+                    current.TrainCars -= route.Length;
+                    current.CompletedRoutes.Add(route);
+                    Backtrack();
+                    current = previous;
+                }
+                routes.Insert(i, route);
             }
-            next.CompletedRoutes[i] = true;
-            next.RouteScore += points;
-            next.TicketScore = TicketScore(next.CompletedRoutes);
-            yield return next;
         }
     }
 
-    int TicketScore(bool[] completedRoutes) {
+    int TicketScore(List<Route> completedRoutes) {
         var score = 0;
         foreach (var (ticket, paths) in ticketRoutes) {
-            score += Completed(paths) ? ticket.Points : -ticket.Points;
+            bool completed = paths.Any(it => it.Count > 0 && it.All(completedRoutes.Contains));
+            score += completed ? ticket.Points : -ticket.Points;
         }
         return score;
-
-        bool Completed(List<List<Route>> paths) {
-            if (paths.Count == 0) {
-                return false;
-            }
-            foreach (var path in paths) {
-                int uncompleted = path.Count;
-                for (var i = 0; i < completedRoutes.Length; i++) {
-                    if (completedRoutes[i] && path.Contains(routes[i])) {
-                        uncompleted--;
-                    }
-                }
-                if (uncompleted == 0) {
-                    return true;
-                }
-            }
-            return false;
-        }
-    }
-
-    string IGame<GameState>.ToString(GameState state) {
-        var text = new StringBuilder();
-        text.AppendLine($" Score: {state.Score} = {state.RouteScore} + {state.TicketScore}");
-        text.AppendLine($" TrainCars: {state.TrainCars}");
-        text.AppendLine(' ' + string.Join(", ", state.Cards.Select(it => $"{it.Key}: {it.Value}")));
-        var lines = state.CompletedRoutes
-                .Select((completed, i) => (completed, route: routes[i]))
-                .Where(it => it.completed)
-                .Select(it => $"  ✅ {it.route.ToShort()}");
-        text.Append(string.Join(Environment.NewLine, lines));
-        return text.ToString();
     }
 }
 
@@ -270,30 +220,22 @@ record Route(int Length, int RequiredEngines, Card Color, string CityA, string C
         { 6, 15 }
     };
 
-    public bool TryComplete(GameState state, out int points) {
-        points = 0;
-        if (state.TrainCars < Length) {
-            return false;
-        }
-        if (Color == Card.Gray) {
-            return TryCompleteGray(state.Cards) && Complete(state, out points);
-        }
-        if (state.Cards[Color] + state.Cards[Card.Engine] < Length) {
-            return false;
-        }
-        int requiredCards = state.Cards[Color];
-        if (requiredCards >= Length) {
-            state.Cards[Color] -= Length;
-        } else {
-            state.Cards[Color] = 0;
-            state.Cards[Card.Engine] -= Length - requiredCards;
-        }
-        return Complete(state, out points);
-    }
+    public int Score => lengthScore[Length];
 
-    bool Complete(GameState state, out int points) {
-        state.TrainCars -= Length;
-        points = lengthScore[Length];
+    public bool TryComplete(Dictionary<Card, int> cards) {
+        if (Color == Card.Gray) {
+            return TryCompleteGray(cards);
+        }
+        if (cards[Color] + cards[Card.Engine] < Length) {
+            return false;
+        }
+        int requiredCards = cards[Color];
+        if (requiredCards >= Length) {
+            cards[Color] -= Length;
+        } else {
+            cards[Color] = 0;
+            cards[Card.Engine] -= Length - requiredCards;
+        }
         return true;
     }
 
@@ -365,55 +307,4 @@ class Pathfinding<T> where T : INode<T> {
 interface INode<T> where T : INode<T> {
     int Id { get; }
     List<T> Connections { get; }
-}
-
-class BeamSearch<T>(IGame<T> game) where T : class, IState {
-    readonly HashSet<T> visited = new();
-
-    [SuppressMessage("ReSharper", "ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator")]
-    public T FindBest(T start, int levels, int beamWidth = 200) {
-        Console.Error.WriteLine("Initial");
-        Console.Error.WriteLine(game.ToString(start));
-        var best = start;
-        var currentLevel = new List<T> { start };
-        for (var level = 0; level < levels; level++) {
-            Console.Error.WriteLine($"Level: {level}");
-            var nextLevel = new List<T>();
-            visited.Clear();
-            foreach (var current in currentLevel) {
-                nextLevel.AddRange(game.Next(current));
-            }
-            currentLevel.Clear();
-            nextLevel.Sort((a, b) => b.Score.CompareTo(a.Score));
-            foreach (var state in nextLevel) {
-                if (!visited.Add(state)) {
-                    continue;
-                }
-                if (currentLevel.Count >= beamWidth) {
-                    break;
-                }
-                currentLevel.Add(state);
-            }
-            if (currentLevel.Count == 0) {
-                break;
-            }
-            var bestCurrent = currentLevel.First();
-            if (best.Score >= bestCurrent.Score) {
-                continue;
-            }
-            best = bestCurrent;
-            Console.Error.WriteLine("New");
-            Console.Error.WriteLine(game.ToString(best));
-        }
-        return best;
-    }
-}
-
-interface IGame<TState> {
-    IEnumerable<TState> Next(TState current);
-    string ToString(TState state);
-}
-
-interface IState : IEquatable<IState> {
-    int Score { get; }
 }
