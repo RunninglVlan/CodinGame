@@ -269,34 +269,33 @@ record Route(int Length, int RequiredEngines, Card Color, string CityA, string C
             required -= RequiredEngines;
             cardsCopy[Card.Engine] -= RequiredEngines;
         }
-        var usedNonEngineCards = UseNonEngineCards(cardsCopy, required).ToArray();
+        var usedNonEngineCards = UseNonEngineCards(required).ToArray();
         if (usedNonEngineCards.Length > 0) {
             foreach (var newCards in usedNonEngineCards) {
                 yield return newCards;
             }
         }
-        for (var used = 0; used <= Math.Min(required, cardsCopy[Card.Engine]); used++) {
-            var newCards = new Dictionary<Card, int>(cardsCopy);
-            newCards[Card.Engine] -= used;
-            int remaining = required - used;
-            if (remaining == 0) {
-                yield return newCards;
-                yield break;
-            }
-            foreach (var finalCards in UseNonEngineCards(newCards, remaining)) {
-                yield return finalCards;
-            }
-        }
-    }
-
-    static IEnumerable<Dictionary<Card, int>> UseNonEngineCards(Dictionary<Card, int> cards, int required) {
-        foreach ((var color, int count) in cards) {
-            if (color == Card.Engine || count < required) {
-                continue;
-            }
-            var cardsCopy = new Dictionary<Card, int>(cards);
-            cardsCopy[color] -= required;
+        int used = Math.Min(required, cardsCopy[Card.Engine]);
+        cardsCopy[Card.Engine] -= used;
+        required -= used;
+        if (required == 0) {
             yield return cardsCopy;
+            yield break;
+        }
+        foreach (var newCards in UseNonEngineCards(required)) {
+            yield return newCards;
+        }
+        yield break;
+
+        IEnumerable<Dictionary<Card, int>> UseNonEngineCards(int length) {
+            foreach ((var color, int count) in cardsCopy) {
+                if (color == Card.Engine || count < length) {
+                    continue;
+                }
+                var newCards = new Dictionary<Card, int>(cardsCopy);
+                newCards[color] -= length;
+                yield return newCards;
+            }
         }
     }
 
@@ -363,7 +362,7 @@ class BeamSearch<T>(IGame<T> game) where T : class, IState {
     readonly HashSet<T> visited = new();
 
     [SuppressMessage("ReSharper", "ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator")]
-    public T FindBest(T start, int levels, int beamWidth = 200) {
+    public T FindBest(T start, int levels, int beamWidth = 100) {
         var best = start;
         Console.Error.WriteLine($"New: {game.ToString(best)}");
         var currentLevel = new List<T> { start };
