@@ -24,7 +24,7 @@ record struct GameState(int Score, int TrainCars, Dictionary<Card, int> Cards, L
 
     public override string ToString() {
         var text = new StringBuilder();
-        text.AppendLine($"Score: {Score}");
+        text.AppendLine($" Score: {Score}");
         text.AppendLine($" TrainCars: {TrainCars}");
         text.AppendLine(' ' + string.Join(", ", Cards.Select(it => $"{it.Key}: {it.Value}")));
         text.Append(string.Join(Environment.NewLine, CompletedRoutes.Select(it => $"  ✅ {it.ToShort()}")));
@@ -126,8 +126,12 @@ class Game {
         var best = GameState.NewBest;
         foreach (var permutation in Permutations(ticketRoutes)) {
             var current = GameState.CurrentFrom(start);
+            var completedTickets = new List<Ticket>();
             foreach (var (ticket, path) in permutation) {
-                var ticketBest = TicketBest(ticket, path, current);
+                var ticketBest = TicketBest(ticket, path, current, out bool completed);
+                if (completed) {
+                    completedTickets.Add(ticket);
+                }
                 current.Score += ticketBest.Score;
                 current.TrainCars = ticketBest.TrainCars;
                 current.Cards = ticketBest.Cards;
@@ -141,7 +145,10 @@ class Game {
                 continue;
             }
             best = current;
-            Console.Error.WriteLine($"New ticket {best}");
+            Console.Error.WriteLine("New ticket best");
+            var ticketText = completedTickets.Select(it => $" ✅ {it.ToShort()}");
+            Console.Error.WriteLine(string.Join(Environment.NewLine, ticketText));
+            Console.Error.WriteLine(best);
         }
         trainCars = best.TrainCars;
         cards = best.Cards;
@@ -162,16 +169,19 @@ class Game {
         }
     }
 
-    static GameState TicketBest(Ticket ticket, List<List<Route>> path, GameState start) {
+    static GameState TicketBest(Ticket ticket, List<List<Route>> path, GameState start, out bool completed) {
+        completed = false;
         var best = GameState.NewBest;
         foreach (var foundRoutes in path) {
             var current = GameState.CurrentFrom(start);
-            bool completed = TryCompleteTicket(foundRoutes, ref current);
-            current.Score += completed ? ticket.Points : -ticket.Points;
+            bool currentCompleted = TryCompleteTicket(foundRoutes, ref current);
+            current.Score += currentCompleted ? ticket.Points : -ticket.Points;
             current.CompletedRoutes.ForEach(it => it.IsCompleted = false);
-            if (current.Score > best.Score) {
-                best = current;
+            if (current.Score <= best.Score) {
+                continue;
             }
+            completed = currentCompleted;
+            best = current;
         }
         return best;
 
@@ -206,7 +216,8 @@ class Game {
                 continue;
             }
             best = state.Score;
-            Console.Error.WriteLine($"New route {state}");
+            Console.Error.WriteLine("New route best");
+            Console.Error.WriteLine(state);
         }
         return best;
     }
