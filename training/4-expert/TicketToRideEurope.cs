@@ -72,7 +72,7 @@ class Game : IGame<GameState> {
     readonly List<Ticket> tickets = new();
     readonly List<Route> routes = new();
     readonly Dictionary<string, City> cities = new();
-    Dictionary<Ticket, List<Route>> ticketRoutes = null!;
+    Dictionary<Ticket, List<List<Route>>> ticketRoutes = null!;
 
     public Game() {
         beamSearch = new BeamSearch<GameState>(this);
@@ -126,7 +126,7 @@ class Game : IGame<GameState> {
         }
     }
 
-    bool CanConnectCities(Ticket ticket, out List<Route> foundRoutes) {
+    bool CanConnectCities(Ticket ticket, out List<List<Route>> foundRoutes) {
         foundRoutes = null!;
         if (!cities.TryGetValue(ticket.CityFrom, out var cityFrom)) {
             Console.Error.WriteLine($"No route with city {ticket.CityFrom}");
@@ -136,14 +136,15 @@ class Game : IGame<GameState> {
             Console.Error.WriteLine($"No route with city {ticket.CityTo}");
             return false;
         }
-        var path = pathfinding.Path(cityFrom, cityTo);
-        if (path == null) {
+        var paths = pathfinding.Paths(cityFrom, cityTo).ToList();
+        if (paths.Count == 0) {
             Console.Error.WriteLine($"No path found from {ticket.CityFrom} to {ticket.CityTo}");
             return false;
         }
-        foundRoutes = path.Zip(path.Skip(1), (a, b) => routes.First(it =>
-                        it.CityA == a.Name && it.CityB == b.Name || it.CityB == a.Name && it.CityA == b.Name))
-                .OrderByDescending(it => it.Length)
+        foundRoutes = paths.Select(path => path.Zip(path.Skip(1), (a, b) => routes.First(it =>
+                                it.CityA == a.Name && it.CityB == b.Name || it.CityB == a.Name && it.CityA == b.Name))
+                        .OrderByDescending(it => it.Length)
+                        .ToList())
                 .ToList();
         return true;
     }
@@ -177,22 +178,27 @@ class Game : IGame<GameState> {
 
     int TicketScore(bool[] completedRoutes) {
         var score = 0;
-        foreach (var (ticket, path) in ticketRoutes) {
-            score += Completed(path) ? ticket.Points : -ticket.Points;
+        foreach (var (ticket, paths) in ticketRoutes) {
+            score += Completed(paths) ? ticket.Points : -ticket.Points;
         }
         return score;
 
-        bool Completed(List<Route> path) {
-            if (path.Count == 0) {
+        bool Completed(List<List<Route>> paths) {
+            if (paths.Count == 0) {
                 return false;
             }
-            int uncompleted = path.Count;
-            for (var i = 0; i < completedRoutes.Length; i++) {
-                if (completedRoutes[i] && path.Contains(routes[i])) {
-                    uncompleted--;
+            foreach (var path in paths) {
+                int uncompleted = path.Count;
+                for (var i = 0; i < completedRoutes.Length; i++) {
+                    if (completedRoutes[i] && path.Contains(routes[i])) {
+                        uncompleted--;
+                    }
+                }
+                if (uncompleted == 0) {
+                    return true;
                 }
             }
-            return uncompleted == 0;
+            return false;
         }
     }
 
@@ -309,44 +315,26 @@ record City(string Name) : INode<City> {
 }
 
 class Pathfinding<T> where T : INode<T> {
-    readonly Queue<T> queue = new();
-    readonly Dictionary<int, T> parents = new();
-    readonly HashSet<int> visited = new();
-
-    /// BFS to end
-    [SuppressMessage("ReSharper", "ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator")]
-    public List<T>? Path(T start, T end) {
-        queue.Clear();
-        parents.Clear();
-        visited.Clear();
-        queue.Enqueue(start);
-        visited.Add(start.Id);
-        while (queue.Count > 0) {
-            var current = queue.Dequeue();
-            if (current.Id == end.Id) {
-                return Reconstruct(start, current);
-            }
-            foreach (var next in current.Connections) {
-                if (!visited.Add(next.Id)) {
-                    continue;
-                }
-                queue.Enqueue(next);
-                parents[next.Id] = current;
-            }
-        }
-        return null;
+    /// DFS
+    [SuppressMessage("Performance", "CA1822:Mark members as static")]
+    public IEnumerable<List<T>> Paths(T start, T end) {
+        return Walk(start, end, [start], [start.Id]);
     }
 
-    List<T> Reconstruct(T start, T end) {
-        var path = new List<T>();
-        var current = end;
-        while (current.Id != start.Id) {
-            path.Add(current);
-            current = parents[current.Id];
+    [SuppressMessage("ReSharper", "ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator")]
+    static IEnumerable<List<T>> Walk(T current, T end, List<T> path, HashSet<int> visited) {
+        if (current.Id == end.Id) {
+            yield return [..path];
+            yield break;
         }
-        path.Add(start);
-        path.Reverse();
-        return path;
+        foreach (var next in current.Connections) {
+            if (visited.Contains(next.Id)) {
+                continue;
+            }
+            foreach (var result in Walk(next, end, [..path, next], [..visited, next.Id])) {
+                yield return result;
+            }
+        }
     }
 }
 
@@ -359,7 +347,7 @@ class BeamSearch<T>(IGame<T> game) where T : class, IState {
     readonly HashSet<T> visited = new();
 
     [SuppressMessage("ReSharper", "ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator")]
-    public T FindBest(T start, int levels, int beamWidth = 10) {
+    public T FindBest(T start, int levels, int beamWidth = 200) {
         var best = start;
         Console.Error.WriteLine($"New: {game.ToString(best)}");
         var currentLevel = new List<T> { start };
