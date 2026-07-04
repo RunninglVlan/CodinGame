@@ -15,16 +15,16 @@ static class TicketToRideEurope {
     }
 }
 
-record struct GameState(int RouteScore, int TicketScore, int TrainCars, int[] Cards, bool[] CompletedRoutes) : IState {
+record struct GameState(int RouteScore, int TicketScore, int TrainCars, int[] Cards, int CompletedRoutes) : IState {
     public int Score => RouteScore + TicketScore;
 
     public static GameState Copy(GameState state) => new(state.RouteScore, state.TicketScore, state.TrainCars,
-            (int[])state.Cards.Clone(), (bool[])state.CompletedRoutes.Clone());
+            (int[])state.Cards.Clone(), state.CompletedRoutes);
 
     public bool Equals(GameState that) {
         return TrainCars == that.TrainCars
-                && Cards.SequenceEqual(that.Cards)
-                && CompletedRoutes.SequenceEqual(that.CompletedRoutes);
+                && CompletedRoutes == that.CompletedRoutes
+                && Cards.SequenceEqual(that.Cards);
     }
 
     public bool Equals(IState? other) => other is GameState that && Equals(that);
@@ -32,11 +32,9 @@ record struct GameState(int RouteScore, int TicketScore, int TrainCars, int[] Ca
     public override int GetHashCode() {
         var hash = new HashCode();
         hash.Add(TrainCars);
+        hash.Add(CompletedRoutes);
         foreach (int count in Cards) {
             hash.Add(count);
-        }
-        foreach (bool route in CompletedRoutes) {
-            hash.Add(route);
         }
         return hash.ToHashCode();
     }
@@ -137,16 +135,16 @@ class Game : IGame<GameState> {
     public int CalculateScore() {
         var start = new GameState {
             TrainCars = trainCars,
-            Cards = (int[])cards.Clone(),
-            CompletedRoutes = new bool[routes.Count]
+            Cards = (int[])cards.Clone()
         };
         start.TicketScore = TicketScore(start.CompletedRoutes);
         return beamSearch.FindBest(start, routes.Count).Score;
     }
 
     IEnumerable<GameState> IGame<GameState>.Next(GameState current) {
-        for (var i = 0; i < current.CompletedRoutes.Length; i++) {
-            if (current.CompletedRoutes[i]) {
+        for (var i = 0; i < routes.Count; i++) {
+            // ignore completed
+            if ((current.CompletedRoutes & 1 << i) != 0) {
                 continue;
             }
             var route = routes[i];
@@ -157,7 +155,8 @@ class Game : IGame<GameState> {
             if (!route.TryComplete(next.Cards)) {
                 continue;
             }
-            next.CompletedRoutes[i] = true;
+            // mark completed
+            next.CompletedRoutes |= 1 << i;
             next.RouteScore += route.Score;
             next.TrainCars -= route.Length;
             next.TicketScore = TicketScore(next.CompletedRoutes);
@@ -165,25 +164,16 @@ class Game : IGame<GameState> {
         }
     }
 
-    int TicketScore(bool[] completedRoutes) {
-        int hashCode = HashCode();
-        if (ticketScoreCache.TryGetValue(hashCode, out int cached)) {
+    int TicketScore(int completedRoutes) {
+        if (ticketScoreCache.TryGetValue(completedRoutes, out int cached)) {
             return cached;
         }
         var score = 0;
         foreach (var (ticket, paths) in ticketRoutes) {
             score += Completed(paths) ? ticket.Points : -ticket.Points;
         }
-        ticketScoreCache[hashCode] = score;
+        ticketScoreCache[completedRoutes] = score;
         return score;
-
-        int HashCode() {
-            var hash = new HashCode();
-            foreach (bool completed in completedRoutes) {
-                hash.Add(completed);
-            }
-            return hash.ToHashCode();
-        }
 
         bool Completed(List<HashSet<Route>> paths) {
             if (paths.Count == 0) {
@@ -191,8 +181,9 @@ class Game : IGame<GameState> {
             }
             foreach (var path in paths) {
                 int uncompleted = path.Count;
-                for (var i = 0; i < completedRoutes.Length; i++) {
-                    if (completedRoutes[i] && path.Contains(routes[i])) {
+                for (var i = 0; i < routes.Count; i++) {
+                    // is this route completed?
+                    if ((completedRoutes & 1 << i) != 0 && path.Contains(routes[i])) {
                         uncompleted--;
                     }
                 }
@@ -209,10 +200,9 @@ class Game : IGame<GameState> {
         text.AppendLine($" Score: {state.Score} = {state.RouteScore} + {state.TicketScore}");
         text.AppendLine($" TrainCars: {state.TrainCars}");
         text.AppendLine(' ' + string.Join(", ", state.Cards.Select((it, i) => $"{(Card)i}: {it}")));
-        var lines = state.CompletedRoutes
-                .Select((completed, i) => (completed, route: routes[i]))
-                .Where(it => it.completed)
-                .Select(it => $"  ✅ {it.route.ToShort()}");
+        var lines = routes
+                .Where((_, i) => (state.CompletedRoutes & 1 << i) != 0)
+                .Select(it => $"  ✅ {it.ToShort()}");
         text.Append(string.Join(Environment.NewLine, lines));
         return text.ToString();
     }
