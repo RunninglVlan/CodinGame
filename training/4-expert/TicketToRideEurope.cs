@@ -15,36 +15,20 @@ static class TicketToRideEurope {
     }
 }
 
-class GameState : IState {
-    public int RouteScore { get; set; }
-    public int TicketScore { get; set; }
+record struct GameState(int RouteScore, int TicketScore, int TrainCars, int[] Cards, bool[] CompletedRoutes) : IState {
     public int Score => RouteScore + TicketScore;
-    public int TrainCars { get; set; }
-    public int[] Cards { get; set; } = null!;
-    public bool[] CompletedRoutes { get; set; } = null!;
 
-    public void Load(GameState from) {
-        RouteScore = from.RouteScore;
-        TrainCars = from.TrainCars;
-        Cards = (int[])from.Cards.Clone();
-        CompletedRoutes = (bool[])from.CompletedRoutes.Clone();
-    }
+    public static GameState Copy(GameState state) => new(state.RouteScore, state.TicketScore, state.TrainCars,
+            (int[])state.Cards.Clone(), (bool[])state.CompletedRoutes.Clone());
 
-    public bool Equals(IState? other) {
-        if (other is not GameState that) {
-            return false;
-        }
-        if (ReferenceEquals(this, that)) {
-            return true;
-        }
+    public bool Equals(GameState that) {
         return TrainCars == that.TrainCars
-                && CompletedRoutes.SequenceEqual(that.CompletedRoutes)
-                && Cards.SequenceEqual(that.Cards);
+                && Cards.SequenceEqual(that.Cards)
+                && CompletedRoutes.SequenceEqual(that.CompletedRoutes);
     }
 
-    public override bool Equals(object? other) => Equals(other as IState);
+    public bool Equals(IState? other) => other is GameState that && Equals(that);
 
-    [SuppressMessage("ReSharper", "NonReadonlyMemberInGetHashCode")]
     public override int GetHashCode() {
         var hash = new HashCode();
         hash.Add(TrainCars);
@@ -168,8 +152,7 @@ class Game : IGame<GameState> {
             if (current.TrainCars < route.Length) {
                 continue;
             }
-            var next = new GameState();
-            next.Load(current);
+            var next = GameState.Copy(current);
             if (!route.TryComplete(next.Cards)) {
                 continue;
             }
@@ -346,7 +329,7 @@ interface INode<T> where T : INode<T> {
     List<T> Connections { get; }
 }
 
-class BeamSearch<T>(IGame<T> game) where T : class, IState {
+class BeamSearch<T>(IGame<T> game) where T : IState {
     readonly HashSet<T> visited = new();
 
     [SuppressMessage("ReSharper", "ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator")]
