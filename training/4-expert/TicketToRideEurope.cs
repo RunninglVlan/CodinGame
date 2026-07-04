@@ -15,19 +15,19 @@ static class TicketToRideEurope {
     }
 }
 
-class GameState(int routeLength) : IState {
+class GameState : IState {
     public int RouteScore { get; set; }
     public int TicketScore { get; set; }
     public int Score => RouteScore + TicketScore;
     public int TrainCars { get; set; }
-    public Dictionary<Card, int> Cards { get; set; } = null!;
-    public bool[] CompletedRoutes { get; } = new bool[routeLength];
+    public int[] Cards { get; set; } = null!;
+    public bool[] CompletedRoutes { get; set; } = null!;
 
     public void Load(GameState from) {
         RouteScore = from.RouteScore;
         TrainCars = from.TrainCars;
-        Cards = new Dictionary<Card, int>(from.Cards);
-        Array.Copy(from.CompletedRoutes, CompletedRoutes, CompletedRoutes.Length);
+        Cards = (int[])from.Cards.Clone();
+        CompletedRoutes = (bool[])from.CompletedRoutes.Clone();
     }
 
     public bool Equals(IState? other) {
@@ -37,10 +37,9 @@ class GameState(int routeLength) : IState {
         if (ReferenceEquals(this, that)) {
             return true;
         }
-        if (TrainCars != that.TrainCars || !CompletedRoutes.SequenceEqual(that.CompletedRoutes)) {
-            return false;
-        }
-        return Cards.Keys.All(type => Cards[type] == that.Cards[type]);
+        return TrainCars == that.TrainCars
+                && CompletedRoutes.SequenceEqual(that.CompletedRoutes)
+                && Cards.SequenceEqual(that.Cards);
     }
 
     public override bool Equals(object? other) => Equals(other as IState);
@@ -49,7 +48,7 @@ class GameState(int routeLength) : IState {
     public override int GetHashCode() {
         var hash = new HashCode();
         hash.Add(TrainCars);
-        foreach (int count in Cards.Values) {
+        foreach (int count in Cards) {
             hash.Add(count);
         }
         foreach (bool route in CompletedRoutes) {
@@ -67,7 +66,7 @@ class Game : IGame<GameState> {
     int trainCars;
 
     /// Resource #2
-    readonly Dictionary<Card, int> cards = new();
+    int[] cards = null!;
 
     readonly List<Ticket> tickets = new();
     readonly List<Route> routes = new();
@@ -84,11 +83,12 @@ class Game : IGame<GameState> {
         int ticketLength = Math.Clamp(int.Parse(inputs[1]), 0, 29);
         int routeLength = Math.Clamp(int.Parse(inputs[2]), 0, 29);
         inputs = Console.ReadLine()!.Split(' ');
+        cards = new int[Enum.GetValues<Card>().Length - 1];
         foreach (var type in Enum.GetValues<Card>()) {
             if (type == Card.Gray) {
                 break;
             }
-            cards[type] = int.Parse(inputs[(int)type]);
+            cards[(int)type] = int.Parse(inputs[(int)type]);
         }
         for (var i = 0; i < ticketLength; i++) {
             inputs = Console.ReadLine()!.Split(' ');
@@ -150,9 +150,10 @@ class Game : IGame<GameState> {
     }
 
     public int CalculateScore() {
-        var start = new GameState(routes.Count) {
+        var start = new GameState {
             TrainCars = trainCars,
-            Cards = new Dictionary<Card, int>(cards)
+            Cards = (int[])cards.Clone(),
+            CompletedRoutes = new bool[routes.Count]
         };
         start.TicketScore = TicketScore(start.CompletedRoutes);
         return beamSearch.FindBest(start, routes.Count).Score;
@@ -167,7 +168,7 @@ class Game : IGame<GameState> {
             if (current.TrainCars < route.Length) {
                 continue;
             }
-            var next = new GameState(routes.Count);
+            var next = new GameState();
             next.Load(current);
             if (!route.TryComplete(next.Cards)) {
                 continue;
@@ -210,7 +211,7 @@ class Game : IGame<GameState> {
         var text = new StringBuilder();
         text.AppendLine($" Score: {state.Score} = {state.RouteScore} + {state.TicketScore}");
         text.AppendLine($" TrainCars: {state.TrainCars}");
-        text.AppendLine(' ' + string.Join(", ", state.Cards.Select(it => $"{it.Key}: {it.Value}")));
+        text.AppendLine(' ' + string.Join(", ", state.Cards.Select((it, i) => $"{(Card)i}: {it}")));
         var lines = state.CompletedRoutes
                 .Select((completed, i) => (completed, route: routes[i]))
                 .Where(it => it.completed)
@@ -252,46 +253,46 @@ record Route(int Id, int Length, int RequiredEngines, Card Color, string CityA, 
 
     public int Score => lengthScore[Length];
 
-    public bool TryComplete(Dictionary<Card, int> cards) {
+    public bool TryComplete(int[] cards) {
         if (Color == Card.Gray) {
             return TryCompleteGray(cards);
         }
-        if (cards[Color] + cards[Card.Engine] < Length) {
+        if (cards[(int)Color] + cards[(int)Card.Engine] < Length) {
             return false;
         }
-        int requiredCards = cards[Color];
+        int requiredCards = cards[(int)Color];
         if (requiredCards >= Length) {
-            cards[Color] -= Length;
+            cards[(int)Color] -= Length;
         } else {
-            cards[Color] = 0;
-            cards[Card.Engine] -= Length - requiredCards;
+            cards[(int)Color] = 0;
+            cards[(int)Card.Engine] -= Length - requiredCards;
         }
         return true;
     }
 
-    bool TryCompleteGray(Dictionary<Card, int> cards) {
+    bool TryCompleteGray(int[] cards) {
         int required = Length;
         if (RequiredEngines > 0) {
-            if (cards[Card.Engine] < RequiredEngines) {
+            if (cards[(int)Card.Engine] < RequiredEngines) {
                 return false;
             }
             required -= RequiredEngines;
-            cards[Card.Engine] -= RequiredEngines;
+            cards[(int)Card.Engine] -= RequiredEngines;
         }
         if (UseNonEngineCards()) {
             return true;
         }
-        int used = Math.Min(required, cards[Card.Engine]);
-        cards[Card.Engine] -= used;
+        int used = Math.Min(required, cards[(int)Card.Engine]);
+        cards[(int)Card.Engine] -= used;
         required -= used;
         return required == 0 || UseNonEngineCards();
 
         bool UseNonEngineCards() {
-            foreach ((var color, int count) in cards) {
-                if (color == Card.Engine || count < required) {
+            for (var c = 0; c < cards.Length; c++) {
+                if (c == (int)Card.Engine || cards[c] < required) {
                     continue;
                 }
-                cards[color] -= required;
+                cards[c] -= required;
                 return true;
             }
             return false;
