@@ -72,7 +72,7 @@ class Game : IGame<GameState> {
     readonly List<Ticket> tickets = new();
     readonly List<Route> routes = new();
     readonly Dictionary<string, City> cities = new();
-    Dictionary<Ticket, List<List<Route>>> ticketRoutes = null!;
+    Dictionary<Ticket, List<HashSet<Route>>> ticketRoutes = null!;
 
     public Game() {
         beamSearch = new BeamSearch<GameState>(this);
@@ -126,7 +126,7 @@ class Game : IGame<GameState> {
         }
     }
 
-    bool CanConnectCities(Ticket ticket, out List<List<Route>> foundRoutes) {
+    bool CanConnectCities(Ticket ticket, out List<HashSet<Route>> foundRoutes) {
         foundRoutes = null!;
         if (!cities.TryGetValue(ticket.CityFrom, out var cityFrom)) {
             Console.Error.WriteLine($"No route with city {ticket.CityFrom}");
@@ -144,7 +144,7 @@ class Game : IGame<GameState> {
         foundRoutes = paths.Select(path => path.Zip(path.Skip(1), (a, b) => routes.First(it =>
                                 it.CityA == a.Name && it.CityB == b.Name || it.CityB == a.Name && it.CityA == b.Name))
                         .OrderByDescending(it => it.Length)
-                        .ToList())
+                        .ToHashSet())
                 .ToList();
         return true;
     }
@@ -187,7 +187,7 @@ class Game : IGame<GameState> {
         }
         return score;
 
-        bool Completed(List<List<Route>> paths) {
+        bool Completed(List<HashSet<Route>> paths) {
             if (paths.Count == 0) {
                 return false;
             }
