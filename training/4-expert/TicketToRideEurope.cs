@@ -53,7 +53,7 @@ class Game : IGame<GameState> {
     readonly List<Ticket> tickets = new();
     readonly List<Route> routes = new();
     readonly Dictionary<string, City> cities = new();
-    Dictionary<Ticket, List<HashSet<Route>>> ticketRoutes = null!;
+    Dictionary<Ticket, List<int>> ticketRoutes = null!;
     readonly Dictionary<int, int> ticketScoreCache = new();
 
     public Game() {
@@ -109,7 +109,7 @@ class Game : IGame<GameState> {
         }
     }
 
-    bool CanConnectCities(Ticket ticket, out List<HashSet<Route>> foundRoutes) {
+    bool CanConnectCities(Ticket ticket, out List<int> foundRoutes) {
         foundRoutes = null!;
         if (!cities.TryGetValue(ticket.CityFrom, out var cityFrom)) {
             Console.Error.WriteLine($"No route with city {ticket.CityFrom}");
@@ -126,8 +126,7 @@ class Game : IGame<GameState> {
         }
         foundRoutes = paths.Select(path => path.Zip(path.Skip(1), (a, b) => routes.First(it =>
                                 it.CityA == a.Name && it.CityB == b.Name || it.CityB == a.Name && it.CityA == b.Name))
-                        .OrderByDescending(it => it.Length)
-                        .ToHashSet())
+                        .Aggregate(0, (mask, route) => mask | 1 << routes.IndexOf(route)))
                 .ToList();
         return true;
     }
@@ -175,23 +174,8 @@ class Game : IGame<GameState> {
         ticketScoreCache[completedRoutes] = score;
         return score;
 
-        bool Completed(List<HashSet<Route>> paths) {
-            if (paths.Count == 0) {
-                return false;
-            }
-            foreach (var path in paths) {
-                int uncompleted = path.Count;
-                for (var i = 0; i < routes.Count; i++) {
-                    // is this route completed?
-                    if ((completedRoutes & 1 << i) != 0 && path.Contains(routes[i])) {
-                        uncompleted--;
-                    }
-                }
-                if (uncompleted == 0) {
-                    return true;
-                }
-            }
-            return false;
+        bool Completed(List<int> paths) {
+            return paths.Count != 0 && paths.Any(mask => (completedRoutes & mask) == mask);
         }
     }
 
@@ -337,7 +321,7 @@ class BeamSearch<T>(IGame<T> game) where T : IState {
     readonly HashSet<T> visited = new();
 
     [SuppressMessage("ReSharper", "ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator")]
-    public T FindBest(T start, int levels, int beamWidth = 200) {
+    public T FindBest(T start, int levels, int beamWidth = 6_750) {
         var best = start;
         Console.Error.WriteLine("Start");
         Console.Error.WriteLine(game.ToString(best));
