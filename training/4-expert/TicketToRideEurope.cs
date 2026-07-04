@@ -50,8 +50,8 @@ class Game : IGame<GameState> {
     /// Resource #2
     int[] cards = null!;
 
-    readonly List<Ticket> tickets = new();
-    readonly List<Route> routes = new();
+    readonly List<Ticket> tickets = [];
+    readonly List<Route> routes = [];
     readonly Dictionary<string, City> cities = new();
     Dictionary<Ticket, List<int>> ticketRoutes = null!;
     readonly Dictionary<int, int> ticketScoreCache = new();
@@ -318,7 +318,7 @@ interface INode<T> where T : INode<T> {
 }
 
 class BeamSearch<T>(IGame<T> game) where T : IState {
-    readonly HashSet<T> visited = new();
+    readonly HashSet<T> visited = [];
 
     [SuppressMessage("ReSharper", "ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator")]
     public T FindBest(T start, int levels, int beamWidth = 6_750) {
