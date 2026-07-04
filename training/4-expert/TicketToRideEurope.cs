@@ -56,6 +56,7 @@ class Game : IGame<GameState> {
     readonly List<Route> routes = new();
     readonly Dictionary<string, City> cities = new();
     Dictionary<Ticket, List<HashSet<Route>>> ticketRoutes = null!;
+    readonly Dictionary<int, int> ticketScoreCache = new();
 
     public Game() {
         beamSearch = new BeamSearch<GameState>(this);
@@ -165,11 +166,24 @@ class Game : IGame<GameState> {
     }
 
     int TicketScore(bool[] completedRoutes) {
+        int hashCode = HashCode();
+        if (ticketScoreCache.TryGetValue(hashCode, out int cached)) {
+            return cached;
+        }
         var score = 0;
         foreach (var (ticket, paths) in ticketRoutes) {
             score += Completed(paths) ? ticket.Points : -ticket.Points;
         }
+        ticketScoreCache[hashCode] = score;
         return score;
+
+        int HashCode() {
+            var hash = new HashCode();
+            foreach (bool completed in completedRoutes) {
+                hash.Add(completed);
+            }
+            return hash.ToHashCode();
+        }
 
         bool Completed(List<HashSet<Route>> paths) {
             if (paths.Count == 0) {
