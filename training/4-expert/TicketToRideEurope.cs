@@ -112,7 +112,7 @@ class Game : IGame<GameState> {
             string color = inputs[2];
             string cityAName = inputs[3];
             string cityBName = inputs[4];
-            var route = new Route(length, requiredEngines, Enum.Parse<Card>(color), cityAName, cityBName);
+            var route = new Route(i, length, requiredEngines, Enum.Parse<Card>(color), cityAName, cityBName);
             routes.Add(route);
             Console.Error.WriteLine(route);
             if (!cities.TryGetValue(cityAName, out var cityA)) {
@@ -241,7 +241,7 @@ record Ticket(int Points, string CityFrom, string CityTo) {
     public string ToShort() => $"T({Points} {CityFrom[..2]}->{CityTo[..2]})";
 }
 
-record Route(int Length, int RequiredEngines, Card Color, string CityA, string CityB) {
+record Route(int Id, int Length, int RequiredEngines, Card Color, string CityA, string CityB) {
     readonly Dictionary<int, int> lengthScore = new() {
         { 1, 1 },
         { 2, 2 },
@@ -297,6 +297,12 @@ record Route(int Length, int RequiredEngines, Card Color, string CityA, string C
             return false;
         }
     }
+
+    public virtual bool Equals(Route? other) {
+        return other is not null && (ReferenceEquals(this, other) || Id == other.Id);
+    }
+
+    public override int GetHashCode() => Id;
 
     public override string ToString() {
         return $"{nameof(Route)} {{ L: {Length}, RE: {RequiredEngines}, C: {Color}, {CityA} - {CityB} }}";
