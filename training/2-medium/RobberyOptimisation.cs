@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 
 namespace RobberyOptimisation;
 
@@ -26,30 +25,18 @@ class Robbery {
     }
 
     public long MaxMoney() {
-        long best = 0;
-        foreach (long money in Rob()) {
-            if (money <= best) {
-                continue;
-            }
-            best = money;
-            Console.Error.WriteLine($"🆕 best: {best}");
-        }
-        return best;
-    }
+        return Max();
 
-    // DFS
-    IEnumerable<long> Rob(int i = 0, long currentMoney = 0) {
-        if (i >= houses.Length) {
-            yield return currentMoney;
-            yield break;
-        }
-        // check next house
-        foreach (long money in Rob(i + 1, currentMoney)) {
-            yield return money;
-        }
-        // rob current house and check next valid one
-        foreach (long money in Rob(i + 2, currentMoney + houses[i])) {
-            yield return money;
+        // DFS
+        long Max(int i = 0) {
+            if (i >= houses.Length) {
+                return 0;
+            }
+            // check next house
+            long next = Max(i + 1);
+            // rob current house and check next valid one
+            long nextValid = houses[i] + Max(i + 2);
+            return Math.Max(next, nextValid);
         }
     }
 }
