@@ -23,22 +23,27 @@ class Robbery {
         for (var i = 0; i < count; i++) {
             houses[i] = Math.Clamp(long.Parse(Console.ReadLine()!), long.MinValue, maxValue);
         }
+        Console.Error.WriteLine($"House values: {string.Join(", ", houses)}");
     }
 
     public long MaxMoney() {
         long best = 0;
         for (var i = 0; i < houses.Length; i++) {
             long money = StartRobbing(i);
-            if (money > best) {
-                best = money;
+            if (money <= best) {
+                continue;
             }
+            best = money;
+            Console.Error.WriteLine($"🆕 best: {best}");
         }
         return best;
     }
 
     long StartRobbing(int startI) {
+        Console.Error.WriteLine($"Starting with {startI}");
         List<int> robbed = [startI];
         long money = houses[startI];
+        Console.Error.WriteLine($" Robbed {startI}, +{houses[startI]} => {money}");
         for (var i = 0; i < houses.Length; i++) {
             // ignore if already robbed, or it's next to the robbed house
             if (robbed.Any(j => j == i || Math.Abs(j - i) == 1)) {
@@ -46,6 +51,7 @@ class Robbery {
             }
             robbed.Add(i);
             money += houses[i];
+            Console.Error.WriteLine($" Robbed {i}, +{houses[i]} => {money}");
         }
         return money;
     }
