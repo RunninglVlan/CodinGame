@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace RobberyOptimisation;
 
@@ -25,18 +26,24 @@ class Robbery {
     }
 
     public long MaxMoney() {
+        var cache = new Dictionary<int, long>();
         return Max();
 
-        // DFS
+        // Dynamic programming
         long Max(int i = 0) {
             if (i >= houses.Length) {
                 return 0;
+            }
+            if (cache.TryGetValue(i, out long cached)) {
+                return cached;
             }
             // check next house
             long next = Max(i + 1);
             // rob current house and check next valid one
             long nextValid = houses[i] + Max(i + 2);
-            return Math.Max(next, nextValid);
+            long max = Math.Max(next, nextValid);
+            cache[i] = max;
+            return max;
         }
     }
 }
