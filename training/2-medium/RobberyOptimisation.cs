@@ -26,23 +26,23 @@ class Robbery {
     }
 
     public long MaxMoney() {
-        var cache = new Dictionary<int, long>();
+        var calculated = new Dictionary<int, long>();
         return Max();
 
-        // Dynamic programming
+        // Top-down Dynamic programming
         long Max(int i = 0) {
             if (i >= houses.Length) {
                 return 0;
             }
-            if (cache.TryGetValue(i, out long cached)) {
+            if (calculated.TryGetValue(i, out long cached)) {
                 return cached;
             }
             // check next house
-            long next = Max(i + 1);
+            long skip = Max(i + 1);
             // rob current house and check next valid one
-            long nextValid = houses[i] + Max(i + 2);
-            long max = Math.Max(next, nextValid);
-            cache[i] = max;
+            long rob = houses[i] + Max(i + 2);
+            long max = Math.Max(skip, rob);
+            calculated[i] = max;
             return max;
         }
     }
