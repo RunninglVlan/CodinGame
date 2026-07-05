@@ -28,36 +28,40 @@ class Robbery {
 
     public long MaxMoney() {
         long best = 0;
-        for (var i = 0; i < houses.Length; i++) {
-            long money = StartRobbing(i);
+        foreach (var robbed in Rob([], [])) {
+            long money = robbed.Sum(j => houses[j]);
             if (money <= best) {
                 continue;
             }
             best = money;
             Console.Error.WriteLine($"🆕 best: {best}");
+            long total = 0;
+            var lines = robbed.Select(r => $" Robbed {r}, +{houses[r]} => {total += houses[r]}");
+            Console.Error.WriteLine(string.Join(Environment.NewLine, lines));
         }
         return best;
     }
 
-    long StartRobbing(int startI) {
-        Console.Error.WriteLine($"Starting with {startI}");
-        HashSet<int> checkedHouses = [];
-        long money = 0;
-        Rob(startI);
-        for (var i = 0; checkedHouses.Count < houses.Length; i++) {
-            // ignore if already robbed, or it's next to the robbed house
-            if (checkedHouses.All(j => j != i)) {
-                Rob(i);
-            }
+    // DFS
+    IEnumerable<List<int>> Rob(List<int> currentRobbed, HashSet<int> currentChecked) {
+        if (currentChecked.Count == houses.Length) {
+            yield return currentRobbed;
+            yield break;
         }
-        return money;
-
-        void Rob(int i) {
-            money += houses[i];
-            Console.Error.WriteLine($" Robbed {i}, +{houses[i]} => {money}");
-            checkedHouses.Add(i);
-            checkedHouses.Add(Math.Clamp(i + 1, 0, houses.Length - 1));
-            checkedHouses.Add(Math.Clamp(i - 1, 0, houses.Length - 1));
+        for (var i = 0; i < houses.Length; i++) {
+            // ignore if already robbed, or it's next to the robbed house
+            if (currentChecked.Contains(i)) {
+                continue;
+            }
+            List<int> nextRobbed = [..currentRobbed, i];
+            var nextChecked = new HashSet<int>(currentChecked) {
+                i,
+                Math.Clamp(i + 1, 0, houses.Length - 1),
+                Math.Clamp(i - 1, 0, houses.Length - 1)
+            };
+            foreach (var result in Rob(nextRobbed, nextChecked)) {
+                yield return result;
+            }
         }
     }
 }
