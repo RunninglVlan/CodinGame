@@ -37,20 +37,19 @@ class Robbery {
         return best;
     }
 
-    // DFS/Backtracking
-    IEnumerable<long> Rob(int currentI = 0, long currentMoney = 0, int lastRobbed = -2) {
-        if (currentI >= houses.Length) {
+    // DFS
+    IEnumerable<long> Rob(int i = 0, long currentMoney = 0) {
+        if (i >= houses.Length) {
             yield return currentMoney;
             yield break;
         }
-        for (int i = currentI; i < houses.Length; i++) {
-            // ignore if next to the robbed house
-            if (i == lastRobbed + 1) {
-                continue;
-            }
-            foreach (long money in Rob(i + 1, currentMoney + houses[i], i)) {
-                yield return money;
-            }
+        // check next house
+        foreach (long money in Rob(i + 1, currentMoney)) {
+            yield return money;
+        }
+        // rob current house and check next valid one
+        foreach (long money in Rob(i + 2, currentMoney + houses[i])) {
+            yield return money;
         }
     }
 }
