@@ -27,7 +27,7 @@ class Robbery {
 
     public long MaxMoney() {
         long best = 0;
-        foreach (long money in Rob(0, 0, [])) {
+        foreach (long money in Rob()) {
             if (money <= best) {
                 continue;
             }
@@ -38,23 +38,17 @@ class Robbery {
     }
 
     // DFS/Backtracking
-    IEnumerable<long> Rob(int currentI, long currentMoney, HashSet<int> currentChecked) {
-        if (currentChecked.Count == houses.Length) {
+    IEnumerable<long> Rob(int currentI = 0, long currentMoney = 0, int lastRobbed = -2) {
+        if (currentI >= houses.Length) {
             yield return currentMoney;
             yield break;
         }
         for (int i = currentI; i < houses.Length; i++) {
-            // ignore if already robbed, or it's next to the robbed house
-            if (currentChecked.Contains(i)) {
+            // ignore if next to the robbed house
+            if (i == lastRobbed + 1) {
                 continue;
             }
-            long nextMoney = currentMoney + houses[i];
-            var nextChecked = new HashSet<int>(currentChecked) {
-                i,
-                Math.Clamp(i + 1, 0, houses.Length - 1),
-                Math.Clamp(i - 1, 0, houses.Length - 1)
-            };
-            foreach (long money in Rob(i, nextMoney, nextChecked)) {
+            foreach (long money in Rob(i + 1, currentMoney + houses[i], i)) {
                 yield return money;
             }
         }
