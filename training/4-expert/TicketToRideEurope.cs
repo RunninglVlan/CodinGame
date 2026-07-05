@@ -163,6 +163,7 @@ class Game : IGame<GameState> {
         }
     }
 
+    // Top-down Dynamic programming
     int TicketScore(int completedRoutes) {
         if (ticketScoreCache.TryGetValue(completedRoutes, out int cached)) {
             return cached;
