@@ -41,18 +41,23 @@ class Robbery {
 
     long StartRobbing(int startI) {
         Console.Error.WriteLine($"Starting with {startI}");
-        List<int> robbed = [startI];
-        long money = houses[startI];
-        Console.Error.WriteLine($" Robbed {startI}, +{houses[startI]} => {money}");
-        for (var i = 0; i < houses.Length; i++) {
+        HashSet<int> checkedHouses = [];
+        long money = 0;
+        Rob(startI);
+        for (var i = 0; checkedHouses.Count < houses.Length; i++) {
             // ignore if already robbed, or it's next to the robbed house
-            if (robbed.Any(j => j == i || Math.Abs(j - i) == 1)) {
-                continue;
+            if (checkedHouses.All(j => j != i)) {
+                Rob(i);
             }
-            robbed.Add(i);
-            money += houses[i];
-            Console.Error.WriteLine($" Robbed {i}, +{houses[i]} => {money}");
         }
         return money;
+
+        void Rob(int i) {
+            money += houses[i];
+            Console.Error.WriteLine($" Robbed {i}, +{houses[i]} => {money}");
+            checkedHouses.Add(i);
+            checkedHouses.Add(Math.Clamp(i + 1, 0, houses.Length - 1));
+            checkedHouses.Add(Math.Clamp(i - 1, 0, houses.Length - 1));
+        }
     }
 }
