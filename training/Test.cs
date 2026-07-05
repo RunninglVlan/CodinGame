@@ -12,85 +12,19 @@ static class RobberyOptimisation {
         var stopwatch = Stopwatch.StartNew();
         (string input, long expected) testCase7 = (
                 """
-                20
-                2
-                5
                 10
-                2
+                -2
+                -5
+                -10
+                -2
                 4
                 8
-                5
+                -5
                 2
-                6
-                7
-                7
-                6
-                11
-                12
-                5
-                9
-                6
-                10
-                7
-                9
+                -6
+                -7
                 """,
-                75
-        );
-        (string input, long expected) testCase8 = (
-                """
-                50
-                2
-                5
                 10
-                2
-                4
-                8
-                5
-                2
-                6
-                7
-                7
-                6
-                11
-                12
-                5
-                9
-                6
-                10
-                7
-                9
-                17
-                63
-                121
-                12
-                85
-                95
-                60
-                100
-                70
-                91
-                73
-                26
-                41
-                28
-                58
-                19
-                26
-                17
-                7
-                9
-                11
-                23
-                21
-                42
-                68
-                65
-                86
-                101
-                106
-                1
-                """,
-                916
         );
         var testCase = testCase7;
         Console.SetIn(new StringReader(testCase.input));
@@ -117,40 +51,35 @@ class Robbery {
 
     public long MaxMoney() {
         long best = 0;
-        foreach (var robbed in Rob(0, [], [])) {
-            long money = robbed.Sum(j => houses[j]);
+        foreach (long money in Rob(0, 0, [])) {
             if (money <= best) {
                 continue;
             }
             best = money;
             Console.Error.WriteLine($"🆕 best: {best}");
-            long total = 0;
-            var lines = robbed.Select(r => $" Robbed {r}, +{houses[r]} => {total += houses[r]}");
-            Console.Error.WriteLine(string.Join(Environment.NewLine, lines));
         }
         return best;
     }
 
     // DFS/Backtracking
-    IEnumerable<List<int>> Rob(int current, List<int> currentRobbed, HashSet<int> currentChecked) {
+    IEnumerable<long> Rob(int currentI, long currentMoney, HashSet<int> currentChecked) {
         if (currentChecked.Count == houses.Length) {
-            yield return currentRobbed;
+            yield return currentMoney;
             yield break;
         }
-        for (int i = current; i < houses.Length; i++) {
+        for (int i = currentI; i < houses.Length; i++) {
             // ignore if already robbed, or it's next to the robbed house
             if (currentChecked.Contains(i)) {
                 continue;
             }
-            int next = i + 2;
-            List<int> nextRobbed = [..currentRobbed, i];
+            long nextMoney = currentMoney + houses[i];
             var nextChecked = new HashSet<int>(currentChecked) {
                 i,
                 Math.Clamp(i + 1, 0, houses.Length - 1),
                 Math.Clamp(i - 1, 0, houses.Length - 1)
             };
-            foreach (var result in Rob(next, nextRobbed, nextChecked)) {
-                yield return result;
+            foreach (long money in Rob(i, nextMoney, nextChecked)) {
+                yield return money;
             }
         }
     }
