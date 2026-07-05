@@ -28,7 +28,7 @@ class Robbery {
 
     public long MaxMoney() {
         long best = 0;
-        foreach (var robbed in Rob([], [])) {
+        foreach (var robbed in Rob(0, [], [])) {
             long money = robbed.Sum(j => houses[j]);
             if (money <= best) {
                 continue;
@@ -43,23 +43,24 @@ class Robbery {
     }
 
     // DFS
-    IEnumerable<List<int>> Rob(List<int> currentRobbed, HashSet<int> currentChecked) {
+    IEnumerable<List<int>> Rob(int current, List<int> currentRobbed, HashSet<int> currentChecked) {
         if (currentChecked.Count == houses.Length) {
             yield return currentRobbed;
             yield break;
         }
-        for (var i = 0; i < houses.Length; i++) {
+        for (int i = current; i < houses.Length; i++) {
             // ignore if already robbed, or it's next to the robbed house
             if (currentChecked.Contains(i)) {
                 continue;
             }
+            int next = i + 2;
             List<int> nextRobbed = [..currentRobbed, i];
             var nextChecked = new HashSet<int>(currentChecked) {
                 i,
                 Math.Clamp(i + 1, 0, houses.Length - 1),
                 Math.Clamp(i - 1, 0, houses.Length - 1)
             };
-            foreach (var result in Rob(nextRobbed, nextChecked)) {
+            foreach (var result in Rob(next, nextRobbed, nextChecked)) {
                 yield return result;
             }
         }
