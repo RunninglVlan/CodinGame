@@ -289,7 +289,7 @@ record City(string Name) : INode<City> {
 }
 
 class Pathfinding<T> where T : INode<T> {
-    /// DFS
+    /// DFS/Backtracking
     [SuppressMessage("Performance", "CA1822:Mark members as static")]
     public IEnumerable<List<T>> Paths(T start, T end) {
         return Walk(start, end, [start], [start.Id]);

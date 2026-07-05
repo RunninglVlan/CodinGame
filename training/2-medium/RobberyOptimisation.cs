@@ -42,7 +42,7 @@ class Robbery {
         return best;
     }
 
-    // DFS
+    // DFS/Backtracking
     IEnumerable<List<int>> Rob(int current, List<int> currentRobbed, HashSet<int> currentChecked) {
         if (currentChecked.Count == houses.Length) {
             yield return currentRobbed;
