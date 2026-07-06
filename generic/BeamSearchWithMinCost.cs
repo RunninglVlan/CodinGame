@@ -2,9 +2,10 @@
 using System.Collections.Generic;
 using System.Linq;
 
-class BeamSearch<T>(IGame<T> game) where T : class, IState {
-    readonly HashSet<T> visited = new();
+class BeamSearch<T>(IGame<T> game) where T : IState {
+    readonly HashSet<T> visited = [];
 
+    /// Returns the cheapest state at the final level if it exists
     public T? FindBest(T start, int levels, int beamWidth = 10) {
         var currentLevel = new List<T> { start };
         for (var level = 0; level < levels; level++) {
@@ -23,7 +24,7 @@ class BeamSearch<T>(IGame<T> game) where T : class, IState {
                 currentLevel.Add(state);
             }
             if (currentLevel.Count == 0) {
-                return null;
+                return default;
             }
         }
         return currentLevel.First();
