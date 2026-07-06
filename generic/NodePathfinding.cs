@@ -45,6 +45,28 @@ class Pathfinding<T> where T : INode<T> {
         path.Reverse();
         return path;
     }
+
+    /// DFS/Backtracking
+    [SuppressMessage("Performance", "CA1822:Mark members as static")]
+    public IEnumerable<List<T>> Paths(T start, T end) {
+        return Paths(start, end, [start], [start.Id]);
+    }
+
+    [SuppressMessage("ReSharper", "ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator")]
+    static IEnumerable<List<T>> Paths(T current, T end, List<T> path, HashSet<int> visited) {
+        if (current.Id == end.Id) {
+            yield return [..path];
+            yield break;
+        }
+        foreach (var next in current.Connections) {
+            if (visited.Contains(next.Id)) {
+                continue;
+            }
+            foreach (var result in Paths(next, end, [..path, next], [..visited, next.Id])) {
+                yield return result;
+            }
+        }
+    }
 }
 
 interface INode<T> where T : INode<T> {
