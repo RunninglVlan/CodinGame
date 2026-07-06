@@ -25,11 +25,11 @@ class Robbery {
         Console.Error.WriteLine($"House values: {string.Join(", ", houses)}");
     }
 
+    /// Top-down Dynamic programming
     public long MaxMoney() {
         var calculated = new Dictionary<int, long>();
         return Max();
 
-        // Top-down Dynamic programming
         long Max(int i = 0) {
             if (i >= houses.Length) {
                 return 0;

@@ -20,8 +20,7 @@ class Pathfinding<T> where T : INode<T> {
         visited.Clear();
         queue.Enqueue(start);
         visited.Add(start.Id);
-        while (queue.Count > 0) {
-            var current = queue.Dequeue();
+        while (queue.TryDequeue(out var current)) {
             if (endPredicate(current)) {
                 return Reconstruct(start, current);
             }

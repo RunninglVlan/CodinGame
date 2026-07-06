@@ -234,8 +234,7 @@ class Pathfinding(Grid grid) {
         var startNode = new Node(grid.Get(start));
         queue.Enqueue(startNode);
         visited.Add(start);
-        while (queue.Count > 0) {
-            var current = queue.Dequeue();
+        while (queue.TryDequeue(out var current)) {
             if (endPredicate(current.cell)) {
                 return Reconstruct(startNode, current);
             }

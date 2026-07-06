@@ -249,8 +249,8 @@ static class Action {
     public const char MOVE_LEFT = '<';
 }
 
-class BeamSearch<T>(IGame<T> game) where T : class, IState {
-    readonly HashSet<T> visited = new();
+class BeamSearch<T>(IGame<T> game) where T : IState {
+    readonly HashSet<T> visited = [];
 
     public T? FindBest(T start, int levels, int beamWidth = 10) {
         var currentLevel = new List<T> { start };
@@ -270,7 +270,7 @@ class BeamSearch<T>(IGame<T> game) where T : class, IState {
                 currentLevel.Add(state);
             }
             if (currentLevel.Count == 0) {
-                return null;
+                return default;
             }
         }
         return currentLevel.First();

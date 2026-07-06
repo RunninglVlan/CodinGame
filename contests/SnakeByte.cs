@@ -507,8 +507,7 @@ public class Pathfinding(Grid grid) {
         };
         nodes.Add(start, startNode);
         queue.Enqueue(startNode, startNode.Priority);
-        while (queue.Count > 0) {
-            var current = queue.Dequeue();
+        while (queue.TryDequeue(out var current, out _)) {
             // ignore stale nodes
             if (current.isClosed) {
                 continue;

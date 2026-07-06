@@ -293,11 +293,11 @@ class Pathfinding<T> where T : INode<T> {
     /// DFS/Backtracking
     [SuppressMessage("Performance", "CA1822:Mark members as static")]
     public IEnumerable<List<T>> Paths(T start, T end) {
-        return Walk(start, end, [start], [start.Id]);
+        return Paths(start, end, [start], [start.Id]);
     }
 
     [SuppressMessage("ReSharper", "ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator")]
-    static IEnumerable<List<T>> Walk(T current, T end, List<T> path, HashSet<int> visited) {
+    static IEnumerable<List<T>> Paths(T current, T end, List<T> path, HashSet<int> visited) {
         if (current.Id == end.Id) {
             yield return [..path];
             yield break;
@@ -306,7 +306,7 @@ class Pathfinding<T> where T : INode<T> {
             if (visited.Contains(next.Id)) {
                 continue;
             }
-            foreach (var result in Walk(next, end, [..path, next], [..visited, next.Id])) {
+            foreach (var result in Paths(next, end, [..path, next], [..visited, next.Id])) {
                 yield return result;
             }
         }
@@ -335,6 +335,7 @@ class BeamSearch<T>(IGame<T> game) where T : IState {
                 nextLevel.AddRange(game.Next(current));
             }
             currentLevel.Clear();
+            // by score descending
             nextLevel.Sort((a, b) => b.Score.CompareTo(a.Score));
             foreach (var state in nextLevel) {
                 if (!visited.Add(state)) {

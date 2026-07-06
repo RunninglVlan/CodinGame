@@ -27,27 +27,35 @@ class Sudoku {
         }
     }
 
+    /// Backtracking
     [SuppressMessage("ReSharper", "TailRecursiveCall")]
-    public bool Solve(int x = 0, int y = 0) {
-        if (x >= MAX) {
-            x = 0;
-            y++;
-            if (y >= MAX) {
-                return true;
+    public void Solve() {
+        if (!TrySolve()) {
+            Console.Error.WriteLine("No solution found");
+        }
+        return;
+
+        bool TrySolve(int x = 0, int y = 0) {
+            if (x >= MAX) {
+                x = 0;
+                y++;
+                if (y >= MAX) {
+                    return true;
+                }
             }
-        }
-        if (cells[x, y] != 0) {
-            return Solve(x + 1, y);
-        }
-        for (var digit = 1; digit <= MAX; digit++) {
-            cells[x, y] = digit;
-            if (IsValid(x, y) && Solve(x + 1, y)) {
-                return true;
+            if (cells[x, y] != 0) {
+                return TrySolve(x + 1, y);
             }
-            // revert
-            cells[x, y] = 0;
+            for (var digit = 1; digit <= MAX; digit++) {
+                cells[x, y] = digit;
+                if (IsValid(x, y) && TrySolve(x + 1, y)) {
+                    return true;
+                }
+                // revert
+                cells[x, y] = 0;
+            }
+            return false;
         }
-        return false;
     }
 
     bool IsValid(int testX, int testY) {
