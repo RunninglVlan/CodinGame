@@ -215,7 +215,7 @@ record Ticket(int Points, string CityFrom, string CityTo) {
 }
 
 record Route(int Id, int Length, int RequiredEngines, Card Color, string CityA, string CityB) {
-    readonly Dictionary<int, int> lengthScore = new() {
+    readonly Dictionary<int, int> points = new() {
         { 1, 1 },
         { 2, 2 },
         { 3, 4 },
@@ -223,7 +223,7 @@ record Route(int Id, int Length, int RequiredEngines, Card Color, string CityA, 
         { 6, 15 }
     };
 
-    public int Score => lengthScore[Length];
+    public int Score => points[Length];
 
     public bool TryComplete(int[] cards) {
         if (Color == Card.Gray) {
