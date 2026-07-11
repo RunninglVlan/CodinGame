@@ -42,11 +42,17 @@ class Game {
         if (safeMotorbikes >= required) {
             return;
         }
-        if (motorbikes.Count(it => it.IsActive) > 1) {
-            throw new ArgumentException("TODO: More than 1 motorbike");
+        if (motorbikes.Count(it => it.IsActive) < Road.MAX_LANES) {
+            Action = MoveToSafeLane();
+            return;
         }
-        var motorbike = motorbikes.First(it => it.IsActive);
-        Action = motorbike.MoveToSafeLane(road);
+        int x = motorbikes.First().X;
+        var nextHole = road.NextHole(x, 0);
+        if (nextHole.distance == 1) {
+            Action = Actions.JUMP;
+        } else if (speed == nextHole.length + 1) {
+            Action = Actions.WAIT;
+        }
     }
 
     void UpdateMotorbikes() {
@@ -62,6 +68,14 @@ class Game {
             }
         }
     }
+
+    string MoveToSafeLane() {
+        if (motorbikes.Count(it => it.IsActive) > 1) {
+            throw new ArgumentException("TODO: More than 1 motorbike");
+        }
+        var motorbike = motorbikes.First(it => it.IsActive);
+        return motorbike.MoveToSafeLane(road);
+    }
 }
 
 static class Actions {
@@ -74,7 +88,7 @@ static class Actions {
 }
 
 class Road {
-    const int MAX_LANES = 4;
+    public const int MAX_LANES = 4;
 
     bool[,] safeCells = null!;
 
@@ -105,6 +119,18 @@ class Road {
             }
         }
         return true;
+    }
+
+    public (int distance, int length) NextHole(int x, int y) {
+        var distance = 0;
+        while (x + distance < safeCells.GetLength(0) && safeCells[x + distance, y]) {
+            distance++;
+        }
+        var length = 0;
+        while (x + distance + length < safeCells.GetLength(0) && !safeCells[x + distance + length, y]) {
+            length++;
+        }
+        return (distance, length);
     }
 }
 
