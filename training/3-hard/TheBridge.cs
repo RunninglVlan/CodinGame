@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 
 namespace TheBridge;
 
@@ -36,6 +37,15 @@ class Game {
         int speed = int.Parse(Console.ReadLine()!);
         Action = Actions.SPEED;
         UpdateMotorbikes();
+        int safeMotorbikes = motorbikes.Count(it => it is { IsActive: true, OnSafeLane: true });
+        if (safeMotorbikes >= required) {
+            return;
+        }
+        if (motorbikes.Count(it => it.IsActive) > 1) {
+            throw new ArgumentException("TODO: More than 1 motorbike");
+        }
+        var motorbike = motorbikes.First(it => it.IsActive);
+        Action = motorbike.MoveToSafeLane(road);
     }
 
     void UpdateMotorbikes() {
@@ -46,8 +56,8 @@ class Game {
             int active = int.Parse(inputs[2]);
             var motorbike = new Motorbike(x, y, active == Motorbike.IS_ACTIVE);
             motorbikes[i] = motorbike;
-            if (motorbike.IsActive && !road.IsLaneSafe(x, y)) {
-                Action = Actions.UP;
+            if (motorbike.IsActive) {
+                motorbike.OnSafeLane = road.IsLaneSafe(x, y);
             }
         }
     }
@@ -84,6 +94,9 @@ class Grid {
     }
 
     public bool IsLaneSafe(int xStart, int y) {
+        if (y < 0 || y > safeCells.GetLength(1) - 1) {
+            return false;
+        }
         for (int x = xStart; x < safeCells.GetLength(0); x++) {
             if (!safeCells[x, y]) {
                 return false;
@@ -95,4 +108,15 @@ class Grid {
 
 record Motorbike(int X, int Y, bool IsActive) {
     public const int IS_ACTIVE = 1;
+
+    public bool OnSafeLane { get; set; }
+
+    public string MoveToSafeLane(Grid road) {
+        if (road.IsLaneSafe(X, Y - 1)) {
+            return Actions.UP;
+        }
+        return road.IsLaneSafe(X, Y + 1)
+                ? Actions.DOWN
+                : throw new ArgumentException($"No safe lane around ({X}, {Y})");
+    }
 }
