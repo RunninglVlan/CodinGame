@@ -42,6 +42,9 @@ class Game {
             int active = int.Parse(inputs[2]);
             var motorbike = new Motorbike(x, y, active == Motorbike.IS_ACTIVE);
             motorbikes[i] = motorbike;
+            if (motorbike.IsActive && !road.IsLaneSafe(x, y)) {
+                Action = Actions.UP;
+            }
         }
     }
 }
@@ -74,6 +77,15 @@ class Grid {
                 safeCells[x, y] = lane[x] == safeSpace;
             }
         }
+    }
+
+    public bool IsLaneSafe(int xStart, int y) {
+        for (int x = xStart; x < safeCells.GetLength(0); x++) {
+            if (!safeCells[x, y]) {
+                return false;
+            }
+        }
+        return true;
     }
 }
 
