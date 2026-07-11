@@ -27,14 +27,15 @@ class Game {
     public string Action { get; private set; } = null!;
 
     public void Init() {
-        motorbikes = new Motorbike[int.Parse(Console.ReadLine()!)];
-        required = int.Parse(Console.ReadLine()!);
+        int motorbikeCount = Math.Clamp(int.Parse(Console.ReadLine()!), 1, 4);
+        motorbikes = new Motorbike[motorbikeCount];
+        required = Math.Clamp(int.Parse(Console.ReadLine()!), 1, motorbikeCount);
         road = new Grid();
         road.ReadInput();
     }
 
     public void Loop() {
-        int speed = int.Parse(Console.ReadLine()!);
+        int speed = Math.Clamp(int.Parse(Console.ReadLine()!), 0, 49);
         Action = Actions.SPEED;
         UpdateMotorbikes();
         int safeMotorbikes = motorbikes.Count(it => it is { IsActive: true, OnSafeLane: true });
@@ -51,8 +52,8 @@ class Game {
     void UpdateMotorbikes() {
         for (var i = 0; i < motorbikes.Length; i++) {
             string[] inputs = Console.ReadLine()!.Split(' ');
-            int x = int.Parse(inputs[0]);
-            int y = int.Parse(inputs[1]);
+            int x = Math.Clamp(int.Parse(inputs[0]), 0, 499);
+            int y = Math.Clamp(int.Parse(inputs[1]), 0, 3);
             int active = int.Parse(inputs[2]);
             var motorbike = new Motorbike(x, y, active == Motorbike.IS_ACTIVE);
             motorbikes[i] = motorbike;
