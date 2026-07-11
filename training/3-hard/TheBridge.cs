@@ -23,14 +23,14 @@ class Game {
     /// the minimum amount of motorbikes that must survive
     int required;
 
-    Grid road = null!;
+    Road road = null!;
     public string Action { get; private set; } = null!;
 
     public void Init() {
         int motorbikeCount = Math.Clamp(int.Parse(Console.ReadLine()!), 1, 4);
         motorbikes = new Motorbike[motorbikeCount];
         required = Math.Clamp(int.Parse(Console.ReadLine()!), 1, motorbikeCount);
-        road = new Grid();
+        road = new Road();
         road.ReadInput();
     }
 
@@ -73,17 +73,18 @@ static class Actions {
     public const string DOWN = "DOWN";
 }
 
-class Grid {
+class Road {
+    const int MAX_LANES = 4;
+
     bool[,] safeCells = null!;
 
     public void ReadInput() {
-        const int yMax = 4;
         const char safeSpace = '.';
         string lane = Console.ReadLine()!;
         Console.Error.WriteLine(lane);
         int xMax = lane.Length;
-        safeCells = new bool[xMax, yMax];
-        for (var y = 0; y < yMax; y++) {
+        safeCells = new bool[xMax, MAX_LANES];
+        for (var y = 0; y < MAX_LANES; y++) {
             if (y != 0) {
                 lane = Console.ReadLine()!;
                 Console.Error.WriteLine(lane);
@@ -112,7 +113,7 @@ record Motorbike(int X, int Y, bool IsActive) {
 
     public bool OnSafeLane { get; set; }
 
-    public string MoveToSafeLane(Grid road) {
+    public string MoveToSafeLane(Road road) {
         if (road.IsLaneSafe(X, Y - 1)) {
             return Actions.UP;
         }
