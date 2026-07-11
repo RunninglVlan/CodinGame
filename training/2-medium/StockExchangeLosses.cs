@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 
 namespace StockExchangeLosses;
 
@@ -25,16 +26,18 @@ class Stock {
         }
     }
 
+    [SuppressMessage("ReSharper", "InvertIf")]
     public int MaxLoss() {
         int? max = null, min = null;
         var maxLoss = 0;
         foreach (int value in stockValues) {
             if (value < max && (min == null || value < min)) {
                 min = value;
-                maxLoss = value - max.Value;
+                maxLoss = Math.Min(maxLoss, value - max.Value);
             }
             if (max == null || value > max) {
                 max = value;
+                min = null;
             }
         }
         return maxLoss;
