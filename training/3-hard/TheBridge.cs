@@ -35,6 +35,10 @@ class Game {
     public void Loop() {
         int speed = int.Parse(Console.ReadLine()!);
         Action = Actions.SPEED;
+        UpdateMotorbikes();
+    }
+
+    void UpdateMotorbikes() {
         for (var i = 0; i < motorbikes.Length; i++) {
             string[] inputs = Console.ReadLine()!.Split(' ');
             int x = int.Parse(inputs[0]);
