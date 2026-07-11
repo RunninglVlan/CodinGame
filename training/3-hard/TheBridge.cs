@@ -50,8 +50,9 @@ class Game {
         var nextHole = road.NextHole(x, 0);
         if (nextHole.distance == 1) {
             Action = Actions.JUMP;
-        } else if (speed == nextHole.length + 1) {
-            Action = Actions.WAIT;
+        } else {
+            Action = speed > nextHole.length + 1 ? Actions.SLOW :
+                    speed < nextHole.length + 1 ? Actions.SPEED : Actions.WAIT;
         }
     }
 
