@@ -62,11 +62,13 @@ class Grid {
         const int yMax = 4;
         const char safeSpace = '.';
         string lane = Console.ReadLine()!;
+        Console.Error.WriteLine(lane);
         int xMax = lane.Length;
         safeCells = new bool[xMax, yMax];
         for (var y = 0; y < yMax; y++) {
             if (y != 0) {
                 lane = Console.ReadLine()!;
+                Console.Error.WriteLine(lane);
             }
             for (var x = 0; x < xMax; x++) {
                 safeCells[x, y] = lane[x] == safeSpace;
