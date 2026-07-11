@@ -29,7 +29,7 @@ class Stock {
         int? max = null, min = null;
         var maxLoss = 0;
         foreach (int value in stockValues) {
-            if (max != null && (min == null || value < min)) {
+            if (value < max && (min == null || value < min)) {
                 min = value;
                 maxLoss = value - max.Value;
             }
