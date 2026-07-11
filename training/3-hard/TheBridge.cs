@@ -91,13 +91,14 @@ static class Actions {
 class Road {
     public const int MAX_LANES = 4;
 
+    int xMax;
     bool[,] safeCells = null!;
 
     public void ReadInput() {
         const char safeSpace = '.';
         string lane = Console.ReadLine()!;
         Console.Error.WriteLine(lane);
-        int xMax = lane.Length;
+        xMax = lane.Length;
         safeCells = new bool[xMax, MAX_LANES];
         for (var y = 0; y < MAX_LANES; y++) {
             if (y != 0) {
@@ -111,10 +112,10 @@ class Road {
     }
 
     public bool IsLaneSafe(int xStart, int y) {
-        if (y < 0 || y > safeCells.GetLength(1) - 1) {
+        if (y is < 0 or > MAX_LANES - 1) {
             return false;
         }
-        for (int x = xStart; x < safeCells.GetLength(0); x++) {
+        for (int x = xStart; x < xMax; x++) {
             if (!safeCells[x, y]) {
                 return false;
             }
@@ -124,11 +125,11 @@ class Road {
 
     public (int distance, int length) NextHole(int x, int y) {
         var distance = 0;
-        while (x + distance < safeCells.GetLength(0) && safeCells[x + distance, y]) {
+        while (x + distance < xMax && safeCells[x + distance, y]) {
             distance++;
         }
         var length = 0;
-        while (x + distance + length < safeCells.GetLength(0) && !safeCells[x + distance + length, y]) {
+        while (x + distance + length < xMax && !safeCells[x + distance + length, y]) {
             length++;
         }
         return (distance, length);
