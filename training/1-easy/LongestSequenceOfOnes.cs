@@ -6,32 +6,33 @@ namespace LongestSequenceOf1s;
 static class LongestSequenceOfOnes {
     static void Main() {
         string bits = Console.ReadLine()!;
-        (string bits, int sequence) longest = (string.Empty, 0);
+        var longest = 0;
         for (var i = 0; i < bits.Length; i++) {
             if (bits[i] != '0') {
                 continue;
             }
-            string currentBits = bits[..i] + '1' + bits[(i + 1)..];
-            int currentSequence = LongestSequence(currentBits);
-            if (currentSequence > longest.sequence) {
-                longest = (currentBits, currentSequence);
+            char[] changed = bits.ToCharArray();
+            changed[i] = '1';
+            int current = LongestSequence(changed);
+            if (current > longest) {
+                longest = current;
             }
         }
-        Console.WriteLine(longest.sequence);
+        Console.WriteLine(longest);
     }
 
-    static int LongestSequence(string bits) {
-        int max = 0, current = 0;
+    static int LongestSequence(char[] bits) {
+        int longest = 0, current = 0;
         foreach (char bit in bits) {
             if (bit == '0') {
                 current = 0;
                 continue;
             }
             current++;
-            if (current > max) {
-                max = current;
+            if (current > longest) {
+                longest = current;
             }
         }
-        return max;
+        return longest;
     }
 }
