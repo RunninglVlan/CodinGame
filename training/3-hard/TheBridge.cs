@@ -29,6 +29,9 @@ class Game {
     public void Init() {
         int motorbikeCount = Math.Clamp(int.Parse(Console.ReadLine()!), 1, 4);
         motorbikes = new Motorbike[motorbikeCount];
+        for (var i = 0; i < motorbikeCount; i++) {
+            motorbikes[i] = new Motorbike();
+        }
         required = Math.Clamp(int.Parse(Console.ReadLine()!), 1, motorbikeCount);
         road = new Road();
         road.ReadInput();
@@ -57,13 +60,12 @@ class Game {
     }
 
     void UpdateMotorbikes() {
-        for (var i = 0; i < motorbikes.Length; i++) {
+        foreach (var motorbike in motorbikes) {
             string[] inputs = Console.ReadLine()!.Split(' ');
             int x = Math.Clamp(int.Parse(inputs[0]), 0, 499);
             int y = Math.Clamp(int.Parse(inputs[1]), 0, 3);
-            int active = int.Parse(inputs[2]);
-            var motorbike = new Motorbike(x, y, active == Motorbike.IS_ACTIVE);
-            motorbikes[i] = motorbike;
+            string active = inputs[2];
+            motorbike.Update(x, y, active);
             if (motorbike.IsActive) {
                 motorbike.OnSafeLane = road.IsLaneSafe(x, y);
             }
@@ -136,10 +138,17 @@ class Road {
     }
 }
 
-record Motorbike(int X, int Y, bool IsActive) {
-    public const int IS_ACTIVE = 1;
-
+class Motorbike {
+    public int X { get; private set; }
+    public int Y { get; private set; }
+    public bool IsActive { get; private set; }
     public bool OnSafeLane { get; set; }
+
+    public void Update(int x, int y, string active) {
+        X = x;
+        Y = y;
+        IsActive = active == "1";
+    }
 
     public string MoveToSafeLane(Road road) {
         if (road.IsLaneSafe(X, Y - 1)) {
