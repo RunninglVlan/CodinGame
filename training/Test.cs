@@ -1,86 +1,218 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 
-namespace RobberyOptimisation;
+namespace TheBridge;
 
-/// https://www.codingame.com/training/medium/robbery-optimisation
-static class RobberyOptimisation {
+/// https://www.codingame.com/training/hard/the-bridge-episode-2
+static class TheBridge {
+    [SuppressMessage("ReSharper", "FunctionNeverReturns")]
     static void Main() {
-        var stopwatch = Stopwatch.StartNew();
-        (string input, long expected) testCase7 = (
-                """
-                10
-                -2
-                -5
-                -10
-                -2
-                4
-                8
-                -5
-                2
-                -6
-                -7
-                """,
-                10
-        );
-        var testCase = testCase7;
-        Console.SetIn(new StringReader(testCase.input));
-        var robbery = new Robbery();
-        robbery.ReadHouseValues();
-        long actual = robbery.MaxMoney();
-        Console.WriteLine(testCase.expected == actual ? $"✅ {actual}" : $"❌ {testCase.expected} != {actual}");
-        Console.Error.WriteLine($"Execution time: {stopwatch.ElapsedMilliseconds} ms");
+        const string testCase = """
+                                1
+                                1
+                                ..............................
+                                ..............................
+                                ...........0..................
+                                ..............................
+                                0
+                                0 2 1
+                                """;
+        Console.SetIn(new StringReader(testCase));
+        var game = new Game();
+        game.Init();
+        while (true) {
+            game.Loop();
+            Console.WriteLine(game.Action);
+        }
     }
 }
 
-class Robbery {
-    long[] houses = null!;
+class Game {
+    Motorbike[] motorbikes = null!;
 
-    public void ReadHouseValues() {
-        long maxValue = (long)Math.Pow(10, 13) - 1;
-        int count = Math.Clamp(int.Parse(Console.ReadLine()!), 1, 100);
-        houses = new long[count];
-        for (var i = 0; i < count; i++) {
-            houses[i] = Math.Clamp(long.Parse(Console.ReadLine()!), long.MinValue, maxValue);
+    /// the minimum amount of motorbikes that must survive
+    int required;
+
+    Road road = null!;
+    public string Action { get; private set; } = null!;
+
+    public void Init() {
+        int motorbikeCount = Math.Clamp(int.Parse(Console.ReadLine()!), 1, 4);
+        motorbikes = new Motorbike[motorbikeCount];
+        for (var i = 0; i < motorbikeCount; i++) {
+            motorbikes[i] = new Motorbike();
         }
-        Console.Error.WriteLine($"House values: {string.Join(", ", houses)}");
+        required = Math.Clamp(int.Parse(Console.ReadLine()!), 1, motorbikeCount);
+        road = new Road();
+        road.ReadInput();
     }
 
-    public long MaxMoney() {
-        long best = 0;
-        foreach (long money in Rob(0, 0, [])) {
-            if (money <= best) {
+    public void Loop() {
+        int speed = Math.Clamp(int.Parse(Console.ReadLine()!), 0, 49);
+        foreach (var motorbike in motorbikes) {
+            string[] inputs = Console.ReadLine()!.Split(' ');
+            int x = Math.Clamp(int.Parse(inputs[0]), 0, 499);
+            int y = Math.Clamp(int.Parse(inputs[1]), 0, 3);
+            string active = inputs[2];
+            motorbike.X = x;
+            motorbike.Y = y;
+            motorbike.IsActive = active == Motorbike.IS_ACTIVE;
+        }
+        Action = FindBest(new GameState(motorbikes, speed)).action;
+    }
+
+    (GameState state, string action) FindBest(GameState current, int depth = 0) {
+        string ys = string.Join(", ", current.Motorbikes.Where(it => it.IsActive).Select(it => it.Y));
+        Console.Error.WriteLine($"{new string(' ', depth)}{current.Active} active motorbikes at X={current.X} and Y={ys} with speed {current.Speed}");
+        if (current.X > road.XMax) {
+            return (current, string.Empty);
+        }
+        (GameState state, string action)? best = null;
+        foreach (string action in Actions.ALL) {
+            Console.Error.WriteLine($"{new string(' ', depth)}current {current.Active} active motorbikes");
+            if (!TryNext(current, action, out var next)) {
+                Console.Error.WriteLine($"{new string(' ', depth)}TryNext {action} false");
                 continue;
             }
-            best = money;
-            Console.Error.WriteLine($"🆕 best: {best}");
-        }
-        return best;
-    }
-
-    // DFS/Backtracking
-    IEnumerable<long> Rob(int currentI, long currentMoney, HashSet<int> currentChecked) {
-        if (currentChecked.Count == houses.Length) {
-            yield return currentMoney;
-            yield break;
-        }
-        for (int i = currentI; i < houses.Length; i++) {
-            // ignore if already robbed, or it's next to the robbed house
-            if (currentChecked.Contains(i)) {
+            if (next.Active < required) {
+                Console.Error.WriteLine($"{new string(' ', depth)}next.Active < required {action} false");
                 continue;
             }
-            long nextMoney = currentMoney + houses[i];
-            var nextChecked = new HashSet<int>(currentChecked) {
-                i,
-                Math.Clamp(i + 1, 0, houses.Length - 1),
-                Math.Clamp(i - 1, 0, houses.Length - 1)
-            };
-            foreach (long money in Rob(i, nextMoney, nextChecked)) {
-                yield return money;
+            if (next.Active == 0) {
+                Console.Error.WriteLine($"{new string(' ', depth)}next.Active == 0 {action} false");
+                continue;
+            }
+            Console.Error.WriteLine($"{new string(' ', depth)}next {action} true");
+            Console.Error.WriteLine($"{new string(' ', depth)}next {next.Active} active motorbikes");
+            var (state, _) = FindBest(next, depth + 1);
+            if (best == null || state.X > best.Value.state.X || state.Active > best.Value.state.Active) {
+                best = (state, action);
+            }
+        }
+        return best!.Value;
+    }
+
+    bool TryNext(GameState current, string action, out GameState next) {
+        next = null!;
+        switch (action) {
+            case Actions.SPEED:
+                next = current.CopyWith(current.Speed + 1);
+                break;
+            case Actions.SLOW:
+                if (current.Speed == 0) {
+                    return false;
+                }
+                next = current.CopyWith(current.Speed - 1);
+                break;
+            case Actions.JUMP:
+                next = current.CopyWith(jumping: true);
+                break;
+            case Actions.WAIT:
+                next = current.CopyWith();
+                break;
+            case Actions.UP:
+                if (current.YMin == 0) {
+                    return false;
+                }
+                next = current.CopyWith();
+                foreach (var motorbike in next.Motorbikes) {
+                    motorbike.Y--;
+                }
+                break;
+            case Actions.DOWN:
+                if (current.YMax == Road.MAX_LANES - 1) {
+                    return false;
+                }
+                next = current.CopyWith();
+                foreach (var motorbike in next.Motorbikes) {
+                    motorbike.Y++;
+                }
+                break;
+        }
+        next.SimulateTurn(road);
+        return true;
+    }
+}
+
+record GameState(Motorbike[] Motorbikes, int Speed, bool IsJumping = false) {
+    public int X => Motorbikes.First(it => it.IsActive).X;
+    public int YMin => Motorbikes.First(it => it.IsActive).Y;
+    public int YMax => Motorbikes.Last(it => it.IsActive).Y;
+    public int Active => Motorbikes.Count(it => it.IsActive);
+
+    public GameState CopyWith(int? speed = null, bool jumping = false) {
+        return new GameState((Motorbike[])Motorbikes.Clone(), speed ?? Speed, jumping);
+    }
+
+    public void SimulateTurn(Road road) {
+        foreach (var motorbike in Motorbikes) {
+            int xStart = motorbike.X + 1;
+            motorbike.X += Speed;
+            if (!motorbike.IsActive) {
+                continue;
+            }
+            if (!road.IsSafe(motorbike.X, motorbike.X, motorbike.Y)) {
+                motorbike.IsActive = false;
+                continue;
+            }
+            if (IsJumping) {
+                continue;
+            }
+            motorbike.IsActive = road.IsSafe(xStart, motorbike.X - 1, motorbike.Y);
+        }
+    }
+}
+
+static class Actions {
+    public const string SPEED = "SPEED";
+    public const string SLOW = "SLOW";
+    public const string JUMP = "JUMP";
+    public const string WAIT = "WAIT";
+    public const string UP = "UP";
+    public const string DOWN = "DOWN";
+
+    public static readonly string[] ALL = [SPEED, SLOW, JUMP, WAIT, UP, DOWN];
+}
+
+class Road {
+    public const int MAX_LANES = 4;
+
+    public int XMax { get; private set; }
+    bool[,] safeCells = null!;
+
+    public void ReadInput() {
+        const char safeSpace = '.';
+        string lane = Console.ReadLine()!;
+        Console.Error.WriteLine(lane);
+        XMax = lane.Length;
+        safeCells = new bool[XMax, MAX_LANES];
+        for (var y = 0; y < MAX_LANES; y++) {
+            if (y != 0) {
+                lane = Console.ReadLine()!;
+                Console.Error.WriteLine(lane);
+            }
+            for (var x = 0; x < XMax; x++) {
+                safeCells[x, y] = lane[x] == safeSpace;
             }
         }
     }
+
+    public bool IsSafe(int xStart, int xEnd, int y) {
+        for (int x = xStart; x <= xEnd; x++) {
+            if (!safeCells[x, y]) {
+                return false;
+            }
+        }
+        return true;
+    }
+}
+
+class Motorbike {
+    public const string IS_ACTIVE = "1";
+
+    public int X { get; set; }
+    public int Y { get; set; }
+    public bool IsActive { get; set; }
 }
