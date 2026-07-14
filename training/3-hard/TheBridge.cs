@@ -58,11 +58,11 @@ class Game {
             motorbike.Y = y;
             motorbike.IsActive = active == Motorbike.IS_ACTIVE;
         }
-        Action = FindBest(new GameState(motorbikes, speed)).action;
+        Action = FindBest(new GameState(motorbikes, speed))?.action ?? string.Empty;
     }
 
     /// DFS
-    (GameState state, string action) FindBest(GameState current, int depth = 0) {
+    (GameState state, string action)? FindBest(GameState current, int depth = 0) {
         const int depthMax = 5;
         if (current.X > road.XMax || depth > depthMax) {
             return (current, string.Empty);
@@ -76,12 +76,16 @@ class Game {
             if (next.Active < required || next.Active == 0) {
                 continue;
             }
-            var (state, _) = FindBest(next, depth + 1);
+            var nextBest = FindBest(next, depth + 1);
+            if (nextBest == null) {
+                continue;
+            }
+            var (state, _) = nextBest.Value;
             if (best == null || state.X > best.Value.state.X || state.Active > best.Value.state.Active) {
                 best = (state, option.Action);
             }
         }
-        return best!.Value;
+        return best;
     }
 
     void SimulateTurn(GameState state) {
