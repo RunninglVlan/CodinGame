@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
@@ -17,7 +18,8 @@ static class TheBridge {
     }
 }
 
-class Game {
+class Game : IGame<GameState> {
+    readonly Pathfinding<GameState> pathfinding;
     Motorbike[] motorbikes = null!;
 
     /// the minimum amount of motorbikes that must survive
@@ -35,6 +37,10 @@ class Game {
     ];
 
     public string Action { get; private set; } = null!;
+
+    public Game() {
+        pathfinding = new Pathfinding<GameState>(this, 5);
+    }
 
     public void Init() {
         int motorbikeCount = Math.Clamp(int.Parse(Console.ReadLine()!), 1, 4);
@@ -58,16 +64,10 @@ class Game {
             motorbike.Y = y;
             motorbike.IsActive = active == Motorbike.IS_ACTIVE;
         }
-        Action = FindBest(new GameState(motorbikes, speed))?.action ?? string.Empty;
+        Action = pathfinding.FindBest(new GameState(motorbikes, speed))?.action ?? string.Empty;
     }
 
-    /// DFS
-    (GameState state, string action)? FindBest(GameState current, int depth = 0) {
-        const int depthMax = 5;
-        if (current.X > road.XMax || depth > depthMax) {
-            return (current, string.Empty);
-        }
-        (GameState state, string action)? best = null;
+    IEnumerable<(GameState, string action)> IGame<GameState>.Next(GameState current) {
         foreach (var option in actionOptions) {
             if (!option.TryNext(current, out var next)) {
                 continue;
@@ -76,16 +76,8 @@ class Game {
             if (next.Active < required || next.Active == 0) {
                 continue;
             }
-            var nextBest = FindBest(next, depth + 1);
-            if (nextBest == null) {
-                continue;
-            }
-            var (state, _) = nextBest.Value;
-            if (best == null || state.Active > best.Value.state.Active) {
-                best = (state, option.Action);
-            }
+            yield return (next, option.Action);
         }
-        return best;
     }
 
     void SimulateTurn(GameState state) {
@@ -111,13 +103,16 @@ class Game {
             }
         }
     }
+
+    bool IGame<GameState>.HasReachedEnd(GameState state) => state.X > road.XMax;
 }
 
-record GameState(Motorbike[] Motorbikes, int Speed, bool IsJumping = false) {
+record GameState(Motorbike[] Motorbikes, int Speed, bool IsJumping = false) : IState {
     public int X => Motorbikes.First(it => it.IsActive).X;
     public int YMin => Motorbikes.First(it => it.IsActive).Y;
     public int YMax => Motorbikes.Last(it => it.IsActive).Y;
     public int Active => Motorbikes.Count(it => it.IsActive);
+    int IState.Score => Active;
 
     public GameState CopyWith(int? speed = null, bool jumping = false) {
         return new GameState(Motorbikes.Select(it => it.Copy()).ToArray(), speed ?? Speed, jumping);
@@ -233,4 +228,34 @@ class Motorbike {
     public bool IsActive { get; set; }
 
     public Motorbike Copy() => new() { X = X, Y = Y, YPrevious = Y, IsActive = IsActive };
+}
+
+class Pathfinding<T>(IGame<T> game, int depthMax) where T : IState {
+    /// DFS
+    public (T state, string action)? FindBest(T current, int depth = 0) {
+        if (game.HasReachedEnd(current) || depth > depthMax) {
+            return (current, string.Empty);
+        }
+        (T state, string action)? best = null;
+        foreach ((var next, string action) in game.Next(current)) {
+            var nextBest = FindBest(next, depth + 1);
+            if (nextBest == null) {
+                continue;
+            }
+            var (state, _) = nextBest.Value;
+            if (best == null || state.Score > best.Value.state.Score) {
+                best = (state, action);
+            }
+        }
+        return best;
+    }
+}
+
+interface IGame<TState> {
+    IEnumerable<(TState, string action)> Next(TState current);
+    bool HasReachedEnd(TState state);
+}
+
+interface IState {
+    int Score { get; }
 }
