@@ -52,7 +52,7 @@ class Game {
     string CutGatewayLink(Node agent) {
         var path = pathfinding.Path(agent, i => gateways.Contains(i));
         if (path == null) {
-            throw new ArgumentException("Couldn't find path to agent");
+            throw new ArgumentException("Couldn't find path from agent to gateway");
         }
         var node = path.First();
         agent.connections.Remove(node);
