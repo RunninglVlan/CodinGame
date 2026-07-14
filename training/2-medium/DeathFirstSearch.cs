@@ -81,7 +81,7 @@ class Pathfinding {
         while (queue.Count > 0) {
             var current = queue.Dequeue();
             if (endPredicate(current.node.i)) {
-                return Reconstruct(startNode, current);
+                return Reconstruct(current);
             }
             foreach (var node in current.node.connections) {
                 if (visited.Contains(node.i)) {
@@ -95,11 +95,11 @@ class Pathfinding {
         return null;
     }
 
-    List<Node> Reconstruct(PathNode start, PathNode end) {
+    List<Node> Reconstruct(PathNode end) {
         path.Clear();
         var current = end;
-        while (current != start) {
-            path.Add(current!.node);
+        while (current != null) {
+            path.Add(current.node);
             current = current.parent;
         }
         path.Reverse();
