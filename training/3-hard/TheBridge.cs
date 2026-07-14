@@ -81,7 +81,7 @@ class Game {
                 continue;
             }
             var (state, _) = nextBest.Value;
-            if (best == null || state.X > best.Value.state.X || state.Active > best.Value.state.Active) {
+            if (best == null || state.Active > best.Value.state.Active) {
                 best = (state, option.Action);
             }
         }
@@ -138,7 +138,7 @@ record SpeedOption() : ActionOption("SPEED") {
 record SlowOption() : ActionOption("SLOW") {
     public override bool TryNext(GameState current, out GameState next) {
         next = null!;
-        if (current.Speed == 0) {
+        if (current.Speed <= 1) {
             return false;
         }
         next = current.CopyWith(current.Speed - 1);
