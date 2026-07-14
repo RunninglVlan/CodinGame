@@ -102,7 +102,13 @@ class Game {
             if (state.IsJumping) {
                 continue;
             }
-            motorbike.IsActive = road.IsSafe(xStart, motorbike.X - 1, motorbike.Y);
+            if (!road.IsSafe(xStart, motorbike.X - 1, motorbike.Y)) {
+                motorbike.IsActive = false;
+                continue;
+            }
+            if (motorbike.YPrevious != motorbike.Y) {
+                motorbike.IsActive = road.IsSafe(xStart, motorbike.X - 1, motorbike.YPrevious);
+            }
         }
     }
 }
@@ -223,7 +229,8 @@ class Motorbike {
 
     public int X { get; set; }
     public int Y { get; set; }
+    public int YPrevious { get; private init; }
     public bool IsActive { get; set; }
 
-    public Motorbike Copy() => new() { X = X, Y = Y, IsActive = IsActive };
+    public Motorbike Copy() => new() { X = X, Y = Y, YPrevious = Y, IsActive = IsActive };
 }
