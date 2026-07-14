@@ -24,6 +24,16 @@ class Game {
     int required;
 
     Road road = null!;
+
+    readonly ActionOption[] actionOptions = [
+        new SpeedOption(),
+        new SlowOption(),
+        new JumpOption(),
+        new WaitOption(),
+        new UpOption(),
+        new DownOption()
+    ];
+
     public string Action { get; private set; } = null!;
 
     public void Init() {
@@ -58,57 +68,20 @@ class Game {
             return (current, string.Empty);
         }
         (GameState state, string action)? best = null;
-        foreach (string action in Actions.ALL) {
-            if (!TryNext(current, action, out var next) || next.Active < required || next.Active == 0) {
+        foreach (var option in actionOptions) {
+            if (!option.TryNext(current, out var next)) {
+                continue;
+            }
+            SimulateTurn(next);
+            if (next.Active < required || next.Active == 0) {
                 continue;
             }
             var (state, _) = FindBest(next, depth + 1);
             if (best == null || state.X > best.Value.state.X || state.Active > best.Value.state.Active) {
-                best = (state, action);
+                best = (state, option.Action);
             }
         }
         return best!.Value;
-    }
-
-    bool TryNext(GameState current, string action, out GameState next) {
-        next = null!;
-        switch (action) {
-            case Actions.SPEED:
-                next = current.CopyWith(current.Speed + 1);
-                break;
-            case Actions.SLOW:
-                if (current.Speed == 0) {
-                    return false;
-                }
-                next = current.CopyWith(current.Speed - 1);
-                break;
-            case Actions.JUMP:
-                next = current.CopyWith(jumping: true);
-                break;
-            case Actions.WAIT:
-                next = current.CopyWith();
-                break;
-            case Actions.UP:
-                if (current.YMin == 0) {
-                    return false;
-                }
-                next = current.CopyWith();
-                foreach (var motorbike in next.Motorbikes) {
-                    motorbike.Y--;
-                }
-                break;
-            case Actions.DOWN:
-                if (current.YMax == Road.MAX_LANES - 1) {
-                    return false;
-                }
-                next = current.CopyWith();
-                foreach (var motorbike in next.Motorbikes) {
-                    motorbike.Y++;
-                }
-                break;
-        }
-        SimulateTurn(next);
-        return true;
     }
 
     void SimulateTurn(GameState state) {
@@ -141,15 +114,68 @@ record GameState(Motorbike[] Motorbikes, int Speed, bool IsJumping = false) {
     }
 }
 
-static class Actions {
-    public const string SPEED = "SPEED";
-    public const string SLOW = "SLOW";
-    public const string JUMP = "JUMP";
-    public const string WAIT = "WAIT";
-    public const string UP = "UP";
-    public const string DOWN = "DOWN";
+abstract record ActionOption(string Action) {
+    public abstract bool TryNext(GameState current, out GameState next);
+}
 
-    public static readonly string[] ALL = [SPEED, SLOW, JUMP, WAIT, UP, DOWN];
+record SpeedOption() : ActionOption("SPEED") {
+    public override bool TryNext(GameState current, out GameState next) {
+        next = current.CopyWith(current.Speed + 1);
+        return true;
+    }
+}
+
+record SlowOption() : ActionOption("SLOW") {
+    public override bool TryNext(GameState current, out GameState next) {
+        next = null!;
+        if (current.Speed == 0) {
+            return false;
+        }
+        next = current.CopyWith(current.Speed - 1);
+        return true;
+    }
+}
+
+record JumpOption() : ActionOption("JUMP") {
+    public override bool TryNext(GameState current, out GameState next) {
+        next = current.CopyWith(jumping: true);
+        return true;
+    }
+}
+
+record WaitOption() : ActionOption("WAIT") {
+    public override bool TryNext(GameState current, out GameState next) {
+        next = current.CopyWith();
+        return true;
+    }
+}
+
+record UpOption() : ActionOption("UP") {
+    public override bool TryNext(GameState current, out GameState next) {
+        next = null!;
+        if (current.YMin == 0) {
+            return false;
+        }
+        next = current.CopyWith();
+        foreach (var motorbike in next.Motorbikes) {
+            motorbike.Y--;
+        }
+        return true;
+    }
+}
+
+record DownOption() : ActionOption("DOWN") {
+    public override bool TryNext(GameState current, out GameState next) {
+        next = null!;
+        if (current.YMax == Road.MAX_LANES - 1) {
+            return false;
+        }
+        next = current.CopyWith();
+        foreach (var motorbike in next.Motorbikes) {
+            motorbike.Y++;
+        }
+        return true;
+    }
 }
 
 class Road {
