@@ -6,7 +6,8 @@ using System.Linq;
 
 namespace SnakeByte;
 
-/// https://www.codingame.com/contests/winter-challenge-2026-exotec
+/// https://www.codingame.com/contests/winter-challenge-2026-exotec <br/>
+/// https://www.codingame.com/multiplayer/bot-programming/winter-challenge-2026-snakebyte
 static class SnakeByte {
     static void Main() {
         var game = new Game();
