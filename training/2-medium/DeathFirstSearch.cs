@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 
 namespace DeathFirstSearch;
 
@@ -53,11 +54,10 @@ class Game {
         if (path == null) {
             throw new ArgumentException("Couldn't find path to agent");
         }
-        var gateway = path[^1];
-        var node = path[^2];
-        gateway.connections.Remove(node);
-        node.connections.Remove(gateway);
-        return $"{gateway.i} {node.i}";
+        var node = path.First();
+        agent.connections.Remove(node);
+        node.connections.Remove(agent);
+        return $"{agent.i} {node.i}";
     }
 }
 
@@ -81,7 +81,7 @@ class Pathfinding {
         while (queue.Count > 0) {
             var current = queue.Dequeue();
             if (endPredicate(current.node.i)) {
-                return Reconstruct(current);
+                return Reconstruct(startNode, current);
             }
             foreach (var node in current.node.connections) {
                 if (visited.Contains(node.i)) {
@@ -95,11 +95,11 @@ class Pathfinding {
         return null;
     }
 
-    List<Node> Reconstruct(PathNode end) {
+    List<Node> Reconstruct(PathNode start, PathNode end) {
         path.Clear();
         var current = end;
-        while (current != null) {
-            path.Add(current.node);
+        while (current != start) {
+            path.Add(current!.node);
             current = current.parent;
         }
         path.Reverse();
