@@ -11,7 +11,7 @@ static class TheFall1 {
         game.Init();
         while (true) {
             game.Loop();
-            Console.WriteLine($"{game.Indy.x} {game.Indy.y}");
+            Console.WriteLine(game.Indy);
         }
     }
 }
@@ -19,7 +19,7 @@ static class TheFall1 {
 class Game {
     int width, height;
     Room[,] rooms = null!;
-    public (int x, int y) Indy { get; private set; }
+    public Point Indy { get; private set; }
 
     [SuppressMessage("ReSharper", "UnusedVariable")]
     public void Init() {
@@ -44,24 +44,25 @@ class Game {
         int y = Math.Clamp(int.Parse(inputs[1]), 0, height - 1);
         string enteredFrom = inputs[2];
         var room = rooms[x, y];
+        Point toLeft = new(x - 1, y), toBottom = new(x, y + 1), toRight = new(x + 1, y);
         Indy = (room, enteredFrom) switch {
-            (Room.Cross, _) => (x, y + 1),
-            (Room.Horizontal, Sides.LEFT) => (x + 1, y),
-            (Room.Horizontal, Sides.RIGHT) => (x - 1, y),
-            (Room.Vertical, Sides.TOP) => (x, y + 1),
-            (Room.ArcsLeft, Sides.TOP) => (x - 1, y),
-            (Room.ArcsLeft, Sides.RIGHT) => (x, y + 1),
-            (Room.ArcsRight, Sides.TOP) => (x + 1, y),
-            (Room.ArcsRight, Sides.LEFT) => (x, y + 1),
-            (Room.ThreeWayTop, Sides.LEFT) => (x + 1, y),
-            (Room.ThreeWayTop, Sides.RIGHT) => (x - 1, y),
-            (Room.ThreeWayRight, _) when enteredFrom != Sides.LEFT => (x, y + 1),
-            (Room.ThreeWayBottom, _) when enteredFrom != Sides.TOP => (x, y + 1),
-            (Room.ThreeWayLeft, _) when enteredFrom != Sides.RIGHT => (x, y + 1),
-            (Room.ArcTopLeft, Sides.TOP) => (x - 1, y),
-            (Room.ArcTopRight, Sides.TOP) => (x + 1, y),
-            (Room.ArcRightBottom, Sides.RIGHT) => (x, y + 1),
-            (Room.ArcLeftBottom, Sides.LEFT) => (x, y + 1),
+            (Room.Cross, _) => toBottom,
+            (Room.Horizontal, Sides.LEFT) => toRight,
+            (Room.Horizontal, Sides.RIGHT) => toLeft,
+            (Room.Vertical, Sides.TOP) => toBottom,
+            (Room.ArcsLeft, Sides.TOP) => toLeft,
+            (Room.ArcsLeft, Sides.RIGHT) => toBottom,
+            (Room.ArcsRight, Sides.TOP) => toRight,
+            (Room.ArcsRight, Sides.LEFT) => toBottom,
+            (Room.ThreeWayTop, Sides.LEFT) => toRight,
+            (Room.ThreeWayTop, Sides.RIGHT) => toLeft,
+            (Room.ThreeWayRight, _) when enteredFrom != Sides.LEFT => toBottom,
+            (Room.ThreeWayBottom, _) when enteredFrom != Sides.TOP => toBottom,
+            (Room.ThreeWayLeft, _) when enteredFrom != Sides.RIGHT => toBottom,
+            (Room.ArcTopLeft, Sides.TOP) => toLeft,
+            (Room.ArcTopRight, Sides.TOP) => toRight,
+            (Room.ArcRightBottom, Sides.RIGHT) => toBottom,
+            (Room.ArcLeftBottom, Sides.LEFT) => toBottom,
             _ => throw new ArgumentException($"Unknown room: {room} and entrance: {enteredFrom}")
         };
     }
@@ -115,4 +116,8 @@ static class Sides {
     public const string LEFT = "LEFT";
     public const string TOP = "TOP";
     public const string RIGHT = "RIGHT";
+}
+
+readonly record struct Point(int X, int Y) {
+    public override string ToString() => $"{X} {Y}";
 }
