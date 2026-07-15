@@ -22,7 +22,6 @@ class Game {
     Room[,] rooms = null!;
     public string Command { get; private set; } = null!;
 
-    [SuppressMessage("ReSharper", "UnusedVariable")]
     public void Init() {
         string[] inputs = Console.ReadLine()!.Split(' ');
         width = Math.Clamp(int.Parse(inputs[0]), 1, 20);
@@ -33,8 +32,10 @@ class Game {
             Console.Error.WriteLine(line);
             string[] types = line.Split(' ');
             for (var x = 0; x < width; x++) {
-                // The absolute value of T specifies the type of the room. If T is negative, the room cannot be rotated.
-                rooms[x, y] = (Room)Math.Abs(int.Parse(types[x]));
+                int roomType = int.Parse(types[x]);
+                rooms[x, y] = new Room(roomType > 0) {
+                    Type = (RoomType)Math.Abs(roomType)
+                };
             }
         }
         int xExit = Math.Clamp(int.Parse(Console.ReadLine()!), 0, width - 1);
@@ -55,24 +56,24 @@ class Game {
 
         var room = rooms[x, y];
         Point toLeft = new(x - 1, y), toBottom = new(x, y + 1), toRight = new(x + 1, y);
-        var next = (room, enteredFrom) switch {
-            (Room.Cross, _) => toBottom,
-            (Room.Horizontal, Sides.LEFT) => toRight,
-            (Room.Horizontal, Sides.RIGHT) => toLeft,
-            (Room.Vertical, Sides.TOP) => toBottom,
-            (Room.ArcsLeft, Sides.TOP) => toLeft,
-            (Room.ArcsLeft, Sides.RIGHT) => toBottom,
-            (Room.ArcsRight, Sides.TOP) => toRight,
-            (Room.ArcsRight, Sides.LEFT) => toBottom,
-            (Room.ThreeWayTop, Sides.LEFT) => toRight,
-            (Room.ThreeWayTop, Sides.RIGHT) => toLeft,
-            (Room.ThreeWayRight, _) when enteredFrom != Sides.LEFT => toBottom,
-            (Room.ThreeWayBottom, _) when enteredFrom != Sides.TOP => toBottom,
-            (Room.ThreeWayLeft, _) when enteredFrom != Sides.RIGHT => toBottom,
-            (Room.ArcTopLeft, Sides.TOP) => toLeft,
-            (Room.ArcTopRight, Sides.TOP) => toRight,
-            (Room.ArcRightBottom, Sides.RIGHT) => toBottom,
-            (Room.ArcLeftBottom, Sides.LEFT) => toBottom,
+        var next = (room.Type, enteredFrom) switch {
+            (RoomType.Cross, _) => toBottom,
+            (RoomType.Horizontal, Sides.LEFT) => toRight,
+            (RoomType.Horizontal, Sides.RIGHT) => toLeft,
+            (RoomType.Vertical, Sides.TOP) => toBottom,
+            (RoomType.ArcsLeft, Sides.TOP) => toLeft,
+            (RoomType.ArcsLeft, Sides.RIGHT) => toBottom,
+            (RoomType.ArcsRight, Sides.TOP) => toRight,
+            (RoomType.ArcsRight, Sides.LEFT) => toBottom,
+            (RoomType.ThreeWayTop, Sides.LEFT) => toRight,
+            (RoomType.ThreeWayTop, Sides.RIGHT) => toLeft,
+            (RoomType.ThreeWayRight, _) when enteredFrom != Sides.LEFT => toBottom,
+            (RoomType.ThreeWayBottom, _) when enteredFrom != Sides.TOP => toBottom,
+            (RoomType.ThreeWayLeft, _) when enteredFrom != Sides.RIGHT => toBottom,
+            (RoomType.ArcTopLeft, Sides.TOP) => toLeft,
+            (RoomType.ArcTopRight, Sides.TOP) => toRight,
+            (RoomType.ArcRightBottom, Sides.RIGHT) => toBottom,
+            (RoomType.ArcLeftBottom, Sides.LEFT) => toBottom,
             _ => throw new ArgumentException($"Unknown room: {room} and entrance: {enteredFrom}")
         };
 
@@ -80,7 +81,11 @@ class Game {
     }
 }
 
-enum Room {
+record Room(bool CanRotate) {
+    public RoomType Type { get; set; }
+}
+
+enum RoomType {
     /// Type0 - This room type is not part of the tunnel per se as Indy cannot move across it
     Wall,
 
