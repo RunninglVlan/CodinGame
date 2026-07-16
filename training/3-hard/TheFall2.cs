@@ -35,9 +35,7 @@ class Game : IGame {
         height = Math.Clamp(int.Parse(inputs[1]), 1, 20);
         rooms = new Room[width, height];
         for (var y = 0; y < height; y++) {
-            string line = Console.ReadLine()!;
-            Console.Error.WriteLine(line);
-            string[] types = line.Split(' ');
+            string[] types = Console.ReadLine()!.Split(' ');
             for (var x = 0; x < width; x++) {
                 int roomType = int.Parse(types[x]);
                 var room = new Room(new Point(x, y), roomType > 0) {
