@@ -18,29 +18,31 @@ static class TheFall2 {
     }
 }
 
-class Game : IGame {
-    readonly Pathfinding pathfinding;
+class Game : IGame<GameState> {
+    readonly Pathfinding<GameState> pathfinding;
     int width, height;
-    Room[,] rooms = null!;
+    Dictionary<Point, Room> rooms = null!;
     Point exit;
     Queue<string>? commands;
     public string Command { get; private set; } = null!;
 
-    public Game() => pathfinding = new(this);
+    public Game() {
+        pathfinding = new Pathfinding<GameState>(this, 15);
+    }
 
     public void Init() {
         string[] inputs = Console.ReadLine()!.Split(' ');
         width = Math.Clamp(int.Parse(inputs[0]), 1, 20);
         height = Math.Clamp(int.Parse(inputs[1]), 1, 20);
-        rooms = new Room[width, height];
+        rooms = new Dictionary<Point, Room>();
         for (var y = 0; y < height; y++) {
             string[] types = Console.ReadLine()!.Split(' ');
             for (var x = 0; x < width; x++) {
+                var point = new Point(x, y);
                 int roomType = int.Parse(types[x]);
-                var room = new Room(new Point(x, y)) {
+                rooms[point] = new Room(point, roomType > 0) {
                     Type = (RoomType)Math.Abs(roomType)
                 };
-                rooms[x, y] = room;
             }
         }
         int xExit = Math.Clamp(int.Parse(Console.ReadLine()!), 0, width - 1);
@@ -60,41 +62,76 @@ class Game : IGame {
             int rockY = Math.Clamp(int.Parse(inputs[1]), 0, height - 1);
             string rockEnteredFrom = inputs[2];
         }
-        commands ??= new Queue<string>(BuildTunnel((current, enteredFrom)));
+        commands ??= BuildTunnel(current, enteredFrom);
         Command = commands.TryDequeue(out var command) ? command : Commands.WAIT;
     }
 
-    IEnumerable<string> BuildTunnel((Point point, string from) current) {
-        var path = new Queue<Point>(pathfinding.Path(current.point, exit)!);
-        while (current.point != exit) {
-            var room = rooms[current.point.X, current.point.Y];
-            var step = path.Dequeue();
-            (Point point, string from) next;
-            var leftRotations = new List<string>();
-            while (!room.TryMove(current.from, out next) || next.point != step) {
-                room.RotateLeft();
-                leftRotations.Add(Commands.ROTATE_LEFT);
-            }
-            if (leftRotations.Count == 3) {
-                yield return $"{room.Point} {Commands.ROTATE_RIGHT}";
-            } else {
-                foreach (string leftRotation in leftRotations) {
-                    yield return $"{room.Point} {leftRotation}";
+    Queue<string> BuildTunnel(Point start, string enteredFrom) {
+        var startState = new GameState(start, enteredFrom) {
+            Commands = [],
+            RotatableRooms = rooms.Where(it => it.Value.CanRotate).ToDictionary()
+        };
+        var best = pathfinding.FindBest(startState);
+        return best == null
+                ? throw new ArgumentException($"Couldn't find path from {start} to {exit}")
+                : new Queue<string>(best.Commands);
+    }
+
+    IEnumerable<GameState> IGame<GameState>.Next(GameState current) {
+        var currentRoom = current.RotatableRooms.TryGetValue(current.Point, out var room)
+                ? room
+                : rooms[current.Point];
+        currentRoom.TryMove(current.EnteredFrom, out var next);
+        var nextRoom = rooms[next.point];
+        if (nextRoom.Type == RoomType.Wall) {
+            yield break;
+        }
+        if (nextRoom.TryMove(next.from, out _)) {
+            yield return current.CopyWith(next.point, next.from);
+            yield break;
+        }
+        nextRoom = nextRoom with { };
+        var leftRotations = new List<string>();
+        for (var i = 0; i < 3; i++) {
+            nextRoom.RotateLeft();
+            leftRotations.Add(Commands.ROTATE_LEFT);
+            if (nextRoom.TryMove(next.from, out _)) {
+                var nextState = current.CopyWith(next.point, next.from);
+                if (leftRotations.Count == 3) {
+                    nextState.Commands.Add($"{next.point} {Commands.ROTATE_RIGHT}");
+                } else {
+                    foreach (string leftRotation in leftRotations) {
+                        nextState.Commands.Add($"{next.point} {leftRotation}");
+                    }
                 }
+                nextState.RotatableRooms[next.point] = nextRoom;
+                yield return nextState;
             }
-            current = next;
+            // TODO: refactor?
+            nextRoom = nextRoom with { };
         }
     }
 
-    IEnumerable<Point> IGame.Next(Point current) {
-        return Screen.Directions4.Where(it => it != Screen.UP)
-                .Select(it => current + it)
-                .Where(it => it.InBounds(width, height))
-                .Where(it => rooms[it.X, it.Y].Type != RoomType.Wall);
+    bool IGame<GameState>.HasReachedEnd(GameState state) {
+        return state.Point == exit;
     }
 }
 
-record Room(Point Point) {
+record GameState(Point Point, string EnteredFrom) : IState<GameState> {
+    public List<string> Commands { get; init; } = null!;
+    public Dictionary<Point, Room> RotatableRooms { get; init; } = null!;
+
+    bool IState<GameState>.IsBetterThan(GameState other) {
+        return Commands.Count < other.Commands.Count;
+    }
+
+    public GameState CopyWith(Point next, string enteredFrom) => new(next, enteredFrom) {
+        Commands = [..Commands],
+        RotatableRooms = RotatableRooms.ToDictionary(it => it.Key, it => it.Value with { })
+    };
+}
+
+record Room(Point Point, bool CanRotate) {
     public RoomType Type { get; set; }
 
     public bool TryMove(string from, out (Point point, string from) next) {
@@ -195,23 +232,7 @@ static class Sides {
 }
 
 readonly record struct Point(int X, int Y) {
-    public bool InBounds(int width, int height) {
-        return X >= 0 && X < width && Y >= 0 && Y < height;
-    }
-
-    public static Point operator +(Point a, Point b) => new(a.X + b.X, a.Y + b.Y);
-
     public override string ToString() => $"{X} {Y}";
-}
-
-[SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
-static class Screen {
-    public static readonly Point UP = new(0, -1);
-    public static readonly Point DOWN = new(0, 1);
-    public static readonly Point LEFT = new(-1, 0);
-    public static readonly Point RIGHT = new(1, 0);
-
-    public static Point[] Directions4 { get; } = [RIGHT, LEFT, UP, DOWN];
 }
 
 static class Commands {
@@ -220,48 +241,31 @@ static class Commands {
     public const string WAIT = "WAIT";
 }
 
-class Pathfinding(IGame game) {
-    readonly Queue<Node> queue = new();
-    readonly HashSet<Point> visited = new();
-
-    /// BFS
-    public List<Point>? Path(Point start, Point end) {
-        queue.Clear();
-        visited.Clear();
-        var startNode = new Node(start);
-        queue.Enqueue(startNode);
-        visited.Add(start);
-        while (queue.TryDequeue(out var current)) {
-            if (current.Point == end) {
-                return Reconstruct(startNode, current);
+class Pathfinding<T>(IGame<T> game, int depthMax) where T : IState<T> {
+    /// DFS
+    public T? FindBest(T current, int depth = 0) {
+        if (game.HasReachedEnd(current) || depth > depthMax) {
+            return current;
+        }
+        T? best = default;
+        foreach (var next in game.Next(current)) {
+            var nextBest = FindBest(next, depth + 1);
+            if (nextBest == null) {
+                continue;
             }
-            foreach (var nextPoint in game.Next(current.Point)) {
-                if (!visited.Add(nextPoint)) {
-                    continue;
-                }
-                var next = new Node(nextPoint) { parent = current };
-                queue.Enqueue(next);
+            if (best == null || nextBest.IsBetterThan(best)) {
+                best = nextBest;
             }
         }
-        return null;
-    }
-
-    static List<Point> Reconstruct(Node start, Node end) {
-        var path = new List<Point>();
-        var current = end;
-        while (current != start) {
-            path.Add(current!.Point);
-            current = current.parent;
-        }
-        path.Reverse();
-        return path;
-    }
-
-    record Node(Point Point) {
-        public Node? parent;
+        return best;
     }
 }
 
-interface IGame {
-    IEnumerable<Point> Next(Point current);
+interface IGame<TState> {
+    IEnumerable<TState> Next(TState current);
+    bool HasReachedEnd(TState state);
+}
+
+interface IState<in T> where T : IState<T> {
+    bool IsBetterThan(T other);
 }
