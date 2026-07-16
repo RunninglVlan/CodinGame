@@ -27,7 +27,7 @@ class Game : IGame<GameState> {
     public string Command { get; private set; } = null!;
 
     public Game() {
-        pathfinding = new Pathfinding<GameState>(this, 15);
+        pathfinding = new Pathfinding<GameState>(this, 17);
     }
 
     public void Init() {
@@ -82,17 +82,21 @@ class Game : IGame<GameState> {
                 ? room
                 : rooms[current.Point];
         currentRoom.TryMove(current.EnteredFrom, out var next);
+        if (!next.point.InBounds(width, height)) {
+            yield break;
+        }
         var nextRoom = rooms[next.point];
         if (nextRoom.Type == RoomType.Wall) {
             yield break;
         }
         if (nextRoom.TryMove(next.from, out _)) {
             yield return current.CopyWith(next.point, next.from);
-            yield break;
         }
         nextRoom = nextRoom with { };
         for (var rotations = 1; rotations <= 3; rotations++) {
-            nextRoom.RotateLeft();
+            if (!nextRoom.TryRotateLeft()) {
+                break;
+            }
             if (!nextRoom.TryMove(next.from, out _)) {
                 continue;
             }
@@ -167,18 +171,26 @@ record Room(Point Point, bool CanRotate) {
         return true;
     }
 
-    public void RotateLeft() {
+    public bool TryRotateLeft() {
+        if (Type == RoomType.Cross) {
+            return false;
+        }
         Type = Type switch {
             RoomType.Horizontal => RoomType.Vertical,
             RoomType.Vertical => RoomType.Horizontal,
             RoomType.ArcsLeft => RoomType.ArcsRight,
             RoomType.ArcsRight => RoomType.ArcsLeft,
+            RoomType.ThreeWayTop => RoomType.ThreeWayLeft,
+            RoomType.ThreeWayRight => RoomType.ThreeWayTop,
+            RoomType.ThreeWayBottom => RoomType.ThreeWayRight,
+            RoomType.ThreeWayLeft => RoomType.ThreeWayBottom,
             RoomType.ArcTopLeft => RoomType.ArcLeftBottom,
             RoomType.ArcTopRight => RoomType.ArcTopLeft,
             RoomType.ArcRightBottom => RoomType.ArcTopRight,
             RoomType.ArcLeftBottom => RoomType.ArcRightBottom,
             _ => throw new ArgumentException($"Unknown room: {Type}")
         };
+        return true;
     }
 }
 
@@ -233,6 +245,10 @@ static class Sides {
 }
 
 readonly record struct Point(int X, int Y) {
+    public bool InBounds(int width, int height) {
+        return X >= 0 && X < width && Y >= 0 && Y < height;
+    }
+
     public override string ToString() => $"{X} {Y}";
 }
 
