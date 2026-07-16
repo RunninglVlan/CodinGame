@@ -78,19 +78,20 @@ class Game : IGame<GameState> {
     }
 
     IEnumerable<GameState> IGame<GameState>.Next(GameState current) {
-        var currentRoom = current.RotatableRooms.TryGetValue(current.Point, out var room)
-                ? room
-                : rooms[current.Point];
+        var currentRoom = current.RotatableRooms.TryGetValue(current.Point, out var room) ? room : rooms[current.Point];
         currentRoom.TryMove(current.EnteredFrom, out var next);
         if (!next.point.InBounds(width, height)) {
             yield break;
         }
-        var nextRoom = rooms[next.point];
+        var nextRoom = current.RotatableRooms.TryGetValue(next.point, out room) ? room : rooms[next.point];
         if (nextRoom.Type == RoomType.Wall) {
             yield break;
         }
         if (nextRoom.TryMove(next.from, out _)) {
             yield return current.CopyWith(next.point, next.from);
+        }
+        if (!nextRoom.CanRotate) {
+            yield break;
         }
         nextRoom = nextRoom with { };
         for (var rotations = 1; rotations <= 3; rotations++) {
