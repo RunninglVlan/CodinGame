@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 
 namespace TheFall2;
 
@@ -17,12 +18,15 @@ static class TheFall2 {
     }
 }
 
-class Game {
+class Game : IGame {
+    readonly Pathfinding pathfinding;
     int width, height;
     Room[,] rooms = null!;
     Point exit;
     Queue<string>? commands;
     public string Command { get; private set; } = null!;
+
+    public Game() => pathfinding = new(this);
 
     public void Init() {
         string[] inputs = Console.ReadLine()!.Split(' ');
@@ -61,15 +65,32 @@ class Game {
     }
 
     IEnumerable<string> BuildTunnel((Point point, string from) current) {
+        var path = new Queue<Point>(pathfinding.Path(current.point, exit)!);
         while (current.point != exit) {
             var room = rooms[current.point.X, current.point.Y];
-            (Point, string from) next;
-            while (!room.TryMove(current.from, out next)) {
+            var step = path.Dequeue();
+            (Point point, string from) next;
+            var leftRotations = new List<string>();
+            while (!room.TryMove(current.from, out next) || next.point != step) {
                 room.RotateLeft();
-                yield return $"{room.Point} {Commands.ROTATE_LEFT}";
+                leftRotations.Add(Commands.ROTATE_LEFT);
+            }
+            if (leftRotations.Count == 3) {
+                yield return $"{room.Point} {Commands.ROTATE_RIGHT}";
+            } else {
+                foreach (string leftRotation in leftRotations) {
+                    yield return $"{room.Point} {leftRotation}";
+                }
             }
             current = next;
         }
+    }
+
+    IEnumerable<Point> IGame.Next(Point current) {
+        return Screen.Directions4.Where(it => it != Screen.UP)
+                .Select(it => current + it)
+                .Where(it => it.InBounds(width, height))
+                .Where(it => rooms[it.X, it.Y].Type != RoomType.Wall);
     }
 }
 
@@ -114,6 +135,10 @@ record Room(Point Point) {
             RoomType.Vertical => RoomType.Horizontal,
             RoomType.ArcsLeft => RoomType.ArcsRight,
             RoomType.ArcsRight => RoomType.ArcsLeft,
+            RoomType.ArcTopLeft => RoomType.ArcLeftBottom,
+            RoomType.ArcTopRight => RoomType.ArcTopLeft,
+            RoomType.ArcRightBottom => RoomType.ArcTopRight,
+            RoomType.ArcLeftBottom => RoomType.ArcRightBottom,
             _ => throw new ArgumentException($"Unknown room: {Type}")
         };
     }
@@ -170,11 +195,73 @@ static class Sides {
 }
 
 readonly record struct Point(int X, int Y) {
+    public bool InBounds(int width, int height) {
+        return X >= 0 && X < width && Y >= 0 && Y < height;
+    }
+
+    public static Point operator +(Point a, Point b) => new(a.X + b.X, a.Y + b.Y);
+
     public override string ToString() => $"{X} {Y}";
+}
+
+[SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
+static class Screen {
+    public static readonly Point UP = new(0, -1);
+    public static readonly Point DOWN = new(0, 1);
+    public static readonly Point LEFT = new(-1, 0);
+    public static readonly Point RIGHT = new(1, 0);
+
+    public static Point[] Directions4 { get; } = [RIGHT, LEFT, UP, DOWN];
 }
 
 static class Commands {
     public const string ROTATE_LEFT = "LEFT";
     public const string ROTATE_RIGHT = "RIGHT";
     public const string WAIT = "WAIT";
+}
+
+class Pathfinding(IGame game) {
+    readonly Queue<Node> queue = new();
+    readonly HashSet<Point> visited = new();
+
+    /// BFS
+    public List<Point>? Path(Point start, Point end) {
+        queue.Clear();
+        visited.Clear();
+        var startNode = new Node(start);
+        queue.Enqueue(startNode);
+        visited.Add(start);
+        while (queue.TryDequeue(out var current)) {
+            if (current.Point == end) {
+                return Reconstruct(startNode, current);
+            }
+            foreach (var nextPoint in game.Next(current.Point)) {
+                if (!visited.Add(nextPoint)) {
+                    continue;
+                }
+                var next = new Node(nextPoint) { parent = current };
+                queue.Enqueue(next);
+            }
+        }
+        return null;
+    }
+
+    static List<Point> Reconstruct(Node start, Node end) {
+        var path = new List<Point>();
+        var current = end;
+        while (current != start) {
+            path.Add(current!.Point);
+            current = current.parent;
+        }
+        path.Reverse();
+        return path;
+    }
+
+    record Node(Point Point) {
+        public Node? parent;
+    }
+}
+
+interface IGame {
+    IEnumerable<Point> Next(Point current);
 }
