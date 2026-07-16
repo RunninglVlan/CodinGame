@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
 
 namespace TheFall2;
 
@@ -18,16 +17,12 @@ static class TheFall2 {
     }
 }
 
-class Game : IGame {
-    readonly Pathfinding pathfinding;
+class Game {
     int width, height;
     Room[,] rooms = null!;
-    readonly List<Room> rotatableRooms = new();
     Point exit;
     Queue<string>? commands;
     public string Command { get; private set; } = null!;
-
-    public Game() => pathfinding = new(this);
 
     public void Init() {
         string[] inputs = Console.ReadLine()!.Split(' ');
@@ -38,13 +33,10 @@ class Game : IGame {
             string[] types = Console.ReadLine()!.Split(' ');
             for (var x = 0; x < width; x++) {
                 int roomType = int.Parse(types[x]);
-                var room = new Room(new Point(x, y), roomType > 0) {
+                var room = new Room(new Point(x, y)) {
                     Type = (RoomType)Math.Abs(roomType)
                 };
                 rooms[x, y] = room;
-                if (room.CanRotate) {
-                    rotatableRooms.Add(room);
-                }
             }
         }
         int xExit = Math.Clamp(int.Parse(Console.ReadLine()!), 0, width - 1);
@@ -64,30 +56,24 @@ class Game : IGame {
             int rockY = Math.Clamp(int.Parse(inputs[1]), 0, height - 1);
             string rockEnteredFrom = inputs[2];
         }
-        if (commands == null) {
-            commands = new();
-            while (!pathfinding.PathExists(current, exit)) {
-                if (rotatableRooms.Count > 1) {
-                    throw new ArgumentException("Expecting 1 rotatable room");
-                }
-                var room = rotatableRooms.First();
-                commands.Enqueue($"{room.Point} {Commands.ROTATE_LEFT}");
-                room.RotateLeft();
-            }
-        }
+        commands ??= new Queue<string>(BuildTunnel((current, enteredFrom)));
         Command = commands.TryDequeue(out var command) ? command : Commands.WAIT;
     }
 
-    public IEnumerable<(Point point, string side)> Next((Point point, string side) current) {
-        var room = rooms[current.point.X, current.point.Y];
-        if (!room.TryMove(current.side, out var next)) {
-            yield break;
+    IEnumerable<string> BuildTunnel((Point point, string from) current) {
+        while (current.point != exit) {
+            var room = rooms[current.point.X, current.point.Y];
+            (Point, string from) next;
+            while (!room.TryMove(current.from, out next)) {
+                room.RotateLeft();
+                yield return $"{room.Point} {Commands.ROTATE_LEFT}";
+            }
+            current = next;
         }
-        yield return next;
     }
 }
 
-record Room(Point Point, bool CanRotate) {
+record Room(Point Point) {
     public RoomType Type { get; set; }
 
     public bool TryMove(string from, out (Point point, string from) next) {
@@ -191,33 +177,4 @@ static class Commands {
     public const string ROTATE_LEFT = "LEFT";
     public const string ROTATE_RIGHT = "RIGHT";
     public const string WAIT = "WAIT";
-}
-
-class Pathfinding(IGame game) {
-    readonly Queue<(Point point, string side)> queue = new();
-    readonly HashSet<Point> visited = new();
-
-    /// BFS
-    public bool PathExists(Point start, Point end) {
-        queue.Clear();
-        visited.Clear();
-        queue.Enqueue((start, Sides.TOP));
-        visited.Add(start);
-        while (queue.TryDequeue(out var current)) {
-            if (current.point == end) {
-                return true;
-            }
-            foreach (var next in game.Next(current)) {
-                if (!visited.Add(next.point)) {
-                    continue;
-                }
-                queue.Enqueue(next);
-            }
-        }
-        return false;
-    }
-}
-
-interface IGame {
-    IEnumerable<(Point point, string side)> Next((Point point, string side) current);
 }
