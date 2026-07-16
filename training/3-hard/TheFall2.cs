@@ -91,24 +91,25 @@ class Game : IGame<GameState> {
             yield break;
         }
         nextRoom = nextRoom with { };
-        var leftRotations = new List<string>();
-        for (var i = 0; i < 3; i++) {
+        for (var rotations = 1; rotations <= 3; rotations++) {
             nextRoom.RotateLeft();
-            leftRotations.Add(Commands.ROTATE_LEFT);
-            if (nextRoom.TryMove(next.from, out _)) {
-                var nextState = current.CopyWith(next.point, next.from);
-                if (leftRotations.Count == 3) {
-                    nextState.Commands.Add($"{next.point} {Commands.ROTATE_RIGHT}");
-                } else {
-                    foreach (string leftRotation in leftRotations) {
-                        nextState.Commands.Add($"{next.point} {leftRotation}");
-                    }
-                }
-                nextState.RotatableRooms[next.point] = nextRoom;
-                yield return nextState;
+            if (!nextRoom.TryMove(next.from, out _)) {
+                continue;
             }
-            // TODO: refactor?
-            nextRoom = nextRoom with { };
+            var nextState = current.CopyWith(next.point, next.from);
+            nextState.Commands.AddRange(RotationCommands(next.point, rotations));
+            nextState.RotatableRooms[next.point] = nextRoom with { };
+            yield return nextState;
+        }
+    }
+
+    static IEnumerable<string> RotationCommands(Point point, int rotations) {
+        if (rotations == 3) {
+            yield return $"{point} {Commands.ROTATE_RIGHT}";
+            yield break;
+        }
+        for (var i = 0; i < rotations; i++) {
+            yield return $"{point} {Commands.ROTATE_LEFT}";
         }
     }
 
