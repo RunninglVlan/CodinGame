@@ -24,6 +24,7 @@ class Game : IGame<GameState> {
     Dictionary<Point, Room> rooms = null!;
     Point exit;
     Queue<Command>? commands;
+    readonly HashSet<Point> blocked = [];
     public string NextCommand { get; private set; } = null!;
 
     public Game() {
@@ -65,7 +66,7 @@ class Game : IGame<GameState> {
             rocks[i] = (new Point(rockX, rockY), rockEnteredFrom);
         }
         commands ??= BuildTunnel(current, enteredFrom);
-        if (TryBlockRock(rocks, current, out var nextCommand)) {
+        if (TryBlockRock(rocks, (current, enteredFrom), out var nextCommand)) {
             NextCommand = nextCommand.ToString();
             return;
         }
@@ -87,20 +88,47 @@ class Game : IGame<GameState> {
         return new Queue<Command>(best.Commands);
     }
 
-    bool TryBlockRock((Point point, string enteredFrom)[] rocks, Point current, out Command command) {
+    bool TryBlockRock((Point point, string enteredFrom)[] rocks, (Point point, string enteredFrom) indy, out Command command) {
         command = null!;
         if (rocks.Length == 0) {
             return false;
         }
-        if (!commands!.TryPeek(out var nextCommand) || Point.ManhattanDistance(current, nextCommand.Point) == 1) {
+        if (commands!.TryPeek(out var nextCommand) && Point.ManhattanDistance(indy.point, nextCommand.Point) == 1) {
             return false;
         }
-        var nearestRock = rocks.OrderBy(it => Point.ManhattanDistance(current, it.point)).First();
-        var room = rooms[nearestRock.point];
-        room.TryMove(nearestRock.enteredFrom, out var next);
-        var roomNext = rooms[next.point];
-        roomNext.RotateLeft();
-        command = Command.RotateLeft(next.point);
+        rooms[indy.point].TryMove(indy.enteredFrom, out var indyNext);
+        var rock = rocks
+                .Select(it => {
+                    var room = rooms[it.point];
+                    var roomCurrent = room;
+                    Room? roomNext = null;
+                    for (var i = 0; i < 3; i++) {
+                        if (!roomCurrent.TryMove(it.enteredFrom, out var next)) {
+                            break;
+                        }
+                        if (!rooms.TryGetValue(next.point, out var roomPotential)) {
+                            break;
+                        }
+                        if (!roomPotential.CanRotate || next.point == indyNext.point || blocked.Contains(next.point)) {
+                            roomCurrent = roomPotential;
+                            continue;
+                        }
+                        roomNext = roomPotential;
+                        break;
+                    }
+                    return (room, roomNext, it.enteredFrom);
+                })
+                .Where(it => it.roomNext != null && it.roomNext.Point != indy.point)
+                .OrderBy(it => Point.ManhattanDistance(it.room.Point, indy.point))
+                .FirstOrDefault();
+        if (rock == default) {
+            return false;
+        }
+        rock.roomNext!.RotateLeft();
+        command = Command.RotateLeft(rock.roomNext.Point);
+        if (!rock.roomNext.TryMove(rock.enteredFrom, out _)) {
+            blocked.Add(rock.roomNext.Point);
+        }
         return true;
     }
 
