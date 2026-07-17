@@ -55,14 +55,25 @@ class Game : IGame<GameState> {
         int y = Math.Clamp(int.Parse(inputs[1]), 0, height - 1);
         var current = new Point(x, y);
         string enteredFrom = inputs[2];
-        int rocks = int.Parse(Debug.ReadLine());
-        for (var i = 0; i < rocks; i++) {
+        int rockCount = int.Parse(Debug.ReadLine());
+        var rocks = new (Point point, string enteredFrom)[rockCount];
+        for (var i = 0; i < rockCount; i++) {
             inputs = Debug.ReadLine().Split(' ');
             int rockX = Math.Clamp(int.Parse(inputs[0]), 0, width - 1);
             int rockY = Math.Clamp(int.Parse(inputs[1]), 0, height - 1);
             string rockEnteredFrom = inputs[2];
+            rocks[i] = (new Point(rockX, rockY), rockEnteredFrom);
         }
         commands ??= BuildTunnel(current, enteredFrom);
+        if (rockCount > 0 && (!commands.TryPeek(out var nextCommand) || Point.ManhattanDistance(current, nextCommand.Point) != 1)) {
+            var nearestRock = rocks.OrderBy(it => Point.ManhattanDistance(current, it.point)).First();
+            var rockRoom = rooms[nearestRock.point];
+            rockRoom.TryMove(nearestRock.enteredFrom, out var next);
+            var rockRoomNext = rooms[next.point];
+            rockRoomNext.RotateLeft();
+            NextCommand = Command.RotateLeft(next.point).ToString();
+            return;
+        }
         NextCommand = commands.TryDequeue(out var command) ? command.ToString() : Command.WAIT;
     }
 
@@ -258,6 +269,10 @@ static class Sides {
 readonly record struct Point(int X, int Y) {
     public bool InBounds(int width, int height) {
         return X >= 0 && X < width && Y >= 0 && Y < height;
+    }
+
+    public static int ManhattanDistance(Point a, Point b) {
+        return Math.Abs(a.X - b.X) + Math.Abs(a.Y - b.Y);
     }
 
     public override string ToString() => $"{X} {Y}";
