@@ -98,26 +98,7 @@ class Game : IGame<GameState> {
         }
         rooms[indy.Point].TryMove(indy.EnteredFrom, out var indyNext);
         var rock = rocks
-                .Select(it => {
-                    var room = rooms[it.Point];
-                    var roomCurrent = room;
-                    Room? roomTarget = null;
-                    for (var i = 0; i < 3; i++) {
-                        if (!roomCurrent.TryMove(it.EnteredFrom, out var next)) {
-                            break;
-                        }
-                        if (!rooms.TryGetValue(next.Point, out var roomNext)) {
-                            break;
-                        }
-                        if (!roomNext.CanRotate || next.Point == indyNext.Point || blocked.Contains(next.Point)) {
-                            roomCurrent = roomNext;
-                            continue;
-                        }
-                        roomTarget = roomNext;
-                        break;
-                    }
-                    return (room, roomTarget, enteredFrom: it.EnteredFrom);
-                })
+                .Select(it => RockRooms(it, indyNext))
                 .Where(it => it.roomTarget != null && it.roomTarget.Point != indy.Point)
                 .OrderBy(it => Point.ManhattanDistance(it.room.Point, indy.Point))
                 .FirstOrDefault();
@@ -130,6 +111,28 @@ class Game : IGame<GameState> {
             blocked.Add(rock.roomTarget.Point);
         }
         return true;
+    }
+
+    (Room room, Room? roomTarget, string enteredFrom) RockRooms(Position rock, Position indyNext) {
+        const int maxNextRooms = 3;
+        var room = rooms[rock.Point];
+        var roomCurrent = room;
+        Room? roomTarget = null;
+        for (var i = 0; i < maxNextRooms; i++) {
+            if (!roomCurrent.TryMove(rock.EnteredFrom, out var next)) {
+                break;
+            }
+            if (!rooms.TryGetValue(next.Point, out var roomNext)) {
+                break;
+            }
+            if (!roomNext.CanRotate || next.Point == indyNext.Point || blocked.Contains(next.Point)) {
+                roomCurrent = roomNext;
+                continue;
+            }
+            roomTarget = roomNext;
+            break;
+        }
+        return (room, roomTarget, enteredFrom: rock.EnteredFrom);
     }
 
     IEnumerable<GameState> IGame<GameState>.Next(GameState current) {
