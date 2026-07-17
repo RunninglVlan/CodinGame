@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 
-class Pathfinding<T>(IGame<T> game, int depthMax) where T : IState {
-    /// DFS
+class Pathfinding<T>(IGame<T> game, int depthMax) where T : IState<T> {
+    /// DFS/Backtracking
     public (T state, string action)? FindBest(T current, int depth = 0) {
         if (game.HasReachedEnd(current) || depth > depthMax) {
             return (current, string.Empty);
@@ -13,7 +13,7 @@ class Pathfinding<T>(IGame<T> game, int depthMax) where T : IState {
                 continue;
             }
             var (state, _) = nextBest.Value;
-            if (best == null || state.Score > best.Value.state.Score) {
+            if (best == null || state.IsBetterThan(best.Value.state)) {
                 best = (state, action);
             }
         }
@@ -26,6 +26,6 @@ interface IGame<TState> {
     bool HasReachedEnd(TState state);
 }
 
-interface IState {
-    int Score { get; }
+interface IState<in T> where T : IState<T> {
+    bool IsBetterThan(T other);
 }

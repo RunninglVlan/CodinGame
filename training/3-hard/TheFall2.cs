@@ -338,7 +338,7 @@ record Command(Point Point, string Value) {
 }
 
 class Pathfinding<T>(IGame<T> game, int depthMax) where T : IState<T> {
-    /// DFS
+    /// DFS/Backtracking
     public T? FindBest(T current, int depth = 0) {
         if (game.HasReachedEnd(current) || depth > depthMax) {
             return current;

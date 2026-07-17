@@ -107,12 +107,15 @@ class Game : IGame<GameState> {
     bool IGame<GameState>.HasReachedEnd(GameState state) => state.X > road.XMax;
 }
 
-record GameState(Motorbike[] Motorbikes, int Speed, bool IsJumping = false) : IState {
+record GameState(Motorbike[] Motorbikes, int Speed, bool IsJumping = false) : IState<GameState> {
     public int X => Motorbikes.First(it => it.IsActive).X;
     public int YMin => Motorbikes.First(it => it.IsActive).Y;
     public int YMax => Motorbikes.Last(it => it.IsActive).Y;
     public int Active => Motorbikes.Count(it => it.IsActive);
-    int IState.Score => Active;
+
+    bool IState<GameState>.IsBetterThan(GameState other) {
+        return Active > other.Active;
+    }
 
     public GameState CopyWith(int? speed = null, bool jumping = false) {
         return new GameState(Motorbikes.Select(it => it.Copy()).ToArray(), speed ?? Speed, jumping);
@@ -230,8 +233,8 @@ class Motorbike {
     public Motorbike Copy() => new() { X = X, Y = Y, YPrevious = Y, IsActive = IsActive };
 }
 
-class Pathfinding<T>(IGame<T> game, int depthMax) where T : IState {
-    /// DFS
+class Pathfinding<T>(IGame<T> game, int depthMax) where T : IState<T> {
+    /// DFS/Backtracking
     public (T state, string action)? FindBest(T current, int depth = 0) {
         if (game.HasReachedEnd(current) || depth > depthMax) {
             return (current, string.Empty);
@@ -243,7 +246,7 @@ class Pathfinding<T>(IGame<T> game, int depthMax) where T : IState {
                 continue;
             }
             var (state, _) = nextBest.Value;
-            if (best == null || state.Score > best.Value.state.Score) {
+            if (best == null || state.IsBetterThan(best.Value.state)) {
                 best = (state, action);
             }
         }
@@ -256,6 +259,6 @@ interface IGame<TState> {
     bool HasReachedEnd(TState state);
 }
 
-interface IState {
-    int Score { get; }
+interface IState<in T> where T : IState<T> {
+    bool IsBetterThan(T other);
 }
