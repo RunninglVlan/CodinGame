@@ -54,27 +54,27 @@ class Game : IGame<GameState> {
         string[] inputs = Debug.ReadLine().Split(' ');
         int x = Math.Clamp(int.Parse(inputs[0]), 0, width - 1);
         int y = Math.Clamp(int.Parse(inputs[1]), 0, height - 1);
-        var current = new Point(x, y);
         string enteredFrom = inputs[2];
+        var current = new Position(new Point(x, y), enteredFrom);
         int rockCount = int.Parse(Debug.ReadLine());
-        var rocks = new (Point point, string enteredFrom)[rockCount];
+        var rocks = new Position[rockCount];
         for (var i = 0; i < rockCount; i++) {
             inputs = Debug.ReadLine().Split(' ');
             int rockX = Math.Clamp(int.Parse(inputs[0]), 0, width - 1);
             int rockY = Math.Clamp(int.Parse(inputs[1]), 0, height - 1);
             string rockEnteredFrom = inputs[2];
-            rocks[i] = (new Point(rockX, rockY), rockEnteredFrom);
+            rocks[i] = new Position(new Point(rockX, rockY), rockEnteredFrom);
         }
-        commands ??= BuildTunnel(current, enteredFrom);
-        if (TryBlockRock(rocks, (current, enteredFrom), out var nextCommand)) {
+        commands ??= BuildTunnel(current);
+        if (TryBlockRock(rocks, current, out var nextCommand)) {
             NextCommand = nextCommand.ToString();
             return;
         }
         NextCommand = commands.TryDequeue(out var command) ? command.ToString() : Command.WAIT;
     }
 
-    Queue<Command> BuildTunnel(Point start, string enteredFrom) {
-        var startState = new GameState(start, enteredFrom) {
+    Queue<Command> BuildTunnel(Position start) {
+        var startState = new GameState(start) {
             Commands = [],
             RotatableRooms = rooms.Where(it => it.Value.CanRotate).ToDictionary()
         };
@@ -88,59 +88,60 @@ class Game : IGame<GameState> {
         return new Queue<Command>(best.Commands);
     }
 
-    bool TryBlockRock((Point point, string enteredFrom)[] rocks, (Point point, string enteredFrom) indy, out Command command) {
+    bool TryBlockRock(Position[] rocks, Position indy, out Command command) {
         command = null!;
         if (rocks.Length == 0) {
             return false;
         }
-        if (commands!.TryPeek(out var nextCommand) && Point.ManhattanDistance(indy.point, nextCommand.Point) == 1) {
+        if (commands!.TryPeek(out var nextCommand) && Point.ManhattanDistance(indy.Point, nextCommand.Point) == 1) {
             return false;
         }
-        rooms[indy.point].TryMove(indy.enteredFrom, out var indyNext);
+        rooms[indy.Point].TryMove(indy.EnteredFrom, out var indyNext);
         var rock = rocks
                 .Select(it => {
-                    var room = rooms[it.point];
+                    var room = rooms[it.Point];
                     var roomCurrent = room;
-                    Room? roomNext = null;
+                    Room? roomTarget = null;
                     for (var i = 0; i < 3; i++) {
-                        if (!roomCurrent.TryMove(it.enteredFrom, out var next)) {
+                        if (!roomCurrent.TryMove(it.EnteredFrom, out var next)) {
                             break;
                         }
-                        if (!rooms.TryGetValue(next.point, out var roomPotential)) {
+                        if (!rooms.TryGetValue(next.Point, out var roomNext)) {
                             break;
                         }
-                        if (!roomPotential.CanRotate || next.point == indyNext.point || blocked.Contains(next.point)) {
-                            roomCurrent = roomPotential;
+                        if (!roomNext.CanRotate || next.Point == indyNext.Point || blocked.Contains(next.Point)) {
+                            roomCurrent = roomNext;
                             continue;
                         }
-                        roomNext = roomPotential;
+                        roomTarget = roomNext;
                         break;
                     }
-                    return (room, roomNext, it.enteredFrom);
+                    return (room, roomTarget, enteredFrom: it.EnteredFrom);
                 })
-                .Where(it => it.roomNext != null && it.roomNext.Point != indy.point)
-                .OrderBy(it => Point.ManhattanDistance(it.room.Point, indy.point))
+                .Where(it => it.roomTarget != null && it.roomTarget.Point != indy.Point)
+                .OrderBy(it => Point.ManhattanDistance(it.room.Point, indy.Point))
                 .FirstOrDefault();
         if (rock == default) {
             return false;
         }
-        rock.roomNext!.RotateLeft();
-        command = Command.RotateLeft(rock.roomNext.Point);
-        if (!rock.roomNext.TryMove(rock.enteredFrom, out _)) {
-            blocked.Add(rock.roomNext.Point);
+        rock.roomTarget!.RotateLeft();
+        command = Command.RotateLeft(rock.roomTarget.Point);
+        if (!rock.roomTarget.TryMove(rock.enteredFrom, out _)) {
+            blocked.Add(rock.roomTarget.Point);
         }
         return true;
     }
 
     IEnumerable<GameState> IGame<GameState>.Next(GameState current) {
-        var currentRoom = current.RotatableRooms.TryGetValue(current.Point, out var room) ? room : rooms[current.Point];
-        currentRoom.TryMove(current.EnteredFrom, out var next);
-        if (!next.point.InBounds(width, height)) {
+        (var point, string enteredFrom) = current.Position;
+        var currentRoom = current.RotatableRooms.TryGetValue(point, out var room) ? room : rooms[point];
+        currentRoom.TryMove(enteredFrom, out var next);
+        if (!next.Point.InBounds(width, height)) {
             yield break;
         }
-        var nextRoom = current.RotatableRooms.TryGetValue(next.point, out room) ? room : rooms[next.point];
-        if (nextRoom.TryMove(next.from, out _)) {
-            yield return current.CopyWith(next.point, next.from);
+        var nextRoom = current.RotatableRooms.TryGetValue(next.Point, out room) ? room : rooms[next.Point];
+        if (nextRoom.TryMove(next.EnteredFrom, out _)) {
+            yield return current.CopyWith(next);
         }
         if (!nextRoom.CanRotate) {
             yield break;
@@ -148,12 +149,12 @@ class Game : IGame<GameState> {
         nextRoom = nextRoom with { };
         for (var rotations = 1; rotations <= nextRoom.MaxRotations; rotations++) {
             nextRoom.RotateLeft();
-            if (!nextRoom.TryMove(next.from, out _)) {
+            if (!nextRoom.TryMove(next.EnteredFrom, out _)) {
                 continue;
             }
-            var nextState = current.CopyWith(next.point, next.from);
-            nextState.Commands.AddRange(RotationCommands(next.point, rotations));
-            nextState.RotatableRooms[next.point] = nextRoom with { };
+            var nextState = current.CopyWith(next);
+            nextState.Commands.AddRange(RotationCommands(next.Point, rotations));
+            nextState.RotatableRooms[next.Point] = nextRoom with { };
             yield return nextState;
         }
     }
@@ -169,11 +170,11 @@ class Game : IGame<GameState> {
     }
 
     bool IGame<GameState>.HasReachedEnd(GameState state) {
-        return state.Point == exit;
+        return state.Position.Point == exit;
     }
 }
 
-record GameState(Point Point, string EnteredFrom) : IState<GameState> {
+record GameState(Position Position) : IState<GameState> {
     public List<Command> Commands { get; init; } = null!;
     public Dictionary<Point, Room> RotatableRooms { get; init; } = null!;
 
@@ -181,7 +182,7 @@ record GameState(Point Point, string EnteredFrom) : IState<GameState> {
         return Commands.Count < other.Commands.Count;
     }
 
-    public GameState CopyWith(Point next, string enteredFrom) => new(next, enteredFrom) {
+    public GameState CopyWith(Position position) => new(position) {
         Commands = [..Commands],
         RotatableRooms = RotatableRooms.ToDictionary(it => it.Key, it => it.Value with { })
     };
@@ -208,12 +209,12 @@ record Room(Point Point, bool CanRotate) {
         { RoomType.ArcLeftBottom, 3 }
     };
 
-    public bool TryMove(string from, out (Point point, string from) next) {
+    public bool TryMove(string from, out Position next) {
         next = default;
-        var toLeft = (Point with { X = Point.X - 1 }, Sides.RIGHT);
-        var toBottom = (Point with { Y = Point.Y + 1 }, Sides.TOP);
-        var toRight = (Point with { X = Point.X + 1 }, Sides.LEFT);
-        (Point point, string to)? result = (Type, from) switch {
+        var toLeft = new Position(Point with { X = Point.X - 1 }, Sides.RIGHT);
+        var toBottom = new Position(Point with { Y = Point.Y + 1 }, Sides.TOP);
+        var toRight = new Position(Point with { X = Point.X + 1 }, Sides.LEFT);
+        Position? result = (Type, from) switch {
             (RoomType.Cross, _) => toBottom,
             (RoomType.Horizontal, Sides.LEFT) => toRight,
             (RoomType.Horizontal, Sides.RIGHT) => toLeft,
@@ -321,6 +322,8 @@ readonly record struct Point(int X, int Y) {
 
     public override string ToString() => $"{X} {Y}";
 }
+
+readonly record struct Position(Point Point, string EnteredFrom);
 
 record Command(Point Point, string Value) {
     public const string WAIT = "WAIT";
