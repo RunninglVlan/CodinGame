@@ -105,11 +105,11 @@ class Game : IGame<GameState> {
 
     static IEnumerable<Command> RotationCommands(Point point, int rotations) {
         if (rotations == 3) {
-            yield return new Command(point, Command.ROTATE_RIGHT);
+            yield return Command.RotateRight(point);
             yield break;
         }
         for (var i = 0; i < rotations; i++) {
-            yield return new Command(point, Command.ROTATE_LEFT);
+            yield return Command.RotateLeft(point);
         }
     }
 
@@ -264,9 +264,10 @@ readonly record struct Point(int X, int Y) {
 }
 
 record Command(Point Point, string Value) {
-    public const string ROTATE_LEFT = "LEFT";
-    public const string ROTATE_RIGHT = "RIGHT";
     public const string WAIT = "WAIT";
+
+    public static Command RotateLeft(Point point) => new(point, "LEFT");
+    public static Command RotateRight(Point point) => new(point, "RIGHT");
 
     public override string ToString() => $"{Point} {Value}";
 }
