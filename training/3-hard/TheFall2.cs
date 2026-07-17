@@ -65,13 +65,8 @@ class Game : IGame<GameState> {
             rocks[i] = (new Point(rockX, rockY), rockEnteredFrom);
         }
         commands ??= BuildTunnel(current, enteredFrom);
-        if (rockCount > 0 && (!commands.TryPeek(out var nextCommand) || Point.ManhattanDistance(current, nextCommand.Point) != 1)) {
-            var nearestRock = rocks.OrderBy(it => Point.ManhattanDistance(current, it.point)).First();
-            var rockRoom = rooms[nearestRock.point];
-            rockRoom.TryMove(nearestRock.enteredFrom, out var next);
-            var rockRoomNext = rooms[next.point];
-            rockRoomNext.RotateLeft();
-            NextCommand = Command.RotateLeft(next.point).ToString();
+        if (TryBlockRock(rocks, current, out var nextCommand)) {
+            NextCommand = nextCommand.ToString();
             return;
         }
         NextCommand = commands.TryDequeue(out var command) ? command.ToString() : Command.WAIT;
@@ -86,6 +81,23 @@ class Game : IGame<GameState> {
         return best == null
                 ? throw new ArgumentException($"Couldn't find path from {start} to {exit}")
                 : new Queue<Command>(best.Commands);
+    }
+
+    bool TryBlockRock((Point point, string enteredFrom)[] rocks, Point current, out Command command) {
+        command = null!;
+        if (rocks.Length == 0) {
+            return false;
+        }
+        if (!commands!.TryPeek(out var nextCommand) || Point.ManhattanDistance(current, nextCommand.Point) == 1) {
+            return false;
+        }
+        var nearestRock = rocks.OrderBy(it => Point.ManhattanDistance(current, it.point)).First();
+        var room = rooms[nearestRock.point];
+        room.TryMove(nearestRock.enteredFrom, out var next);
+        var roomNext = rooms[next.point];
+        roomNext.RotateLeft();
+        command = Command.RotateLeft(next.point);
+        return true;
     }
 
     IEnumerable<GameState> IGame<GameState>.Next(GameState current) {
