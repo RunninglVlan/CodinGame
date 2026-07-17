@@ -27,7 +27,7 @@ class Game : IGame<GameState> {
     public string Command { get; private set; } = null!;
 
     public Game() {
-        pathfinding = new Pathfinding<GameState>(this, 17);
+        pathfinding = new Pathfinding<GameState>(this, 35);
     }
 
     public void Init() {
@@ -84,9 +84,6 @@ class Game : IGame<GameState> {
             yield break;
         }
         var nextRoom = current.RotatableRooms.TryGetValue(next.point, out room) ? room : rooms[next.point];
-        if (nextRoom.Type == RoomType.Wall) {
-            yield break;
-        }
         if (nextRoom.TryMove(next.from, out _)) {
             yield return current.CopyWith(next.point, next.from);
         }
@@ -94,10 +91,8 @@ class Game : IGame<GameState> {
             yield break;
         }
         nextRoom = nextRoom with { };
-        for (var rotations = 1; rotations <= 3; rotations++) {
-            if (!nextRoom.TryRotateLeft()) {
-                break;
-            }
+        for (var rotations = 1; rotations <= nextRoom.MaxRotations; rotations++) {
+            nextRoom.RotateLeft();
             if (!nextRoom.TryMove(next.from, out _)) {
                 continue;
             }
@@ -139,6 +134,24 @@ record GameState(Point Point, string EnteredFrom) : IState<GameState> {
 
 record Room(Point Point, bool CanRotate) {
     public RoomType Type { get; set; }
+    public int MaxRotations => maxRotations[Type];
+
+    readonly Dictionary<RoomType, int> maxRotations = new() {
+        { RoomType.Wall, 0 },
+        { RoomType.Cross, 0 },
+        { RoomType.Horizontal, 1 },
+        { RoomType.Vertical, 1 },
+        { RoomType.ArcsLeft, 1 },
+        { RoomType.ArcsRight, 1 },
+        { RoomType.ThreeWayTop, 3 },
+        { RoomType.ThreeWayRight, 3 },
+        { RoomType.ThreeWayBottom, 3 },
+        { RoomType.ThreeWayLeft, 3 },
+        { RoomType.ArcTopLeft, 3 },
+        { RoomType.ArcTopRight, 3 },
+        { RoomType.ArcRightBottom, 3 },
+        { RoomType.ArcLeftBottom, 3 }
+    };
 
     public bool TryMove(string from, out (Point point, string from) next) {
         next = default;
@@ -172,10 +185,8 @@ record Room(Point Point, bool CanRotate) {
         return true;
     }
 
-    public bool TryRotateLeft() {
-        if (Type == RoomType.Cross) {
-            return false;
-        }
+    [SuppressMessage("ReSharper", "SwitchExpressionHandlesSomeKnownEnumValuesWithExceptionInDefault")]
+    public void RotateLeft() {
         Type = Type switch {
             RoomType.Horizontal => RoomType.Vertical,
             RoomType.Vertical => RoomType.Horizontal,
@@ -191,7 +202,6 @@ record Room(Point Point, bool CanRotate) {
             RoomType.ArcLeftBottom => RoomType.ArcRightBottom,
             _ => throw new ArgumentException($"Unknown room: {Type}")
         };
-        return true;
     }
 }
 
