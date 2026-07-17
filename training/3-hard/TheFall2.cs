@@ -31,12 +31,12 @@ class Game : IGame<GameState> {
     }
 
     public void Init() {
-        string[] inputs = Console.ReadLine()!.Split(' ');
+        string[] inputs = Debug.ReadLine().Split(' ');
         width = Math.Clamp(int.Parse(inputs[0]), 1, 20);
         height = Math.Clamp(int.Parse(inputs[1]), 1, 20);
         rooms = new Dictionary<Point, Room>();
         for (var y = 0; y < height; y++) {
-            string[] types = Console.ReadLine()!.Split(' ');
+            string[] types = Debug.ReadLine().Split(' ');
             for (var x = 0; x < width; x++) {
                 var point = new Point(x, y);
                 int roomType = int.Parse(types[x]);
@@ -45,19 +45,19 @@ class Game : IGame<GameState> {
                 };
             }
         }
-        int xExit = Math.Clamp(int.Parse(Console.ReadLine()!), 0, width - 1);
+        int xExit = Math.Clamp(int.Parse(Debug.ReadLine()), 0, width - 1);
         exit = new Point(xExit, height - 1);
     }
 
     public void Loop() {
-        string[] inputs = Console.ReadLine()!.Split(' ');
+        string[] inputs = Debug.ReadLine().Split(' ');
         int x = Math.Clamp(int.Parse(inputs[0]), 0, width - 1);
         int y = Math.Clamp(int.Parse(inputs[1]), 0, height - 1);
         var current = new Point(x, y);
         string enteredFrom = inputs[2];
-        int rocks = int.Parse(Console.ReadLine()!);
+        int rocks = int.Parse(Debug.ReadLine());
         for (var i = 0; i < rocks; i++) {
-            inputs = Console.ReadLine()!.Split(' ');
+            inputs = Debug.ReadLine().Split(' ');
             int rockX = Math.Clamp(int.Parse(inputs[0]), 0, width - 1);
             int rockY = Math.Clamp(int.Parse(inputs[1]), 0, height - 1);
             string rockEnteredFrom = inputs[2];
@@ -296,4 +296,13 @@ interface IGame<TState> {
 
 interface IState<in T> where T : IState<T> {
     bool IsBetterThan(T other);
+}
+
+static class Debug {
+    /// Reads line from Console and also writes it to Console.Error
+    public static string ReadLine() {
+        string line = Console.ReadLine()!;
+        Console.Error.WriteLine(line);
+        return line;
+    }
 }
