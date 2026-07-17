@@ -78,9 +78,13 @@ class Game : IGame<GameState> {
             RotatableRooms = rooms.Where(it => it.Value.CanRotate).ToDictionary()
         };
         var best = pathfinding.FindBest(startState);
-        return best == null
-                ? throw new ArgumentException($"Couldn't find path from {start} to {exit}")
-                : new Queue<Command>(best.Commands);
+        if (best == null) {
+            throw new ArgumentException($"Couldn't find path from {start} to {exit}");
+        }
+        foreach (var (point, room) in best.RotatableRooms) {
+            rooms[point] = room;
+        }
+        return new Queue<Command>(best.Commands);
     }
 
     bool TryBlockRock((Point point, string enteredFrom)[] rocks, Point current, out Command command) {
