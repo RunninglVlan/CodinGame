@@ -13,7 +13,7 @@ static class TheFall2 {
         game.Init();
         while (true) {
             game.Loop();
-            Console.WriteLine(game.Command);
+            Console.WriteLine(game.NextCommand);
         }
     }
 }
@@ -23,8 +23,8 @@ class Game : IGame<GameState> {
     int width, height;
     Dictionary<Point, Room> rooms = null!;
     Point exit;
-    Queue<string>? commands;
-    public string Command { get; private set; } = null!;
+    Queue<Command>? commands;
+    public string NextCommand { get; private set; } = null!;
 
     public Game() {
         pathfinding = new Pathfinding<GameState>(this, 35);
@@ -63,10 +63,10 @@ class Game : IGame<GameState> {
             string rockEnteredFrom = inputs[2];
         }
         commands ??= BuildTunnel(current, enteredFrom);
-        Command = commands.TryDequeue(out var command) ? command : Commands.WAIT;
+        NextCommand = commands.TryDequeue(out var command) ? command.ToString() : Command.WAIT;
     }
 
-    Queue<string> BuildTunnel(Point start, string enteredFrom) {
+    Queue<Command> BuildTunnel(Point start, string enteredFrom) {
         var startState = new GameState(start, enteredFrom) {
             Commands = [],
             RotatableRooms = rooms.Where(it => it.Value.CanRotate).ToDictionary()
@@ -74,7 +74,7 @@ class Game : IGame<GameState> {
         var best = pathfinding.FindBest(startState);
         return best == null
                 ? throw new ArgumentException($"Couldn't find path from {start} to {exit}")
-                : new Queue<string>(best.Commands);
+                : new Queue<Command>(best.Commands);
     }
 
     IEnumerable<GameState> IGame<GameState>.Next(GameState current) {
@@ -103,13 +103,13 @@ class Game : IGame<GameState> {
         }
     }
 
-    static IEnumerable<string> RotationCommands(Point point, int rotations) {
+    static IEnumerable<Command> RotationCommands(Point point, int rotations) {
         if (rotations == 3) {
-            yield return $"{point} {Commands.ROTATE_RIGHT}";
+            yield return new Command(point, Command.ROTATE_RIGHT);
             yield break;
         }
         for (var i = 0; i < rotations; i++) {
-            yield return $"{point} {Commands.ROTATE_LEFT}";
+            yield return new Command(point, Command.ROTATE_LEFT);
         }
     }
 
@@ -119,7 +119,7 @@ class Game : IGame<GameState> {
 }
 
 record GameState(Point Point, string EnteredFrom) : IState<GameState> {
-    public List<string> Commands { get; init; } = null!;
+    public List<Command> Commands { get; init; } = null!;
     public Dictionary<Point, Room> RotatableRooms { get; init; } = null!;
 
     bool IState<GameState>.IsBetterThan(GameState other) {
@@ -263,10 +263,12 @@ readonly record struct Point(int X, int Y) {
     public override string ToString() => $"{X} {Y}";
 }
 
-static class Commands {
+record Command(Point Point, string Value) {
     public const string ROTATE_LEFT = "LEFT";
     public const string ROTATE_RIGHT = "RIGHT";
     public const string WAIT = "WAIT";
+
+    public override string ToString() => $"{Point} {Value}";
 }
 
 class Pathfinding<T>(IGame<T> game, int depthMax) where T : IState<T> {
