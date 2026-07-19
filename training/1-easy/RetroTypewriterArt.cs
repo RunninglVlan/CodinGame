@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using System.Text;
 
 namespace RetroTypewriterArt;
 
@@ -23,19 +24,20 @@ static class Recipe {
         for (var i = 0; i < lines.Length; i++) {
             string line = lines[i];
             var chunks = line.Split(' ').Where(it => it.Length > 0);
-            var decodedLine = string.Empty;
+            var decodedLine = new StringBuilder();
             foreach (string chunk in chunks) {
                 (int count, char character) = CountAndCharacter(chunk);
-                for (var _ = 0; _ < count; _++) {
-                    decodedLine += character;
-                }
+                decodedLine.Append(character, count);
             }
-            decoded[i] = decodedLine;
+            decoded[i] = decodedLine.ToString();
         }
         return string.Join(Environment.NewLine, decoded);
     }
 
     static (int, char) CountAndCharacter(string text) {
+        // Symbols always start with a letter,
+        // so if the second-to-last char is a digit,
+        // it must be part of a (possibly multi-digit) count followed by a literal character
         if (char.IsDigit(text[^2])) {
             return (int.Parse(text[..^1]), text[^1]);
         }
