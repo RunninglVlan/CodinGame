@@ -1,10 +1,14 @@
 ﻿using System;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace RetroTypewriterArt;
 
 /// https://www.codingame.com/training/easy/retro-typewriter-art
-static class RetroTypewriterArt {
+static partial class RetroTypewriterArt {
+    [GeneratedRegex(@"^(\d+)(.+)$")]
+    private static partial Regex CountAndCharsRegex();
+
     static void Main() {
         string recipe = Console.ReadLine()!;
         string[] lines = recipe.Split(Symbols.NEW_LINE);
@@ -18,13 +22,13 @@ static class RetroTypewriterArt {
     }
 
     static string Convert(string chunk) {
-        int count = int.Parse(chunk[..1]);
-        string characterString = chunk[1..];
-        char character = characterString switch {
+        var match = CountAndCharsRegex().Match(chunk);
+        int count = int.Parse(match.Groups[1].Value);
+        char character = match.Groups[2].Value switch {
             Symbols.SPACE => ' ',
             Symbols.BACKSLASH => '\\',
             Symbols.SINGLE_QUOTE => '\'',
-            _ => characterString[0]
+            _ => match.Groups[2].Value[0]
         };
         var converted = string.Empty;
         for (var i = 0; i < count; i++) {
