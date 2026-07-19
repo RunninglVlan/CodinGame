@@ -7,17 +7,17 @@ namespace RetroTypewriterArt;
 static class RetroTypewriterArt {
     static void Main() {
         string recipe = Console.ReadLine()!;
-        Console.WriteLine(Recipe.Decode(recipe));
+        Console.WriteLine(new Recipe(recipe).Decode());
     }
 }
 
-static class Recipe {
+class Recipe(string text) {
     const string NEW_LINE = "nl";
     const string SPACE = "sp";
     const string BACKSLASH = "bS";
     const string SINGLE_QUOTE = "sQ";
 
-    public static string Decode(string text) {
+    public string Decode() {
         string[] chunks = text.Split(' ');
         var decoded = new StringBuilder();
         foreach (string chunk in chunks) {
