@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Linq;
 using System.Text;
 
 namespace RetroTypewriterArt;
@@ -19,19 +18,17 @@ static class Recipe {
     const string SINGLE_QUOTE = "sQ";
 
     public static string Decode(string text) {
-        string[] lines = text.Split(NEW_LINE);
-        var decoded = new string[lines.Length];
-        for (var i = 0; i < lines.Length; i++) {
-            string line = lines[i];
-            var chunks = line.Split(' ').Where(it => it.Length > 0);
-            var decodedLine = new StringBuilder();
-            foreach (string chunk in chunks) {
-                (int count, char character) = CountAndCharacter(chunk);
-                decodedLine.Append(character, count);
+        string[] chunks = text.Split(' ');
+        var decoded = new StringBuilder();
+        foreach (string chunk in chunks) {
+            if (chunk == NEW_LINE) {
+                decoded.AppendLine();
+                continue;
             }
-            decoded[i] = decodedLine.ToString();
+            (int count, char character) = CountAndCharacter(chunk);
+            decoded.Append(character, count);
         }
-        return string.Join(Environment.NewLine, decoded);
+        return decoded.ToString();
     }
 
     static (int, char) CountAndCharacter(string text) {
