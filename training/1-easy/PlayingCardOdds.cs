@@ -24,12 +24,12 @@ static class PlayingCardOdds {
     }
 
     static int CountCards(string cards) {
-        if (cards.Length == 1) {
+        char lastCharacter = cards[^1];
+        char? suit = SUITS.Contains(lastCharacter) ? lastCharacter : null;
+        if (suit.HasValue && cards.Length == 1) {
             return 13;
         }
-        char lastCharacter = cards[^1];
-        int ranks = cards[..^1].Length;
-        char? suit = SUITS.Contains(lastCharacter) ? lastCharacter : null;
-        return suit == null ? ranks * 4 : ranks;
+        string ranks = suit == null ? cards : cards[..^1];
+        return suit == null ? ranks.Length * 4 : ranks.Length;
     }
 }
