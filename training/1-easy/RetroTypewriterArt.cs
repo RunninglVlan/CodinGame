@@ -1,46 +1,51 @@
 ﻿using System;
 using System.Linq;
-using System.Text.RegularExpressions;
 
 namespace RetroTypewriterArt;
 
 /// https://www.codingame.com/training/easy/retro-typewriter-art
-static partial class RetroTypewriterArt {
-    [GeneratedRegex(@"^(\d+)(.+)$")]
-    private static partial Regex CountAndCharsRegex();
-
+static class RetroTypewriterArt {
     static void Main() {
         string recipe = Console.ReadLine()!;
-        string[] lines = recipe.Split(Symbols.NEW_LINE);
-        foreach (string line in lines) {
-            var chunks = line.Split(' ').Where(it => it.Length > 0);
-            foreach (string chunk in chunks) {
-                Console.Write(Convert(chunk));
-            }
-            Console.WriteLine();
-        }
-    }
-
-    static string Convert(string chunk) {
-        var match = CountAndCharsRegex().Match(chunk);
-        int count = int.Parse(match.Groups[1].Value);
-        char character = match.Groups[2].Value switch {
-            Symbols.SPACE => ' ',
-            Symbols.BACKSLASH => '\\',
-            Symbols.SINGLE_QUOTE => '\'',
-            _ => match.Groups[2].Value[0]
-        };
-        var converted = string.Empty;
-        for (var i = 0; i < count; i++) {
-            converted += character;
-        }
-        return converted;
+        Console.WriteLine(Recipe.Decode(recipe));
     }
 }
 
-static class Symbols {
-    public const string NEW_LINE = "nl";
-    public const string SPACE = "sp";
-    public const string BACKSLASH = "bS";
-    public const string SINGLE_QUOTE = "sQ";
+static class Recipe {
+    const string NEW_LINE = "nl";
+    const string SPACE = "sp";
+    const string BACKSLASH = "bS";
+    const string SINGLE_QUOTE = "sQ";
+
+    public static string Decode(string text) {
+        string[] lines = text.Split(NEW_LINE);
+        var decoded = new string[lines.Length];
+        for (var i = 0; i < lines.Length; i++) {
+            string line = lines[i];
+            var chunks = line.Split(' ').Where(it => it.Length > 0);
+            var decodedLine = string.Empty;
+            foreach (string chunk in chunks) {
+                (int count, char character) = CountAndCharacter(chunk);
+                for (var _ = 0; _ < count; _++) {
+                    decodedLine += character;
+                }
+            }
+            decoded[i] = decodedLine;
+        }
+        return string.Join(Environment.NewLine, decoded);
+    }
+
+    static (int, char) CountAndCharacter(string text) {
+        if (char.IsDigit(text[^2])) {
+            return (int.Parse(text[..^1]), text[^1]);
+        }
+        string symbol = text[^2..];
+        char character = symbol switch {
+            SPACE => ' ',
+            BACKSLASH => '\\',
+            SINGLE_QUOTE => '\'',
+            _ => throw new ArgumentException($"Unexpected symbol: {symbol}")
+        };
+        return (int.Parse(text[..^2]), character);
+    }
 }
