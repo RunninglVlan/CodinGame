@@ -5,37 +5,47 @@ namespace IdentifyingDataStructure;
 
 /// https://www.codingame.com/training/medium/identifying-data-structure
 static class IdentifyingDataStructure {
-    const char INPUT = 'i';
-    const char OUTPUT = 'o';
-
     static void Main() {
+        var identifier = new StructureIdentifier();
         int operationSequences = Math.Clamp(int.Parse(Console.ReadLine()!), 1, 100);
         for (var _ = 0; _ < operationSequences; _++) {
-            List<IDataStructure<int>> structures = [new Queue(), new Stack(), new PriorityQueue()];
             string[] operations = Console.ReadLine()!.Split(' ');
-            foreach (string operation in operations) {
-                (char op, int value) = (operation[0], int.Parse(operation[1..]));
-                switch (op) {
-                    case INPUT:
-                        structures.ForEach(it => it.Put(value));
-                        break;
-                    case OUTPUT:
-                        for (int i = structures.Count - 1; i >= 0; i--) {
-                            var structure = structures[i];
-                            if (!structure.TryTake(out int actual) || actual != value) {
-                                structures.Remove(structure);
-                            }
-                        }
-                        break;
-                }
-            }
-            string result = structures.Count switch {
-                0 => "mystery",
-                > 1 => "unsure",
-                _ => structures[0].Name
-            };
-            Console.WriteLine(result);
+            Console.WriteLine(identifier.Identify(operations));
         }
+    }
+}
+
+class StructureIdentifier {
+    const char INPUT = 'i', OUTPUT = 'o';
+
+    readonly List<IDataStructure<int>> structures = [];
+
+    public string Identify(string[] operations) {
+        structures.Clear();
+        structures.Add(new Queue());
+        structures.Add(new Stack());
+        structures.Add(new PriorityQueue());
+        foreach (string operation in operations) {
+            (char op, int value) = (operation[0], int.Parse(operation[1..]));
+            switch (op) {
+                case INPUT:
+                    structures.ForEach(it => it.Put(value));
+                    break;
+                case OUTPUT:
+                    for (int i = structures.Count - 1; i >= 0; i--) {
+                        var structure = structures[i];
+                        if (!structure.TryTake(out int actual) || actual != value) {
+                            structures.Remove(structure);
+                        }
+                    }
+                    break;
+            }
+        }
+        return structures.Count switch {
+            0 => "mystery",
+            > 1 => "unsure",
+            _ => structures[0].Name
+        };
     }
 }
 
