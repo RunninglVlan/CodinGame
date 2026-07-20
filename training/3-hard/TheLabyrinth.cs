@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 
 namespace TheLabyrinth;
 
@@ -17,12 +18,12 @@ static class TheLabyrinth {
 
 class Game {
     readonly Grid maze;
-    readonly Pathfinding pathfinding;
+    readonly Pathfinding<Cell> pathfinding;
 
     /// number of rounds between the time the alarm countdown is activated and the time the alarm goes off
     readonly int alarmRounds;
 
-    Point rick;
+    Cell rick = null!;
     bool visitedControlRoom;
 
     /// 10 ≤ height ≤ 100,
@@ -39,9 +40,9 @@ class Game {
 
     public void Loop() {
         string[] point = Console.ReadLine()!.Split(' ');
-        rick = Point.From(point[1], point[0]);
+        rick = maze.Get(Point.From(point[1], point[0]));
         maze.ReadNewData();
-        if (maze.Get(rick).type == CellType.Control) {
+        if (rick.type == CellType.Control) {
             visitedControlRoom = true;
         }
         Console.WriteLine(NextMove());
@@ -51,7 +52,7 @@ class Game {
         if (maze.controlRoom == null) {
             return ExploreMaze();
         }
-        var controlToStart = pathfinding.Path(maze.controlRoom.Value, maze.start);
+        var controlToStart = pathfinding.Path(maze.controlRoom, maze.start);
         if (controlToStart == null || controlToStart.Count > alarmRounds) {
             return ExploreMaze();
         }
@@ -61,29 +62,29 @@ class Game {
     string ExploreMaze() {
         var pathToUnknown = pathfinding.Path(rick, cell => cell.type == CellType.Unknown);
         return pathToUnknown == null
-            ? throw new ArgumentException("Can't find path to unknown cell")
-            : Action.From(pathToUnknown.First().Direction(rick));
+                ? throw new ArgumentException("Can't find path to unknown cell")
+                : Action.From(pathToUnknown.First().point.Direction(rick.point));
     }
 
     string GoToControlRoom() {
         if (maze.controlRoom == null) {
             throw new ArgumentException("Explored maze, but couldn't find control room");
         }
-        var path = pathfinding.Path(rick, maze.controlRoom.Value);
+        var path = pathfinding.Path(rick, maze.controlRoom);
         return path == null
-            ? throw new ArgumentException("Can't find path to control room")
-            : Action.From(path.First().Direction(rick));
+                ? throw new ArgumentException("Can't find path to control room")
+                : Action.From(path.First().point.Direction(rick.point));
     }
 
     string ReturnToStart() {
         var path = pathfinding.Path(rick, maze.start);
         return path == null
-            ? throw new ArgumentException("Can't find path back to start")
-            : Action.From(path.First().Direction(rick));
+                ? throw new ArgumentException("Can't find path back to start")
+                : Action.From(path.First().point.Direction(rick.point));
     }
 }
 
-class Grid {
+class Grid : IGrid<Cell> {
     static Point[] FourDirections { get; } = [
         Point.RIGHT, Point.LEFT, Point.UP, Point.DOWN
     ];
@@ -91,8 +92,8 @@ class Grid {
     readonly int width;
     readonly int height;
     readonly Cell[] cells;
-    public Point start;
-    public Point? controlRoom;
+    public Cell start = null!;
+    public Cell? controlRoom;
 
     public Grid(int width, int height) {
         this.width = width;
@@ -107,11 +108,11 @@ class Grid {
 
     void Set(int x, int y, Cell cell) => cells[width * y + x] = cell;
     Cell Get(int x, int y) => cells[width * y + x];
-    public Cell Get(Point point) => Get(point.x, point.y);
+    public Cell Get(Point point) => Get(point.X, point.Y);
 
     bool TryGet(Point point, out Cell cell) {
         cell = null!;
-        if (point.x < 0 || point.x >= width || point.y < 0 || point.y >= height) {
+        if (point.X < 0 || point.X >= width || point.Y < 0 || point.Y >= height) {
             return false;
         }
         cell = Get(point);
@@ -119,7 +120,7 @@ class Grid {
     }
 
     public void ReadNewData() {
-        start = default;
+        start = null!;
         controlRoom = null;
         for (var y = 0; y < height; y++) {
             string row = Console.ReadLine()!;
@@ -131,11 +132,11 @@ class Grid {
                         break;
                     case 'T':
                         cell.type = CellType.Start;
-                        start = cell.point;
+                        start = cell;
                         break;
                     case 'C':
                         cell.type = CellType.Control;
-                        controlRoom = cell.point;
+                        controlRoom = cell;
                         break;
                     case '?':
                         cell.type = CellType.Unknown;
@@ -148,7 +149,7 @@ class Grid {
         }
     }
 
-    public IEnumerable<Cell> Next(Cell cell) {
+    IEnumerable<Cell> IGrid<Cell>.Next(Cell cell) {
         foreach (var direction in FourDirections) {
             if (!TryGet(cell.point + direction, out var neighbor)) {
                 continue;
@@ -161,10 +162,14 @@ class Grid {
     }
 }
 
-class Cell(int x, int y) {
+class Cell(int x, int y) : IEquatable<Cell> {
     public Point point = new(x, y);
     public CellType type;
     public bool IsWalkable => type is CellType.Empty or CellType.Start or CellType.Control or CellType.Unknown;
+
+    public bool Equals(Cell? other) => ReferenceEquals(this, other);
+    public override bool Equals(object? obj) => Equals(obj as Cell);
+    public override int GetHashCode() => RuntimeHelpers.GetHashCode(this);
 }
 
 enum CellType {
@@ -175,10 +180,7 @@ enum CellType {
     Unknown
 }
 
-readonly record struct Point(int x, int y) {
-    public readonly int x = x;
-    public readonly int y = y;
-
+readonly record struct Point(int X, int Y) {
     public static readonly Point UP = new(0, -1);
     public static readonly Point RIGHT = new(1, 0);
     public static readonly Point DOWN = new(0, 1);
@@ -189,18 +191,18 @@ readonly record struct Point(int x, int y) {
     }
 
     public static Point operator +(Point a, Point b) {
-        return new Point(a.x + b.x, a.y + b.y);
+        return new Point(a.X + b.X, a.Y + b.Y);
     }
 
     public static Point operator -(Point a, Point b) {
-        return new Point(a.x - b.x, a.y - b.y);
+        return new Point(a.X - b.X, a.Y - b.Y);
     }
 
     public Point Direction(Point from) {
         return this - from;
     }
 
-    public override string ToString() => $"({x}, {y})";
+    public override string ToString() => $"({X}, {Y})";
 }
 
 static class Action {
@@ -218,50 +220,53 @@ static class Action {
     };
 }
 
-class Pathfinding(Grid grid) {
-    readonly Queue<Node> queue = new();
-    readonly HashSet<Point> visited = new();
+class Pathfinding<T>(IGrid<T> grid) where T : IEquatable<T> {
+    readonly Queue<Node> queue = [];
+    readonly HashSet<T> visited = [];
 
     /// BFS to end
-    public List<Point>? Path(Point start, Point end) {
-        return Path(start, cell => cell.point == end);
+    public List<T>? Path(T start, T end) {
+        return Path(start, cell => cell.Equals(end));
     }
 
     /// BFS to endPredicate
-    public List<Point>? Path(Point start, Predicate<Cell> endPredicate) {
+    public List<T>? Path(T start, Predicate<T> endPredicate) {
         queue.Clear();
         visited.Clear();
-        var startNode = new Node(grid.Get(start));
+        var startNode = new Node(start);
         queue.Enqueue(startNode);
         visited.Add(start);
         while (queue.TryDequeue(out var current)) {
             if (endPredicate(current.cell)) {
                 return Reconstruct(startNode, current);
             }
-            foreach (var nextCell in grid.Next(current.cell)) {
-                if (!visited.Add(nextCell.point)) {
+            foreach (var next in grid.Next(current.cell)) {
+                if (!visited.Add(next)) {
                     continue;
                 }
-                var next = new Node(nextCell) { parent = current };
-                queue.Enqueue(next);
+                queue.Enqueue(new Node(next) { parent = current });
             }
         }
         return null;
     }
 
-    static List<Point> Reconstruct(Node start, Node end) {
-        var path = new List<Point>();
+    static List<T> Reconstruct(Node start, Node end) {
+        var path = new List<T>();
         var current = end;
         while (current != start) {
-            path.Add(current!.cell.point);
+            path.Add(current!.cell);
             current = current.parent;
         }
         path.Reverse();
         return path;
     }
 
-    class Node(Cell cell) {
-        public readonly Cell cell = cell;
+    class Node(T cell) {
+        public readonly T cell = cell;
         public Node? parent;
     }
+}
+
+interface IGrid<T> {
+    IEnumerable<T> Next(T current);
 }

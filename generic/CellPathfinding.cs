@@ -1,64 +1,53 @@
 ﻿using System;
 using System.Collections.Generic;
 
-class Pathfinding(Grid grid) {
-    readonly Queue<Node> queue = new();
-    readonly HashSet<Point> visited = new();
+class Pathfinding<T>(IGrid<T> grid) where T : IEquatable<T> {
+    readonly Queue<Node> queue = [];
+    readonly HashSet<T> visited = [];
 
     /// BFS to end
-    public List<Point>? Path(Point start, Point end) {
-        return Path(start, cell => cell.point == end);
+    public List<T>? Path(T start, T end) {
+        return Path(start, cell => cell.Equals(end));
     }
 
     /// BFS to endPredicate
-    public List<Point>? Path(Point start, Predicate<Cell> endPredicate) {
+    public List<T>? Path(T start, Predicate<T> endPredicate) {
         queue.Clear();
         visited.Clear();
-        var startNode = new Node(grid.Get(start));
+        var startNode = new Node(start);
         queue.Enqueue(startNode);
         visited.Add(start);
         while (queue.TryDequeue(out var current)) {
             if (endPredicate(current.cell)) {
                 return Reconstruct(startNode, current);
             }
-            foreach (var nextCell in grid.Next(current.cell)) {
-                if (!visited.Add(nextCell.point)) {
+            foreach (var next in grid.Next(current.cell)) {
+                if (!visited.Add(next)) {
                     continue;
                 }
-                var next = new Node(nextCell) { parent = current };
-                queue.Enqueue(next);
+                queue.Enqueue(new Node(next) { parent = current });
             }
         }
         return null;
     }
 
-    static List<Point> Reconstruct(Node start, Node end) {
-        var path = new List<Point>();
+    static List<T> Reconstruct(Node start, Node end) {
+        var path = new List<T>();
         var current = end;
         while (current != start) {
-            path.Add(current!.cell.point);
+            path.Add(current!.cell);
             current = current.parent;
         }
         path.Reverse();
         return path;
     }
 
-    class Node(Cell cell) {
-        public readonly Cell cell = cell;
+    class Node(T cell) {
+        public readonly T cell = cell;
         public Node? parent;
     }
 }
 
-/// Stub
-class Grid {
-    public Cell Get(Point point) => throw new NotImplementedException();
-    public IEnumerable<Cell> Next(Cell cell) => throw new NotImplementedException();
+interface IGrid<T> {
+    IEnumerable<T> Next(T current);
 }
-
-/// Stub
-class Cell(int x, int y) {
-    public Point point = new(x, y);
-}
-
-/// Stub
-readonly record struct Point(int X, int Y);
