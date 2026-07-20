@@ -35,12 +35,10 @@ record struct Card(int Rank, char Suit) {
     const string SUITS = "CDHS";
     const string RANKS = "23456789TJQKA";
 
-    public static HashSet<Card> All() => SUITS.SelectMany(SuitCards).ToHashSet();
+    public static HashSet<Card> All() => SUITS.SelectMany(it => SuitCards(it, RANKS)).ToHashSet();
 
-    static IEnumerable<Card> SuitCards(char suit) {
-        for (var i = 0; i < 13; i++) {
-            yield return new Card(i + 2, suit);
-        }
+    static IEnumerable<Card> SuitCards(char suit, string ranks) {
+        return ranks.Select(it => new Card(RANKS.IndexOf(it) + 2, suit));
     }
 
     /// <param name="cards">Descriptive classification of cards, meaning a combination of ranks, suits, or both,
@@ -48,30 +46,33 @@ record struct Card(int Rank, char Suit) {
     /// <example>
     /// <code>
     /// // no suits given, so suit can be any
-    /// 8TA => 8 CDHS, T CDHS, A CDHS
+    /// 8TA   => 8 CDHS, T CDHS, A CDHS
     /// // no ranks given, so rank can be any
-    /// H   => 2-A H
+    /// H     => 2-A H
     /// // suit is club and 2 ranks given
-    /// 45C => 4C, 5C
+    /// 45C   => 4C, 5C
+    /// // all suits are given, this is equivalent to just 7
+    /// 7CDHS => 7 CDHS
     /// </code>
     /// </example>
     public static IEnumerable<Card> Convert(string cards) {
-        char lastCharacter = cards[^1];
-        char? suit = SUITS.Contains(lastCharacter) ? lastCharacter : null;
-        if (suit.HasValue && cards.Length == 1) {
-            foreach (var card in SuitCards(suit.Value)) {
-                yield return card;
+        var suits = new HashSet<char>();
+        for (var i = 0; i < SUITS.Length; i++) {
+            int iFromEnd = cards.Length - 1 - i;
+            if (iFromEnd < 0 || !SUITS.Contains(cards[iFromEnd])) {
+                break;
             }
-            yield break;
+            suits.Add(cards[iFromEnd]);
         }
-        string ranks = suit == null ? cards : cards[..^1];
-        foreach (char cardSuit in SUITS) {
-            if (suit.HasValue && cardSuit != suit.Value) {
-                continue;
-            }
-            foreach (char rank in ranks) {
-                yield return new Card(RANKS.IndexOf(rank) + 2, cardSuit);
-            }
+        string ranks = cards[..^suits.Count];
+        if (ranks.Length == 0) {
+            ranks = RANKS;
+        }
+        if (suits.Count == 0) {
+            suits = SUITS.ToHashSet();
+        }
+        foreach (var card in suits.SelectMany(it => SuitCards(it, ranks))) {
+            yield return card;
         }
     }
 }
