@@ -20,6 +20,9 @@ static class PlayingCardOdds {
         for (var i = 0; i < soughtCount; i++) {
             string sought = Console.ReadLine()!;
             foreach (var card in Card.Convert(sought)) {
+                if (!cards.Contains(card)) {
+                    continue;
+                }
                 soughtCards.Add(card);
             }
         }
