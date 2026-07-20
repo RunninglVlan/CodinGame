@@ -50,8 +50,8 @@ class Solution : IGrid<Point> {
                     Console.Write(Cells.WALL);
                     continue;
                 }
-                var path = pathfinding.Path(start, new Point(x, y));
-                Console.Write(path != null ? MOVES[path.Count] : Cells.EMPTY);
+                int? length = pathfinding.PathLength(start, new Point(x, y));
+                Console.Write(length != null ? MOVES[length.Value] : Cells.EMPTY);
             }
             Console.WriteLine();
         }
@@ -99,7 +99,7 @@ class Pathfinding<T>(IGrid<T> grid) where T : IEquatable<T> {
     readonly HashSet<T> visited = [];
 
     /// BFS to end
-    public List<T>? Path(T start, T end) {
+    public int? PathLength(T start, T end) {
         queue.Clear();
         visited.Clear();
         var startNode = new Node(start);
@@ -107,7 +107,7 @@ class Pathfinding<T>(IGrid<T> grid) where T : IEquatable<T> {
         visited.Add(start);
         while (queue.TryDequeue(out var current)) {
             if (current.cell.Equals(end)) {
-                return Reconstruct(startNode, current);
+                return Length(startNode, current);
             }
             foreach (var next in grid.Next(current.cell)) {
                 if (!visited.Add(next)) {
@@ -119,15 +119,14 @@ class Pathfinding<T>(IGrid<T> grid) where T : IEquatable<T> {
         return null;
     }
 
-    static List<T> Reconstruct(Node start, Node end) {
-        var path = new List<T>();
+    static int Length(Node start, Node end) {
+        var length = 0;
         var current = end;
         while (current != start) {
-            path.Add(current!.cell);
-            current = current.parent;
+            current = current!.parent;
+            length++;
         }
-        path.Reverse();
-        return path;
+        return length;
     }
 
     class Node(T cell) {
