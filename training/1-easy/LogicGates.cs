@@ -29,15 +29,15 @@ static class LogicGates {
     }
 
     static char Evaluate(string gate, char level1, char level2) {
-        return gate switch {
-            // HIGH only when both are HIGH
-            Gates.AND => level1 == level2 && level1 == Levels.HIGH ? Levels.HIGH : Levels.LOW,
-            // LOW only when both are LOW
-            Gates.OR => level1 == level2 && level1 == Levels.LOW ? Levels.LOW : Levels.HIGH,
-            // LOW when both are the same
-            Gates.XOR => level1 == level2 ? Levels.LOW : Levels.HIGH,
+        bool a = level1 == Levels.HIGH;
+        bool b = level2 == Levels.HIGH;
+        bool result = gate switch {
+            Gates.AND => a & b,
+            Gates.OR => a | b,
+            Gates.XOR => a ^ b,
             _ => throw new ArgumentException($"Unexpected logic gate: {gate}")
         };
+        return result ? Levels.HIGH : Levels.LOW;
     }
 }
 
