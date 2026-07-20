@@ -9,22 +9,22 @@ static class MovesInMaze {
         var solution = new Solution();
         solution.ReadInput();
         solution.CountMoves();
-        solution.PrintGrid();
+        solution.PrintMaze();
     }
 }
 
 class Solution {
-    const string MOVES = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    const string MOVE_CHARS = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
     int width, height;
-    Cell[,] cells = null!;
+    Cell[,] maze = null!;
     Cell start = null!;
 
     public void ReadInput() {
         string[] inputs = Console.ReadLine()!.Split(' ');
         width = Math.Clamp(int.Parse(inputs[0]), 3, 30);
         height = Math.Clamp(int.Parse(inputs[1]), 3, 30);
-        cells = new Cell[width, height];
+        maze = new Cell[width, height];
         for (var y = 0; y < height; y++) {
             string row = Console.ReadLine()!;
             for (var x = 0; x < width; x++) {
@@ -32,36 +32,24 @@ class Solution {
                 if (cell.type == CellType.START) {
                     start = cell;
                 }
-                cells[x, y] = cell;
+                maze[x, y] = cell;
             }
         }
     }
 
     public void CountMoves() {
         Queue<(Cell, int)> queue = [];
-        HashSet<Cell> visited = [];
+        HashSet<Cell> visited = [start];
         queue.Enqueue((start, 0));
-        visited.Add(start);
         while (queue.TryDequeue(out var value)) {
             (var current, int moves) = value;
             current.Moves = moves;
             foreach (var direction in Point.Directions4) {
                 (int x, int y) = current.point + direction;
-                if (x < 0) {
-                    x = width - 1;
-                } else if (x > width - 1) {
-                    x = 0;
-                }
-                if (y < 0) {
-                    y = height - 1;
-                } else if (y > height - 1) {
-                    y = 0;
-                }
-                var next = cells[x, y];
-                if (next.type == CellType.WALL) {
-                    continue;
-                }
-                if (!visited.Add(next)) {
+                x = (x + width) % width;
+                y = (y + height) % height;
+                var next = maze[x, y];
+                if (next.type == CellType.WALL || !visited.Add(next)) {
                     continue;
                 }
                 queue.Enqueue((next, moves + 1));
@@ -69,11 +57,11 @@ class Solution {
         }
     }
 
-    public void PrintGrid() {
+    public void PrintMaze() {
         for (var y = 0; y < height; y++) {
             for (var x = 0; x < width; x++) {
-                var cell = cells[x, y];
-                Console.Write(cell.Moves.HasValue ? MOVES[cell.Moves.Value] : cell.type);
+                var cell = maze[x, y];
+                Console.Write(cell.Moves.HasValue ? MOVE_CHARS[cell.Moves.Value] : cell.type);
             }
             Console.WriteLine();
         }
