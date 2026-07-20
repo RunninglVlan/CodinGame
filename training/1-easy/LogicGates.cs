@@ -35,6 +35,9 @@ static class LogicGates {
             Gates.AND => a & b,
             Gates.OR => a | b,
             Gates.XOR => a ^ b,
+            Gates.NAND => !(a & b),
+            Gates.NOR => !(a | b),
+            Gates.NXOR => !(a ^ b),
             _ => throw new ArgumentException($"Unexpected logic gate: {gate}")
         };
         return result ? Levels.HIGH : Levels.LOW;
@@ -50,4 +53,7 @@ static class Gates {
     public const string AND = "AND";
     public const string OR = "OR";
     public const string XOR = "XOR";
+    public const string NAND = "NAND";
+    public const string NOR = "NOR";
+    public const string NXOR = "NXOR";
 }
