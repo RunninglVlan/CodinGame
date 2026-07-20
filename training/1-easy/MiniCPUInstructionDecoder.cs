@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
 /// Decode and execute the MiniCPU bytecode program<br/>
 /// https://www.codingame.com/training/easy/minicpu-instruction-decoder
@@ -8,28 +9,30 @@ static class MiniCPUInstructionDecoder {
         string program = Console.ReadLine()!;
         var cpu = new MiniCPU();
         cpu.Run(program);
-        cpu.Registers.ForEach(it => Console.WriteLine(it));
+        foreach (byte register in cpu.Registers) {
+            Console.WriteLine(register);
+        }
     }
 }
 
 class MiniCPU {
-    public List<byte> Registers { get; } = [0, 0, 0, 0];
+    public byte[] Registers { get; } = new byte[4];
 
-    readonly Dictionary<string, Instruction> instructions = new() {
-        { "01", new Move() },
-        { "02", new Add() },
-        { "03", new Subtract() },
-        { "04", new Multiply() },
-        { "05", new Increment() },
-        { "06", new Decrement() },
-        { "FF", new Halt() }
+    readonly Dictionary<byte, Instruction> instructions = new() {
+        { 0x1, new Move() },
+        { 0x2, new Add() },
+        { 0x3, new Subtract() },
+        { 0x4, new Multiply() },
+        { 0x5, new Increment() },
+        { 0x6, new Decrement() },
+        { 0xFF, new Halt() }
     };
 
     /// <param name="program">space-separated hex bytes representing CPU instructions</param>
     public void Run(string program) {
-        string[] bytes = program.Split(' ');
-        for (var pc = 0; pc < bytes.Length;) {
-            string opcode = bytes[pc];
+        byte[] bytes = program.Split(' ').Select(it => Convert.ToByte(it, 16)).ToArray();
+        for (byte pc = 0; pc < bytes.Length;) {
+            byte opcode = bytes[pc];
             var instruction = instructions[opcode];
             instruction.Execute(ref pc, bytes, Registers);
         }
@@ -37,19 +40,19 @@ class MiniCPU {
 }
 
 abstract record Instruction {
-    public abstract void Execute(ref int pc, string[] bytes, List<byte> registers);
+    public abstract void Execute(ref byte pc, byte[] bytes, byte[] registers);
 
-    protected static byte ReadNext(ref int pc, string[] bytes) {
+    protected static byte ReadNext(ref byte pc, byte[] bytes) {
         Advance(ref pc);
-        return Convert.ToByte(bytes[pc], 16);
+        return bytes[pc];
     }
 
-    protected static void Advance(ref int pc) => pc += 1;
+    protected static void Advance(ref byte pc) => pc += 1;
 }
 
 /// 01 X V: MOV - Load value V into register RX
 record Move : Instruction {
-    public override void Execute(ref int pc, string[] bytes, List<byte> registers) {
+    public override void Execute(ref byte pc, byte[] bytes, byte[] registers) {
         byte i = ReadNext(ref pc, bytes);
         registers[i] = ReadNext(ref pc, bytes);
         Advance(ref pc);
@@ -58,7 +61,7 @@ record Move : Instruction {
 
 // 02 X Y: ADD - Add register RY to register RX
 record Add : Instruction {
-    public override void Execute(ref int pc, string[] bytes, List<byte> registers) {
+    public override void Execute(ref byte pc, byte[] bytes, byte[] registers) {
         byte iX = ReadNext(ref pc, bytes);
         byte iY = ReadNext(ref pc, bytes);
         registers[iX] += registers[iY];
@@ -68,7 +71,7 @@ record Add : Instruction {
 
 // 03 X Y: SUB - Subtract register RY from register RX
 record Subtract : Instruction {
-    public override void Execute(ref int pc, string[] bytes, List<byte> registers) {
+    public override void Execute(ref byte pc, byte[] bytes, byte[] registers) {
         byte iX = ReadNext(ref pc, bytes);
         byte iY = ReadNext(ref pc, bytes);
         registers[iX] -= registers[iY];
@@ -78,7 +81,7 @@ record Subtract : Instruction {
 
 // 04 X Y: MUL - Multiply register RX by register RY
 record Multiply : Instruction {
-    public override void Execute(ref int pc, string[] bytes, List<byte> registers) {
+    public override void Execute(ref byte pc, byte[] bytes, byte[] registers) {
         byte iX = ReadNext(ref pc, bytes);
         byte iY = ReadNext(ref pc, bytes);
         registers[iX] *= registers[iY];
@@ -88,7 +91,7 @@ record Multiply : Instruction {
 
 // 05 X: INC - Increment register RX by 1
 record Increment : Instruction {
-    public override void Execute(ref int pc, string[] bytes, List<byte> registers) {
+    public override void Execute(ref byte pc, byte[] bytes, byte[] registers) {
         byte i = ReadNext(ref pc, bytes);
         registers[i]++;
         Advance(ref pc);
@@ -97,7 +100,7 @@ record Increment : Instruction {
 
 // 06 X: DEC - Decrement register RX by 1
 record Decrement : Instruction {
-    public override void Execute(ref int pc, string[] bytes, List<byte> registers) {
+    public override void Execute(ref byte pc, byte[] bytes, byte[] registers) {
         byte i = ReadNext(ref pc, bytes);
         registers[i]--;
         Advance(ref pc);
@@ -106,7 +109,7 @@ record Decrement : Instruction {
 
 // FF: HLT - Halt execution
 record Halt : Instruction {
-    public override void Execute(ref int pc, string[] bytes, List<byte> registers) {
+    public override void Execute(ref byte pc, byte[] bytes, byte[] registers) {
         Advance(ref pc);
     }
 }
