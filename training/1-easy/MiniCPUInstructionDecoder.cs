@@ -19,6 +19,7 @@ class MiniCPU {
         { "01", new Move() },
         { "02", new Add() },
         { "03", new Subtract() },
+        { "04", new Multiply() },
         { "FF", new Halt() }
     };
 
@@ -69,6 +70,16 @@ record Subtract : Instruction {
         int iX = ReadNext(ref pc, bytes);
         int iY = ReadNext(ref pc, bytes);
         registers[iX] -= registers[iY];
+        Advance(ref pc);
+    }
+}
+
+// 04 X Y: MUL - Multiply register RX by register RY
+record Multiply : Instruction {
+    public override void Execute(ref int pc, string[] bytes, List<int> registers) {
+        int iX = ReadNext(ref pc, bytes);
+        int iY = ReadNext(ref pc, bytes);
+        registers[iX] *= registers[iY];
         Advance(ref pc);
     }
 }
