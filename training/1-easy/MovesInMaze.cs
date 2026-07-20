@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Runtime.CompilerServices;
 
 namespace MovesInMaze;
 
@@ -30,7 +29,7 @@ class Solution {
             string row = Console.ReadLine()!;
             for (var x = 0; x < width; x++) {
                 var cell = new Cell(new Point(x, y), row[x]);
-                if (cell.Type == CellType.START) {
+                if (cell.type == CellType.START) {
                     start = cell;
                 }
                 cells[x, y] = cell;
@@ -47,7 +46,7 @@ class Solution {
             (var current, int moves) = value;
             current.Moves = moves;
             foreach (var direction in Point.Directions4) {
-                (int x, int y) = current.Point + direction;
+                (int x, int y) = current.point + direction;
                 if (x < 0) {
                     x = width - 1;
                 } else if (x > width - 1) {
@@ -59,7 +58,7 @@ class Solution {
                     y = 0;
                 }
                 var next = cells[x, y];
-                if (next.Type == CellType.WALL) {
+                if (next.type == CellType.WALL) {
                     continue;
                 }
                 if (!visited.Add(next)) {
@@ -74,22 +73,20 @@ class Solution {
         for (var y = 0; y < height; y++) {
             for (var x = 0; x < width; x++) {
                 var cell = cells[x, y];
-                Console.Write(cell.Moves.HasValue ? MOVES[cell.Moves.Value] : cell.Type);
+                Console.Write(cell.Moves.HasValue ? MOVES[cell.Moves.Value] : cell.type);
             }
             Console.WriteLine();
         }
     }
 }
 
-record Cell(Point Point, char Type) {
+class Cell(Point point, char type) {
+    public readonly Point point = point;
+    public readonly char type = type;
     public int? Moves { get; set; }
-
-    public virtual bool Equals(Cell? other) => ReferenceEquals(this, other);
-    public override int GetHashCode() => RuntimeHelpers.GetHashCode(this);
 }
 
 static class CellType {
-    public const char EMPTY = '.';
     public const char WALL = '#';
     public const char START = 'S';
 }
