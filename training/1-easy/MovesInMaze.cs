@@ -50,8 +50,8 @@ class Solution : IGrid<Point> {
                     Console.Write(Cells.WALL);
                     continue;
                 }
-                var path = pathfinding.Path(start, new Point(x, y))!;
-                Console.Write(MOVES[path.Count]);
+                var path = pathfinding.Path(start, new Point(x, y));
+                Console.Write(path != null ? MOVES[path.Count] : Cells.EMPTY);
             }
             Console.WriteLine();
         }
