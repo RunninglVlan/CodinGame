@@ -20,6 +20,8 @@ class MiniCPU {
         { "02", new Add() },
         { "03", new Subtract() },
         { "04", new Multiply() },
+        { "05", new Increment() },
+        { "06", new Decrement() },
         { "FF", new Halt() }
     };
 
@@ -80,6 +82,24 @@ record Multiply : Instruction {
         int iX = ReadNext(ref pc, bytes);
         int iY = ReadNext(ref pc, bytes);
         registers[iX] *= registers[iY];
+        Advance(ref pc);
+    }
+}
+
+// 05 X: INC - Increment register RX by 1
+record Increment : Instruction {
+    public override void Execute(ref int pc, string[] bytes, List<int> registers) {
+        int i = ReadNext(ref pc, bytes);
+        registers[i]++;
+        Advance(ref pc);
+    }
+}
+
+// 06 X: DEC - Decrement register RX by 1
+record Decrement : Instruction {
+    public override void Execute(ref int pc, string[] bytes, List<int> registers) {
+        int i = ReadNext(ref pc, bytes);
+        registers[i]--;
         Advance(ref pc);
     }
 }
