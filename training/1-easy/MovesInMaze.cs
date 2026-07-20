@@ -59,8 +59,20 @@ class Solution : IGrid<Point> {
 
     IEnumerable<Point> IGrid<Point>.Next(Point current) {
         return Point.Directions4
-                .Select(it => current + it)
-                .Where(it => it.InBounds(width, height))
+                .Select(direction => {
+                    (int x, int y) = current + direction;
+                    if (x < 0) {
+                        x = width - 1;
+                    } else if (x > width - 1) {
+                        x = 0;
+                    }
+                    if (y < 0) {
+                        y = height - 1;
+                    } else if (y > height - 1) {
+                        y = 0;
+                    }
+                    return new Point(x, y);
+                })
                 .Where(it => walkableCells[it.X, it.Y]);
     }
 }
@@ -78,10 +90,6 @@ readonly record struct Point(int X, int Y) {
     static readonly Point RIGHT = new(1, 0);
 
     public static Point[] Directions4 { get; } = [RIGHT, LEFT, UP, DOWN];
-
-    public bool InBounds(int width, int height) {
-        return X >= 0 && X < width && Y >= 0 && Y < height;
-    }
 
     public static Point operator +(Point a, Point b) => new(a.X + b.X, a.Y + b.Y);
 }
