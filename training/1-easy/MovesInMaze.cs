@@ -6,15 +6,31 @@ namespace MovesInMaze;
 
 /// https://www.codingame.com/training/easy/moves-in-maze
 static class MovesInMaze {
+    static void Main() {
+        var solution = new Solution();
+        solution.ReadInput();
+        solution.PrintGridWithMoves();
+    }
+}
+
+class Solution : IGrid<Point> {
     const string MOVES = "0123456789ABCDEFGHIJKLMNOPQRSTXYZ";
 
-    static void Main() {
+    readonly Pathfinding<Point> pathfinding;
+
+    int width, height;
+    bool[,] walkableCells = null!;
+    Point start;
+
+    public Solution() {
+        pathfinding = new Pathfinding<Point>(this);
+    }
+
+    public void ReadInput() {
         string[] inputs = Console.ReadLine()!.Split(' ');
-        int width = Math.Clamp(int.Parse(inputs[0]), 3, 30);
-        int height = Math.Clamp(int.Parse(inputs[1]), 3, 30);
-        Point start = default;
-        var grid = new Grid(width, height);
-        var pathfinding = new Pathfinding<Point>(grid);
+        width = Math.Clamp(int.Parse(inputs[0]), 3, 30);
+        height = Math.Clamp(int.Parse(inputs[1]), 3, 30);
+        walkableCells = new bool[width, height];
         for (var y = 0; y < height; y++) {
             string row = Console.ReadLine()!;
             for (var x = 0; x < width; x++) {
@@ -22,12 +38,15 @@ static class MovesInMaze {
                 if (cell == Cells.START) {
                     start = new Point(x, y);
                 }
-                grid.Set(x, y, cell is Cells.START or Cells.EMPTY);
+                walkableCells[x, y] = cell is Cells.START or Cells.EMPTY;
             }
         }
+    }
+
+    public void PrintGridWithMoves() {
         for (var y = 0; y < height; y++) {
             for (var x = 0; x < width; x++) {
-                if (!grid.Get(x, y)) {
+                if (!walkableCells[x, y]) {
                     Console.Write(Cells.WALL);
                     continue;
                 }
@@ -37,13 +56,6 @@ static class MovesInMaze {
             Console.WriteLine();
         }
     }
-}
-
-class Grid(int width, int height) : IGrid<Point> {
-    readonly bool[,] walkableCells = new bool[width, height];
-
-    public void Set(int x, int y, bool isWalkable) => walkableCells[x, y] = isWalkable;
-    public bool Get(int x, int y) => walkableCells[x, y];
 
     IEnumerable<Point> IGrid<Point>.Next(Point current) {
         return Point.Directions4
