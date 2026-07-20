@@ -14,7 +14,7 @@ static class MovesInMaze {
 }
 
 class Solution : IGrid<Point> {
-    const string MOVES = "0123456789ABCDEFGHIJKLMNOPQRSTXYZ";
+    const string MOVES = "0123456789ABCDEFGHIJKLMNOPQRSTVWXYZ";
 
     readonly Pathfinding<Point> pathfinding;
 
