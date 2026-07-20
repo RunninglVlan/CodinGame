@@ -4,8 +4,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text.Json;
 
-namespace CodeVsZombies;
-
 /// Save humans, destroy zombies!<br/>
 /// https://www.codingame.com/multiplayer/optimization/code-vs-zombies
 static class CodeVsZombies {

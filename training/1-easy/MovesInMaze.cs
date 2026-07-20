@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace MovesInMaze;
-
 /// https://www.codingame.com/training/easy/moves-in-maze
 static class MovesInMaze {
     static void Main() {

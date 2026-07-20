@@ -1,7 +1,5 @@
 ﻿using System;
 
-namespace DetectivePikaptcha2;
-
 /// https://www.codingame.com/training/easy/detective-pikaptcha-ep2
 static class DetectivePikaptcha2 {
     static void Main() {

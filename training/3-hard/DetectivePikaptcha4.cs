@@ -2,8 +2,6 @@
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 
-namespace DetectivePikaptcha4;
-
 /// https://www.codingame.com/training/hard/detective-pikaptcha-ep4
 static class DetectivePikaptcha4 {
     static void Main() {

@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace War;
-
 /// https://www.codingame.com/training/medium/winamax-battle
 static class War {
     static void Main() {

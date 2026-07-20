@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace MiniCPUInstructionDecoder;
-
 /// Decode and execute the MiniCPU bytecode program<br/>
 /// https://www.codingame.com/training/easy/minicpu-instruction-decoder
 static class MiniCPUInstructionDecoder {

@@ -2,8 +2,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
-namespace MadPodRacing;
-
 /// https://www.codingame.com/multiplayer/bot-programming/mad-pod-racing
 static class MadPodRacing {
     static void Main() {

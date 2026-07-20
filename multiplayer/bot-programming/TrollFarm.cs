@@ -3,8 +3,6 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
-namespace TrollFarm;
-
 /// https://www.codingame.com/contests/spring-challenge-2026-troll-farm <br/>
 /// https://www.codingame.com/multiplayer/bot-programming/spring-challenge-2026-troll-farm
 static class TrollFarm {

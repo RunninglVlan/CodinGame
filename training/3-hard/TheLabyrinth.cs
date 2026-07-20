@@ -3,8 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
 
-namespace TheLabyrinth;
-
 /// https://www.codingame.com/training/hard/the-labyrinth
 static class TheLabyrinth {
     static void Main() {

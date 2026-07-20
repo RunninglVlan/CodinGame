@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Diagnostics.CodeAnalysis;
 
-namespace DoNotPanic;
-
 /// https://www.codingame.com/training/medium/don't-panic-episode-1
 static class DoNotPanic {
     [SuppressMessage("ReSharper", "FunctionNeverReturns")]

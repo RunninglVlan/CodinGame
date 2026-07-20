@@ -2,8 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace UnfoldingPaper;
-
 /// https://www.codingame.com/training/expert/unfolding-paper
 static class UnfoldingPaper {
     static void Main() {

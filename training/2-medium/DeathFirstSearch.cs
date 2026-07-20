@@ -3,8 +3,6 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
-namespace DeathFirstSearch;
-
 /// https://www.codingame.com/training/medium/death-first-search-episode-1
 static class DeathFirstSearch {
     [SuppressMessage("ReSharper", "FunctionNeverReturns")]

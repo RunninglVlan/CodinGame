@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace RobberyOptimisation;
-
 /// https://www.codingame.com/training/medium/robbery-optimisation
 static class RobberyOptimisation {
     static void Main() {

@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Diagnostics.CodeAnalysis;
 
-namespace MarsLander;
-
 /// Save the Planet. Use less Fossil Fuel.<br/>
 /// https://www.codingame.com/multiplayer/optimization/mars-lander
 static class MarsLander {

@@ -1,7 +1,5 @@
 ﻿using System;
 
-namespace JackSilverTheCasino;
-
 /// https://www.codingame.com/training/easy/jack-silver-the-casino
 static class JackSilverTheCasino {
     static void Main() {

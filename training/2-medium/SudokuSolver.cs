@@ -2,8 +2,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
 
-namespace SudokuSolver;
-
 /// https://www.codingame.com/training/medium/sudoku-solver
 static class SudokuSolver {
     static void Main() {

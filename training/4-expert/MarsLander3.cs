@@ -3,8 +3,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
 
-namespace MarsLander3;
-
 /// https://www.codingame.com/training/expert/mars-lander-episode-3
 static class MarsLander3 {
     static void Main() {

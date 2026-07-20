@@ -3,8 +3,6 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
-namespace CodeOfTheRings;
-
 /// https://www.codingame.com/multiplayer/optimization/code-of-the-rings
 static class CodeOfTheRings {
     static void Main() {

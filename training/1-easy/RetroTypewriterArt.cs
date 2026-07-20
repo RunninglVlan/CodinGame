@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Text;
 
-namespace RetroTypewriterArt;
-
 /// https://www.codingame.com/training/easy/retro-typewriter-art
 static class RetroTypewriterArt {
     static void Main() {

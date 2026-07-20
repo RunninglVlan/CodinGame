@@ -2,8 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace PlayingCardOdds;
-
 /// https://www.codingame.com/training/easy/playing-card-odds
 static class PlayingCardOdds {
     static void Main() {

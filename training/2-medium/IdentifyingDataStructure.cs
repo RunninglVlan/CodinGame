@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace IdentifyingDataStructure;
-
 /// https://www.codingame.com/training/medium/identifying-data-structure
 static class IdentifyingDataStructure {
     static void Main() {

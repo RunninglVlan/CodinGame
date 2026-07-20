@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Linq;
 
-namespace LogicGates;
-
 /// https://www.codingame.com/training/easy/logic-gates
 static class LogicGates {
     static void Main() {

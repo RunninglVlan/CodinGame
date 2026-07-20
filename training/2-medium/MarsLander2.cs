@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Diagnostics.CodeAnalysis;
 
-namespace MarsLander2;
-
 /// https://www.codingame.com/training/medium/mars-lander-episode-2
 static class MarsLander2 {
     static void Main() {

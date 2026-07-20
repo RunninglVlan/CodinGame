@@ -3,8 +3,6 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
-namespace TheFall2;
-
 /// https://www.codingame.com/training/hard/the-fall-episode-2
 static class TheFall2 {
     [SuppressMessage("ReSharper", "FunctionNeverReturns")]

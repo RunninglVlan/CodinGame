@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Diagnostics.CodeAnalysis;
 
-namespace StockExchangeLosses;
-
 /// https://www.codingame.com/training/medium/stock-exchange-losses
 static class StockExchangeLosses {
     static void Main() {

@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Linq;
 
-namespace DetectivePikaptcha;
-
 /// https://www.codingame.com/training/easy/detective-pikaptcha-ep1
 static class DetectivePikaptcha {
     static void Main() {

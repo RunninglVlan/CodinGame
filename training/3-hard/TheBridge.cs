@@ -3,8 +3,6 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
-namespace TheBridge;
-
 /// https://www.codingame.com/training/hard/the-bridge-episode-2
 static class TheBridge {
     [SuppressMessage("ReSharper", "FunctionNeverReturns")]
