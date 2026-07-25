@@ -20,31 +20,20 @@ static class ChocolateBarCut {
     }
 
     static long CutSquares(long width, long height) {
-        if (width == 1 || height == 1) {
-            return Math.Max(width, height);
-        }
-        if (width == height) {
-            return width;
-        }
-        // PlotLine works when endX > endY, so dimensions need to be flipped when it's the other way around
-        (long endX, long endY) = width > height ? (width, height) : (height, width);
-        return PlotLineFromZero(endX, endY).Count();
+        return PlotLineFromZero(width, height).Count();
     }
 
     static IEnumerable<(long, long)> PlotLineFromZero(long endX, long endY) {
+        if (endX < endY) {
+            (endX, endY) = (endY, endX);
+        }
         long difference = 2 * endY - endX;
-        for (long x = 0, y = 0; x < endX && y < endY;) {
+        for (long x = 0, y = 0; x < endX || y < endY; x++) {
+            yield return (x, y);
             if (difference > 0) {
-                difference += 2 * (endY - endX);
-                if (difference != 0) {
-                    yield return (x, y);
-                }
-                x++;
-                yield return (x, y);
                 y++;
+                difference += 2 * (endY - endX);
             } else {
-                yield return (x, y);
-                x++;
                 difference += 2 * endY;
             }
         }
