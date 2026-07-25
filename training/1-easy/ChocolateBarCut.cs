@@ -7,20 +7,13 @@ static class ChocolateBarCut {
     static void Main() {
         long maxSize = (long)Math.Pow(10, 12) - 1;
         int chocolateBars = Math.Clamp(int.Parse(Console.ReadLine()!), 1, 50);
-        var cutSquares = new long[chocolateBars];
         for (var i = 0; i < chocolateBars; i++) {
             string[] dimensions = Console.ReadLine()!.Split(' ');
             long width = Math.Clamp(long.Parse(dimensions[0]), 1, maxSize);
             long height = Math.Clamp(long.Parse(dimensions[1]), 1, maxSize);
-            cutSquares[i] = CutSquares(width, height);
+            int cutSquares = PlotLineFromZero(width, height).Count();
+            Console.WriteLine(cutSquares);
         }
-        foreach (long pieces in cutSquares) {
-            Console.WriteLine(pieces);
-        }
-    }
-
-    static long CutSquares(long width, long height) {
-        return PlotLineFromZero(width, height).Count();
     }
 
     static IEnumerable<(long, long)> PlotLineFromZero(long endX, long endY) {
