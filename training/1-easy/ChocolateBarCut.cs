@@ -11,7 +11,7 @@ static class ChocolateBarCut {
             string[] dimensions = Console.ReadLine()!.Split(' ');
             long width = Math.Clamp(long.Parse(dimensions[0]), 1, maxSize);
             long height = Math.Clamp(long.Parse(dimensions[1]), 1, maxSize);
-            int cutSquares = PlotLineFromZero(width, height).Count();
+            int cutSquares = PlotLineFromZero(width - 1, height - 1).Count();
             Console.WriteLine(cutSquares);
         }
     }
@@ -21,7 +21,7 @@ static class ChocolateBarCut {
             (endX, endY) = (endY, endX);
         }
         long difference = 2 * endY - endX;
-        for (long x = 0, y = 0; x < endX || y < endY; x++) {
+        for (long x = 0, y = 0; x <= endX && y <= endY; x++) {
             yield return (x, y);
             if (difference > 0) {
                 y++;
