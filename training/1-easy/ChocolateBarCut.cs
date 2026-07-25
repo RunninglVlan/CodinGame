@@ -16,18 +16,35 @@ static class ChocolateBarCut {
         }
     }
 
+    /// Based on last logic from https://playtechs.blogspot.com/2007/03/raytracing-on-grid.html
     static IEnumerable<(long, long)> PlotLineFromZero(long endX, long endY) {
         if (endX < endY) {
             (endX, endY) = (endY, endX);
         }
-        long difference = 2 * endY - endX;
-        for (long x = 0, y = 0; x <= endX && y <= endY; x++) {
-            yield return (x, y);
-            if (difference > 0) {
-                y++;
-                difference += 2 * (endY - endX);
+        bool isEvenlyDivisible = endY + 1 != 0 && (endX + 1) % (endY + 1) == 0;
+        long x = 0, y = 0;
+        long dx = endX, dy = endY;
+        yield return (x, y);
+        long error = dx - dy;
+        dx *= 2;
+        dy *= 2;
+        while (true) {
+            if (error > 0) {
+                x++;
+                if (x > endX) {
+                    break;
+                }
+                yield return (x, y);
+                error -= dy;
             } else {
-                difference += 2 * endY;
+                y++;
+                if (y > endY) {
+                    break;
+                }
+                if (!isEvenlyDivisible) {
+                    yield return (x, y);
+                }
+                error += dx;
             }
         }
     }
