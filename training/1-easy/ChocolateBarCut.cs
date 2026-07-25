@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 
 /// https://www.codingame.com/training/easy/chocolate-bar-cut
 static class ChocolateBarCut {
@@ -24,6 +26,27 @@ static class ChocolateBarCut {
         if (width == height) {
             return width;
         }
-        throw new NotImplementedException($"{width}x{height}");
+        // PlotLine works when endX > endY, so dimensions need to be flipped when it's the other way around
+        (long endX, long endY) = width > height ? (width, height) : (height, width);
+        return PlotLineFromZero(endX, endY).Count();
+    }
+
+    static IEnumerable<(long, long)> PlotLineFromZero(long endX, long endY) {
+        long difference = 2 * endY - endX;
+        for (long x = 0, y = 0; x < endX && y < endY;) {
+            if (difference > 0) {
+                difference += 2 * (endY - endX);
+                if (difference != 0) {
+                    yield return (x, y);
+                }
+                x++;
+                yield return (x, y);
+                y++;
+            } else {
+                yield return (x, y);
+                x++;
+                difference += 2 * endY;
+            }
+        }
     }
 }
