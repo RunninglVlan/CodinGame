@@ -10,14 +10,9 @@ static class ChocolateBarCut {
             string[] dimensions = Console.ReadLine()!.Split(' ');
             long width = Math.Clamp(long.Parse(dimensions[0]), 1, maxSize);
             long height = Math.Clamp(long.Parse(dimensions[1]), 1, maxSize);
-            Console.WriteLine(CutSquares(width, height));
+            long cutSquares = width + height - MaxCommonDivisor(width, height);
+            Console.WriteLine(cutSquares);
         }
-    }
-
-    static long CutSquares(long width, long height) {
-        long max = Math.Max(width, height);
-        long min = Math.Min(width, height);
-        return max - MaxCommonDivisor(max, min) + min;
     }
 
     /// Euclidean algorithm
