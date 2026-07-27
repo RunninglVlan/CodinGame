@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 
 /// https://www.codingame.com/training/easy/chocolate-bar-cut
 static class ChocolateBarCut {
@@ -16,15 +17,12 @@ static class ChocolateBarCut {
     static long CutSquares(long width, long height) {
         long max = Math.Max(width, height);
         long min = Math.Min(width, height);
-        if (max == 1 || min == 1 || max == min) {
-            return max;
-        }
-        var maxCommonDivisor = 1;
-        for (int divisor = maxCommonDivisor + 1; divisor <= min; divisor++) {
-            if (max % divisor == 0 && min % divisor == 0) {
-                maxCommonDivisor = divisor;
-            }
-        }
-        return max - maxCommonDivisor + min;
+        return max - MaxCommonDivisor(max, min) + min;
+    }
+
+    /// Euclidean algorithm
+    [SuppressMessage("ReSharper", "TailRecursiveCall")]
+    static long MaxCommonDivisor(long a, long b) {
+        return b == 0 ? a : MaxCommonDivisor(b, a % b);
     }
 }
