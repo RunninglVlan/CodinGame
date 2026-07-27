@@ -11,41 +11,30 @@ static class ChocolateBarCut {
             string[] dimensions = Console.ReadLine()!.Split(' ');
             long width = Math.Clamp(long.Parse(dimensions[0]), 1, maxSize);
             long height = Math.Clamp(long.Parse(dimensions[1]), 1, maxSize);
-            int cutSquares = PlotLineFromZero(width - 1, height - 1).Count();
-            Console.WriteLine(cutSquares);
+            Console.WriteLine(CutSquares(width, height));
         }
     }
 
-    /// Based on last logic from https://playtechs.blogspot.com/2007/03/raytracing-on-grid.html
-    static IEnumerable<(long, long)> PlotLineFromZero(long endX, long endY) {
+    static long CutSquares(long width, long height) {
+        if (width == 1 || height == 1 || width == height) {
+            return Math.Max(width, height);
+        }
+        return PlotActualLine(width, height).Distinct().Count();
+    }
+
+    static IEnumerable<(long, long)> PlotActualLine(long endX, long endY) {
+        const double fraction = 0.000_001;
         if (endX < endY) {
             (endX, endY) = (endY, endX);
         }
-        bool isEvenlyDivisible = endY + 1 != 0 && (endX + 1) % (endY + 1) == 0;
-        long x = 0, y = 0;
-        long dx = endX, dy = endY;
-        yield return (x, y);
-        long error = dx - dy;
-        dx *= 2;
-        dy *= 2;
-        while (true) {
-            if (error > 0) {
-                x++;
-                if (x > endX) {
-                    break;
-                }
-                yield return (x, y);
-                error -= dy;
-            } else {
-                y++;
-                if (y > endY) {
-                    break;
-                }
-                if (!isEvenlyDivisible) {
-                    yield return (x, y);
-                }
-                error += dx;
-            }
+        double m = (double)endY / endX;
+        for (double x = 0; x < endX; x++) {
+            double pointX = x + fraction;
+            var point = ((long)pointX, (long)(m * pointX));
+            yield return point;
+            pointX = x + 1 - fraction;
+            point = ((long)pointX, (long)(m * pointX));
+            yield return point;
         }
     }
 }
