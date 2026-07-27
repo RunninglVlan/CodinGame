@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 
 /// https://www.codingame.com/training/easy/chocolate-bar-cut
 static class ChocolateBarCut {
@@ -16,25 +14,17 @@ static class ChocolateBarCut {
     }
 
     static long CutSquares(long width, long height) {
-        if (width == 1 || height == 1 || width == height) {
-            return Math.Max(width, height);
+        long max = Math.Max(width, height);
+        long min = Math.Min(width, height);
+        if (max == 1 || min == 1 || max == min) {
+            return max;
         }
-        return PlotActualLine(width, height).Distinct().Count();
-    }
-
-    static IEnumerable<(long, long)> PlotActualLine(long endX, long endY) {
-        const double fraction = 0.000_001;
-        if (endX < endY) {
-            (endX, endY) = (endY, endX);
+        var maxCommonDivisor = 1;
+        for (int divisor = maxCommonDivisor + 1; divisor <= min; divisor++) {
+            if (max % divisor == 0 && min % divisor == 0) {
+                maxCommonDivisor = divisor;
+            }
         }
-        double m = (double)endY / endX;
-        for (double x = 0; x < endX; x++) {
-            double pointX = x + fraction;
-            var point = ((long)pointX, (long)(m * pointX));
-            yield return point;
-            pointX = x + 1 - fraction;
-            point = ((long)pointX, (long)(m * pointX));
-            yield return point;
-        }
+        return max - maxCommonDivisor + min;
     }
 }
