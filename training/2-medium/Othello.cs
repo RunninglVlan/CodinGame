@@ -42,6 +42,7 @@ class Board {
             return Error.CELL_ALREADY_HAS_TOKEN;
         }
         var oppositeColor = color == Cell.White ? Cell.Black : Cell.White;
+        var totalCount = 0;
         foreach (var direction in Point.Directions8) {
             var neighbor = point + direction;
             if (!neighbor.InBounds(SIZE, SIZE)) {
@@ -50,14 +51,16 @@ class Board {
             if (cells[neighbor.X, neighbor.Y] != oppositeColor) {
                 continue;
             }
-            if (!TryFindSandwich(neighbor, direction, oppositeColor, out int count)) {
-                continue;
+            if (TryFindSandwich(neighbor, direction, oppositeColor, out int count)) {
+                totalCount += count;
             }
-            counts[(int)color] += 1 + count;
-            counts[(int)oppositeColor] -= count;
-            return $"{counts[(int)Cell.White]} {counts[(int)Cell.Black]}";
         }
-        return Error.CANNOT_MAKE_SANDWICH;
+        if (totalCount == 0) {
+            return Error.CANNOT_MAKE_SANDWICH;
+        }
+        counts[(int)color] += 1 + totalCount;
+        counts[(int)oppositeColor] -= totalCount;
+        return $"{counts[(int)Cell.White]} {counts[(int)Cell.Black]}";
     }
 
     bool TryFindSandwich(Point current, Point direction, Cell oppositeColor, out int count) {
