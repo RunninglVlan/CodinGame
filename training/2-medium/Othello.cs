@@ -60,10 +60,10 @@ class Board {
         return Error.CANNOT_MAKE_SANDWICH;
     }
 
-    bool TryFindSandwich(Point start, Point direction, Cell oppositeColor, out int count) {
+    bool TryFindSandwich(Point current, Point direction, Cell oppositeColor, out int count) {
         count = 1;
         while (true) {
-            var next = start + direction;
+            var next = current + direction;
             if (!next.InBounds(SIZE, SIZE)) {
                 return false;
             }
@@ -73,6 +73,7 @@ class Board {
             }
             if (cell == oppositeColor) {
                 count++;
+                current = next;
             } else {
                 return true;
             }
