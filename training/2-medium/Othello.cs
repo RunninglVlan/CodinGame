@@ -52,11 +52,41 @@ class Board {
             if (!neighbor.InBounds(SIZE, SIZE)) {
                 continue;
             }
-            if (cells[neighbor.X, neighbor.Y] == oppositeColor) {
-                return $"{whites} {blacks}";
+            if (cells[neighbor.X, neighbor.Y] != oppositeColor) {
+                continue;
             }
+            if (!TryFindSandwich(neighbor, direction, oppositeColor, out int count)) {
+                continue;
+            }
+            if (color == Cell.White) {
+                whites += 1 + count;
+                blacks -= count;
+            } else {
+                blacks += 1 + count;
+                whites -= count;
+            }
+            return $"{whites} {blacks}";
         }
         return "NULL";
+    }
+
+    bool TryFindSandwich(Point start, Point direction, Cell oppositeColor, out int count) {
+        count = 1;
+        while (true) {
+            var next = start + direction;
+            if (!next.InBounds(SIZE, SIZE)) {
+                return false;
+            }
+            var cell = cells[next.X, next.Y];
+            if (cell == Cell.Empty) {
+                return false;
+            }
+            if (cell == oppositeColor) {
+                count++;
+            } else {
+                return true;
+            }
+        }
     }
 }
 
