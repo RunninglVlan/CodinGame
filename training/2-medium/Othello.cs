@@ -62,22 +62,19 @@ class Board {
 
     bool TryFindSandwich(Point current, Point direction, Cell oppositeColor, out int count) {
         count = 1;
-        while (true) {
-            var next = current + direction;
-            if (!next.InBounds(SIZE, SIZE)) {
-                return false;
-            }
+        var next = current + direction;
+        while (next.InBounds(SIZE, SIZE)) {
             var cell = cells[next.X, next.Y];
             if (cell == Cell.Empty) {
                 return false;
             }
-            if (cell == oppositeColor) {
-                count++;
-                current = next;
-            } else {
+            if (cell != oppositeColor) {
                 return true;
             }
+            count++;
+            next += direction;
         }
+        return false;
     }
 }
 
