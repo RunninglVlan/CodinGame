@@ -18,23 +18,18 @@ class Board {
     const string Y_CHARS = "12345678";
 
     readonly Cell[,] cells = new Cell[SIZE, SIZE];
-    int whites, blacks;
+    readonly int[] counts = new int[Enum.GetValues<Cell>().Length];
 
     public void Init() {
         for (var y = 0; y < SIZE; y++) {
             string row = Console.ReadLine()!;
             for (var x = 0; x < SIZE; x++) {
-                var cell = Cell.Empty;
-                switch (row[x]) {
-                    case Color.WHITE:
-                        whites++;
-                        cell = Cell.White;
-                        break;
-                    case Color.BLACK:
-                        blacks++;
-                        cell = Cell.Black;
-                        break;
-                }
+                var cell = row[x] switch {
+                    Color.WHITE => Cell.White,
+                    Color.BLACK => Cell.Black,
+                    _ => Cell.Empty
+                };
+                counts[(int)cell]++;
                 cells[x, y] = cell;
             }
         }
@@ -44,7 +39,7 @@ class Board {
         var point = new Point(X_CHARS.IndexOf(move[0]), Y_CHARS.IndexOf(move[1]));
         var cell = cells[point.X, point.Y];
         if (cell != Cell.Empty) {
-            return "NOPE";
+            return Error.CELL_ALREADY_HAS_TOKEN;
         }
         var oppositeColor = color == Cell.White ? Cell.Black : Cell.White;
         foreach (var direction in Point.Directions8) {
@@ -58,16 +53,11 @@ class Board {
             if (!TryFindSandwich(neighbor, direction, oppositeColor, out int count)) {
                 continue;
             }
-            if (color == Cell.White) {
-                whites += 1 + count;
-                blacks -= count;
-            } else {
-                blacks += 1 + count;
-                whites -= count;
-            }
-            return $"{whites} {blacks}";
+            counts[(int)color] += 1 + count;
+            counts[(int)oppositeColor] -= count;
+            return $"{counts[(int)Cell.White]} {counts[(int)Cell.Black]}";
         }
-        return "NULL";
+        return Error.CANNOT_MAKE_SANDWICH;
     }
 
     bool TryFindSandwich(Point start, Point direction, Cell oppositeColor, out int count) {
@@ -99,6 +89,11 @@ enum Cell {
 static class Color {
     public const char WHITE = 'W';
     public const char BLACK = 'B';
+}
+
+static class Error {
+    public const string CELL_ALREADY_HAS_TOKEN = "NOPE";
+    public const string CANNOT_MAKE_SANDWICH = "NULL";
 }
 
 readonly record struct Point(int X, int Y) {
