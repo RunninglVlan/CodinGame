@@ -16,8 +16,9 @@ static class SimpleMakefiles {
 }
 
 class Make {
-    const string ACTION_CHAR = "\t";
+    const char ACTION_CHAR = '\t';
     public const char SPACE = ' ';
+    const char COMMENT = '#';
 
     readonly Dictionary<string, int> existingFileTimes = [];
     string[] requiredTargets = null!;
@@ -41,6 +42,9 @@ class Make {
         int lines = Math.Clamp(int.Parse(Debug.ReadLine()), 1, 100);
         for (var _ = 0; _ < lines; _++) {
             string makefileLine = Debug.ReadLine();
+            if (makefileLine.StartsWith(COMMENT)) {
+                continue;
+            }
             if (!makefileLine.StartsWith(ACTION_CHAR)) {
                 string[] tokens = makefileLine.Split(':');
                 string target = tokens.First();
@@ -48,7 +52,11 @@ class Make {
                 rules.Add(new Rule(target, prerequisites));
             } else {
                 var lastRule = rules.Last();
-                lastRule.Add(makefileLine.Replace(ACTION_CHAR, string.Empty));
+                int actionStart = makefileLine.IndexOf(ACTION_CHAR) + 1;
+                int actionEnd = makefileLine.IndexOf(COMMENT);
+                actionEnd = actionEnd == -1 ? makefileLine.Length : actionEnd;
+                string action = makefileLine[actionStart..actionEnd].TrimEnd();
+                lastRule.Add(action);
             }
         }
     }
