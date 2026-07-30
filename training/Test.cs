@@ -1,88 +1,158 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
 /// https://www.codingame.com/contribute/view/149373d871f27bdcdc97a723791d28b1fdfe5e
 static class SimpleMakefiles {
     static void Main() {
-        const string testCase4 = """
-                                 2
-                                 main.c 100
-                                 util.c 100
+        const string testCase = """
+                                 4
+                                 source.c 100
+                                 header.h 100
+                                 main.o 100
+                                 util.o 100
                                  
-                                 6
-                                 all: util.o main.o
-                                 	gcc -o $@ $^
-                                 util.o: util.c
-                                 	gcc -c $< -o $@
-                                 main.o: main.c
-                                 	gcc -c $< -o $@
+                                 4
+                                 program: util.o main.o
+                                 	link $^ -o $@
+                                 util.o main.o: source.c header.h
+                                 	cc -c $< -o $@
                                  """;
-        string testCase = testCase4;
         Console.SetIn(new StringReader(testCase));
         var make = new Make();
         make.ReadFiles();
         make.ReadRequiredTargets();
         make.ReadMakefile();
+        Console.Error.WriteLine();
         make.PrintActions();
     }
 }
 
 class Make {
-    const string TAB = "\t";
+    const char ACTION_CHAR = '\t';
+    public const char SPACE = ' ';
+    const char COMMENT = '#';
 
-    File[] preexistingFiles = null!;
+    readonly Dictionary<string, int> existingFileTimes = [];
     string[] requiredTargets = null!;
     readonly List<Rule> rules = [];
 
     public void ReadFiles() {
         int files = Math.Clamp(int.Parse(Debug.ReadLine()), 0, 20);
-        preexistingFiles = new File[files];
         for (var i = 0; i < files; i++) {
             string[] inputs = Debug.ReadLine().Split();
             string preexistingFile = inputs.First();
             int fileTime = Math.Clamp(int.Parse(inputs.Last()), 0, 1000);
-            preexistingFiles[i] = new File(preexistingFile, fileTime);
+            existingFileTimes.Add(preexistingFile, fileTime);
         }
     }
 
     public void ReadRequiredTargets() {
-        requiredTargets = Debug.ReadLine().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        requiredTargets = Debug.ReadLine().Split(SPACE, StringSplitOptions.RemoveEmptyEntries);
     }
 
     public void ReadMakefile() {
         int lines = Math.Clamp(int.Parse(Debug.ReadLine()), 1, 100);
         for (var _ = 0; _ < lines; _++) {
             string makefileLine = Debug.ReadLine();
-            if (!makefileLine.StartsWith(TAB)) {
+            if (makefileLine.StartsWith(COMMENT)) {
+                continue;
+            }
+            if (!makefileLine.StartsWith(ACTION_CHAR)) {
+                if (rules.Count > 0 && rules.Last().Target.Contains(SPACE)) {
+                    DuplicateRule(rules.Last());
+                }
                 string[] tokens = makefileLine.Split(':');
                 string target = tokens.First();
-                string[] prerequisites = tokens.Last().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                string[] prerequisites = tokens.Last().Split(SPACE, StringSplitOptions.RemoveEmptyEntries);
                 rules.Add(new Rule(target, prerequisites));
             } else {
                 var lastRule = rules.Last();
-                lastRule.Actions.Add(makefileLine.Replace(TAB, string.Empty));
+                int actionStart = makefileLine.IndexOf(ACTION_CHAR) + 1;
+                int actionEnd = makefileLine.IndexOf(COMMENT);
+                actionEnd = actionEnd == -1 ? makefileLine.Length : actionEnd;
+                string action = makefileLine[actionStart..actionEnd].TrimEnd();
+                lastRule.Add(action);
             }
         }
     }
 
-    public void PrintActions() {
-        var targetRule = requiredTargets.Length == 0
-                ? rules.First()
-                : rules.First(it => it.Target == requiredTargets.First());
-        foreach (string prerequisite in targetRule.Prerequisites) {
-            var prerequisiteRule = rules.First(it => it.Target == prerequisite);
-            prerequisiteRule.Actions.ForEach(Console.WriteLine);
+    void DuplicateRule(Rule rule) {
+        rules.Remove(rule);
+        foreach (string target in rule.Target.Split(SPACE)) {
+            rules.Add(rule with { Target = target });
         }
-        targetRule.Actions.ForEach(Console.WriteLine);
+    }
+
+    public void PrintActions() {
+        if (requiredTargets.Length == 0) {
+            PrintRuleActions(rules.First());
+        } else {
+            var requiredRules = requiredTargets
+                    .Select(target => rules.First(it => it.Target == target))
+                    .OrderBy(it => it.Target);
+            foreach (var rule in requiredRules) {
+                PrintRuleActions(rule);
+            }
+        }
         Console.WriteLine("[Build complete]");
+    }
+
+    void PrintRuleActions(Rule rule) {
+        if (!rule.HasActions || rule.IsUpToDate(existingFileTimes)) {
+            return;
+        }
+        foreach (string prerequisite in rule.Prerequisites.OrderBy(it => it)) {
+            var prerequisiteRule = rules.FirstOrDefault(it => it.Target == prerequisite);
+            if (prerequisiteRule == null || prerequisiteRule.IsUpToDate(existingFileTimes)) {
+                continue;
+            }
+            prerequisiteRule.PrintActions();
+        }
+        rule.PrintActions();
     }
 }
 
-record struct File(string Name, int Time);
-
 record Rule(string Target, string[] Prerequisites) {
-    public List<string> Actions { get; } = [];
+    readonly List<string> actions = [];
+    public bool HasActions => actions.Count > 0;
+
+    public void Add(string action) => actions.Add(action);
+
+    public bool IsUpToDate(Dictionary<string, int> fileTimes) {
+        if (!fileTimes.TryGetValue(Target, out int targetTime)) {
+            return false;
+        }
+        foreach (string prerequisite in Prerequisites) {
+            if (!fileTimes.TryGetValue(prerequisite, out int prerequisiteTime)) {
+                return false;
+            }
+            if (targetTime <= prerequisiteTime) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    [SuppressMessage("ReSharper", "ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator")]
+    public void PrintActions() {
+        foreach (string action in actions) {
+            string replaced = action.Replace(Macros.CURRENT_TARGET, Target);
+            if (Prerequisites.Length > 0) {
+                replaced = replaced
+                        .Replace(Macros.FIRST_PREREQUISITE, Prerequisites.First())
+                        .Replace(Macros.ALL_PREREQUISITES, string.Join(Make.SPACE, Prerequisites));
+            }
+            Console.WriteLine(replaced);
+        }
+    }
+}
+
+static class Macros {
+    public const string CURRENT_TARGET = "$@";
+    public const string FIRST_PREREQUISITE = "$<";
+    public const string ALL_PREREQUISITES = "$^";
 }
 
 static class Debug {
