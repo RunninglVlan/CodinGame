@@ -46,6 +46,7 @@ class Make {
                 continue;
             }
             if (!makefileLine.StartsWith(ACTION_CHAR)) {
+                DuplicateLastRuleIfNeeded();
                 string[] tokens = makefileLine.Split(':');
                 string target = tokens.First();
                 string[] prerequisites = tokens.Last().Split(SPACE, StringSplitOptions.RemoveEmptyEntries);
@@ -58,6 +59,21 @@ class Make {
                 string action = makefileLine[actionStart..actionEnd].TrimEnd();
                 lastRule.Add(action);
             }
+        }
+        DuplicateLastRuleIfNeeded();
+    }
+
+    void DuplicateLastRuleIfNeeded() {
+        if (rules.Count == 0) {
+            return;
+        }
+        var lastRule = rules.Last();
+        if (!lastRule.Target.Contains(SPACE)) {
+            return;
+        }
+        rules.Remove(lastRule);
+        foreach (string target in lastRule.Target.Split(SPACE)) {
+            rules.Add(lastRule with { Target = target });
         }
     }
 
