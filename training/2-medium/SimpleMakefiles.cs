@@ -59,6 +59,9 @@ class Make {
                 : rules.First(it => it.Target == requiredTargets.First());
         foreach (string prerequisite in targetRule.Prerequisites.OrderBy(it => it)) {
             var prerequisiteRule = rules.First(it => it.Target == prerequisite);
+            if (prerequisiteRule.IsUpToDate(preexistingFiles)) {
+                continue;
+            }
             prerequisiteRule.PrintActions();
         }
         targetRule.PrintActions();
@@ -82,6 +85,34 @@ record Rule(string Target, string[] Prerequisites) {
                     .Replace(Macros.ALL_PREREQUISITES, string.Join(Make.SPACE, Prerequisites));
             Console.WriteLine(replaced);
         }
+    }
+
+    public bool IsUpToDate(File[] preexistingFiles) {
+        File? targetFile = null;
+        foreach (var file in preexistingFiles) {
+            if (file.Name != Target) {
+                continue;
+            }
+            targetFile = file;
+            break;
+        }
+        if (targetFile == null) {
+            return false;
+        }
+        foreach (string prerequisite in Prerequisites) {
+            File? prerequisiteFile = null;
+            foreach (var file in preexistingFiles) {
+                if (file.Name != prerequisite) {
+                    continue;
+                }
+                prerequisiteFile = file;
+                break;
+            }
+            if (prerequisiteFile == null || targetFile.Value.Time < prerequisiteFile.Value.Time) {
+                return false;
+            }
+        }
+        return true;
     }
 }
 
