@@ -57,7 +57,7 @@ class Make {
         var targetRule = requiredTargets.Length == 0
                 ? rules.First()
                 : rules.First(it => it.Target == requiredTargets.First());
-        foreach (string prerequisite in targetRule.Prerequisites) {
+        foreach (string prerequisite in targetRule.Prerequisites.OrderBy(it => it)) {
             var prerequisiteRule = rules.First(it => it.Target == prerequisite);
             prerequisiteRule.PrintActions();
         }
