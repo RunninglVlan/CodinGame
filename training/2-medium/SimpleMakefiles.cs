@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
 /// https://www.codingame.com/contribute/view/149373d871f27bdcdc97a723791d28b1fdfe5e
@@ -15,7 +16,7 @@ static class SimpleMakefiles {
 
 class Make {
     const string ACTION_CHAR = "\t";
-    const char SPACE = ' ';
+    public const char SPACE = ' ';
 
     File[] preexistingFiles = null!;
     string[] requiredTargets = null!;
@@ -47,7 +48,7 @@ class Make {
                 rules.Add(new Rule(target, prerequisites));
             } else {
                 var lastRule = rules.Last();
-                lastRule.Actions.Add(makefileLine.Replace(ACTION_CHAR, string.Empty));
+                lastRule.Add(makefileLine.Replace(ACTION_CHAR, string.Empty));
             }
         }
     }
@@ -58,9 +59,9 @@ class Make {
                 : rules.First(it => it.Target == requiredTargets.First());
         foreach (string prerequisite in targetRule.Prerequisites) {
             var prerequisiteRule = rules.First(it => it.Target == prerequisite);
-            prerequisiteRule.Actions.ForEach(Console.WriteLine);
+            prerequisiteRule.PrintActions();
         }
-        targetRule.Actions.ForEach(Console.WriteLine);
+        targetRule.PrintActions();
         Console.WriteLine("[Build complete]");
     }
 }
@@ -68,7 +69,26 @@ class Make {
 record struct File(string Name, int Time);
 
 record Rule(string Target, string[] Prerequisites) {
-    public List<string> Actions { get; } = [];
+    readonly List<string> actions = [];
+
+    public void Add(string action) => actions.Add(action);
+
+    [SuppressMessage("ReSharper", "ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator")]
+    public void PrintActions() {
+        foreach (string action in actions) {
+            string replaced = action
+                    .Replace(Macros.CURRENT_TARGET, Target)
+                    .Replace(Macros.FIRST_PREREQUISITE, Prerequisites.First())
+                    .Replace(Macros.ALL_PREREQUISITES, string.Join(Make.SPACE, Prerequisites));
+            Console.WriteLine(replaced);
+        }
+    }
+}
+
+static class Macros {
+    public const string CURRENT_TARGET = "$@";
+    public const string FIRST_PREREQUISITE = "$<";
+    public const string ALL_PREREQUISITES = "$^";
 }
 
 static class Debug {
