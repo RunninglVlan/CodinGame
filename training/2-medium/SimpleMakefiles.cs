@@ -10,6 +10,7 @@ static class SimpleMakefiles {
         make.ReadFiles();
         make.ReadRequiredTargets();
         make.ReadMakefile();
+        Console.Error.WriteLine();
         make.PrintActions();
     }
 }
@@ -53,20 +54,31 @@ class Make {
     }
 
     public void PrintActions() {
-        var targetRule = requiredTargets.Length == 0
-                ? rules.First()
-                : rules.First(it => it.Target == requiredTargets.First());
-        if (targetRule.HasActions && !targetRule.IsUpToDate(existingFileTimes)) {
-            foreach (string prerequisite in targetRule.Prerequisites.OrderBy(it => it)) {
-                var prerequisiteRule = rules.First(it => it.Target == prerequisite);
-                if (prerequisiteRule.IsUpToDate(existingFileTimes)) {
-                    continue;
-                }
-                prerequisiteRule.PrintActions();
+        if (requiredTargets.Length == 0) {
+            PrintRuleActions(rules.First());
+        } else {
+            var requiredRules = requiredTargets
+                    .Select(target => rules.First(it => it.Target == target))
+                    .OrderBy(it => it.Target);
+            foreach (var rule in requiredRules) {
+                PrintRuleActions(rule);
             }
-            targetRule.PrintActions();
         }
         Console.WriteLine("[Build complete]");
+    }
+
+    void PrintRuleActions(Rule rule) {
+        if (!rule.HasActions || rule.IsUpToDate(existingFileTimes)) {
+            return;
+        }
+        foreach (string prerequisite in rule.Prerequisites.OrderBy(it => it)) {
+            var prerequisiteRule = rules.FirstOrDefault(it => it.Target == prerequisite);
+            if (prerequisiteRule == null || prerequisiteRule.IsUpToDate(existingFileTimes)) {
+                continue;
+            }
+            prerequisiteRule.PrintActions();
+        }
+        rule.PrintActions();
     }
 }
 
@@ -97,7 +109,7 @@ record Rule(string Target, string[] Prerequisites) {
             if (!fileTimes.TryGetValue(prerequisite, out int prerequisiteTime)) {
                 return false;
             }
-            if (targetTime < prerequisiteTime) {
+            if (targetTime <= prerequisiteTime) {
                 return false;
             }
         }
