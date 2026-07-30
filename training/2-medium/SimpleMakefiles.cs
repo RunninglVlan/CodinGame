@@ -56,20 +56,23 @@ class Make {
         var targetRule = requiredTargets.Length == 0
                 ? rules.First()
                 : rules.First(it => it.Target == requiredTargets.First());
-        foreach (string prerequisite in targetRule.Prerequisites.OrderBy(it => it)) {
-            var prerequisiteRule = rules.First(it => it.Target == prerequisite);
-            if (prerequisiteRule.IsUpToDate(existingFileTimes)) {
-                continue;
+        if (targetRule.HasActions) {
+            foreach (string prerequisite in targetRule.Prerequisites.OrderBy(it => it)) {
+                var prerequisiteRule = rules.First(it => it.Target == prerequisite);
+                if (prerequisiteRule.IsUpToDate(existingFileTimes)) {
+                    continue;
+                }
+                prerequisiteRule.PrintActions();
             }
-            prerequisiteRule.PrintActions();
+            targetRule.PrintActions();
         }
-        targetRule.PrintActions();
         Console.WriteLine("[Build complete]");
     }
 }
 
 record Rule(string Target, string[] Prerequisites) {
     readonly List<string> actions = [];
+    public bool HasActions => actions.Count > 0;
 
     public void Add(string action) => actions.Add(action);
 
