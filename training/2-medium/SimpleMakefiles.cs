@@ -56,7 +56,7 @@ class Make {
         var targetRule = requiredTargets.Length == 0
                 ? rules.First()
                 : rules.First(it => it.Target == requiredTargets.First());
-        if (targetRule.HasActions) {
+        if (targetRule.HasActions && !targetRule.IsUpToDate(existingFileTimes)) {
             foreach (string prerequisite in targetRule.Prerequisites.OrderBy(it => it)) {
                 var prerequisiteRule = rules.First(it => it.Target == prerequisite);
                 if (prerequisiteRule.IsUpToDate(existingFileTimes)) {
