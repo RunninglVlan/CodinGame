@@ -91,18 +91,17 @@ class Make {
         Console.WriteLine("[Build complete]");
     }
 
-    void PrintRuleActions(Rule rule) {
-        if (!rule.HasActions || rule.IsUpToDate(existingFileTimes)) {
+    void PrintRuleActions(Rule targetRule) {
+        if (!targetRule.HasActions || targetRule.IsUpToDate(existingFileTimes)) {
             return;
         }
-        foreach (string prerequisite in rule.Prerequisites.OrderBy(it => it)) {
-            var prerequisiteRule = rules.FirstOrDefault(it => it.Target == prerequisite);
-            if (prerequisiteRule == null || prerequisiteRule.IsUpToDate(existingFileTimes)) {
-                continue;
-            }
-            prerequisiteRule.PrintActions();
+        var prerequisiteRules = rules
+                .Where(it => targetRule.Prerequisites.Contains(it.Target))
+                .OrderBy(it => it.Target);
+        foreach (var rule in prerequisiteRules) {
+            PrintRuleActions(rule);
         }
-        rule.PrintActions();
+        targetRule.PrintActions();
     }
 }
 
