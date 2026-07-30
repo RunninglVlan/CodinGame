@@ -18,18 +18,17 @@ class Make {
     const string ACTION_CHAR = "\t";
     public const char SPACE = ' ';
 
-    File[] preexistingFiles = null!;
+    readonly Dictionary<string, int> existingFileTimes = [];
     string[] requiredTargets = null!;
     readonly List<Rule> rules = [];
 
     public void ReadFiles() {
         int files = Math.Clamp(int.Parse(Debug.ReadLine()), 0, 20);
-        preexistingFiles = new File[files];
         for (var i = 0; i < files; i++) {
             string[] inputs = Debug.ReadLine().Split();
             string preexistingFile = inputs.First();
             int fileTime = Math.Clamp(int.Parse(inputs.Last()), 0, 1000);
-            preexistingFiles[i] = new File(preexistingFile, fileTime);
+            existingFileTimes.Add(preexistingFile, fileTime);
         }
     }
 
@@ -59,7 +58,7 @@ class Make {
                 : rules.First(it => it.Target == requiredTargets.First());
         foreach (string prerequisite in targetRule.Prerequisites.OrderBy(it => it)) {
             var prerequisiteRule = rules.First(it => it.Target == prerequisite);
-            if (prerequisiteRule.IsUpToDate(preexistingFiles)) {
+            if (prerequisiteRule.IsUpToDate(existingFileTimes)) {
                 continue;
             }
             prerequisiteRule.PrintActions();
@@ -68,8 +67,6 @@ class Make {
         Console.WriteLine("[Build complete]");
     }
 }
-
-record struct File(string Name, int Time);
 
 record Rule(string Target, string[] Prerequisites) {
     readonly List<string> actions = [];
@@ -87,28 +84,15 @@ record Rule(string Target, string[] Prerequisites) {
         }
     }
 
-    public bool IsUpToDate(File[] preexistingFiles) {
-        File? targetFile = null;
-        foreach (var file in preexistingFiles) {
-            if (file.Name != Target) {
-                continue;
-            }
-            targetFile = file;
-            break;
-        }
-        if (targetFile == null) {
+    public bool IsUpToDate(Dictionary<string, int> fileTimes) {
+        if (!fileTimes.TryGetValue(Target, out int targetTime)) {
             return false;
         }
         foreach (string prerequisite in Prerequisites) {
-            File? prerequisiteFile = null;
-            foreach (var file in preexistingFiles) {
-                if (file.Name != prerequisite) {
-                    continue;
-                }
-                prerequisiteFile = file;
-                break;
+            if (!fileTimes.TryGetValue(prerequisite, out int prerequisiteTime)) {
+                return false;
             }
-            if (prerequisiteFile == null || targetFile.Value.Time < prerequisiteFile.Value.Time) {
+            if (targetTime < prerequisiteTime) {
                 return false;
             }
         }
