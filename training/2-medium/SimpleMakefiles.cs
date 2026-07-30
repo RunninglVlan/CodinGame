@@ -13,11 +13,11 @@ static class SimpleMakefiles {
 
 class Make {
     public void ReadFiles() {
-        int files = int.Parse(Debug.ReadLine());
+        int files = Math.Clamp(int.Parse(Debug.ReadLine()), 0, 20);
         for (var _ = 0; _ < files; _++) {
             string[] inputs = Debug.ReadLine().Split(' ');
             string preexistingFile = inputs[0];
-            int fileTime = int.Parse(inputs[1]);
+            int fileTime = Math.Clamp(int.Parse(inputs[1]), 0, 1000);
         }
     }
 
@@ -26,7 +26,7 @@ class Make {
     }
 
     public void ReadMakefile() {
-        int lines = int.Parse(Debug.ReadLine());
+        int lines = Math.Clamp(int.Parse(Debug.ReadLine()), 1, 100);
         for (var _ = 0; _ < lines; _++) {
             string makefileLine = Debug.ReadLine();
         }
