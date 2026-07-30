@@ -79,10 +79,12 @@ record Rule(string Target, string[] Prerequisites) {
     [SuppressMessage("ReSharper", "ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator")]
     public void PrintActions() {
         foreach (string action in actions) {
-            string replaced = action
-                    .Replace(Macros.CURRENT_TARGET, Target)
-                    .Replace(Macros.FIRST_PREREQUISITE, Prerequisites.First())
-                    .Replace(Macros.ALL_PREREQUISITES, string.Join(Make.SPACE, Prerequisites));
+            string replaced = action.Replace(Macros.CURRENT_TARGET, Target);
+            if (Prerequisites.Length > 0) {
+                replaced = replaced
+                        .Replace(Macros.FIRST_PREREQUISITE, Prerequisites.First())
+                        .Replace(Macros.ALL_PREREQUISITES, string.Join(Make.SPACE, Prerequisites));
+            }
             Console.WriteLine(replaced);
         }
     }
