@@ -40,40 +40,29 @@ class Make {
 
     public void ReadMakefile() {
         int lines = Math.Clamp(int.Parse(Debug.ReadLine()), 1, 100);
+        string[] lastRuleTargets = [];
         for (var _ = 0; _ < lines; _++) {
             string makefileLine = Debug.ReadLine();
             if (makefileLine.StartsWith(COMMENT)) {
                 continue;
             }
             if (!makefileLine.StartsWith(ACTION_CHAR)) {
-                DuplicateLastRuleIfNeeded();
                 string[] tokens = makefileLine.Split(':');
-                string target = tokens.First();
+                lastRuleTargets = tokens.First().Split(SPACE);
                 string[] prerequisites = tokens.Last().Split(SPACE, StringSplitOptions.RemoveEmptyEntries);
-                rules.Add(new Rule(target, prerequisites));
+                foreach (string target in lastRuleTargets) {
+                    rules.Add(new Rule(target, prerequisites));
+                }
             } else {
-                var lastRule = rules.Last();
-                int actionStart = makefileLine.IndexOf(ACTION_CHAR) + 1;
-                int actionEnd = makefileLine.IndexOf(COMMENT);
-                actionEnd = actionEnd == -1 ? makefileLine.Length : actionEnd;
-                string action = makefileLine[actionStart..actionEnd].TrimEnd();
-                lastRule.Add(action);
+                var lastRules = lastRuleTargets.Select(target => rules.Last(it => it.Target == target));
+                foreach (var lastRule in lastRules) {
+                    int actionStart = makefileLine.IndexOf(ACTION_CHAR) + 1;
+                    int actionEnd = makefileLine.IndexOf(COMMENT);
+                    actionEnd = actionEnd == -1 ? makefileLine.Length : actionEnd;
+                    string action = makefileLine[actionStart..actionEnd].TrimEnd();
+                    lastRule.Add(action);
+                }
             }
-        }
-        DuplicateLastRuleIfNeeded();
-    }
-
-    void DuplicateLastRuleIfNeeded() {
-        if (rules.Count == 0) {
-            return;
-        }
-        var lastRule = rules.Last();
-        if (!lastRule.Target.Contains(SPACE)) {
-            return;
-        }
-        rules.Remove(lastRule);
-        foreach (string target in lastRule.Target.Split(SPACE)) {
-            rules.Add(lastRule with { Target = target });
         }
     }
 
@@ -82,7 +71,7 @@ class Make {
             PrintRuleActions(rules.First());
         } else {
             var requiredRules = requiredTargets
-                    .Select(target => rules.First(it => it.Target == target))
+                    .SelectMany(target => rules.Where(it => it.Target == target))
                     .OrderBy(it => it.Target);
             foreach (var rule in requiredRules) {
                 PrintRuleActions(rule);
