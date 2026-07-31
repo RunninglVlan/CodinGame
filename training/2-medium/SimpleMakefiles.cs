@@ -18,7 +18,6 @@ static class SimpleMakefiles {
 class Make {
     const char ACTION_CHAR = '\t';
     public const char SPACE = ' ';
-    const char COMMENT = '#';
 
     readonly Dictionary<string, int> existingFileTimes = [];
     string[] requiredTargets = null!;
@@ -43,12 +42,14 @@ class Make {
         string[] lastRuleTargets = [];
         for (var _ = 0; _ < lines; _++) {
             string makefileLine = Debug.ReadLine();
-            if (makefileLine.StartsWith(COMMENT)) {
+            bool isAction = makefileLine.StartsWith(ACTION_CHAR);
+            makefileLine = StripComments(makefileLine);
+            if (string.IsNullOrEmpty(makefileLine)) {
                 continue;
             }
-            if (!makefileLine.StartsWith(ACTION_CHAR)) {
+            if (!isAction) {
                 string[] tokens = makefileLine.Split(':');
-                lastRuleTargets = tokens.First().Split(SPACE);
+                lastRuleTargets = tokens.First().Split(SPACE, StringSplitOptions.RemoveEmptyEntries);
                 string[] prerequisites = tokens.Last().Split(SPACE, StringSplitOptions.RemoveEmptyEntries);
                 foreach (string target in lastRuleTargets) {
                     rules.Add(new Rule(target, prerequisites));
@@ -56,14 +57,19 @@ class Make {
             } else {
                 var lastRules = lastRuleTargets.Select(target => rules.Last(it => it.Target == target));
                 foreach (var lastRule in lastRules) {
-                    int actionStart = makefileLine.IndexOf(ACTION_CHAR) + 1;
-                    int actionEnd = makefileLine.IndexOf(COMMENT);
-                    actionEnd = actionEnd == -1 ? makefileLine.Length : actionEnd;
-                    string action = makefileLine[actionStart..actionEnd].TrimEnd();
-                    lastRule.Add(action);
+                    lastRule.Add(makefileLine);
                 }
             }
         }
+    }
+
+    static string StripComments(string line) {
+        line = line.Trim();
+        int commentIndex = line.IndexOf('#');
+        if (commentIndex == 0) {
+            return string.Empty;
+        }
+        return commentIndex == -1 ? line : line[..commentIndex].TrimEnd();
     }
 
     public void PrintActions() {
