@@ -91,12 +91,17 @@ class Make {
             PrintRuleActions(rule);
         }
         targetRule.PrintActions();
+        targetRule.WasExecuted = true;
+        if (rules.Where(it => it.Target == targetRule.Target).All(it => it.WasExecuted)) {
+            existingFileTimes[targetRule.Target] = existingFileTimes.Values.Max() + 1;
+        }
     }
 }
 
 record Rule(string Target, string[] Prerequisites) {
     readonly List<string> actions = [];
     public bool HasActions => actions.Count > 0;
+    public bool WasExecuted { get; set; }
 
     public void Add(string action) => actions.Add(action);
 
