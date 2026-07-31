@@ -98,7 +98,7 @@ class Make {
     }
 
     void PrintRuleActions(Rule targetRule) {
-        if (!targetRule.HasActions || targetRule.IsUpToDate(existingFileTimes)) {
+        if (!targetRule.HasActions || IsUpToDate(targetRule)) {
             return;
         }
         var prerequisiteRules = rules
@@ -115,6 +115,24 @@ class Make {
         int maxTime = existingFileTimes.Count > 0 ? existingFileTimes.Values.Max() : 0;
         existingFileTimes[targetRule.Target] = maxTime + 1;
     }
+
+    bool IsUpToDate(Rule rule) {
+        if (!existingFileTimes.TryGetValue(rule.Target, out int targetTime)) {
+            return false;
+        }
+        foreach (string prerequisite in rule.Prerequisites) {
+            if (!existingFileTimes.TryGetValue(prerequisite, out int prerequisiteTime)) {
+                return false;
+            }
+            if (targetTime <= prerequisiteTime) {
+                return false;
+            }
+            if (!rules.Where(it => it.Target == prerequisite).All(IsUpToDate)) {
+                return false;
+            }
+        }
+        return true;
+    }
 }
 
 record Rule(string Target, string[] Prerequisites) {
@@ -123,21 +141,6 @@ record Rule(string Target, string[] Prerequisites) {
     public bool WasExecuted { get; set; }
 
     public void Add(string action) => actions.Add(action);
-
-    public bool IsUpToDate(Dictionary<string, int> fileTimes) {
-        if (!fileTimes.TryGetValue(Target, out int targetTime)) {
-            return false;
-        }
-        foreach (string prerequisite in Prerequisites) {
-            if (!fileTimes.TryGetValue(prerequisite, out int prerequisiteTime)) {
-                return false;
-            }
-            if (targetTime <= prerequisiteTime) {
-                return false;
-            }
-        }
-        return true;
-    }
 
     [SuppressMessage("ReSharper", "ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator")]
     public void PrintActions() {
