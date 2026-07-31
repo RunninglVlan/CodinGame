@@ -81,14 +81,9 @@ class Make {
             return;
         }
         if (requiredTargets.Length == 0) {
-            PrintRuleActions(rules.First());
+            PrintRuleActions([rules.First()]);
         } else {
-            var requiredRules = requiredTargets
-                    .SelectMany(target => rules.Where(it => it.Target == target))
-                    .OrderBy(it => it.Target);
-            foreach (var rule in requiredRules) {
-                PrintRuleActions(rule);
-            }
+            PrintRuleActions(requiredTargets);
         }
         Console.WriteLine("[Build complete]");
     }
@@ -106,23 +101,24 @@ class Make {
         }
     }
 
-    void PrintRuleActions(Rule targetRule) {
-        if (!targetRule.HasActions || IsUpToDate(targetRule)) {
+    void PrintRuleActions(IEnumerable<string> required) {
+        var ruleGroups = required
+                .SelectMany(target => rules.Where(it => it.Target == target))
+                .OrderBy(it => it.Target)
+                .GroupBy(it => it.Target);
+        foreach (var group in ruleGroups) {
+            PrintRuleActions([.. group]);
+        }
+    }
+
+    void PrintRuleActions(List<Rule> targetRules) {
+        if (!targetRules.All(it => it.HasActions) || targetRules.All(IsUpToDate)) {
             return;
         }
-        var prerequisiteRules = rules
-                .Where(it => targetRule.Prerequisites.Contains(it.Target))
-                .OrderBy(it => it.Target);
-        foreach (var rule in prerequisiteRules) {
-            PrintRuleActions(rule);
-        }
-        targetRule.PrintActions();
-        targetRule.WasExecuted = true;
-        if (!rules.Where(it => it.Target == targetRule.Target).All(it => it.WasExecuted)) {
-            return;
-        }
+        PrintRuleActions(targetRules.SelectMany(it => it.Prerequisites));
+        targetRules.ForEach(it => it.PrintActions());
         int maxTime = existingFileTimes.Count > 0 ? existingFileTimes.Values.Max() : 0;
-        existingFileTimes[targetRule.Target] = maxTime + 1;
+        existingFileTimes[targetRules.First().Target] = maxTime + 1;
     }
 
     bool IsUpToDate(Rule rule) {
@@ -147,7 +143,6 @@ class Make {
 record Rule(string Target, string[] Prerequisites) {
     readonly List<string> actions = [];
     public bool HasActions => actions.Count > 0;
-    public bool WasExecuted { get; set; }
 
     public void Add(string action) => actions.Add(action);
 
