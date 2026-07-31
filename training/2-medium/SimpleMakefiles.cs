@@ -67,27 +67,37 @@ class Make {
     }
 
     public void PrintActions() {
-        try {
-            if (requiredTargets.Length == 0) {
-                PrintRuleActions(rules.First(), []);
-            } else {
-                var requiredRules = requiredTargets
-                        .SelectMany(target => rules.Where(it => it.Target == target))
-                        .OrderBy(it => it.Target);
-                foreach (var rule in requiredRules) {
-                    PrintRuleActions(rule, []);
-                }
-            }
-            Console.WriteLine("[Build complete]");
-        } catch (CircularDependencyException) {
+        if (CheckCircularDependency()) {
             Console.WriteLine("[Circular dependencies detected]");
+            return;
+        }
+        if (requiredTargets.Length == 0) {
+            PrintRuleActions(rules.First());
+        } else {
+            var requiredRules = requiredTargets
+                    .SelectMany(target => rules.Where(it => it.Target == target))
+                    .OrderBy(it => it.Target);
+            foreach (var rule in requiredRules) {
+                PrintRuleActions(rule);
+            }
+        }
+        Console.WriteLine("[Build complete]");
+    }
+
+    bool CheckCircularDependency() {
+        return rules.Any(it => Check(it, []));
+
+        bool Check(Rule current, HashSet<Rule> currentRules) {
+            if (currentRules.Contains(current)) {
+                return true;
+            }
+            return rules
+                    .Where(it => current.Prerequisites.Contains(it.Target))
+                    .Any(it => Check(it, [.. currentRules, current]));
         }
     }
 
-    void PrintRuleActions(Rule targetRule, HashSet<Rule> currentRules) {
-        if (!currentRules.Add(targetRule)) {
-            throw new CircularDependencyException();
-        }
+    void PrintRuleActions(Rule targetRule) {
         if (!targetRule.HasActions || targetRule.IsUpToDate(existingFileTimes)) {
             return;
         }
@@ -95,7 +105,7 @@ class Make {
                 .Where(it => targetRule.Prerequisites.Contains(it.Target))
                 .OrderBy(it => it.Target);
         foreach (var rule in prerequisiteRules) {
-            PrintRuleActions(rule, currentRules);
+            PrintRuleActions(rule);
         }
         targetRule.PrintActions();
         targetRule.WasExecuted = true;
@@ -106,8 +116,6 @@ class Make {
         existingFileTimes[targetRule.Target] = maxTime + 1;
     }
 }
-
-class CircularDependencyException : Exception;
 
 record Rule(string Target, string[] Prerequisites) {
     readonly List<string> actions = [];
