@@ -112,7 +112,7 @@ class Make {
     }
 
     void PrintRuleActions(List<Rule> targetRules) {
-        if (!targetRules.All(it => it.HasActions) || targetRules.All(IsUpToDate)) {
+        if (targetRules.All(IsUpToDate)) {
             return;
         }
         PrintRuleActions(targetRules.SelectMany(it => it.Prerequisites));
@@ -142,20 +142,18 @@ class Make {
 
 record Rule(string Target, string[] Prerequisites) {
     readonly List<string> actions = [];
-    public bool HasActions => actions.Count > 0;
 
     public void Add(string action) => actions.Add(action);
 
     [SuppressMessage("ReSharper", "ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator")]
     public void PrintActions() {
         foreach (string action in actions) {
-            string replaced = action.Replace(Macros.CURRENT_TARGET, Target);
-            if (Prerequisites.Length > 0) {
-                replaced = replaced
-                        .Replace(Macros.FIRST_PREREQUISITE, Prerequisites.First())
-                        .Replace(Macros.ALL_PREREQUISITES, string.Join(Make.SPACE, Prerequisites));
-            }
-            Console.WriteLine(replaced);
+            string firstPrerequisite = Prerequisites.Length > 0 ? Prerequisites.First() : string.Empty;
+            string replaced = action
+                    .Replace(Macros.CURRENT_TARGET, Target)
+                    .Replace(Macros.FIRST_PREREQUISITE, firstPrerequisite)
+                    .Replace(Macros.ALL_PREREQUISITES, string.Join(Make.SPACE, Prerequisites));
+            Console.WriteLine(replaced.Trim());
         }
     }
 }
