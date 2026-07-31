@@ -184,7 +184,7 @@ record GameState(Position Position) : IState<GameState> {
     }
 
     public GameState CopyWith(Position position) => new(position) {
-        Commands = [..Commands],
+        Commands = [.. Commands],
         RotatableRooms = RotatableRooms.ToDictionary(it => it.Key, it => it.Value with { })
     };
 }

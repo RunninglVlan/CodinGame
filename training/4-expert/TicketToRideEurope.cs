@@ -297,14 +297,14 @@ class Pathfinding<T> where T : INode<T> {
     [SuppressMessage("ReSharper", "ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator")]
     static IEnumerable<List<T>> Paths(T current, T end, List<T> path, HashSet<int> visited) {
         if (current.Id == end.Id) {
-            yield return [..path];
+            yield return [.. path];
             yield break;
         }
         foreach (var next in current.Connections) {
             if (visited.Contains(next.Id)) {
                 continue;
             }
-            foreach (var result in Paths(next, end, [..path, next], [..visited, next.Id])) {
+            foreach (var result in Paths(next, end, [.. path, next], [.. visited, next.Id])) {
                 yield return result;
             }
         }
