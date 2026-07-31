@@ -99,9 +99,11 @@ class Make {
         }
         targetRule.PrintActions();
         targetRule.WasExecuted = true;
-        if (rules.Where(it => it.Target == targetRule.Target).All(it => it.WasExecuted)) {
-            existingFileTimes[targetRule.Target] = existingFileTimes.Values.Max() + 1;
+        if (!rules.Where(it => it.Target == targetRule.Target).All(it => it.WasExecuted)) {
+            return;
         }
+        int maxTime = existingFileTimes.Count > 0 ? existingFileTimes.Values.Max() : 0;
+        existingFileTimes[targetRule.Target] = maxTime + 1;
     }
 }
 
