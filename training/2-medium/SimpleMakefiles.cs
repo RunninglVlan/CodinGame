@@ -49,8 +49,8 @@ class Make {
             }
             if (!isAction) {
                 string[] tokens = makefileLine.Split(':');
-                lastRuleTargets = tokens.First().Split(SPACE, StringSplitOptions.RemoveEmptyEntries);
-                string[] prerequisites = tokens.Last().Split(SPACE, StringSplitOptions.RemoveEmptyEntries);
+                lastRuleTargets = Split(tokens.First());
+                string[] prerequisites = Split(tokens.Last());
                 foreach (string target in lastRuleTargets) {
                     rules.Add(new Rule(target, prerequisites));
                 }
@@ -61,6 +61,9 @@ class Make {
                 }
             }
         }
+        return;
+
+        string[] Split(string token) => [.. token.Split(SPACE, StringSplitOptions.RemoveEmptyEntries).Distinct()];
     }
 
     static string StripComments(string line) {
