@@ -67,20 +67,27 @@ class Make {
     }
 
     public void PrintActions() {
-        if (requiredTargets.Length == 0) {
-            PrintRuleActions(rules.First());
-        } else {
-            var requiredRules = requiredTargets
-                    .SelectMany(target => rules.Where(it => it.Target == target))
-                    .OrderBy(it => it.Target);
-            foreach (var rule in requiredRules) {
-                PrintRuleActions(rule);
+        try {
+            if (requiredTargets.Length == 0) {
+                PrintRuleActions(rules.First(), []);
+            } else {
+                var requiredRules = requiredTargets
+                        .SelectMany(target => rules.Where(it => it.Target == target))
+                        .OrderBy(it => it.Target);
+                foreach (var rule in requiredRules) {
+                    PrintRuleActions(rule, []);
+                }
             }
+            Console.WriteLine("[Build complete]");
+        } catch (CircularDependencyException) {
+            Console.WriteLine("[Circular dependencies detected]");
         }
-        Console.WriteLine("[Build complete]");
     }
 
-    void PrintRuleActions(Rule targetRule) {
+    void PrintRuleActions(Rule targetRule, HashSet<Rule> currentRules) {
+        if (!currentRules.Add(targetRule)) {
+            throw new CircularDependencyException();
+        }
         if (!targetRule.HasActions || targetRule.IsUpToDate(existingFileTimes)) {
             return;
         }
@@ -88,7 +95,7 @@ class Make {
                 .Where(it => targetRule.Prerequisites.Contains(it.Target))
                 .OrderBy(it => it.Target);
         foreach (var rule in prerequisiteRules) {
-            PrintRuleActions(rule);
+            PrintRuleActions(rule, currentRules);
         }
         targetRule.PrintActions();
         targetRule.WasExecuted = true;
@@ -97,6 +104,8 @@ class Make {
         }
     }
 }
+
+class CircularDependencyException : Exception;
 
 record Rule(string Target, string[] Prerequisites) {
     readonly List<string> actions = [];
