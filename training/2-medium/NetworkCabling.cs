@@ -28,13 +28,11 @@ class Solution {
     public long CableLength() {
         int minX = buildings.Min(it => it.X);
         int maxX = buildings.Max(it => it.X);
+        long[] ys = [.. buildings.Select(it => (long)it.Y).Distinct()];
         int main = maxX - minX;
-        long[] ys = buildings.Select(it => (long)it.Y).Distinct().ToArray();
         long minRemaining = ys.Select(mainY => ys.Sum(y => Math.Abs(y - mainY))).Min();
         return main + minRemaining;
     }
 }
 
-readonly record struct Point(int X, int Y) {
-    public override string ToString() => $"({X}, {Y})";
-}
+readonly record struct Point(int X, int Y);
