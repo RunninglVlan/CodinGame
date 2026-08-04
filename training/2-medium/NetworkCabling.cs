@@ -25,19 +25,12 @@ class Solution {
         }
     }
 
-    public int CableLength() {
+    public long CableLength() {
         int minX = buildings.Min(it => it.X);
         int maxX = buildings.Max(it => it.X);
         int main = maxX - minX;
-        int[] ys = buildings.Select(it => it.Y).Distinct().ToArray();
-        var minRemaining = int.MaxValue;
-        foreach (int mainY in ys) {
-            var remaining = 0;
-            foreach (int y in ys) {
-                remaining += Math.Abs(y - mainY);
-            }
-            minRemaining = Math.Min(minRemaining, remaining);
-        }
+        long[] ys = buildings.Select(it => (long)it.Y).Distinct().ToArray();
+        long minRemaining = ys.Select(mainY => ys.Sum(y => Math.Abs(y - mainY))).Min();
         return main + minRemaining;
     }
 }
