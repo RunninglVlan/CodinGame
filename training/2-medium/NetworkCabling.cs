@@ -28,12 +28,14 @@ class Solution {
     public int CableLength() {
         int minX = buildings.Min(it => it.X);
         int maxX = buildings.Max(it => it.X);
-        int minY = buildings.Min(it => it.Y);
-        int maxY = buildings.Max(it => it.Y);
         int main = maxX - minX;
+        int[] ys = buildings.Select(it => it.Y).Distinct().ToArray();
         var minRemaining = int.MaxValue;
-        for (int y = minY; y <= maxY; y++) {
-            int remaining = buildings.Sum(it => Math.Abs(it.Y - y));
+        foreach (int mainY in ys) {
+            var remaining = 0;
+            foreach (int y in ys) {
+                remaining += Math.Abs(y - mainY);
+            }
             minRemaining = Math.Min(minRemaining, remaining);
         }
         return main + minRemaining;
