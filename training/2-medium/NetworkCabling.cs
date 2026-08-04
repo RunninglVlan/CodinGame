@@ -30,7 +30,7 @@ class Solution {
         int maxX = buildings.Max(it => it.X);
         long[] ys = [.. buildings.Select(it => (long)it.Y).Distinct()];
         int main = maxX - minX;
-        long minRemaining = ys.Select(mainY => ys.Sum(y => Math.Abs(y - mainY))).Min();
+        long minRemaining = ys.Select(mainY => buildings.Sum(it => Math.Abs(it.Y - mainY))).Min();
         return main + minRemaining;
     }
 }
