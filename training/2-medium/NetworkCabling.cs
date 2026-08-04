@@ -28,10 +28,10 @@ class Solution {
     public long CableLength() {
         int minX = buildings.Min(it => it.X);
         int maxX = buildings.Max(it => it.X);
-        long[] ys = [.. buildings.Select(it => (long)it.Y).Distinct()];
+        long medianY = buildings.Select(it => (long)it.Y).OrderBy(it => it).ElementAt(buildings.Length / 2);
         int main = maxX - minX;
-        long minRemaining = ys.Select(mainY => buildings.Sum(it => Math.Abs(it.Y - mainY))).Min();
-        return main + minRemaining;
+        long remaining = buildings.Sum(it => Math.Abs(it.Y - medianY));
+        return main + remaining;
     }
 }
 
