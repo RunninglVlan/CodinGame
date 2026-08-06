@@ -7,8 +7,15 @@ using System.Linq;
 static class WinamaxSponsoredContest {
     static void Main() {
         const string testCase = """
-                                2 1
-                                1H
+                                8 8
+                                .XXX.5X.
+                                X.4.X..X
+                                X4..X3.X
+                                X...X.X.
+                                .X.X.H.X
+                                X.HX...X
+                                X..X.H.X
+                                .XH.XXX.
                                 """;
         Console.SetIn(new StringReader(testCase));
         string[] dimensions = Console.ReadLine()!.Split(' ');
@@ -21,22 +28,23 @@ static class WinamaxSponsoredContest {
                 course.Read(line, x, y);
             }
         }
-        course.FindUniquePaths();
-        course.PrintPaths();
+        course.FindUnique(out var paths);
+        course.Print(paths);
     }
 }
 
-class GolfCourse : IGrid<BallPath> {
-    readonly Pathfinding<BallPath> pathfinding;
+class GolfCourse : IGrid<CourseState>, IGrid<BallPath> {
+    readonly Pathfinding<CourseState> stateFinding;
+    readonly Pathfinding<BallPath> pathFinding;
 
     readonly int width, height;
     readonly bool[,] waterCells;
     readonly List<Ball> balls = [];
     readonly List<Point> holes = [];
-    readonly Dictionary<Point, string> paths = [];
 
     public GolfCourse(int width, int height) {
-        pathfinding = new Pathfinding<BallPath>(this);
+        stateFinding = new Pathfinding<CourseState>(this);
+        pathFinding = new Pathfinding<BallPath>(this);
         this.width = width;
         this.height = height;
         waterCells = new bool[width, height];
@@ -52,32 +60,13 @@ class GolfCourse : IGrid<BallPath> {
         waterCells[x, y] = c == 'W';
     }
 
-    public void FindUniquePaths() {
-        foreach (var ball in balls) {
-            for (int i = holes.Count - 1; i >= 0; i--) {
-                var end = holes[i];
-                BallPath? path = pathfinding.Path(new BallPath([ball.Point], ball.Shots),
-                        path => path.Points.Last() == end && path.Shots == 0);
-                if (path == null) {
-                    continue;
-                }
-                holes.RemoveAt(i);
-                AddArrowPath(path.Value.Points);
-                break;
-            }
-        }
+    public void FindUnique(out Dictionary<Point, string> paths) {
+        var start = new CourseState(0, holes, new Dictionary<Point, string>());
+        stateFinding.TryFind(start, it => it.BallIndex >= balls.Count || it.Holes.Count == 0, out var result);
+        paths = result.Paths;
     }
 
-    void AddArrowPath(List<Point> path) {
-        for (var i = 0; i < path.Count - 1; i++) {
-            var current = path[i];
-            var next = path[i + 1];
-            var direction = next - current;
-            paths.Add(current, Screen.ToString(direction));
-        }
-    }
-
-    public void PrintPaths() {
+    public void Print(Dictionary<Point, string> paths) {
         const string empty = ".";
         for (var y = 0; y < height; y++) {
             for (var x = 0; x < width; x++) {
@@ -87,8 +76,23 @@ class GolfCourse : IGrid<BallPath> {
         }
     }
 
-    IEnumerable<BallPath> IGrid<BallPath>.Next(BallPath currentPath) {
-        if (currentPath.Shots <= 0) {
+    IEnumerable<CourseState> IGrid<CourseState>.Next(CourseState current) {
+        var ball = balls[current.BallIndex];
+        for (int i = current.Holes.Count - 1; i >= 0; i--) {
+            var start = new BallPath([ball.Point], ball.Shots, current.Paths);
+            var end = current.Holes[i];
+            if (!pathFinding.TryFind(start, it => it.HasReached(end), out var path)) {
+                continue;
+            }
+            var next = new CourseState(current.BallIndex + 1, [.. current.Holes], current.Paths.ToDictionary());
+            next.Holes.RemoveAt(i);
+            next.AddArrowPath(path.Points);
+            yield return next;
+        }
+    }
+
+    IEnumerable<BallPath> IGrid<BallPath>.Next(BallPath current) {
+        if (current.Shots <= 0) {
             yield break;
         }
         foreach (var direction in Screen.Directions4) {
@@ -100,16 +104,17 @@ class GolfCourse : IGrid<BallPath> {
             if (waterCells[last.X, last.Y]) {
                 continue;
             }
-            currentPath.Points.AddRange(path);
-            yield return currentPath with { Shots = currentPath.Shots - 1 };
+            yield return new BallPath([.. current.Points, .. path], current.Shots - 1, current.Paths);
         }
         yield break;
 
         IEnumerable<Point> TryMove(Point direction) {
-            var current = currentPath.Points.Last();
-            for (var move = 1; move <= currentPath.Shots; move++) {
-                var next = current + direction * move;
-                if (next.InBounds(width, height) && !paths.ContainsKey(next)) {
+            var last = current.Points.Last();
+            for (var move = 1; move <= current.Shots; move++) {
+                var next = last + direction * move;
+                if (next.InBounds(width, height)
+                        && !current.Paths.ContainsKey(next)
+                        && !current.Points.Contains(next)) {
                     yield return next;
                 }
             }
@@ -131,7 +136,9 @@ readonly record struct Point(int X, int Y) {
 
 readonly record struct Ball(Point Point, int Shots);
 
-readonly record struct BallPath(List<Point> Points, int Shots) {
+readonly record struct BallPath(List<Point> Points, int Shots, Dictionary<Point, string> Paths) {
+    public bool HasReached(Point end) => Points.Last() == end;
+
     [SuppressMessage("ReSharper", "ArrangeRedundantParentheses")]
     public bool Equals(BallPath other) {
         return (Points.Count > 0 && other.Points.Count > 0)
@@ -141,6 +148,17 @@ readonly record struct BallPath(List<Point> Points, int Shots) {
 
     public override int GetHashCode() {
         return HashCode.Combine(Points.Count > 0 ? Points.Last() : default, Shots);
+    }
+}
+
+readonly record struct CourseState(int BallIndex, List<Point> Holes, Dictionary<Point, string> Paths) {
+    public void AddArrowPath(List<Point> path) {
+        for (var i = 0; i < path.Count - 1; i++) {
+            var current = path[i];
+            var next = path[i + 1];
+            var direction = next - current;
+            Paths.Add(current, Screen.ToString(direction));
+        }
     }
 }
 
@@ -166,14 +184,15 @@ class Pathfinding<T>(IGrid<T> grid) where T : IEquatable<T> {
     readonly HashSet<T> visited = [];
 
     /// BFS
-    public T? Path(T start, Predicate<T> endPredicate) {
+    public bool TryFind(T start, Predicate<T> endPredicate, out T result) {
         queue.Clear();
         visited.Clear();
         queue.Enqueue(start);
         visited.Add(start);
         while (queue.TryDequeue(out var current)) {
             if (endPredicate(current)) {
-                return current;
+                result = current;
+                return true;
             }
             foreach (var next in grid.Next(current)) {
                 if (!visited.Add(next)) {
@@ -182,7 +201,8 @@ class Pathfinding<T>(IGrid<T> grid) where T : IEquatable<T> {
                 queue.Enqueue(next);
             }
         }
-        return default;
+        result = default!;
+        return false;
     }
 }
 
