@@ -13,15 +13,19 @@ static class WhereWasThisKnightBefore {
         for (int y = size - 1; y >= 0; y--) {
             string line = Console.ReadLine()!;
             for (var x = 0; x < size; x++) {
-                board[x, y] = line[x];
+                char square = line[x];
+                board[x, y] = pieces.Contains(char.ToUpper(square)) ? square : empty;
             }
         }
         var move = new Move();
         for (int y = size - 1; y >= 0; y--) {
             string line = Console.ReadLine()!;
             for (var x = 0; x < size; x++) {
-                char squareBefore = board[x, y];
                 char square = line[x];
+                if (!pieces.Contains(char.ToUpper(square))) {
+                    square = empty;
+                }
+                char squareBefore = board[x, y];
                 if (square == squareBefore) {
                     continue;
                 }
