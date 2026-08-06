@@ -12,14 +12,22 @@ static class TelephoneNumbers {
             phones.Add(phoneNumber);
         }
 
-        List<string> uniquePhones = [phones.First()];
-        for (var i = 1; i < phones.Count; i++) {
-            string phone = phones[i];
-            if (!uniquePhones.Any(it => it.StartsWith(phone))) {
-                uniquePhones.Add(phone);
-            }
+        string first = phones.First();
+        var phoneTries = new Trie(first[0], []);
+        var lastTrie = phoneTries;
+        for (var i = 1; i < first.Length; i++) {
+            char digit = first[i];
+            var trie = new Trie(digit, []);
+            lastTrie.Children.Add(trie);
+            lastTrie = trie;
         }
         // the number of elements (referencing a number) stored in the structure
-        Console.WriteLine(uniquePhones.Select(it => it.Length).Sum());
+        Console.WriteLine(phoneTries.CountAll());
+    }
+}
+
+record Trie(char Digit, List<Trie> Children) {
+    public int CountAll() {
+        return 1 + Children.Sum(child => child.CountAll());
     }
 }
