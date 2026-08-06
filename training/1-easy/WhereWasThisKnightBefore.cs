@@ -65,7 +65,14 @@ class Move {
     public Point To { get; set; }
     public string Piece { get; set; } = string.Empty;
     public bool Capture { get; set; }
-    public bool IsKnight => Point.ManhattanDistance(From, To) == 3;
+
+    public bool IsKnight {
+        get {
+            int distX = Math.Abs(From.X - To.X);
+            int distY = Math.Abs(From.Y - To.Y);
+            return distX == 2 && distY == 1 || distX == 1 && distY == 2;
+        }
+    }
 
     public override string ToString() {
         var from = $"{X_CHARS[From.X]}{Y_CHARS[From.Y]}";
@@ -75,9 +82,5 @@ class Move {
 }
 
 readonly record struct Point(int X, int Y) {
-    public static int ManhattanDistance(Point a, Point b) {
-        return Math.Abs(a.X - b.X) + Math.Abs(a.Y - b.Y);
-    }
-
     public override string ToString() => $"({X}, {Y})";
 }
