@@ -37,6 +37,7 @@ class GolfCourse : IGrid<BallPath> {
     }
 
     public void Read(string line, int x, int y) {
+        const char waterHazard = 'X';
         char c = line[x];
         if (char.IsDigit(c)) {
             var point = new Point(x, y);
@@ -45,7 +46,7 @@ class GolfCourse : IGrid<BallPath> {
         } else if (c == 'H') {
             holePoints.Add(new Point(x, y));
         }
-        waterCells[x, y] = c == 'W';
+        waterCells[x, y] = c == waterHazard;
     }
 
     /// Backtracking
