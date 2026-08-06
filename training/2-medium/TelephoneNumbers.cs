@@ -12,26 +12,25 @@ static class TelephoneNumbers {
             phones.Add(phoneNumber);
         }
 
-        var phoneTries = new HashSet<Trie>();
+        var root = new Dictionary<char, Trie>();
         foreach (string phone in phones) {
-            var currentTries = phoneTries;
+            var current = root;
             foreach (char digit in phone) {
-                if (currentTries.Any(it => it.Digit == digit)) {
-                    var trie = currentTries.First(it => it.Digit == digit);
-                    currentTries = trie.Children;
+                if (current.TryGetValue(digit, out var trie)) {
+                    current = trie.Children;
                 } else {
-                    var trie = new Trie(digit, []);
-                    currentTries.Add(trie);
-                    currentTries = trie.Children;
+                    trie = new Trie(new Dictionary<char, Trie>());
+                    current.Add(digit, trie);
+                    current = trie.Children;
                 }
             }
         }
-        Console.WriteLine(phoneTries.Sum(it => it.CountAll()));
+        Console.WriteLine(root.Values.Sum(it => it.CountAll()));
     }
 }
 
-record Trie(char Digit, HashSet<Trie> Children) {
+record Trie(Dictionary<char, Trie> Children) {
     public int CountAll() {
-        return 1 + Children.Sum(it => it.CountAll());
+        return 1 + Children.Values.Sum(it => it.CountAll());
     }
 }
