@@ -125,7 +125,7 @@ readonly record struct Point(int X, int Y) {
 readonly record struct Ball(Point Point, int Shots);
 
 readonly record struct BallPath(List<Point> Points, int Shots) {
-    public bool HasReached(Point end) => Points.Last() == end && Shots == 0;
+    public bool HasReached(Point end) => Points.Last() == end;
 
     [SuppressMessage("ReSharper", "ArrangeRedundantParentheses")]
     public bool Equals(BallPath other) {
