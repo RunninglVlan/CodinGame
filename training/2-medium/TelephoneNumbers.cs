@@ -12,7 +12,7 @@ static class TelephoneNumbers {
             phones.Add(phoneNumber);
         }
 
-        var phoneTries = new List<Trie>();
+        var phoneTries = new HashSet<Trie>();
         foreach (string phone in phones) {
             var currentTries = phoneTries;
             foreach (char digit in phone) {
@@ -30,7 +30,7 @@ static class TelephoneNumbers {
     }
 }
 
-record Trie(char Digit, List<Trie> Children) {
+record Trie(char Digit, HashSet<Trie> Children) {
     public int CountAll() {
         return 1 + Children.Sum(it => it.CountAll());
     }
