@@ -27,7 +27,8 @@ class GolfCourse : IGrid<CourseState>, IGrid<BallPath> {
     readonly int width, height;
     readonly bool[,] waterCells;
     readonly List<Ball> balls = [];
-    readonly List<Point> holes = [];
+    readonly HashSet<Point> ballPoints = [];
+    readonly HashSet<Point> holes = [];
 
     public GolfCourse(int width, int height) {
         stateFinding = new Pathfinding<CourseState>(this);
@@ -40,21 +41,23 @@ class GolfCourse : IGrid<CourseState>, IGrid<BallPath> {
     public void Read(string line, int x, int y) {
         char c = line[x];
         if (char.IsDigit(c)) {
-            balls.Add(new Ball(new Point(x, y), (int)char.GetNumericValue(c)));
+            var point = new Point(x, y);
+            balls.Add(new Ball(point, (int)char.GetNumericValue(c)));
+            ballPoints.Add(point);
         } else if (c == 'H') {
             holes.Add(new Point(x, y));
         }
         waterCells[x, y] = c == 'W';
     }
 
-    public void FindUnique(out Dictionary<Point, string> paths) {
-        var start = new CourseState(0, holes, new Dictionary<Point, string>());
+    public void FindUnique(out Dictionary<Point, char> paths) {
+        var start = new CourseState(0, [.. holes], new Dictionary<Point, char>());
         stateFinding.TryFind(start, it => it.BallIndex >= balls.Count || it.Holes.Count == 0, out var result);
         paths = result.Paths;
     }
 
-    public void Print(Dictionary<Point, string> paths) {
-        const string empty = ".";
+    public void Print(Dictionary<Point, char> paths) {
+        const char empty = '.';
         for (var y = 0; y < height; y++) {
             for (var x = 0; x < width; x++) {
                 Console.Write(paths.GetValueOrDefault(new Point(x, y), empty));
@@ -102,7 +105,7 @@ class GolfCourse : IGrid<CourseState>, IGrid<BallPath> {
                 if (!next.InBounds(width, height)
                         || current.Paths.ContainsKey(next)
                         || current.Points.Contains(next)
-                        || balls.Select(it => it.Point).Contains(next)) {
+                        || ballPoints.Contains(next)) {
                     return false;
                 }
                 if (move != current.Shots && holes.Contains(next)) {
@@ -129,17 +132,17 @@ readonly record struct Point(int X, int Y) {
 
 readonly record struct Ball(Point Point, int Shots);
 
-readonly record struct BallPath(List<Point> Points, int Shots, Dictionary<Point, string> Paths) {
+readonly record struct BallPath(List<Point> Points, int Shots, Dictionary<Point, char> Paths) {
     public bool HasReached(Point end) => Points.Last() == end;
 }
 
-readonly record struct CourseState(int BallIndex, List<Point> Holes, Dictionary<Point, string> Paths) {
+readonly record struct CourseState(int BallIndex, List<Point> Holes, Dictionary<Point, char> Paths) {
     public void AddArrowPath(List<Point> path) {
         for (var i = 0; i < path.Count - 1; i++) {
             var current = path[i];
             var next = path[i + 1];
             var direction = next - current;
-            Paths.Add(current, Screen.ToString(direction));
+            Paths.Add(current, Screen.ToChar(direction));
         }
     }
 }
@@ -152,12 +155,12 @@ static class Screen {
 
     public static Point[] Directions4 { get; } = [RIGHT, LEFT, UP, DOWN];
 
-    public static string ToString(Point direction) => direction switch {
-        _ when direction == UP => "^",
-        _ when direction == DOWN => "v",
-        _ when direction == LEFT => "<",
-        _ when direction == RIGHT => ">",
-        _ => direction.ToString()
+    public static char ToChar(Point direction) => direction switch {
+        _ when direction == UP => '^',
+        _ when direction == DOWN => 'v',
+        _ when direction == LEFT => '<',
+        _ when direction == RIGHT => '>',
+        _ => throw new ArgumentException($"Unsupported direction: {direction}")
     };
 }
 
