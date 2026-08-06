@@ -9,27 +9,26 @@ static class ConwaySequence {
         Console.WriteLine(GenerateSequence(number, line));
     }
 
-    static string GenerateSequence(int number, int line) {
+    static string GenerateSequence(int number, int times) {
         List<int> current = [number];
-        for (var _ = 1; _ < line; _++) {
-            List<int> next = [];
-            var count = 1;
-            int last = current[0];
-            for (var i = 1; i < current.Count; i++) {
-                int currentNumber = current[i];
-                if (currentNumber == last) {
-                    count++;
-                } else {
-                    next.Add(count);
-                    next.Add(last);
-                    last = currentNumber;
-                    count = 1;
-                }
-            }
-            next.Add(count);
-            next.Add(last);
-            current = next;
+        for (var _ = 1; _ < times; _++) {
+            current = LookAndSay(current);
         }
         return string.Join(" ", current);
+    }
+
+    static List<int> LookAndSay(List<int> current) {
+        List<int> next = [];
+        var count = 1;
+        for (var i = 1; i <= current.Count; i++) {
+            if (i < current.Count && current[i] == current[i - 1]) {
+                count++;
+            } else {
+                next.Add(count);
+                next.Add(current[i - 1]);
+                count = 1;
+            }
+        }
+        return next;
     }
 }
