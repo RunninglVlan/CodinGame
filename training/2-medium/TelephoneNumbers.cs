@@ -12,22 +12,26 @@ static class TelephoneNumbers {
             phones.Add(phoneNumber);
         }
 
-        string first = phones.First();
-        var phoneTries = new Trie(first[0], []);
-        var lastTrie = phoneTries;
-        for (var i = 1; i < first.Length; i++) {
-            char digit = first[i];
-            var trie = new Trie(digit, []);
-            lastTrie.Children.Add(trie);
-            lastTrie = trie;
+        var phoneTries = new List<Trie>();
+        foreach (string phone in phones) {
+            var currentTries = phoneTries;
+            foreach (char digit in phone) {
+                if (currentTries.Any(it => it.Digit == digit)) {
+                    var trie = currentTries.First(it => it.Digit == digit);
+                    currentTries = trie.Children;
+                } else {
+                    var trie = new Trie(digit, []);
+                    currentTries.Add(trie);
+                    currentTries = trie.Children;
+                }
+            }
         }
-        // the number of elements (referencing a number) stored in the structure
-        Console.WriteLine(phoneTries.CountAll());
+        Console.WriteLine(phoneTries.Sum(it => it.CountAll()));
     }
 }
 
 record Trie(char Digit, List<Trie> Children) {
     public int CountAll() {
-        return 1 + Children.Sum(child => child.CountAll());
+        return 1 + Children.Sum(it => it.CountAll());
     }
 }
