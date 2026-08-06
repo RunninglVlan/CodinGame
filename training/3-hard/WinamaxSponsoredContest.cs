@@ -106,6 +106,9 @@ class GolfCourse : IGrid<CourseState>, IGrid<BallPath> {
                         || balls.Select(it => it.Point).Contains(next)) {
                     return false;
                 }
+                if (move != current.Shots && holes.Contains(next)) {
+                    return false;
+                }
                 path.Add(next);
             }
             return true;
