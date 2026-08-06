@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
 /// https://www.codingame.com/training/hard/winamax-sponsored-contest
@@ -132,17 +131,6 @@ readonly record struct Ball(Point Point, int Shots);
 
 readonly record struct BallPath(List<Point> Points, int Shots, Dictionary<Point, string> Paths) {
     public bool HasReached(Point end) => Points.Last() == end;
-
-    [SuppressMessage("ReSharper", "ArrangeRedundantParentheses")]
-    public bool Equals(BallPath other) {
-        return (Points.Count > 0 && other.Points.Count > 0)
-                && Points.Last().Equals(other.Points.Last())
-                && Shots == other.Shots;
-    }
-
-    public override int GetHashCode() {
-        return HashCode.Combine(Points.Count > 0 ? Points.Last() : default, Shots);
-    }
 }
 
 readonly record struct CourseState(int BallIndex, List<Point> Holes, Dictionary<Point, string> Paths) {
