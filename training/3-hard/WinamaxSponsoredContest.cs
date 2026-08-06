@@ -48,13 +48,14 @@ class GolfCourse : IGrid<BallPath> {
         waterCells[x, y] = c == 'W';
     }
 
+    /// Backtracking
     public void FindUnique(out Dictionary<Point, char> paths) {
-        (_, paths) = TryFind(0, [.. holePoints], new Dictionary<Point, char>());
+        TryFind(0, [.. holePoints], paths = new Dictionary<Point, char>());
         return;
 
-        (bool, Dictionary<Point, char>) TryFind(int ballIndex, List<Point> holes, Dictionary<Point, char> paths) {
+        bool TryFind(int ballIndex, List<Point> holes, Dictionary<Point, char> paths) {
             if (ballIndex >= balls.Count || holes.Count == 0) {
-                return (true, paths);
+                return true;
             }
             var ball = balls[ballIndex];
             for (int i = holes.Count - 1; i >= 0; i--) {
@@ -63,16 +64,15 @@ class GolfCourse : IGrid<BallPath> {
                 if (!pathfinding.TryFind(start, it => it.HasReached(end), out var path)) {
                     continue;
                 }
-                List<Point> newHoles = [.. holes];
-                newHoles.RemoveAt(i);
-                var newPaths = paths.ToDictionary();
-                AddArrowPath(newPaths, path.Points);
-                (bool success, var result) = TryFind(ballIndex + 1, newHoles, newPaths);
-                if (success) {
-                    return (true, result);
+                holes.RemoveAt(i);
+                AddArrowPath(paths, path.Points);
+                if (TryFind(ballIndex + 1, holes, paths)) {
+                    return true;
                 }
+                holes.Insert(i, end);
+                RemoveArrowPath(paths, path.Points);
             }
-            return (false, paths);
+            return false;
         }
     }
 
@@ -82,6 +82,12 @@ class GolfCourse : IGrid<BallPath> {
             var next = path[i + 1];
             var direction = next - current;
             paths.Add(current, Screen.ToChar(direction));
+        }
+    }
+
+    static void RemoveArrowPath(Dictionary<Point, char> paths, List<Point> path) {
+        for (var i = 0; i < path.Count - 1; i++) {
+            paths.Remove(path[i]);
         }
     }
 
