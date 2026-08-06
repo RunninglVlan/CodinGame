@@ -100,7 +100,10 @@ class GolfCourse : IGrid<CourseState>, IGrid<BallPath> {
             path = [];
             for (var move = 1; move <= current.Shots; move++) {
                 var next = last + direction * move;
-                if (!next.InBounds(width, height) || current.Paths.ContainsKey(next) || current.Points.Contains(next)) {
+                if (!next.InBounds(width, height)
+                        || current.Paths.ContainsKey(next)
+                        || current.Points.Contains(next)
+                        || balls.Select(it => it.Point).Contains(next)) {
                     return false;
                 }
                 path.Add(next);
