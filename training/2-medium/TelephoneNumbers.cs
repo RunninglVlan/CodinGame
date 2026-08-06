@@ -25,12 +25,13 @@ static class TelephoneNumbers {
                 }
             }
         }
-        Console.WriteLine(root.Values.Sum(it => it.CountAll()));
+        Console.WriteLine(CountAll(root));
+        return;
+
+        int CountAll(Dictionary<char, Trie> children) {
+            return children.Count + children.Values.Sum(it => CountAll(it.Children));
+        }
     }
 }
 
-record Trie(Dictionary<char, Trie> Children) {
-    public int CountAll() {
-        return 1 + Children.Values.Sum(it => it.CountAll());
-    }
-}
+record Trie(Dictionary<char, Trie> Children);
