@@ -5,7 +5,7 @@ using System.Linq;
 /// https://www.codingame.com/training/medium/telephone-numbers
 static class TelephoneNumbers {
     static void Main() {
-        int phoneCount = int.Parse(Console.ReadLine()!);
+        int phoneCount = Math.Clamp(int.Parse(Console.ReadLine()!), 0, 10_000);
         var phones = new List<string>(phoneCount);
         for (var i = 0; i < phoneCount; i++) {
             string phoneNumber = Console.ReadLine()!;
