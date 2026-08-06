@@ -13,8 +13,6 @@ readonly record struct Point(int X, int Y) {
         new(1, 1), new(-1, 1), new(1, -1), new(-1, -1)
     ];
 
-    public Point Normalized() => new(Math.Sign(X), Math.Sign(Y));
-
     public bool InBounds(int width, int height) {
         return X >= 0 && X < width && Y >= 0 && Y < height;
     }

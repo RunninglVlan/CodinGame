@@ -21,8 +21,8 @@ static class WinamaxSponsoredContest {
     }
 }
 
-class GolfCourse : IGrid<Ball> {
-    readonly Pathfinding<Ball> pathfinding;
+class GolfCourse : IGrid<BallPath> {
+    readonly Pathfinding<BallPath> pathfinding;
 
     readonly int width, height;
     readonly bool[,] waterCells;
@@ -31,7 +31,7 @@ class GolfCourse : IGrid<Ball> {
     readonly Dictionary<Point, string> paths = [];
 
     public GolfCourse(int width, int height) {
-        pathfinding = new Pathfinding<Ball>(this);
+        pathfinding = new Pathfinding<BallPath>(this);
         this.width = width;
         this.height = height;
         waterCells = new bool[width, height];
@@ -47,31 +47,27 @@ class GolfCourse : IGrid<Ball> {
         waterCells[x, y] = c == 'W';
     }
 
-    [SuppressMessage("ReSharper", "UseCollectionExpression")]
     public void FindUniquePaths() {
         foreach (var ball in balls) {
             for (int i = holes.Count - 1; i >= 0; i--) {
+                var start = new BallPath([ball.Point], ball.Shots);
                 var end = holes[i];
-                var path = pathfinding.Path(ball, new Ball(end, 0));
-                if (path == null) {
+                if (!pathfinding.TryFind(start, it => it.HasReached(end), out var path)) {
                     continue;
                 }
                 holes.RemoveAt(i);
-                AddArrowPath(path.Prepend(ball).ToArray());
+                AddArrowPath(path.Points);
                 break;
             }
         }
     }
 
-    void AddArrowPath(Ball[] path) {
-        for (var i = 0; i < path.Length - 1; i++) {
+    void AddArrowPath(List<Point> path) {
+        for (var i = 0; i < path.Count - 1; i++) {
             var current = path[i];
             var next = path[i + 1];
-            var direction = (next.Point - current.Point).Normalized();
-            for (var move = 0; move < current.Shots; move++) {
-                var point = current.Point + direction * move;
-                paths.Add(point, Screen.ToString(direction));
-            }
+            var direction = next - current;
+            paths.Add(current, Screen.ToString(direction));
         }
     }
 
@@ -85,37 +81,36 @@ class GolfCourse : IGrid<Ball> {
         }
     }
 
-    IEnumerable<Ball> IGrid<Ball>.Next(Ball current) {
-        if (current.Shots <= 0) {
+    IEnumerable<BallPath> IGrid<BallPath>.Next(BallPath currentPath) {
+        if (currentPath.Shots <= 0) {
             yield break;
         }
         foreach (var direction in Screen.Directions4) {
-            if (!TryMove(direction, current.Shots, out var next)) {
+            var path = TryMove(direction).ToArray();
+            if (path.Length == 0) {
                 continue;
             }
-            if (waterCells[next.X, next.Y]) {
+            var last = path.Last();
+            if (waterCells[last.X, last.Y]) {
                 continue;
             }
-            yield return new Ball(next, current.Shots - 1);
+            yield return new BallPath([.. currentPath.Points, .. path], currentPath.Shots - 1);
         }
         yield break;
 
-        bool TryMove(Point direction, int moves, out Point next) {
-            next = default;
-            for (var move = 1; move <= moves; move++) {
-                next = current.Point + direction * move;
-                if (!next.InBounds(width, height) || paths.ContainsKey(next)) {
-                    return false;
+        IEnumerable<Point> TryMove(Point direction) {
+            var current = currentPath.Points.Last();
+            for (var move = 1; move <= currentPath.Shots; move++) {
+                var next = current + direction * move;
+                if (next.InBounds(width, height) && !paths.ContainsKey(next)) {
+                    yield return next;
                 }
             }
-            return true;
         }
     }
 }
 
 readonly record struct Point(int X, int Y) {
-    public Point Normalized() => new(Math.Sign(X), Math.Sign(Y));
-
     public bool InBounds(int width, int height) {
         return X >= 0 && X < width && Y >= 0 && Y < height;
     }
@@ -128,6 +123,21 @@ readonly record struct Point(int X, int Y) {
 }
 
 readonly record struct Ball(Point Point, int Shots);
+
+readonly record struct BallPath(List<Point> Points, int Shots) {
+    public bool HasReached(Point end) => Points.Last() == end && Shots == 0;
+
+    [SuppressMessage("ReSharper", "ArrangeRedundantParentheses")]
+    public bool Equals(BallPath other) {
+        return (Points.Count > 0 && other.Points.Count > 0)
+                && Points.Last().Equals(other.Points.Last())
+                && Shots == other.Shots;
+    }
+
+    public override int GetHashCode() {
+        return HashCode.Combine(Points.Count > 0 ? Points.Last() : default, Shots);
+    }
+}
 
 static class Screen {
     static readonly Point UP = new(0, -1);
@@ -147,44 +157,29 @@ static class Screen {
 }
 
 class Pathfinding<T>(IGrid<T> grid) where T : IEquatable<T> {
-    readonly Queue<Node> queue = [];
+    readonly Queue<T> queue = [];
     readonly HashSet<T> visited = [];
 
     /// BFS
-    public List<T>? Path(T start, T end) {
+    public bool TryFind(T start, Predicate<T> endPredicate, out T result) {
         queue.Clear();
         visited.Clear();
-        var startNode = new Node(start);
-        queue.Enqueue(startNode);
+        queue.Enqueue(start);
         visited.Add(start);
         while (queue.TryDequeue(out var current)) {
-            if (current.cell.Equals(end)) {
-                return Reconstruct(startNode, current);
+            if (endPredicate(current)) {
+                result = current;
+                return true;
             }
-            foreach (var next in grid.Next(current.cell)) {
+            foreach (var next in grid.Next(current)) {
                 if (!visited.Add(next)) {
                     continue;
                 }
-                queue.Enqueue(new Node(next) { parent = current });
+                queue.Enqueue(next);
             }
         }
-        return null;
-    }
-
-    static List<T> Reconstruct(Node start, Node end) {
-        var path = new List<T>();
-        var current = end;
-        while (current != start) {
-            path.Add(current!.cell);
-            current = current.parent;
-        }
-        path.Reverse();
-        return path;
-    }
-
-    class Node(T cell) {
-        public readonly T cell = cell;
-        public Node? parent;
+        result = default!;
+        return false;
     }
 }
 
