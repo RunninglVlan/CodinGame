@@ -84,8 +84,7 @@ class GolfCourse : IGrid<CourseState>, IGrid<BallPath> {
             yield break;
         }
         foreach (var direction in Screen.Directions4) {
-            var path = TryMove(direction).ToArray();
-            if (path.Length == 0) {
+            if (!TryMove(direction, out var path)) {
                 continue;
             }
             var last = path.Last();
@@ -96,16 +95,17 @@ class GolfCourse : IGrid<CourseState>, IGrid<BallPath> {
         }
         yield break;
 
-        IEnumerable<Point> TryMove(Point direction) {
+        bool TryMove(Point direction, out List<Point> path) {
             var last = current.Points.Last();
+            path = [];
             for (var move = 1; move <= current.Shots; move++) {
                 var next = last + direction * move;
-                if (next.InBounds(width, height)
-                        && !current.Paths.ContainsKey(next)
-                        && !current.Points.Contains(next)) {
-                    yield return next;
+                if (!next.InBounds(width, height) || current.Paths.ContainsKey(next) || current.Points.Contains(next)) {
+                    return false;
                 }
+                path.Add(next);
             }
+            return true;
         }
     }
 }
