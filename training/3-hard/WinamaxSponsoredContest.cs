@@ -21,11 +21,22 @@ static class WinamaxSponsoredContest {
     }
 }
 
-class GolfCourse(int width, int height) {
-    readonly bool[,] waterCells = new bool[width, height];
+class GolfCourse : IGrid<Ball> {
+    readonly Pathfinding<Ball> pathfinding;
+
+    readonly int width, height;
+    readonly bool[,] waterCells;
     readonly List<Ball> balls = [];
     readonly List<Point> holes = [];
     readonly List<List<Point>> paths = [];
+    readonly HashSet<Point> existingPaths = [];
+
+    public GolfCourse(int width, int height) {
+        pathfinding = new Pathfinding<Ball>(this);
+        this.width = width;
+        this.height = height;
+        waterCells = new bool[width, height];
+    }
 
     public void Read(string line, int x, int y) {
         char c = line[x];
@@ -37,69 +48,20 @@ class GolfCourse(int width, int height) {
         waterCells[x, y] = c == 'W';
     }
 
+    [SuppressMessage("ReSharper", "UseCollectionExpression")]
     public void FindUniquePaths() {
         foreach (var ball in balls) {
             for (int i = holes.Count - 1; i >= 0; i--) {
                 var end = holes[i];
-                if (!TryFindPath(ball, end, out var path)) {
+                var path = pathfinding.Path(ball, new Ball(end, 0));
+                if (path == null) {
                     continue;
                 }
                 holes.RemoveAt(i);
-                paths.Add(path);
+                paths.Add(path.Select(it => it.Point).Prepend(ball.Point).ToList());
+                existingPaths.UnionWith(paths.Last());
                 break;
             }
-        }
-    }
-
-    bool TryFindPath(Ball start, Point end, out List<Point> path) {
-        var existingPaths = paths.SelectMany(it => it).ToHashSet();
-        var queue = new Queue<Node>();
-        var startNode = new Node(start);
-        queue.Enqueue(startNode);
-        HashSet<Ball> visited = [start];
-        while (queue.TryDequeue(out var current)) {
-            if (current.ball.Point.Equals(end)) {
-                path = Reconstruct(startNode, current);
-                return true;
-            }
-            foreach (var direction in Point.Directions4) {
-                if (!TryMove(current.ball.Point, direction, current.ball.Shots, out var next)) {
-                    continue;
-                }
-                if (waterCells[next.X, next.Y]) {
-                    continue;
-                }
-                var nextBall = new Ball(next, current.ball.Shots - 1);
-                if (!visited.Add(nextBall)) {
-                    continue;
-                }
-                queue.Enqueue(new Node(nextBall) { parent = current });
-            }
-        }
-        path = [];
-        return false;
-
-        bool TryMove(Point current, Point direction, int moves, out Point next) {
-            next = default;
-            for (var move = 1; move <= moves; move++) {
-                next = current + direction * move;
-                if (!next.InBounds(width, height) || existingPaths.Contains(next)) {
-                    return false;
-                }
-            }
-            return true;
-        }
-
-        static List<Point> Reconstruct(Node start, Node end) {
-            var path = new List<Point>();
-            var current = end;
-            while (current != start) {
-                path.Add(current!.ball.Point);
-                current = current.parent;
-            }
-            path.Add(start.ball.Point);
-            path.Reverse();
-            return path;
         }
     }
 
@@ -131,9 +93,28 @@ class GolfCourse(int width, int height) {
         }
     }
 
-    class Node(Ball ball) {
-        public readonly Ball ball = ball;
-        public Node? parent;
+    IEnumerable<Ball> IGrid<Ball>.Next(Ball current) {
+        foreach (var direction in Point.Directions4) {
+            if (!TryMove(direction, current.Shots, out var next)) {
+                continue;
+            }
+            if (waterCells[next.X, next.Y]) {
+                continue;
+            }
+            yield return new Ball(next, current.Shots - 1);
+        }
+        yield break;
+
+        bool TryMove(Point direction, int moves, out Point next) {
+            next = default;
+            for (var move = 1; move <= moves; move++) {
+                next = current.Point + direction * move;
+                if (!next.InBounds(width, height) || existingPaths.Contains(next)) {
+                    return false;
+                }
+            }
+            return true;
+        }
     }
 }
 
@@ -156,3 +137,49 @@ readonly record struct Point(int X, int Y) {
 }
 
 readonly record struct Ball(Point Point, int Shots);
+
+class Pathfinding<T>(IGrid<T> grid) where T : IEquatable<T> {
+    readonly Queue<Node> queue = [];
+    readonly HashSet<T> visited = [];
+
+    /// BFS
+    public List<T>? Path(T start, T end) {
+        queue.Clear();
+        visited.Clear();
+        var startNode = new Node(start);
+        queue.Enqueue(startNode);
+        visited.Add(start);
+        while (queue.TryDequeue(out var current)) {
+            if (current.cell.Equals(end)) {
+                return Reconstruct(startNode, current);
+            }
+            foreach (var next in grid.Next(current.cell)) {
+                if (!visited.Add(next)) {
+                    continue;
+                }
+                queue.Enqueue(new Node(next) { parent = current });
+            }
+        }
+        return null;
+    }
+
+    static List<T> Reconstruct(Node start, Node end) {
+        var path = new List<T>();
+        var current = end;
+        while (current != start) {
+            path.Add(current!.cell);
+            current = current.parent;
+        }
+        path.Reverse();
+        return path;
+    }
+
+    class Node(T cell) {
+        public readonly T cell = cell;
+        public Node? parent;
+    }
+}
+
+interface IGrid<T> {
+    IEnumerable<T> Next(T current);
+}
