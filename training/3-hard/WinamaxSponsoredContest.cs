@@ -81,8 +81,8 @@ class GolfCourse : IGrid<BallPath> {
         }
     }
 
-    IEnumerable<BallPath> IGrid<BallPath>.Next(BallPath currentPath) {
-        if (currentPath.Shots <= 0) {
+    IEnumerable<BallPath> IGrid<BallPath>.Next(BallPath current) {
+        if (current.Shots <= 0) {
             yield break;
         }
         foreach (var direction in Screen.Directions4) {
@@ -94,15 +94,15 @@ class GolfCourse : IGrid<BallPath> {
             if (waterCells[last.X, last.Y]) {
                 continue;
             }
-            yield return new BallPath([.. currentPath.Points, .. path], currentPath.Shots - 1);
+            yield return new BallPath([.. current.Points, .. path], current.Shots - 1);
         }
         yield break;
 
         IEnumerable<Point> TryMove(Point direction) {
-            var current = currentPath.Points.Last();
-            for (var move = 1; move <= currentPath.Shots; move++) {
-                var next = current + direction * move;
-                if (next.InBounds(width, height) && !paths.ContainsKey(next) && !currentPath.Points.Contains(next)) {
+            var last = current.Points.Last();
+            for (var move = 1; move <= current.Shots; move++) {
+                var next = last + direction * move;
+                if (next.InBounds(width, height) && !paths.ContainsKey(next) && !current.Points.Contains(next)) {
                     yield return next;
                 }
             }
