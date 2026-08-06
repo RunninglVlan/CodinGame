@@ -28,7 +28,7 @@ class GolfCourse : IGrid<Ball> {
     readonly bool[,] waterCells;
     readonly List<Ball> balls = [];
     readonly List<Point> holes = [];
-    readonly Dictionary<Point, char> paths = [];
+    readonly Dictionary<Point, string> paths = [];
 
     public GolfCourse(int width, int height) {
         pathfinding = new Pathfinding<Ball>(this);
@@ -70,23 +70,13 @@ class GolfCourse : IGrid<Ball> {
             var direction = (next.Point - current.Point).Normalized();
             for (var move = 0; move < current.Shots; move++) {
                 var point = current.Point + direction * move;
-                paths.Add(point, Direction(direction));
+                paths.Add(point, Screen.ToString(direction));
             }
-        }
-        return;
-
-        char Direction(Point direction) {
-            return direction switch {
-                _ when direction == Point.RIGHT => '>',
-                _ when direction == Point.LEFT => '<',
-                _ when direction == Point.UP => '^',
-                _ => 'v'
-            };
         }
     }
 
     public void PrintPaths() {
-        const char empty = '.';
+        const string empty = ".";
         for (var y = 0; y < height; y++) {
             for (var x = 0; x < width; x++) {
                 Console.Write(paths.GetValueOrDefault(new Point(x, y), empty));
@@ -96,7 +86,7 @@ class GolfCourse : IGrid<Ball> {
     }
 
     IEnumerable<Ball> IGrid<Ball>.Next(Ball current) {
-        foreach (var direction in Point.Directions4) {
+        foreach (var direction in Screen.Directions4) {
             if (!TryMove(direction, current.Shots, out var next)) {
                 continue;
             }
@@ -120,15 +110,7 @@ class GolfCourse : IGrid<Ball> {
     }
 }
 
-[SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
 readonly record struct Point(int X, int Y) {
-    public static readonly Point UP = new(0, 1);
-    public static readonly Point DOWN = new(0, -1);
-    public static readonly Point LEFT = new(-1, 0);
-    public static readonly Point RIGHT = new(1, 0);
-
-    public static Point[] Directions4 { get; } = [RIGHT, LEFT, UP, DOWN];
-
     public Point Normalized() => new(Math.Sign(X), Math.Sign(Y));
 
     public bool InBounds(int width, int height) {
@@ -141,6 +123,23 @@ readonly record struct Point(int X, int Y) {
 }
 
 readonly record struct Ball(Point Point, int Shots);
+
+static class Screen {
+    static readonly Point UP = new(0, -1);
+    static readonly Point DOWN = new(0, 1);
+    static readonly Point LEFT = new(-1, 0);
+    static readonly Point RIGHT = new(1, 0);
+
+    public static Point[] Directions4 { get; } = [RIGHT, LEFT, UP, DOWN];
+
+    public static string ToString(Point direction) => direction switch {
+        _ when direction == UP => "^",
+        _ when direction == DOWN => "v",
+        _ when direction == LEFT => "<",
+        _ when direction == RIGHT => ">",
+        _ => direction.ToString()
+    };
+}
 
 class Pathfinding<T>(IGrid<T> grid) where T : IEquatable<T> {
     readonly Queue<Node> queue = [];
