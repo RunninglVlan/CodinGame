@@ -15,8 +15,6 @@ static class WhereWasThisKnightBefore {
 class Board {
     const int SIZE = 8;
     const char EMPTY = '.';
-    const string X_CHARS = "abcdefgh";
-    const string Y_CHARS = "12345678";
 
     string pieces = string.Empty;
     readonly char[,] squares = new char[SIZE, SIZE];
@@ -46,24 +44,40 @@ class Board {
                 if (square == squareBefore) {
                     continue;
                 }
-                var coordinates = $"{X_CHARS[x]}{Y_CHARS[y]}";
+                var coordinates = new Point(x, y);
                 if (square == EMPTY) {
                     move.From = coordinates;
                 } else {
                     move.To = coordinates;
-                    move.Piece = char.ToLower(square) == 'n' ? "Knight" : "Other";
                     move.Capture = squareBefore != EMPTY;
                 }
             }
         }
+        move.Piece = move.IsKnight ? "Knight" : "Other";
     }
 }
 
 class Move {
-    public string From { get; set; } = string.Empty;
-    public string To { get; set; } = string.Empty;
+    const string X_CHARS = "abcdefgh";
+    const string Y_CHARS = "12345678";
+
+    public Point From { get; set; }
+    public Point To { get; set; }
     public string Piece { get; set; } = string.Empty;
     public bool Capture { get; set; }
+    public bool IsKnight => Point.ManhattanDistance(From, To) == 3;
 
-    public override string ToString() => $"{From}{(Capture ? 'x' : '-')}{To}";
+    public override string ToString() {
+        var from = $"{X_CHARS[From.X]}{Y_CHARS[From.Y]}";
+        var to = $"{X_CHARS[To.X]}{Y_CHARS[To.Y]}";
+        return $"{from}{(Capture ? 'x' : '-')}{to}";
+    }
+}
+
+readonly record struct Point(int X, int Y) {
+    public static int ManhattanDistance(Point a, Point b) {
+        return Math.Abs(a.X - b.X) + Math.Abs(a.Y - b.Y);
+    }
+
+    public override string ToString() => $"({X}, {Y})";
 }
