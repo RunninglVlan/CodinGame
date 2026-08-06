@@ -102,7 +102,7 @@ class GolfCourse : IGrid<BallPath> {
             var current = currentPath.Points.Last();
             for (var move = 1; move <= currentPath.Shots; move++) {
                 var next = current + direction * move;
-                if (next.InBounds(width, height) && !paths.ContainsKey(next)) {
+                if (next.InBounds(width, height) && !paths.ContainsKey(next) && !currentPath.Points.Contains(next)) {
                     yield return next;
                 }
             }
