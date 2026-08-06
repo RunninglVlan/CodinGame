@@ -28,8 +28,7 @@ class GolfCourse : IGrid<Ball> {
     readonly bool[,] waterCells;
     readonly List<Ball> balls = [];
     readonly List<Point> holes = [];
-    readonly List<List<Point>> paths = [];
-    readonly HashSet<Point> existingPaths = [];
+    readonly Dictionary<Point, char> paths = [];
 
     public GolfCourse(int width, int height) {
         pathfinding = new Pathfinding<Ball>(this);
@@ -58,28 +57,21 @@ class GolfCourse : IGrid<Ball> {
                     continue;
                 }
                 holes.RemoveAt(i);
-                paths.Add(path.Select(it => it.Point).Prepend(ball.Point).ToList());
-                existingPaths.UnionWith(paths.Last());
+                AddArrowPath(path.Prepend(ball).ToArray());
                 break;
             }
         }
     }
 
-    public void PrintPaths() {
-        const char empty = '.';
-        var directions = new Dictionary<Point, char>();
-        foreach (var path in paths) {
-            for (var i = 0; i < path.Count - 1; i++) {
-                var current = path[i];
-                var next = path[i + 1];
-                directions.Add(current, Direction(next - current));
+    void AddArrowPath(Ball[] path) {
+        for (var i = 0; i < path.Length - 1; i++) {
+            var current = path[i];
+            var next = path[i + 1];
+            var direction = (next.Point - current.Point).Normalized();
+            for (var move = 0; move < current.Shots; move++) {
+                var point = current.Point + direction * move;
+                paths.Add(point, Direction(direction));
             }
-        }
-        for (var y = 0; y < height; y++) {
-            for (var x = 0; x < width; x++) {
-                Console.Write(directions.GetValueOrDefault(new Point(x, y), empty));
-            }
-            Console.WriteLine();
         }
         return;
 
@@ -90,6 +82,16 @@ class GolfCourse : IGrid<Ball> {
                 _ when direction == Point.UP => '^',
                 _ => 'v'
             };
+        }
+    }
+
+    public void PrintPaths() {
+        const char empty = '.';
+        for (var y = 0; y < height; y++) {
+            for (var x = 0; x < width; x++) {
+                Console.Write(paths.GetValueOrDefault(new Point(x, y), empty));
+            }
+            Console.WriteLine();
         }
     }
 
@@ -109,7 +111,7 @@ class GolfCourse : IGrid<Ball> {
             next = default;
             for (var move = 1; move <= moves; move++) {
                 next = current.Point + direction * move;
-                if (!next.InBounds(width, height) || existingPaths.Contains(next)) {
+                if (!next.InBounds(width, height) || paths.ContainsKey(next)) {
                     return false;
                 }
             }
@@ -126,6 +128,8 @@ readonly record struct Point(int X, int Y) {
     public static readonly Point RIGHT = new(1, 0);
 
     public static Point[] Directions4 { get; } = [RIGHT, LEFT, UP, DOWN];
+
+    public Point Normalized() => new(Math.Sign(X), Math.Sign(Y));
 
     public bool InBounds(int width, int height) {
         return X >= 0 && X < width && Y >= 0 && Y < height;
