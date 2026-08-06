@@ -111,10 +111,10 @@ static class Screen {
     public static readonly Point RIGHT = new(1, 0);
 
     public static string ToString(Point direction) => direction switch {
-        (0, -1) => nameof(UP),
-        (0, 1) => nameof(DOWN),
-        (-1, 0) => nameof(LEFT),
-        (1, 0) => nameof(RIGHT),
+        _ when direction == UP => nameof(UP),
+        _ when direction == DOWN => nameof(DOWN),
+        _ when direction == LEFT => nameof(LEFT),
+        _ when direction == RIGHT => nameof(RIGHT),
         _ => direction.ToString()
     };
 }
