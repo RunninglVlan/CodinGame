@@ -5,31 +5,35 @@ using System.Linq;
 /// https://www.codingame.com/training/medium/dwarfs-standing-on-the-shoulders-of-giants
 static class DwarfsStandingOnTheShouldersOfGiants {
     static void Main() {
-        var root = new Dictionary<int, Person>();
+        var persons = new Persons();
         // the number of relationships of influence
         int relationships = Math.Clamp(int.Parse(Console.ReadLine()!), 1, 9999);
         for (var i = 0; i < relationships; i++) {
             string[] relationship = Console.ReadLine()!.Split(' ');
-            // a relationship of influence between two people (x influences y)
             int x = Math.Clamp(int.Parse(relationship[0]), 1, 9999);
             int y = Math.Clamp(int.Parse(relationship[1]), 1, 9999);
-            if (!Person.TryFind(root, x, out var xPerson)) {
-                xPerson = new Person();
-                root.Add(x, xPerson);
-            }
-            if (!Person.TryFind(root, y, out var yPerson)) {
-                yPerson = new Person();
-            }
-            xPerson.Influences.Add(y, yPerson);
+            persons.AddRelationship(x, y);
         }
-        Console.WriteLine(Person.CountSuccession(root));
+        Console.WriteLine(persons.CountSuccession());
     }
 }
 
-class Person {
-    public Dictionary<int, Person> Influences { get; } = new();
+class Persons {
+    readonly Dictionary<int, Person> root = new();
 
-    public static bool TryFind(Dictionary<int, Person> current, int id, out Person person) {
+    /// a relationship of influence between two people (x influences y)
+    public void AddRelationship(int x, int y) {
+        if (!TryFind(root, x, out var xPerson)) {
+            xPerson = new Person();
+            root.Add(x, xPerson);
+        }
+        if (!TryFind(root, y, out var yPerson)) {
+            yPerson = new Person();
+        }
+        xPerson.Influences.Add(y, yPerson);
+    }
+
+    static bool TryFind(Dictionary<int, Person> current, int id, out Person person) {
         if (current.TryGetValue(id, out person!)) {
             return true;
         }
@@ -43,11 +47,17 @@ class Person {
     }
 
     /// the number of people involved in the longest succession of influences
-    public static int CountSuccession(Dictionary<int, Person> children, int depth = 1) {
-        return children.Values
+    public int CountSuccession() {
+        return Count(root);
+
+        int Count(Dictionary<int, Person> current, int depth = 1) => current.Values
                 .Where(it => it.Influences.Count > 0)
-                .Select(it => CountSuccession(it.Influences, depth + 1))
+                .Select(it => Count(it.Influences, depth + 1))
                 .Prepend(depth)
                 .Max();
     }
+}
+
+class Person {
+    public Dictionary<int, Person> Influences { get; } = new();
 }
