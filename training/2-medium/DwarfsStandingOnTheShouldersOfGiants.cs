@@ -14,8 +14,10 @@ static class DwarfsStandingOnTheShouldersOfGiants {
             int x = Math.Clamp(int.Parse(relationship[0]), 1, 9999);
             int y = Math.Clamp(int.Parse(relationship[1]), 1, 9999);
             rootPerson ??= new Person(x, []);
-            if (rootPerson.TryFind(x, out var person)) {
-                person.Influences.Add(new Person(y, []));
+            if (rootPerson.TryFind(x, out var xPerson)) {
+                xPerson.Influences.Add(new Person(y, []));
+            } else if (rootPerson.TryFind(y, out var yPerson)) {
+                rootPerson = new Person(x, [yPerson]);
             }
         }
         Console.WriteLine(rootPerson!.CountSuccession());
