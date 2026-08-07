@@ -4,8 +4,8 @@ using System.IO;
 using System.Linq;
 
 const string testCase = """
-                        3
-                        1 1 2
+                        27
+                        275 275 914 969 275 275 697 275 275 210 275 71 536 738 856 826 893 275 275 275 275 275 463 275 275 472 275
                         """;
 Console.SetIn(new StringReader(testCase));
 // https://codeforces.com/contest/2252/problem/A
@@ -17,13 +17,13 @@ var (duplicates, unique) = DuplicatesAndUnique(cards);
 Console.Error.WriteLine($"duplicates: {string.Join(", ", duplicates.Select(it => $"{it.Key}:{it.Value}"))}");
 Console.Error.WriteLine($"unique: {string.Join(", ", unique)}");
 int damage = unique.Sum();
-int uniqueCount = unique.Count;
-foreach ((int duplicate, int count) in duplicates) {
-    for (var ___ = 0; ___ < count - 1 && uniqueCount > 0; ___++, uniqueCount--) {
+int uniqueCount = unique.Count + 2 * duplicates.Keys.Count;
+foreach ((int duplicate, int count) in duplicates.OrderByDescending(it => it.Key)) {
+    for (var ___ = 0; ___ < count && uniqueCount > 0; ___++, uniqueCount--) {
         damage += duplicate;
     }
 }
-const int expected = 4;
+const int expected = 11495;
 int actual = damage;
 Console.WriteLine(expected == actual ? $"✅ {actual}" : $"❌ expected {expected}, but found {actual}");
 return;
@@ -38,6 +38,9 @@ return;
         } else {
             unique.Add(current);
         }
+    }
+    foreach (int duplicate in duplicates.Keys) {
+        unique.Remove(duplicate);
     }
     return (duplicates, unique);
 }

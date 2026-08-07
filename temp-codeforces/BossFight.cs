@@ -10,9 +10,9 @@ for (var _ = 0; _ < tests; _++) {
     List<int> cards = [.. Console.ReadLine()!.Split(' ').Select(int.Parse).OrderBy(it => it)];
     var (duplicates, unique) = DuplicatesAndUnique(cards);
     int damage = unique.Sum();
-    int uniqueCount = unique.Count;
+    int maxDuplicates = unique.Count + 2 * duplicates.Keys.Count;
     foreach ((int duplicate, int count) in duplicates.OrderByDescending(it => it.Key)) {
-        for (var ___ = 0; ___ < count - 1 && uniqueCount > 0; ___++, uniqueCount--) {
+        for (var ___ = 0; ___ < count && maxDuplicates > 0; ___++, maxDuplicates--) {
             damage += duplicate;
         }
     }
@@ -30,6 +30,9 @@ return;
         } else {
             unique.Add(current);
         }
+    }
+    foreach (int duplicate in duplicates.Keys) {
+        unique.Remove(duplicate);
     }
     return (duplicates, unique);
 }
