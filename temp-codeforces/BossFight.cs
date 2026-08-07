@@ -19,7 +19,7 @@ int MaxDamage(int[] cards, int currentI = 0, int currentDamage = 0, int previous
         if (previousSpell == damage) {
             shield = true;
         }
-        int newDamage = MaxDamage(cards, currentI + 1, currentDamage + damage, damage, shield);
+        int newDamage = MaxDamage(cards, i + 1, currentDamage + damage, damage, shield);
         if (newDamage > currentDamage) {
             return newDamage;
         }
