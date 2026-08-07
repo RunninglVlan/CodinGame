@@ -21,37 +21,12 @@ for (var _ = 0; _ < tests; _++) {
     foreach (int duplicate in duplicates.Keys) {
         unique.Remove(duplicate);
     }
-    cards = [];
-    int sum = unique.Sum();
-    if (sum > 0) {
-        cards.Add(sum);
-    }
+    int damage = unique.Sum();
+    int uniqueCount = unique.Count + 2;
     foreach ((int duplicate, int count) in duplicates) {
-        for (var ___ = 0; ___ < Math.Min(3, count); ___++) {
-            cards.Add(duplicate);
+        for (var ___ = 0; ___ < count && uniqueCount > 0; ___++, uniqueCount--) {
+            damage += duplicate;
         }
     }
-    Console.WriteLine(MaxDamage(cards));
-}
-return;
-
-int MaxDamage(List<int> cards, int currentDamage = 0, int previousSpell = 0, bool shield = false) {
-    int maxDamage = currentDamage;
-    for (var i = 0; i < cards.Count; i++) {
-        int currentSpell = cards[i];
-        int damage = cards[i];
-        if (shield) {
-            damage = 0;
-        }
-        if (previousSpell == damage) {
-            shield = true;
-        }
-        cards.RemoveAt(i);
-        int newDamage = MaxDamage(cards, currentDamage + damage, currentSpell, shield);
-        if (newDamage > maxDamage) {
-            maxDamage = newDamage;
-        }
-        cards.Insert(i, currentSpell);
-    }
-    return maxDamage;
+    Console.WriteLine(damage);
 }
