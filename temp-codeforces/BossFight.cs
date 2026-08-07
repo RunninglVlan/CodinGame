@@ -6,8 +6,21 @@ using System.Linq;
 int tests = Math.Clamp(int.Parse(Console.ReadLine()!), 1, 100);
 for (var _ = 0; _ < tests; _++) {
     // card count
-    int __ = Math.Clamp(int.Parse(Console.ReadLine()!), 1, 50);
+    Math.Clamp(int.Parse(Console.ReadLine()!), 1, 50);
     List<int> cards = [.. Console.ReadLine()!.Split(' ').Select(int.Parse).OrderBy(it => it)];
+    var (duplicates, unique) = DuplicatesAndUnique(cards);
+    int damage = unique.Sum();
+    int uniqueCount = unique.Count + 2;
+    foreach ((int duplicate, int count) in duplicates.OrderByDescending(it => it.Key)) {
+        for (var ___ = 0; ___ < count && uniqueCount > 0; ___++, uniqueCount--) {
+            damage += duplicate;
+        }
+    }
+    Console.WriteLine(damage);
+}
+return;
+
+(Dictionary<int, int>, HashSet<int>) DuplicatesAndUnique(List<int> cards) {
     Dictionary<int, int> duplicates = [];
     HashSet<int> unique = [];
     for (var i = 0; i < cards.Count; i++) {
@@ -21,12 +34,5 @@ for (var _ = 0; _ < tests; _++) {
     foreach (int duplicate in duplicates.Keys) {
         unique.Remove(duplicate);
     }
-    int damage = unique.Sum();
-    int uniqueCount = unique.Count + 2;
-    foreach ((int duplicate, int count) in duplicates) {
-        for (var ___ = 0; ___ < count && uniqueCount > 0; ___++, uniqueCount--) {
-            damage += duplicate;
-        }
-    }
-    Console.WriteLine(damage);
+    return (duplicates, unique);
 }
