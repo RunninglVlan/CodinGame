@@ -17,14 +17,10 @@ static class DwarfsStandingOnTheShouldersOfGiants {
                 xPerson = new Person();
                 root.Add(x, xPerson);
             }
-            if (Person.TryFind(root, y, out var yPerson)) {
-                var yParent = yPerson.Parent;
-                yParent?.Influences.Remove(y);
-            } else {
+            if (!Person.TryFind(root, y, out var yPerson)) {
                 yPerson = new Person();
             }
             xPerson.Influences.Add(y, yPerson);
-            yPerson.Parent = xPerson;
         }
         Console.WriteLine(Person.CountSuccession(root));
     }
@@ -32,7 +28,6 @@ static class DwarfsStandingOnTheShouldersOfGiants {
 
 class Person {
     public Dictionary<int, Person> Influences { get; } = new();
-    public Person? Parent { get; set; }
 
     public static bool TryFind(Dictionary<int, Person> current, int id, out Person person) {
         if (current.TryGetValue(id, out person!)) {
