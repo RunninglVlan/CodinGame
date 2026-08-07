@@ -4,10 +4,33 @@ using System.Linq;
 
 // https://codeforces.com/contest/2252/problem/A
 int tests = Math.Clamp(int.Parse(Console.ReadLine()!), 1, 100);
-for (var i = 0; i < tests; i++) {
+for (var _ = 0; _ < tests; _++) {
     // card count
-    int _ = Math.Clamp(int.Parse(Console.ReadLine()!), 1, 50);
-    List<int> cards = [.. Console.ReadLine()!.Split(' ').Select(int.Parse)];
+    int __ = Math.Clamp(int.Parse(Console.ReadLine()!), 1, 50);
+    List<int> cards = [.. Console.ReadLine()!.Split(' ').Select(int.Parse).OrderBy(it => it)];
+    HashSet<int> duplicates = [];
+    HashSet<int> unique = [];
+    for (var i = 0; i < cards.Count; i++) {
+        int current = cards[i];
+        if (i < cards.Count - 1 && current == cards[i + 1]) {
+            duplicates.Add(current);
+        } else {
+            unique.Add(current);
+        }
+    }
+    foreach (int duplicate in duplicates) {
+        unique.Remove(duplicate);
+    }
+    cards = [];
+    int sum = unique.Sum();
+    if (sum > 0) {
+        cards.Add(sum);
+    }
+    foreach (int duplicate in duplicates) {
+        cards.Add(duplicate);
+        cards.Add(duplicate);
+        cards.Add(duplicate);
+    }
     Console.WriteLine(MaxDamage(cards));
 }
 return;
