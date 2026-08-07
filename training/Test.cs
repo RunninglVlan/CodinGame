@@ -1,68 +1,66 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 
 const string testCase = """
-                        4
-                        2
-                        10 15
-                        1
-                        100
-                        4
-                        10 5 10 10
-                        5
-                        1 2 3 4 5
-                        6
-                        7 7 7 7 7 7
+                        3
+                        1 1 2
                         """;
 Console.SetIn(new StringReader(testCase));
 // https://codeforces.com/contest/2252/problem/A
-int tests = Math.Clamp(int.Parse(Console.ReadLine()!), 1, 100);
-for (var i = 0; i < tests; i++) {
-    int cardCount = Math.Clamp(int.Parse(Console.ReadLine()!), 1, 50);
-    List<int> cards = [.. Debug.ReadLine().Split(' ').Select(int.Parse)];
-    Console.WriteLine(MaxDamage(cards));
+int __ = Math.Clamp(int.Parse(Console.ReadLine()!), 1, 50);
+List<int> cards = [.. Console.ReadLine()!.Split(' ').Select(int.Parse).OrderBy(it => it)];
+Console.Error.WriteLine($"read cards: {string.Join(", ", cards)}");
+
+HashSet<int> duplicates = [];
+HashSet<int> unique = [];
+for (var i = 0; i < cards.Count; i++) {
+    int current = cards[i];
+    if (i < cards.Count - 1 && current == cards[i + 1]) {
+        duplicates.Add(current);
+    } else {
+        unique.Add(current);
+    }
 }
+foreach (int duplicate in duplicates) {
+    unique.Remove(duplicate);
+}
+cards = [];
+int sum = unique.Sum();
+if (sum > 0) {
+    cards.Add(sum);
+}
+foreach (int duplicate in duplicates) {
+    cards.Add(duplicate);
+    cards.Add(duplicate);
+    cards.Add(duplicate);
+}
+Console.Error.WriteLine($"reduced cards: {string.Join(", ", cards)}");
+const int expected = 4;
+int actual = MaxDamage(cards);
+Console.WriteLine(expected == actual ? $"✅ {actual}" : $"❌ expected {expected}, but found {actual}");
 return;
 
-int MaxDamage(List<int> cards, int currentI = 0, int currentDamage = 0, int previousSpell = 0, bool shield = false) {
-    if (currentI >= cards.Count) {
-        return currentDamage;
-    }
-    // we start with 0
-    // we should try all combinations
-    // if we have 10 and 15, count 2
-    // we should try 10 and 15
-    // and 15 and 10
-    // we use reversed for to iterate and remove from list
-    // so first we use 15
-    // iterate from index 1 to 0
-    // 2nd iteration should have 
-    for (int i = currentI; i < cards.Count; i++) {
-        int damage = cards[i];
+int MaxDamage(List<int> cards, int currentDamage = 0, int previousSpell = 0, bool shield = false, int depth = 0) {
+    int maxDamage = currentDamage;
+    for (var i = 0; i < cards.Count; i++) {
         int currentSpell = cards[i];
+        int damage = cards[i];
         if (shield) {
             damage = 0;
         }
         if (previousSpell == damage) {
             shield = true;
         }
-        // cards.RemoveAt(i);
-        int newDamage = MaxDamage(cards, currentI + 1, currentDamage + damage, damage, shield);
-        Console.Error.WriteLine($"currentDamage: {currentDamage}, spell: {currentSpell}, damage: {damage}, newDamage: {newDamage}, previousSpell: {previousSpell}, shield: {shield}");
-        if (newDamage > currentDamage) {
-            return newDamage;
+        cards.RemoveAt(i);
+        Console.Error.WriteLine($"{new string(' ', depth)}currentDamage: {currentDamage}, spell: {currentSpell}, damage: {damage}, previousSpell: {previousSpell}, shield: {shield}");
+        int newDamage = MaxDamage(cards, currentDamage + damage, currentSpell, shield, depth + 1);
+        Console.Error.WriteLine($"{new string(' ', depth)}newDamage: {newDamage}");
+        if (newDamage > maxDamage) {
+            maxDamage = newDamage;
         }
-        // cards.Insert(i, damage);
+        cards.Insert(i, currentSpell);
     }
-    return currentDamage;
-}
-
-static class Debug {
-    /// Reads line from Console and also writes it to Console.Error
-    public static string ReadLine() {
-        string line = Console.ReadLine()!;
-        Console.Error.WriteLine(line);
-        return line;
-    }
+    return maxDamage;
 }
