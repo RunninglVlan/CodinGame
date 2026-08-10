@@ -1,13 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 
 // https://www.codingame.com/training/easy/decode-the-message
 var maxEncoded = (long)Math.Pow(10, 16);
 long encoded = Math.Clamp(long.Parse(Console.ReadLine()!), 1, maxEncoded - 1);
 string alphabet = Console.ReadLine()!;
 long currentEncoded = 0;
-List<char> decoded = [alphabet.First()];
+List<char> decoded = [alphabet[0]];
 while (true) {
     foreach (char c in alphabet) {
         decoded[0] = c;
@@ -16,24 +15,24 @@ while (true) {
             return;
         }
     }
-    for (var i = 0;;) {
-        int index = alphabet.IndexOf(decoded[i]);
-        index++;
-        if (index >= alphabet.Length) {
-            if (i >= decoded.Count - 1) {
-                decoded.Add(alphabet.First());
-                for (var j = 0; j < decoded.Count; j++) {
-                    decoded[j] = alphabet.First();
-                }
-                break;
-            }
-            i++;
+    for (var level = 0;;) {
+        int i = alphabet.IndexOf(decoded[level]) + 1;
+        if (i >= alphabet.Length && level < decoded.Count - 1) {
+            level++;
             continue;
         }
-        for (var j = 0; j < i; j++) {
-            decoded[j] = alphabet.First();
+        ResetPrevious(level);
+        if (i >= alphabet.Length && level >= decoded.Count - 1) {
+            decoded.Add(alphabet[0]);
+            break;
         }
-        decoded[i] = alphabet[index];
+        decoded[level] = alphabet[i];
         break;
+    }
+}
+
+void ResetPrevious(int limit) {
+    for (var i = 0; i <= limit; i++) {
+        decoded[i] = alphabet[0];
     }
 }
