@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
 /// https://www.codingame.com/training/easy/city-lights-part-1
 static class CityLights1 {
@@ -37,7 +38,7 @@ class City(int width, int height) {
                     double distance = Point.Distance(new Point(x, y), cell);
                     brightness += Math.Max(radius - (int)Math.Round(distance), 0);
                 }
-                Console.Write(CELL_CHARS[brightness]);
+                Console.Write(brightness < CELL_CHARS.Length ? CELL_CHARS[brightness] : CELL_CHARS.Last());
             }
             Console.WriteLine();
         }
