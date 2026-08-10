@@ -16,13 +16,13 @@ static class CityLights1 {
 }
 
 class City(int width, int height) {
-    const string RADIUS_CHARS = ".123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    const string CELL_CHARS = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
     readonly Dictionary<Point, int> lightSourceRadii = new();
 
     public void Read(int y, string line) {
         for (var x = 0; x < width; x++) {
-            int radius = RADIUS_CHARS.IndexOf(line[x]);
+            int radius = CELL_CHARS.IndexOf(line[x]);
             if (radius > 0) {
                 lightSourceRadii.Add(new Point(x, y), radius);
             }
@@ -37,7 +37,7 @@ class City(int width, int height) {
                     double distance = Point.Distance(new Point(x, y), cell);
                     brightness += Math.Max(radius - (int)Math.Round(distance), 0);
                 }
-                Console.Write(brightness);
+                Console.Write(CELL_CHARS[brightness]);
             }
             Console.WriteLine();
         }
