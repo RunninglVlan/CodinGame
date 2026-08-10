@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 /// https://www.codingame.com/training/easy/city-lights-part-1
 static class CityLights1 {
@@ -17,20 +18,36 @@ static class CityLights1 {
 class City(int width, int height) {
     const string RADIUS_CHARS = ".123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
-    readonly int[,] radiusCells = new int[width, height];
+    readonly Dictionary<Point, int> lightSourceRadii = new();
 
     public void Read(int y, string line) {
         for (var x = 0; x < width; x++) {
-            radiusCells[x, y] = RADIUS_CHARS.IndexOf(line[x]);
+            int radius = RADIUS_CHARS.IndexOf(line[x]);
+            if (radius > 0) {
+                lightSourceRadii.Add(new Point(x, y), radius);
+            }
         }
     }
 
     public void PrintBrightness() {
         for (var y = 0; y < height; y++) {
             for (var x = 0; x < width; x++) {
-                Console.Write(radiusCells[x, y]);
+                var brightness = 0;
+                foreach ((var cell, int radius) in lightSourceRadii) {
+                    double distance = Point.Distance(new Point(x, y), cell);
+                    brightness += radius - (int)Math.Round(distance);
+                }
+                Console.Write(brightness);
             }
             Console.WriteLine();
         }
+    }
+}
+
+readonly record struct Point(int X, int Y) {
+    public static double Distance(Point a, Point b) {
+        int diffX = a.X - b.X;
+        int diffY = a.Y - b.Y;
+        return Math.Sqrt(diffX * diffX + diffY * diffY);
     }
 }
