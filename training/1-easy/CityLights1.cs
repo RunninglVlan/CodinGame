@@ -2,29 +2,26 @@
 using System.Collections.Generic;
 using System.Linq;
 
-/// https://www.codingame.com/training/easy/city-lights-part-1
-static class CityLights1 {
-    static void Main() {
-        int height = Math.Clamp(int.Parse(Console.ReadLine()!), 1, 20);
-        int width = Math.Clamp(int.Parse(Console.ReadLine()!), 1, 20);
-        var city = new City(width, height);
-        for (var y = 0; y < height; y++) {
-            string line = Console.ReadLine()!;
-            city.Read(y, line);
-        }
-        city.PrintBrightness();
-    }
-}
+// https://www.codingame.com/training/easy/city-lights-part-1
+int height = Math.Clamp(int.Parse(Console.ReadLine()!), 1, 20);
+int width = Math.Clamp(int.Parse(Console.ReadLine()!), 1, 20);
+var city = new City(width, height);
+city.ReadLightSources();
+city.PrintBrightness();
 
 class City(int width, int height) {
     const string CELL_CHARS = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
     readonly Dictionary<Point, int> lightSourceRadii = new();
 
-    public void Read(int y, string line) {
-        for (var x = 0; x < width; x++) {
-            int radius = CELL_CHARS.IndexOf(line[x]);
-            if (radius > 0) {
+    public void ReadLightSources() {
+        for (var y = 0; y < height; y++) {
+            string line = Console.ReadLine()!;
+            for (var x = 0; x < width; x++) {
+                int radius = CELL_CHARS.IndexOf(line[x]);
+                if (radius <= 0) {
+                    continue;
+                }
                 lightSourceRadii.Add(new Point(x, y), radius);
             }
         }
