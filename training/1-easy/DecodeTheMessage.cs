@@ -4,12 +4,13 @@
 var maxEncoded = (long)Math.Pow(10, 16);
 long encoded = Math.Clamp(long.Parse(Console.ReadLine()!), 1, maxEncoded - 1);
 string alphabet = Console.ReadLine()!;
-long times = encoded / alphabet.Length;
+var decoded = string.Empty;
 long letter = encoded % alphabet.Length;
-var decoded = alphabet[(int)letter].ToString();
+decoded += alphabet[(int)letter];
+long times = encoded / alphabet.Length;
 while (times > 0) {
     letter = (times - 1) % alphabet.Length;
     decoded += alphabet[(int)letter];
-    times -= alphabet.Length;
+    times /= alphabet.Length;
 }
 Console.WriteLine(decoded);
