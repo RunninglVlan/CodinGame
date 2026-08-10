@@ -35,7 +35,7 @@ class City(int width, int height) {
                 var brightness = 0;
                 foreach ((var cell, int radius) in lightSourceRadii) {
                     double distance = Point.Distance(new Point(x, y), cell);
-                    brightness += radius - (int)Math.Round(distance);
+                    brightness += Math.Max(radius - (int)Math.Round(distance), 0);
                 }
                 Console.Write(brightness);
             }
