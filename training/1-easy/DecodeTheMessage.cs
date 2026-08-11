@@ -7,7 +7,8 @@ string alphabet = Console.ReadLine()!;
 var decoded = string.Empty;
 long times = encoded + 1;
 while (times > 0) {
-    long letter = (times - 1) % alphabet.Length;
+    times -= 1;
+    long letter = times % alphabet.Length;
     decoded += alphabet[(int)letter];
     times /= alphabet.Length;
 }
