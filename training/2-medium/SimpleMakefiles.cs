@@ -80,7 +80,7 @@ class Make {
         if (goalTargets.Length == 0) {
             PrintRuleActions([rules.First()]);
         } else {
-            PrintRuleActions(goalTargets);
+            PrintRuleActions(goalTargets, orderBy: _ => string.Empty);
         }
         Console.WriteLine("[Build complete]");
     }
@@ -98,10 +98,10 @@ class Make {
         }
     }
 
-    void PrintRuleActions(IEnumerable<string> goals) {
-        var ruleGroups = goals
+    void PrintRuleActions(IEnumerable<string> targets, Func<Rule, string> orderBy) {
+        var ruleGroups = targets
                 .SelectMany(target => rules.Where(it => it.Target == target))
-                .OrderBy(it => it.Target)
+                .OrderBy(orderBy)
                 .GroupBy(it => it.Target);
         foreach (var group in ruleGroups) {
             PrintRuleActions([.. group]);
@@ -112,7 +112,7 @@ class Make {
         if (targetRules.All(IsUpToDate)) {
             return;
         }
-        PrintRuleActions(targetRules.SelectMany(it => it.Prerequisites));
+        PrintRuleActions(targetRules.SelectMany(it => it.Prerequisites), orderBy: it => it.Target);
         targetRules.ForEach(it => it.PrintActions());
         int maxTime = existingFileTimes.Count > 0 ? existingFileTimes.Values.Max() : 0;
         existingFileTimes[targetRules.First().Target] = maxTime + 1;
