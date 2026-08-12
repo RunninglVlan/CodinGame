@@ -3,24 +3,20 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
-/// https://www.codingame.com/contribute/view/149373d871f27bdcdc97a723791d28b1fdfe5e
-static class SimpleMakefiles {
-    static void Main() {
-        var make = new Make();
-        make.ReadFiles();
-        make.ReadRequiredTargets();
-        make.ReadMakefile();
-        Console.Error.WriteLine();
-        make.PrintActions();
-    }
-}
+// https://www.codingame.com/training/medium/simple-makefiles
+var make = new Make();
+make.ReadFiles();
+make.ReadGoalTargets();
+make.ReadMakefile();
+Console.Error.WriteLine();
+make.PrintActions();
 
 class Make {
     const char ACTION_CHAR = '\t';
     public const char SPACE = ' ';
 
     readonly Dictionary<string, int> existingFileTimes = [];
-    string[] requiredTargets = null!;
+    string[] goalTargets = null!;
     readonly List<Rule> rules = [];
 
     public void ReadFiles() {
@@ -33,8 +29,8 @@ class Make {
         }
     }
 
-    public void ReadRequiredTargets() {
-        requiredTargets = Debug.ReadLine().Split(SPACE, StringSplitOptions.RemoveEmptyEntries);
+    public void ReadGoalTargets() {
+        goalTargets = Debug.ReadLine().Split(SPACE, StringSplitOptions.RemoveEmptyEntries);
     }
 
     public void ReadMakefile() {
@@ -80,10 +76,10 @@ class Make {
             Console.WriteLine("[Circular dependencies detected]");
             return;
         }
-        if (requiredTargets.Length == 0) {
+        if (goalTargets.Length == 0) {
             PrintRuleActions([rules.First()]);
         } else {
-            PrintRuleActions(requiredTargets);
+            PrintRuleActions(goalTargets);
         }
         Console.WriteLine("[Build complete]");
     }
@@ -101,8 +97,8 @@ class Make {
         }
     }
 
-    void PrintRuleActions(IEnumerable<string> required) {
-        var ruleGroups = required
+    void PrintRuleActions(IEnumerable<string> goals) {
+        var ruleGroups = goals
                 .SelectMany(target => rules.Where(it => it.Target == target))
                 .OrderBy(it => it.Target)
                 .GroupBy(it => it.Target);
