@@ -30,6 +30,7 @@ class Make {
     }
 
     public void ReadGoalTargets() {
+        Console.ReadLine(); // number of goal targets
         goalTargets = Debug.ReadLine().Split(SPACE, StringSplitOptions.RemoveEmptyEntries);
     }
 
