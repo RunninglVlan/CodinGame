@@ -46,8 +46,7 @@ class Game {
         if (susManPath.Last() != susMan) {
             susManPath.Add(susMan);
         }
-        var target = susManPath.First();
-        var direction = NextDirection(target);
+        var direction = NextDirection(susMan);
         var playerNext = player + direction;
         // if it's a wall, turn until valid direction is found
         while (!playerNext.InBounds(SIZE, SIZE) || !IsFloor(playerNext) || playerNext == playerPrevious) {
@@ -57,9 +56,7 @@ class Game {
         Console.WriteLine(Screen.ToChar(direction));
         playerPrevious = player;
         player = playerNext;
-        if (player == target) {
-            susManPath.RemoveAt(0);
-        }
+        susManPath.Remove(player);
     }
 
     Point NextDirection(Point susMan) {
@@ -68,6 +65,9 @@ class Game {
             var playerNext = player + direction;
             if (!playerNext.InBounds(SIZE, SIZE) || playerNext == playerPrevious) {
                 continue;
+            }
+            if (playerNext == susManPath.First()) {
+                return direction;
             }
             int distance = Point.ManhattanDistance(playerNext, susMan);
             if (best == null || distance < best.Value.distance) {
