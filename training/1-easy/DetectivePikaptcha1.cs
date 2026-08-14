@@ -1,8 +1,9 @@
 ﻿using System;
 using System.Linq;
 
+/// Visual <br/>
 /// https://www.codingame.com/training/easy/detective-pikaptcha-ep1
-static class DetectivePikaptcha {
+static class DetectivePikaptcha1 {
     static void Main() {
         var grid = new Grid();
         grid.Init();

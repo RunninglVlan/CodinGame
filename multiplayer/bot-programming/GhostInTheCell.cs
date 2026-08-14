@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
+/// Visual <br/>
 /// https://www.codingame.com/multiplayer/bot-programming/ghost-in-the-cell
 static class GhostInTheCell {
     static void Main() {

@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
-/// Decode and execute the MiniCPU bytecode program<br/>
+/// Decode and execute the MiniCPU bytecode program <br/>
 /// https://www.codingame.com/training/easy/minicpu-instruction-decoder
 static class MiniCPUInstructionDecoder {
     static void Main() {

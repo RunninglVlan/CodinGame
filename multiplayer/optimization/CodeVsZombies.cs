@@ -4,7 +4,8 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text.Json;
 
-/// Save humans, destroy zombies!<br/>
+/// Visual <br/>
+/// Save humans, destroy zombies! <br/>
 /// https://www.codingame.com/multiplayer/optimization/code-vs-zombies
 static class CodeVsZombies {
     [SuppressMessage("ReSharper", "FunctionNeverReturns")]

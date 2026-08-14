@@ -62,7 +62,7 @@ readonly record struct Vector(double X, double Y) {
         return Math.Sqrt(diffX * diffX + diffY * diffY);
     }
 
-    /// Calculates the absolute heading of a vector.<br/>
+    /// Calculates the absolute heading of a vector. <br/>
     /// RIGHT is 0°, UP is 90°, LEFT is 180° and DOWN is 270°
     /// <returns>The angle in degrees from 0 to 360.</returns>
     public static double Angle(Vector value) {

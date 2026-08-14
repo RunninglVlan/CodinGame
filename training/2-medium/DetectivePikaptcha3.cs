@@ -1,5 +1,6 @@
 ﻿using System;
 
+/// Visual <br/>
 /// https://www.codingame.com/training/medium/detective-pikaptcha-ep3
 static class DetectivePikaptcha3 {
     static void Main() {

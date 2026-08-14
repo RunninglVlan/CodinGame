@@ -3,8 +3,9 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
+/// Visual <br/>
 /// https://www.codingame.com/training/medium/death-first-search-episode-1
-static class DeathFirstSearch {
+static class DeathFirstSearch1 {
     [SuppressMessage("ReSharper", "FunctionNeverReturns")]
     static void Main() {
         var game = new Game();

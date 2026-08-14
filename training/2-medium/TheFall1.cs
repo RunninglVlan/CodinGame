@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics.CodeAnalysis;
 
+/// Visual <br/>
 /// https://www.codingame.com/training/medium/the-fall-episode-1
 static class TheFall1 {
     [SuppressMessage("ReSharper", "FunctionNeverReturns")]

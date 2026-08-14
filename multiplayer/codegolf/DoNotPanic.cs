@@ -1,1 +1,3 @@
-﻿using System;string[]S()=>Console.ReadLine().Split();var l=S();var P=(int i)=>int.Parse(l[i]);var t=new int[15];t[P(3)]=P(4);int e=P(7),f,x;while(e-->0){l=S();t[P(0)]=P(1);}for(;;Console.WriteLine(f>=0&&t[f]<x&l[2][0]>81|t[f]>x&l[2][0]<77?"BLOCK":"WAIT")){l=S();f=P(0);x=P(1);}
+﻿// Visual
+// https://www.codingame.com/multiplayer/codegolf/don't-panic
+using System;string[]S()=>Console.ReadLine().Split();var l=S();var P=(int i)=>int.Parse(l[i]);var t=new int[15];t[P(3)]=P(4);int e=P(7),f,x;while(e-->0){l=S();t[P(0)]=P(1);}for(;;Console.WriteLine(f>=0&&t[f]<x&l[2][0]>81|t[f]>x&l[2][0]<77?"BLOCK":"WAIT")){l=S();f=P(0);x=P(1);}

@@ -1,7 +1,8 @@
 ﻿using System;
 using System.Diagnostics.CodeAnalysis;
 
-/// Save the Planet. Use less Fossil Fuel.<br/>
+/// Visual <br/>
+/// Save the Planet. Use less Fossil Fuel. <br/>
 /// https://www.codingame.com/multiplayer/optimization/mars-lander
 static class MarsLander {
     static void Main() {
@@ -137,11 +138,11 @@ class Game {
 
     /// vNew = v + a * t,
     /// pNew = p + v * t + 0.5 * a * t^2,
-    /// pNew = p + vNew * t - 0.5 * a * t^2.<br/>
+    /// pNew = p + vNew * t - 0.5 * a * t^2. <br/>
     /// t = 1, so
     /// vNew = v + a,
     /// pNew = p + v + 0.5 * a,
-    /// pNew = p + vNew - 0.5 * a.<br/>
+    /// pNew = p + vNew - 0.5 * a. <br/>
     /// <see href="https://en.wikipedia.org/wiki/Equations_of_motion#Constant_translational_acceleration_in_a_straight_line" />
     static (Vector, Vector) SimulateNext(Vector p, Vector v, int nextAngle, int nextPower, int iterations) {
         double radians = nextAngle * Math.PI / 180;

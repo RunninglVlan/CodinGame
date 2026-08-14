@@ -1,8 +1,9 @@
 ﻿using System;
 using System.Diagnostics.CodeAnalysis;
 
+/// Visual <br/>
 /// https://www.codingame.com/training/medium/shadows-of-the-knight-episode-1
-static class ShadowOfKnight {
+static class ShadowOfKnight1 {
     static void Main() {
         var game = new Game();
         game.Init();

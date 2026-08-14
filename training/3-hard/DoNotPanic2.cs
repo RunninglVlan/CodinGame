@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
+/// Visual <br/>
 /// https://www.codingame.com/training/hard/don't-panic-episode-2
 static class DoNotPanic2 {
     [SuppressMessage("ReSharper", "FunctionNeverReturns")]
