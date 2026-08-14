@@ -41,8 +41,8 @@ class Grid(int width, int height, int mineCount) {
                 if (potentialMinesAround.Length != i) {
                     continue;
                 }
-                foreach (var nearbyMine in potentialMinesAround) {
-                    mines.Add(nearbyMine);
+                foreach (var mine in potentialMinesAround) {
+                    mines.Add(mine);
                 }
             }
         }
