@@ -6,10 +6,10 @@ using System.Linq;
 string[] dimensions = Console.ReadLine()!.Split(' ');
 int height = Math.Clamp(int.Parse(dimensions[0]), 3, 20);
 int width = Math.Clamp(int.Parse(dimensions[1]), 3, 20);
-int mines = Math.Clamp(int.Parse(Console.ReadLine()!), 1, 20);
+int mines = Math.Clamp(int.Parse(Debug.ReadLine()!), 1, 20);
 var grid = new Grid(width, height, mines);
 for (var y = 0; y < height; y++) {
-    string line = Console.ReadLine()!;
+    string line = Debug.ReadLine()!;
     for (var x = 0; x < height; x++) {
         grid.ReadCell(x, y, line[x]);
     }
@@ -73,4 +73,13 @@ readonly record struct Point(int X, int Y) {
     public static Point operator +(Point a, Point b) => new(a.X + b.X, a.Y + b.Y);
 
     public override string ToString() => $"{X} {Y}";
+}
+
+static class Debug {
+    /// Reads line from Console and also writes it to Console.Error
+    public static string? ReadLine() {
+        string? line = Console.ReadLine();
+        Console.Error.WriteLine(line);
+        return line;
+    }
 }
