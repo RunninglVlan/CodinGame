@@ -33,11 +33,11 @@ class Grid(int width, int height, int mineCount) {
     }
 
     public void FindMines() {
-        if (potentialMines.Count == mineCount) {
-            potentialMines.ForEach(it => mines.Add(it));
-            return;
-        }
         while (mines.Count < mineCount) {
+            if (potentialMines.Count == mineCount - mines.Count) {
+                potentialMines.ForEach(it => mines.Add(it));
+                return;
+            }
             foreach ((var point, int count) in minesAround) {
                 var neighbors = Point.Directions8.Select(it => point + it).ToArray();
                 var nearbyPotentialMines = neighbors.Where(it => potentialMines.Contains(it)).ToArray();
