@@ -17,6 +17,8 @@ readonly record struct Point(int X, int Y) {
         return new Point(int.Parse(x), int.Parse(y));
     }
 
+    public Point TurnLeft() => new(Y, -X);
+
     public bool InBounds(int width, int height) {
         return X >= 0 && X < width && Y >= 0 && Y < height;
     }

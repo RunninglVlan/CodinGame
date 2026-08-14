@@ -12,13 +12,17 @@ while (true) {
     game.Loop();
 }
 
-class Game {
+class Game : IGrid<Point> {
     const int SIZE = 10;
 
+    readonly Pathfinding<Point> pathfinding;
+
+    public Game() {
+        pathfinding = new Pathfinding<Point>(this);
+    }
+
     readonly bool[,] floors = new bool[SIZE, SIZE];
-    Point player;
-    Point? playerPrevious;
-    readonly List<Point> susManPath = [];
+    Point player, susMan;
 
     bool IsFloor(Point point) => floors[point.X, point.Y];
 
@@ -33,7 +37,7 @@ class Game {
                 if (block == Blocks.PLAYER) {
                     player = new Point(x, y);
                 } else if (block == Blocks.SUS_MAN) {
-                    susManPath.Add(new Point(x, y));
+                    susMan = new Point(x, y);
                 }
                 floors[x, y] = block != Blocks.WALL;
             }
@@ -42,40 +46,17 @@ class Game {
 
     public void Loop() {
         string[] susCoordinates = Console.ReadLine()!.Split(' ');
-        var susMan = Point.From(susCoordinates[1], susCoordinates[0]);
-        if (susManPath.Last() != susMan) {
-            susManPath.Add(susMan);
-        }
-        var direction = NextDirection(susMan);
-        var playerNext = player + direction;
-        // if it's a wall, turn until valid direction is found
-        while (!playerNext.InBounds(SIZE, SIZE) || !IsFloor(playerNext) || playerNext == playerPrevious) {
-            direction = direction.TurnLeft();
-            playerNext = player + direction;
-        }
+        var path = pathfinding.Path(player, susMan);
+        var direction = path!.First() - player;
         Console.WriteLine(Screen.ToChar(direction));
-        playerPrevious = player;
-        player = playerNext;
-        susManPath.Remove(player);
+        player += direction;
+        susMan = Point.From(susCoordinates[1], susCoordinates[0]);
     }
 
-    Point NextDirection(Point susMan) {
-        (int distance, Point direction)? best = null;
-        foreach (var direction in Screen.Directions4) {
-            var playerNext = player + direction;
-            if (!playerNext.InBounds(SIZE, SIZE) || playerNext == playerPrevious) {
-                continue;
-            }
-            if (playerNext == susManPath.First()) {
-                return direction;
-            }
-            int distance = Point.ManhattanDistance(playerNext, susMan);
-            if (best == null || distance < best.Value.distance) {
-                best = (distance, direction);
-            }
-        }
-        return best!.Value.direction;
-    }
+    IEnumerable<Point> IGrid<Point>.Next(Point current) => Screen.Directions4
+            .Select(it => current + it)
+            .Where(it => it.InBounds(SIZE, SIZE) && IsFloor(it))
+            .OrderBy(it => Point.ManhattanDistance(it, susMan));
 }
 
 static class Blocks {
@@ -90,8 +71,6 @@ readonly record struct Point(int X, int Y) {
         return new Point(Math.Clamp(int.Parse(x), 0, 9), Math.Clamp(int.Parse(y), 0, 9));
     }
 
-    public Point TurnLeft() => new(Y, -X);
-
     public bool InBounds(int width, int height) {
         return X >= 0 && X < width && Y >= 0 && Y < height;
     }
@@ -101,6 +80,7 @@ readonly record struct Point(int X, int Y) {
     }
 
     public static Point operator +(Point a, Point b) => new(a.X + b.X, a.Y + b.Y);
+    public static Point operator -(Point a, Point b) => new(a.X - b.X, a.Y - b.Y);
 
     public override string ToString() => $"({X}, {Y})";
 }
@@ -129,4 +109,50 @@ static class Debug {
         Console.Error.WriteLine(line);
         return line;
     }
+}
+
+class Pathfinding<T>(IGrid<T> grid) where T : IEquatable<T> {
+    readonly Queue<Node> queue = [];
+    readonly HashSet<T> visited = [];
+
+    /// BFS to end
+    public List<T>? Path(T start, T end) {
+        queue.Clear();
+        visited.Clear();
+        var startNode = new Node(start);
+        queue.Enqueue(startNode);
+        visited.Add(start);
+        while (queue.TryDequeue(out var current)) {
+            if (current.cell.Equals(end)) {
+                return Reconstruct(startNode, current);
+            }
+            foreach (var next in grid.Next(current.cell)) {
+                if (!visited.Add(next)) {
+                    continue;
+                }
+                queue.Enqueue(new Node(next) { parent = current });
+            }
+        }
+        return null;
+    }
+
+    static List<T> Reconstruct(Node start, Node end) {
+        var path = new List<T>();
+        var current = end;
+        while (current != start) {
+            path.Add(current!.cell);
+            current = current.parent;
+        }
+        path.Reverse();
+        return path;
+    }
+
+    class Node(T cell) {
+        public readonly T cell = cell;
+        public Node? parent;
+    }
+}
+
+interface IGrid<T> {
+    IEnumerable<T> Next(T current);
 }
