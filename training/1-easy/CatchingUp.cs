@@ -18,7 +18,7 @@ class Game {
     readonly bool[,] floors = new bool[SIZE, SIZE];
     Point player;
     Point? playerPrevious;
-    readonly List<Point> susManPoints = [];
+    readonly List<Point> susManPath = [];
 
     bool IsFloor(Point point) => floors[point.X, point.Y];
 
@@ -33,7 +33,7 @@ class Game {
                 if (block == Blocks.PLAYER) {
                     player = new Point(x, y);
                 } else if (block == Blocks.SUS_MAN) {
-                    susManPoints.Add(new Point(x, y));
+                    susManPath.Add(new Point(x, y));
                 }
                 floors[x, y] = block != Blocks.WALL;
             }
@@ -42,11 +42,11 @@ class Game {
 
     public void Loop() {
         string[] susCoordinates = Console.ReadLine()!.Split(' ');
-        var susPoint = Point.From(susCoordinates[1], susCoordinates[0]);
-        if (susManPoints.Last() != susPoint) {
-            susManPoints.Add(susPoint);
+        var susMan = Point.From(susCoordinates[1], susCoordinates[0]);
+        if (susManPath.Last() != susMan) {
+            susManPath.Add(susMan);
         }
-        var target = susManPoints.First();
+        var target = susManPath.First();
         var direction = NextDirection(target);
         var playerNext = player + direction;
         // if it's a wall, turn until valid direction is found
@@ -58,18 +58,18 @@ class Game {
         playerPrevious = player;
         player = playerNext;
         if (player == target) {
-            susManPoints.RemoveAt(0);
+            susManPath.RemoveAt(0);
         }
     }
 
-    Point NextDirection(Point susPoint) {
+    Point NextDirection(Point susMan) {
         (int distance, Point direction)? best = null;
         foreach (var direction in Screen.Directions4) {
             var playerNext = player + direction;
             if (!playerNext.InBounds(SIZE, SIZE) || playerNext == playerPrevious) {
                 continue;
             }
-            int distance = Point.ManhattanDistance(playerNext, susPoint);
+            int distance = Point.ManhattanDistance(playerNext, susMan);
             if (best == null || distance < best.Value.distance) {
                 best = (distance, direction);
             }
