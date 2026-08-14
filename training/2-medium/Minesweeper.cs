@@ -40,7 +40,7 @@ class Grid(int width, int height, int mineCount) {
             foreach (var (point, _) in minesAround.Where(it => it.Value == i)) {
                 var potentialMinesAround = Point.Directions8
                         .Select(it => point + it)
-                        .Where(it => it.InBounds(width, height) && potentialMines.Contains(it))
+                        .Where(it => potentialMines.Contains(it))
                         .ToArray();
                 if (potentialMinesAround.Length != i) {
                     continue;
@@ -69,10 +69,6 @@ readonly record struct Point(int X, int Y) {
         RIGHT, LEFT, UP, DOWN,
         new(1, 1), new(-1, 1), new(1, -1), new(-1, -1)
     ];
-
-    public bool InBounds(int width, int height) {
-        return X >= 0 && X < width && Y >= 0 && Y < height;
-    }
 
     public static Point operator +(Point a, Point b) => new(a.X + b.X, a.Y + b.Y);
 
