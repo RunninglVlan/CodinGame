@@ -41,10 +41,13 @@ class Game {
     public void Loop() {
         string[] susCoordinates = Console.ReadLine()!.Split(' ');
         var susPoint = Point.From(susCoordinates[1], susCoordinates[0]);
-        var nextDirection = NextDirection(susPoint);
+        var nextDirection = NextDirection(susMan);
         Console.WriteLine(Screen.ToChar(nextDirection));
         playerPrevious = player;
         player += nextDirection;
+        if (player == susMan) {
+            susMan = susPoint;
+        }
     }
 
     Point NextDirection(Point susPoint) {
@@ -52,7 +55,7 @@ class Game {
         foreach (var direction in Screen.Directions4) {
             var playerNext = player + direction;
             int distance = Point.ManhattanDistance(playerNext, susPoint);
-            if (!IsFloor(playerNext) || playerNext == playerPrevious) {
+            if (!playerNext.InBounds(SIZE, SIZE) || !IsFloor(playerNext) || playerNext == playerPrevious) {
                 continue;
             }
             if (best == null || distance < best.Value.distance) {
@@ -73,6 +76,10 @@ static class Blocks {
 readonly record struct Point(int X, int Y) {
     public static Point From(string x, string y) {
         return new Point(Math.Clamp(int.Parse(x), 1, 9), Math.Clamp(int.Parse(y), 1, 9));
+    }
+
+    public bool InBounds(int width, int height) {
+        return X >= 0 && X < width && Y >= 0 && Y < height;
     }
 
     public static int ManhattanDistance(Point a, Point b) {

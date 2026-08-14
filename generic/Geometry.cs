@@ -13,12 +13,12 @@ readonly record struct Point(int X, int Y) {
         new(1, 1), new(-1, 1), new(1, -1), new(-1, -1)
     ];
 
-    public bool InBounds(int width, int height) {
-        return X >= 0 && X < width && Y >= 0 && Y < height;
-    }
-
     public static Point From(string x, string y) {
         return new Point(int.Parse(x), int.Parse(y));
+    }
+
+    public bool InBounds(int width, int height) {
+        return X >= 0 && X < width && Y >= 0 && Y < height;
     }
 
     public static int ManhattanDistance(Point a, Point b) {
