@@ -10,7 +10,7 @@ int mines = Math.Clamp(int.Parse(Debug.ReadLine()!), 1, 20);
 var grid = new Grid(width, height, mines);
 for (var y = 0; y < height; y++) {
     string line = Debug.ReadLine()!;
-    for (var x = 0; x < height; x++) {
+    for (var x = 0; x < width; x++) {
         grid.ReadCell(x, y, line[x]);
     }
 }
