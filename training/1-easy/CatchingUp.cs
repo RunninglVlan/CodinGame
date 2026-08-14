@@ -25,7 +25,7 @@ class Game {
     [SuppressMessage("ReSharper", "ConvertIfStatementToSwitchStatement")]
     public void Init() {
         // representing after how many turns the sus man will make another move
-        int k = Math.Clamp(int.Parse(Console.ReadLine()!), 1, 3);
+        Math.Clamp(int.Parse(Debug.ReadLine()!), 1, 3);
         for (var y = 0; y < SIZE; y++) {
             string mapRow = Console.ReadLine()!;
             for (var x = 0; x < SIZE; x++) {
@@ -120,4 +120,13 @@ static class Screen {
         _ when direction == RIGHT => 'R',
         _ => throw new ArgumentException($"Unsupported direction: {direction}")
     };
+}
+
+static class Debug {
+    /// Reads line from Console and also writes it to Console.Error
+    public static string? ReadLine() {
+        string? line = Console.ReadLine();
+        Console.Error.WriteLine(line);
+        return line;
+    }
 }
