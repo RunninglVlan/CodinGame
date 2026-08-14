@@ -16,6 +16,9 @@ class Game {
 
     readonly bool[,] floors = new bool[SIZE, SIZE];
     Point player, susMan;
+    Point? playerPrevious;
+
+    bool IsFloor(Point point) => floors[point.X, point.Y];
 
     [SuppressMessage("ReSharper", "ConvertIfStatementToSwitchStatement")]
     public void Init() {
@@ -40,19 +43,23 @@ class Game {
         var susPoint = Point.From(susCoordinates[1], susCoordinates[0]);
         var nextDirection = NextDirection(susPoint);
         Console.WriteLine(Screen.ToChar(nextDirection));
+        playerPrevious = player;
         player += nextDirection;
     }
 
     Point NextDirection(Point susPoint) {
-        int distance = Point.ManhattanDistance(player, susPoint);
+        (int distance, Point direction)? best = null;
         foreach (var direction in Screen.Directions4) {
-            var nextPlayer = player + direction;
-            int nextDistance = Point.ManhattanDistance(nextPlayer, susPoint);
-            if (nextDistance < distance) {
-                return direction;
+            var playerNext = player + direction;
+            int distance = Point.ManhattanDistance(playerNext, susPoint);
+            if (!IsFloor(playerNext) || playerNext == playerPrevious) {
+                continue;
+            }
+            if (best == null || distance < best.Value.distance) {
+                best = (distance, direction);
             }
         }
-        return Screen.Directions4.First();
+        return best!.Value.direction;
     }
 }
 
