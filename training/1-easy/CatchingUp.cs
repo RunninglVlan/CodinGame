@@ -87,7 +87,7 @@ static class Blocks {
 
 readonly record struct Point(int X, int Y) {
     public static Point From(string x, string y) {
-        return new Point(Math.Clamp(int.Parse(x), 1, 9), Math.Clamp(int.Parse(y), 1, 9));
+        return new Point(Math.Clamp(int.Parse(x), 0, 9), Math.Clamp(int.Parse(y), 0, 9));
     }
 
     public Point TurnLeft() => new(Y, -X);
