@@ -37,17 +37,29 @@ class Grid(int width, int height, int mineCount) {
             potentialMines.ForEach(it => mines.Add(it));
             return;
         }
-        for (var count = 1; count <= 2; count++) {
-            foreach (var (point, _) in minesAround.Where(it => it.Value == count)) {
-                var potentialMinesAround = Point.Directions8
-                        .Select(it => point + it)
-                        .Where(it => potentialMines.Contains(it))
-                        .ToArray();
-                if (potentialMinesAround.Length != count) {
-                    continue;
-                }
-                foreach (var mine in potentialMinesAround) {
-                    mines.Add(mine);
+        while (mines.Count < mineCount) {
+            for (var count = 1; count <= 3; count++) {
+                foreach (var (point, _) in minesAround.Where(it => it.Value == count)) {
+                    var potentialMinesAround = Point.Directions8
+                            .Select(it => point + it)
+                            .Where(it => potentialMines.Contains(it))
+                            .ToArray();
+                    if (potentialMinesAround.Length == 0) {
+                        continue;
+                    }
+                    int nearbyMines = Point.Directions8.Count(it => mines.Contains(point + it));
+                    if (nearbyMines == count) {
+                        foreach (var potentialMine in potentialMinesAround) {
+                            potentialMines.Remove(potentialMine);
+                        }
+                    }
+                    if (potentialMinesAround.Length + nearbyMines != count) {
+                        continue;
+                    }
+                    foreach (var mine in potentialMinesAround) {
+                        mines.Add(mine);
+                        potentialMines.Remove(mine);
+                    }
                 }
             }
         }
