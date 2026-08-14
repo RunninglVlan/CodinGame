@@ -8,12 +8,7 @@ int height = Math.Clamp(int.Parse(dimensions[0]), 3, 20);
 int width = Math.Clamp(int.Parse(dimensions[1]), 3, 20);
 int mines = Math.Clamp(int.Parse(Debug.ReadLine()!), 1, 20);
 var grid = new Grid(width, height, mines);
-for (var y = 0; y < height; y++) {
-    string line = Debug.ReadLine()!;
-    for (var x = 0; x < width; x++) {
-        grid.ReadCell(x, y, line[x]);
-    }
-}
+grid.ReadInput();
 grid.FindMines();
 grid.PrintMines();
 
@@ -22,13 +17,19 @@ class Grid(int width, int height, int mineCount) {
     readonly List<Point> potentialMines = [];
     readonly HashSet<Point> mines = [];
 
-    public void ReadCell(int x, int y, char cell) {
-        var point = new Point(x, y);
-        if (cell == '?') {
-            potentialMines.Add(point);
-            return;
+    public void ReadInput() {
+        for (var y = 0; y < height; y++) {
+            string line = Debug.ReadLine()!;
+            for (var x = 0; x < width; x++) {
+                char cell = line[x];
+                var point = new Point(x, y);
+                if (cell == '?') {
+                    potentialMines.Add(point);
+                    continue;
+                }
+                minesAround.Add(point, cell == '.' ? 0 : (int)char.GetNumericValue(cell));
+            }
         }
-        minesAround.Add(point, cell == '.' ? 0 : (int)char.GetNumericValue(cell));
     }
 
     public void FindMines() {
@@ -36,13 +37,13 @@ class Grid(int width, int height, int mineCount) {
             potentialMines.ForEach(it => mines.Add(it));
             return;
         }
-        for (var i = 1; i <= 2; i++) {
-            foreach (var (point, _) in minesAround.Where(it => it.Value == i)) {
+        for (var count = 1; count <= 2; count++) {
+            foreach (var (point, _) in minesAround.Where(it => it.Value == count)) {
                 var potentialMinesAround = Point.Directions8
                         .Select(it => point + it)
                         .Where(it => potentialMines.Contains(it))
                         .ToArray();
-                if (potentialMinesAround.Length != i) {
+                if (potentialMinesAround.Length != count) {
                     continue;
                 }
                 foreach (var mine in potentialMinesAround) {
