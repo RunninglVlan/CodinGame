@@ -32,6 +32,10 @@ class Grid(int width, int height, int mineCount) {
     }
 
     public void FindMines() {
+        if (potentialMines.Count == mineCount) {
+            potentialMines.ForEach(it => mines.Add(it));
+            return;
+        }
         for (var i = 1; i <= 2; i++) {
             foreach (var (point, _) in minesAround.Where(it => it.Value == i)) {
                 var potentialMinesAround = Point.Directions8
