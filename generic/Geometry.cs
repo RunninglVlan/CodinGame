@@ -110,6 +110,16 @@ static class Screen {
     public static readonly Point LEFT = new(-1, 0);
     public static readonly Point RIGHT = new(1, 0);
 
+    public static Point[] Directions4 { get; } = [RIGHT, LEFT, UP, DOWN];
+
+    public static char ToChar(Point direction) => direction switch {
+        _ when direction == UP => '^',
+        _ when direction == DOWN => 'v',
+        _ when direction == LEFT => '<',
+        _ when direction == RIGHT => '>',
+        _ => throw new ArgumentException($"Unsupported direction: {direction}")
+    };
+
     public static string ToString(Point direction) => direction switch {
         _ when direction == UP => nameof(UP),
         _ when direction == DOWN => nameof(DOWN),
