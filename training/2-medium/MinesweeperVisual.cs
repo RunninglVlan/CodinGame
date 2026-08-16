@@ -13,7 +13,7 @@ while (true) {
 class Grid(int width, int height, int mineCount) {
     readonly Dictionary<Point, int> minesAround = [];
     readonly HashSet<Point> unknownCells = [];
-    readonly List<Point> borderCells = [];
+
     public HashSet<Point> Mines { get; } = [];
 
     public void ReadInput() {
@@ -30,19 +30,17 @@ class Grid(int width, int height, int mineCount) {
                 }
                 int count = cell == '.' ? 0 : (int)char.GetNumericValue(cell);
                 minesAround.Add(point, count);
-                if (count > 0 && (point.X == 0 || point.X == width - 1 || point.Y == 0 || point.Y == height - 1)) {
-                    borderCells.Add(point);
-                }
             }
         }
     }
 
     public Point NextCell() {
-        return unknownCells.Count == width * height ? Point.Random(width, height) : NextSafeCell();
+        bool firstTurn = unknownCells.Count == width * height;
+        return firstTurn ? Point.Random(width, height) : NextSafeCell();
     }
 
     Point NextSafeCell() {
-        if (TryFindSafeCellNearBorder(out var cell)) {
+        if (TryFindOneOneAnySafeCell(out var cell)) {
             return cell;
         }
         Mines.Clear();
@@ -69,38 +67,44 @@ class Grid(int width, int height, int mineCount) {
         throw new Exception($"Can't find safe cell. Mines found: {Mines.Count}");
     }
 
-    bool TryFindSafeCellNearBorder(out Point safeCell) {
-        foreach (var cell in borderCells) {
-            foreach (var cellDirection in Point.Directions4) {
-                var cellNeighbor = cell + cellDirection;
-                if (!cellNeighbor.InBounds(width, height)) {
+    /// Finds safe cell near 1-1-X pattern
+    bool TryFindOneOneAnySafeCell(out Point safeCell) {
+        foreach (var (cell, neighbor) in FindOneOneAnyPatterns()) {
+            var potentialMines = Point.Directions8.Select(it => cell + it).Where(unknownCells.Contains).ToHashSet();
+            if (potentialMines.Count != 2) {
+                continue;
+            }
+            foreach (var direction in Point.Directions8) {
+                var candidate = neighbor + direction;
+                if (!unknownCells.Contains(candidate) || potentialMines.Contains(candidate)) {
                     continue;
                 }
-                if (!minesAround.TryGetValue(cellNeighbor, out int count) || count == 0) {
-                    continue;
-                }
-                if (!minesAround.TryGetValue(cellNeighbor + cellDirection, out count) || count == 0) {
-                    continue;
-                }
-                if (minesAround[cell] != 1 || minesAround[cellNeighbor] != 1) {
-                    continue;
-                }
-                var potentialMines = Point.Directions8
-                        .Select(it => cell + it)
-                        .Where(it => unknownCells.Contains(it))
-                        .ToHashSet();
-                foreach (var direction in Point.Directions8) {
-                    var neighbor = cellNeighbor + direction;
-                    if (!unknownCells.Contains(neighbor) || potentialMines.Contains(neighbor)) {
-                        continue;
-                    }
-                    safeCell = neighbor;
-                    return true;
-                }
+                safeCell = candidate;
+                return true;
             }
         }
         safeCell = default;
         return false;
+    }
+
+    IEnumerable<(Point, Point)> FindOneOneAnyPatterns() {
+        foreach (var (cell, _) in minesAround.Where(it => it.Value == 1)) {
+            foreach (var direction in Point.Directions4) {
+                var directionNeighbor = cell + direction;
+                if (directionNeighbor.InBounds(width, height)) {
+                    continue;
+                }
+                var oppositeDirection = direction * -1;
+                var neighbor = cell + oppositeDirection;
+                if (!minesAround.TryGetValue(neighbor, out int count) || count != 1) {
+                    continue;
+                }
+                var beyond = neighbor + oppositeDirection;
+                if (minesAround.TryGetValue(beyond, out count) && count != 0) {
+                    yield return (cell, neighbor);
+                }
+            }
+        }
     }
 }
 
@@ -127,6 +131,7 @@ readonly record struct Point(int X, int Y) {
     }
 
     public static Point operator +(Point a, Point b) => new(a.X + b.X, a.Y + b.Y);
+    public static Point operator *(Point a, int value) => new(a.X * value, a.Y * value);
 
     public override string ToString() => $"{X} {Y}";
 }
