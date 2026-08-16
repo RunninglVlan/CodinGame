@@ -17,6 +17,11 @@ readonly record struct Point(int X, int Y) {
         return new Point(int.Parse(x), int.Parse(y));
     }
 
+    public static Point Random(int width, int height) => new(
+            System.Random.Shared.Next(width),
+            System.Random.Shared.Next(height)
+    );
+
     public Point TurnLeft() => new(Y, -X);
 
     public bool InBounds(int width, int height) {
