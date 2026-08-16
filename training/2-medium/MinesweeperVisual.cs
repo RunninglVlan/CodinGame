@@ -7,14 +7,14 @@ using System.Linq;
 var grid = new Grid(30, 16, 99);
 while (true) {
     grid.ReadInput();
-    Console.WriteLine($"{grid.NextCell()} {string.Join(' ', grid.Mines)}");
+    Console.WriteLine($"{grid.NextCell()} {string.Join(' ', grid.TurnMines)}");
 }
 
 class Grid(int width, int height, int mineCount) {
     readonly Dictionary<Point, int> minesAround = [];
     readonly HashSet<Point> unknownCells = [];
-
-    public HashSet<Point> Mines { get; } = [];
+    readonly HashSet<Point> mines = [];
+    public HashSet<Point> TurnMines { get; } = [];
 
     public void ReadInput() {
         minesAround.Clear();
@@ -25,7 +25,9 @@ class Grid(int width, int height, int mineCount) {
                 char cell = lineCells[x].First();
                 var point = new Point(x, y);
                 if (cell == '?') {
-                    unknownCells.Add(point);
+                    if (!mines.Contains(point)) {
+                        unknownCells.Add(point);
+                    }
                     continue;
                 }
                 int count = cell == '.' ? 0 : (int)char.GetNumericValue(cell);
@@ -43,28 +45,36 @@ class Grid(int width, int height, int mineCount) {
         if (TryFindPatternSafeCell(out var cell)) {
             return cell;
         }
-        Mines.Clear();
-        while (Mines.Count < mineCount) {
+        TurnMines.Clear();
+        var safeCells = new HashSet<Point>();
+        while (mines.Count < mineCount) {
+            (int mines, int safeCells) before = (mines.Count, safeCells.Count);
             foreach ((var point, int count) in minesAround) {
                 var neighbors = Point.Directions8.Select(it => point + it).ToArray();
-                var nearbyPotentialMines = neighbors.Where(it => unknownCells.Contains(it)).ToArray();
-                if (nearbyPotentialMines.Length == 0) {
+                var nearbyPotentialMines = neighbors.Where(it => unknownCells.Contains(it)).ToList();
+                if (nearbyPotentialMines.Count == 0) {
                     continue;
                 }
-                int nearbyMines = neighbors.Count(it => Mines.Contains(it));
+                int nearbyMines = neighbors.Count(it => mines.Contains(it));
                 if (nearbyMines == count) {
-                    return nearbyPotentialMines.First();
+                    nearbyPotentialMines.ForEach(it => safeCells.Add(it));
                 }
-                if (nearbyPotentialMines.Length + nearbyMines != count) {
+                if (nearbyPotentialMines.Count + nearbyMines != count) {
                     continue;
                 }
                 foreach (var mine in nearbyPotentialMines) {
-                    Mines.Add(mine);
+                    mines.Add(mine);
+                    TurnMines.Add(mine);
                     unknownCells.Remove(mine);
                 }
             }
+            if (mines.Count == before.mines && safeCells.Count == before.safeCells) {
+                break;
+            }
         }
-        throw new Exception($"Can't find safe cell. Mines found: {Mines.Count}");
+        return safeCells.Count > 0
+                ? safeCells.First()
+                : throw new Exception($"Can't find safe cell. Mines found: {mines.Count}");
     }
 
     bool TryFindPatternSafeCell(out Point safeCell) {
