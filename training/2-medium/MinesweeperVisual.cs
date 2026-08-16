@@ -12,7 +12,7 @@ while (true) {
 
 class Grid(int width, int height, int mineCount) {
     readonly Dictionary<Point, int> minesAround = [];
-    readonly List<Point> unknownCells = [];
+    readonly HashSet<Point> unknownCells = [];
     public HashSet<Point> Mines { get; } = [];
 
     public void ReadInput() {
