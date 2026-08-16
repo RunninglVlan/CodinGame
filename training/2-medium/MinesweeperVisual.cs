@@ -45,6 +45,14 @@ class Grid(int width, int height, int mineCount) {
         if (TryFindPatternSafeCell(out var cell)) {
             return cell;
         }
+        var safeCells = FindMinesAndSafeCells();
+        return safeCells.Count > 0
+                ? safeCells.First()
+                : throw new Exception($"Can't find safe cell. Mines found: {mines.Count}");
+    }
+
+    // Marks independent cells as safe or mines
+    HashSet<Point> FindMinesAndSafeCells() {
         TurnMines.Clear();
         var safeCells = new HashSet<Point>();
         while (mines.Count < mineCount) {
@@ -72,9 +80,7 @@ class Grid(int width, int height, int mineCount) {
                 break;
             }
         }
-        return safeCells.Count > 0
-                ? safeCells.First()
-                : throw new Exception($"Can't find safe cell. Mines found: {mines.Count}");
+        return safeCells;
     }
 
     bool TryFindPatternSafeCell(out Point safeCell) {
