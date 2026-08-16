@@ -12,19 +12,19 @@ while (true) {
 
 class Grid(int width, int height, int mineCount) {
     readonly Dictionary<Point, int> minesAround = [];
-    readonly List<Point> potentialMines = [];
+    readonly List<Point> unknownCells = [];
     public HashSet<Point> Mines { get; } = [];
 
     public void ReadInput() {
         minesAround.Clear();
-        potentialMines.Clear();
+        unknownCells.Clear();
         for (var y = 0; y < height; y++) {
             string[] lineCells = Console.ReadLine()!.Split(' ');
             for (var x = 0; x < width; x++) {
                 char cell = lineCells[x].First();
                 var point = new Point(x, y);
                 if (cell == '?') {
-                    potentialMines.Add(point);
+                    unknownCells.Add(point);
                     continue;
                 }
                 minesAround.Add(point, cell == '.' ? 0 : (int)char.GetNumericValue(cell));
@@ -33,7 +33,7 @@ class Grid(int width, int height, int mineCount) {
     }
 
     public Point NextCell() {
-        return potentialMines.Count == width * height ? Point.Random(width, height) : NextSafeCell();
+        return unknownCells.Count == width * height ? Point.Random(width, height) : NextSafeCell();
     }
 
     Point NextSafeCell() {
@@ -41,7 +41,7 @@ class Grid(int width, int height, int mineCount) {
         while (Mines.Count < mineCount) {
             foreach ((var point, int count) in minesAround) {
                 var neighbors = Point.Directions8.Select(it => point + it).ToArray();
-                var nearbyPotentialMines = neighbors.Where(it => potentialMines.Contains(it)).ToArray();
+                var nearbyPotentialMines = neighbors.Where(it => unknownCells.Contains(it)).ToArray();
                 if (nearbyPotentialMines.Length == 0) {
                     continue;
                 }
@@ -54,7 +54,7 @@ class Grid(int width, int height, int mineCount) {
                 }
                 foreach (var mine in nearbyPotentialMines) {
                     Mines.Add(mine);
-                    potentialMines.Remove(mine);
+                    unknownCells.Remove(mine);
                 }
             }
         }
