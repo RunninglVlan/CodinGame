@@ -190,10 +190,6 @@ readonly record struct Point(int X, int Y) {
     public Point TurnLeft() => new(Y, -X);
     public Point TurnRight() => new(-Y, X);
 
-    public bool InBounds(int width, int height) {
-        return X >= 0 && X < width && Y >= 0 && Y < height;
-    }
-
     public static Point operator +(Point a, Point b) => new(a.X + b.X, a.Y + b.Y);
     public static Point operator *(Point a, int value) => new(a.X * value, a.Y * value);
 
