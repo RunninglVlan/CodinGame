@@ -63,9 +63,19 @@ class Grid(int width, int height, int mineCount) {
     }
 
     Point RandomUnknown() {
-        var cells = unknownCells.ToArray();
+        var cells = unknownCells.Where(cell => !NeighborHasMinesAround(cell)).ToArray();
         int random = Random.Shared.Next(0, cells.Length);
         return cells[random];
+
+        bool NeighborHasMinesAround(Point cell) {
+            foreach (var direction in Point.Directions8) {
+                var neighbor = cell + direction;
+                if (minesAround.TryGetValue(neighbor, out int count) && count > 0) {
+                    return true;
+                }
+            }
+            return false;
+        }
     }
 
     /// Marks cells as safe or mines using direct deduction and adjacent-pair subset elimination
