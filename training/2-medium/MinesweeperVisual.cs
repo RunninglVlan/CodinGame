@@ -41,14 +41,14 @@ class Grid(int width, int height, int mineCount) {
         if (firstTurn) {
             return RandomUnknown();
         }
-        if (TryFindOneTwoOneSafeCell(out var safeCell)) {
-            return safeCell;
-        }
         TurnMines.Clear();
         var safeCells = new HashSet<Point>();
         while (mines.Count < mineCount) {
             (int mines, int safeCells) before = (mines.Count, safeCells.Count);
             foreach ((var cell, int count) in minesAround) {
+                if (count == 2 && TryFindOneTwoOneSafeCell(cell, out var safeCell)) {
+                    safeCells.Add(safeCell);
+                }
                 FindMinesAndSafeCells(cell, count, safeCells);
             }
             if (mines.Count == before.mines && safeCells.Count == before.safeCells) {
@@ -125,27 +125,25 @@ class Grid(int width, int height, int mineCount) {
     }
 
     /// Finds safe cell near 1-2-1 pattern
-    bool TryFindOneTwoOneSafeCell(out Point safeCell) {
-        foreach (var (point, _) in minesAround.Where(it => it.Value == 2)) {
-            foreach (var direction in Point.Axes) {
-                if (!minesAround.TryGetValue(point + direction, out int count) || count != 1) {
+    bool TryFindOneTwoOneSafeCell(Point cell, out Point safeCell) {
+        foreach (var direction in Point.Axes) {
+            if (!minesAround.TryGetValue(cell + direction, out int count) || count != 1) {
+                continue;
+            }
+            if (!minesAround.TryGetValue(cell + direction * -1, out count) || count != 1) {
+                continue;
+            }
+            Point[] sideDirections = [direction.TurnLeft(), direction.TurnRight()];
+            foreach (var sideDirection in sideDirections) {
+                if (!minesAround.TryGetValue(cell + sideDirection, out count) || count != 0) {
                     continue;
                 }
-                if (!minesAround.TryGetValue(point + direction * -1, out count) || count != 1) {
+                var candidate = cell + sideDirection * -1;
+                if (!unknownCells.Contains(candidate)) {
                     continue;
                 }
-                Point[] sideDirections = [direction.TurnLeft(), direction.TurnRight()];
-                foreach (var sideDirection in sideDirections) {
-                    if (!minesAround.TryGetValue(point + sideDirection, out count) || count != 0) {
-                        continue;
-                    }
-                    var candidate = point + sideDirection * -1;
-                    if (!unknownCells.Contains(candidate)) {
-                        continue;
-                    }
-                    safeCell = candidate;
-                    return true;
-                }
+                safeCell = candidate;
+                return true;
             }
         }
         safeCell = default;
