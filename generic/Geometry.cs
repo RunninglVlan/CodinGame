@@ -6,8 +6,6 @@ readonly record struct Point(int X, int Y) {
     public static readonly Point LEFT = new(-1, 0);
     public static readonly Point RIGHT = new(1, 0);
 
-    public static Point[] Axes { get; } = [UP, RIGHT];
-
     public static Point[] Directions4 { get; } = [RIGHT, LEFT, UP, DOWN];
 
     public static Point[] Directions8 { get; } = [
@@ -18,9 +16,6 @@ readonly record struct Point(int X, int Y) {
     public static Point From(string x, string y) {
         return new Point(int.Parse(x), int.Parse(y));
     }
-
-    public Point TurnLeft() => new(Y, -X);
-    public Point TurnRight() => new(-Y, X);
 
     public bool InBounds(int width, int height) {
         return X >= 0 && X < width && Y >= 0 && Y < height;

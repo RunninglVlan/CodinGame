@@ -49,9 +49,6 @@ class Grid(int width, int height, int mineCount) {
         while (mines.Count < mineCount) {
             (int mines, int safeCells) before = (mines.Count, safeCells.Count);
             foreach ((var cell, int count) in minesAround) {
-                if (count == 2 && TryFindOneTwoOneSafeCell(cell, out var safeCell)) {
-                    safeCells.Add(safeCell);
-                }
                 FindMinesAndSafeCells(cell, count);
             }
             if (mines.Count == before.mines && safeCells.Count == before.safeCells) {
@@ -160,33 +157,6 @@ class Grid(int width, int height, int mineCount) {
         string type = direct ? "direct deduction" : "adjacent-pair subset elimination";
         Console.Error.WriteLine($"{message} {type}: {cell}");
     }
-
-    /// Finds safe cell near 1-2-1 pattern
-    bool TryFindOneTwoOneSafeCell(Point cell, out Point safeCell) {
-        foreach (var direction in Point.Axes) {
-            if (!minesAround.TryGetValue(cell + direction, out int count) || count != 1) {
-                continue;
-            }
-            if (!minesAround.TryGetValue(cell + direction * -1, out count) || count != 1) {
-                continue;
-            }
-            Point[] sideDirections = [direction.TurnLeft(), direction.TurnRight()];
-            foreach (var sideDirection in sideDirections) {
-                if (!minesAround.TryGetValue(cell + sideDirection, out count) || count != 0) {
-                    continue;
-                }
-                var candidate = cell + sideDirection * -1;
-                if (!unknownCells.Contains(candidate)) {
-                    continue;
-                }
-                safeCell = candidate;
-                Console.Error.WriteLine($"Found safe cell near 1-2-1 pattern: {safeCell}");
-                return true;
-            }
-        }
-        safeCell = default;
-        return false;
-    }
 }
 
 readonly record struct Point(int X, int Y) {
@@ -195,15 +165,10 @@ readonly record struct Point(int X, int Y) {
     static readonly Point LEFT = new(-1, 0);
     static readonly Point RIGHT = new(1, 0);
 
-    public static Point[] Axes { get; } = [UP, RIGHT];
-
     public static Point[] Directions8 { get; } = [
         RIGHT, LEFT, UP, DOWN,
         new(1, 1), new(-1, 1), new(1, -1), new(-1, -1)
     ];
-
-    public Point TurnLeft() => new(Y, -X);
-    public Point TurnRight() => new(-Y, X);
 
     public static Point operator +(Point a, Point b) => new(a.X + b.X, a.Y + b.Y);
     public static Point operator *(Point a, int value) => new(a.X * value, a.Y * value);
