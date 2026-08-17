@@ -38,10 +38,9 @@ class Grid(int width, int height, int mineCount) {
 
     public Point NextCell() {
         bool firstTurn = unknownCells.Count == width * height;
-        return firstTurn ? Point.Random(width, height) : NextSafeCell();
-    }
-
-    Point NextSafeCell() {
+        if (firstTurn) {
+            return Point.Random(width, height);
+        }
         if (TryFindOneTwoOneSafeCell(out var safeCell)) {
             return safeCell;
         }
