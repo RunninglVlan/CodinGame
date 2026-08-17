@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
 // Visual
@@ -36,6 +37,7 @@ class Grid(int width, int height, int mineCount) {
         }
     }
 
+    [SuppressMessage("ReSharper", "InvertIf")]
     public Point NextCell() {
         bool firstTurn = unknownCells.Count == width * height;
         if (firstTurn) {
@@ -62,12 +64,18 @@ class Grid(int width, int height, int mineCount) {
             Console.Error.WriteLine("Found all mines, returning first non-mine cell");
             return unknownCells.Except(mines).First();
         }
-        Console.Error.WriteLine($"Can't find safe cell, mines found: {mines.Count}, returning random");
         return RandomUnknown();
     }
 
     Point RandomUnknown() {
         var cells = unknownCells.Where(cell => !NeighborHasMinesAround(cell)).ToArray();
+        var message = $"Can't find safe cell, mines found: {mines.Count}, returning random";
+        if (cells.Length != 0) {
+            message += " with no numbered neighbor";
+        } else {
+            cells = [.. unknownCells];
+        }
+        Console.Error.WriteLine(message);
         int random = Random.Shared.Next(0, cells.Length);
         return cells[random];
 
