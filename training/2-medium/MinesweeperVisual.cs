@@ -95,15 +95,10 @@ class Grid(int width, int height, int mineCount) {
                 // found our mines, extra cells around are safe
                 safeCells.UnionWith(nearbyPotentialMines);
                 return;
-            case 1 when nearbyPotentialMines.Count == 2: {
-                // check if nearby cell needs the same 1 mine among a superset of these cells - its extra cells are safe
-                var safeCellsNearby = FindSafeCellsNearby(cell, nearbyPotentialMines);
-                if (safeCellsNearby != null) {
-                    safeCells.UnionWith(safeCellsNearby);
-                    return;
-                }
-                break;
-            }
+            case 1 when nearbyPotentialMines.Count == 2:
+                // check if nearby cell needs the same 1 mine among a superset of these cells
+                FindMinesAndSafeCellsAround(cell, nearbyPotentialMines, safeCells);
+                return;
         }
         if (count - nearbyMines != nearbyPotentialMines.Count) {
             return;
@@ -116,7 +111,7 @@ class Grid(int width, int height, int mineCount) {
         }
     }
 
-    List<Point>? FindSafeCellsNearby(Point cell, List<Point> twoCellsWithOneMine) {
+    void FindMinesAndSafeCellsAround(Point cell, List<Point> twoCellsWithOneMine, HashSet<Point> safeCells) {
         foreach (var direction in Point.Directions4) {
             var nearbyCell = cell + direction;
             if (!minesAround.TryGetValue(nearbyCell, out int count) || count == 0) {
@@ -124,20 +119,30 @@ class Grid(int width, int height, int mineCount) {
             }
             var neighbors = Point.Directions8.Select(it => nearbyCell + it).ToArray();
             var nearbyPotentialMines = neighbors.Where(it => unknownCells.Contains(it)).ToList();
-            if (nearbyPotentialMines.Count == 0) {
+            if (nearbyPotentialMines.Count == 0 || !twoCellsWithOneMine.All(nearbyPotentialMines.Contains)) {
+                continue;
+            }
+            var extra = nearbyPotentialMines.Except(twoCellsWithOneMine).ToList();
+            if (extra.Count == 0) {
                 continue;
             }
             int nearbyMines = neighbors.Count(it => mines.Contains(it));
-            if (count - nearbyMines != 1 || !twoCellsWithOneMine.All(nearbyPotentialMines.Contains)) {
+            if (count - nearbyMines == 1) {
+                // found our mines, extra cells around are safe
+                safeCells.UnionWith(extra);
+                return;
+            }
+            if (count - nearbyMines - extra.Count != 1) {
                 continue;
             }
-            var safeCells = nearbyPotentialMines.Except(twoCellsWithOneMine).ToList();
-            if (safeCells.Count == 0) {
-                continue;
+            // extra cells around are mines
+            foreach (var mine in extra) {
+                mines.Add(mine);
+                TurnMines.Add(mine);
+                unknownCells.Remove(mine);
             }
-            return safeCells;
+            return;
         }
-        return null;
     }
 
     /// Finds safe cell near 1-2-1 pattern
