@@ -42,53 +42,55 @@ class Grid(int width, int height, int mineCount) {
     }
 
     Point NextSafeCell() {
-        if (TryFindOneTwoOneSafeCell(out var cell)) {
-            return cell;
+        if (TryFindOneTwoOneSafeCell(out var safeCell)) {
+            return safeCell;
         }
-        var safeCells = FindMinesAndSafeCells();
+        TurnMines.Clear();
+        var safeCells = new HashSet<Point>();
+        while (mines.Count < mineCount) {
+            (int mines, int safeCells) before = (mines.Count, safeCells.Count);
+            foreach ((var cell, int count) in minesAround) {
+                FindMinesAndSafeCells(cell, count, safeCells);
+            }
+            if (mines.Count == before.mines && safeCells.Count == before.safeCells) {
+                break;
+            }
+        }
         return safeCells.Count > 0
                 ? safeCells.First()
                 : throw new Exception($"Can't find safe cell. Mines found: {mines.Count}");
     }
 
     /// Marks cells as safe or mines using direct deduction and adjacent-pair subset elimination
-    HashSet<Point> FindMinesAndSafeCells() {
-        TurnMines.Clear();
-        var safeCells = new HashSet<Point>();
-        while (mines.Count < mineCount) {
-            (int mines, int safeCells) before = (mines.Count, safeCells.Count);
-            foreach ((var point, int count) in minesAround) {
-                var neighbors = Point.Directions8.Select(it => point + it).ToArray();
-                var nearbyPotentialMines = neighbors.Where(it => unknownCells.Contains(it)).ToList();
-                if (nearbyPotentialMines.Count == 0) {
-                    continue;
-                }
-                int nearbyMines = neighbors.Count(it => mines.Contains(it));
-                if (nearbyMines == count) {
-                    nearbyPotentialMines.ForEach(it => safeCells.Add(it));
-                    continue;
-                }
-                if (count - nearbyMines == 1 && nearbyPotentialMines.Count == 2) {
-                    var safeCellsNearby = FindSafeCellsNearby(point, nearbyPotentialMines);
-                    if (safeCellsNearby != null) {
-                        safeCellsNearby.ForEach(it => safeCells.Add(it));
-                        continue;
-                    }
-                }
-                if (nearbyPotentialMines.Count + nearbyMines != count) {
-                    continue;
-                }
-                foreach (var mine in nearbyPotentialMines) {
-                    mines.Add(mine);
-                    TurnMines.Add(mine);
-                    unknownCells.Remove(mine);
-                }
-            }
-            if (mines.Count == before.mines && safeCells.Count == before.safeCells) {
-                break;
+    void FindMinesAndSafeCells(Point cell, int count, HashSet<Point> safeCells) {
+        var neighbors = Point.Directions8.Select(it => cell + it).ToArray();
+        var nearbyPotentialMines = neighbors.Where(it => unknownCells.Contains(it)).ToList();
+        if (nearbyPotentialMines.Count == 0) {
+            return;
+        }
+        int nearbyMines = neighbors.Count(it => mines.Contains(it));
+        if (nearbyMines == count) {
+            // found our mines, extra cells around are safe
+            safeCells.UnionWith(nearbyPotentialMines);
+            return;
+        }
+        if (count - nearbyMines == 1 && nearbyPotentialMines.Count == 2) {
+            // check if nearby cell needs the same 1 mine among a superset of these cells - its extra cells are safe
+            var safeCellsNearby = FindSafeCellsNearby(cell, nearbyPotentialMines);
+            if (safeCellsNearby != null) {
+                safeCells.UnionWith(safeCellsNearby);
+                return;
             }
         }
-        return safeCells;
+        if (nearbyPotentialMines.Count + nearbyMines != count) {
+            return;
+        }
+        // found new mines
+        foreach (var mine in nearbyPotentialMines) {
+            mines.Add(mine);
+            TurnMines.Add(mine);
+            unknownCells.Remove(mine);
+        }
     }
 
     List<Point>? FindSafeCellsNearby(Point cell, List<Point> potentialMines) {
