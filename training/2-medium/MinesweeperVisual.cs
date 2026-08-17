@@ -100,6 +100,7 @@ class Grid(int width, int height, int mineCount) {
         int nearbyMines = neighbors.Count(it => mines.Contains(it));
         switch (count - nearbyMines) {
             case 0:
+                Console.Error.WriteLine($"Found safe cell(s) using direct deduction: {string.Join(", ", nearbyPotentialMines)}");
                 // found our mines, extra cells around are safe
                 safeCells.UnionWith(nearbyPotentialMines);
                 return;
@@ -111,6 +112,7 @@ class Grid(int width, int height, int mineCount) {
         if (count - nearbyMines != nearbyPotentialMines.Count) {
             return;
         }
+        Console.Error.WriteLine($"Found new mine(s) using direct deduction: {string.Join(", ", nearbyPotentialMines)}");
         // found new mines
         foreach (var mine in nearbyPotentialMines) {
             mines.Add(mine);
@@ -136,6 +138,7 @@ class Grid(int width, int height, int mineCount) {
             }
             int nearbyMines = neighbors.Count(it => mines.Contains(it));
             if (count - nearbyMines == 1) {
+                Console.Error.WriteLine($"Found safe cell(s) using adjacent-pair subset elimination: {string.Join(", ", extra)}");
                 // found our mines, extra cells around are safe
                 safeCells.UnionWith(extra);
                 return;
@@ -143,6 +146,7 @@ class Grid(int width, int height, int mineCount) {
             if (count - nearbyMines - extra.Count != 1) {
                 continue;
             }
+            Console.Error.WriteLine($"Found mine(s) using adjacent-pair subset elimination: {string.Join(", ", extra)}");
             // extra cells around are mines
             foreach (var mine in extra) {
                 mines.Add(mine);
@@ -171,6 +175,7 @@ class Grid(int width, int height, int mineCount) {
                 if (!unknownCells.Contains(candidate)) {
                     continue;
                 }
+                Console.Error.WriteLine("Found safe cell near 1-2-1 pattern");
                 safeCell = candidate;
                 return true;
             }
