@@ -129,12 +129,11 @@ class Grid(int width, int height, int mineCount) {
 
     [SuppressMessage("ReSharper", "InvertIf")]
     void FindMinesAndSafeCellsAround(Point cell, int cellMines, List<Point> potentialMines) {
-        foreach (var direction in Point.Directions8) {
-            var nearbyCell = cell + direction;
-            if (!minesAround.TryGetValue(nearbyCell, out int count) || count == 0) {
+        foreach ((var anotherCell, int count) in minesAround) {
+            if (anotherCell == cell || count == 0) {
                 continue;
             }
-            var neighbors = Point.Directions8.Select(it => nearbyCell + it).ToArray();
+            var neighbors = Point.Directions8.Select(it => anotherCell + it).ToArray();
             var nearbyPotentialMines = neighbors.Where(it => unknownCells.Contains(it)).ToList();
             if (nearbyPotentialMines.Count == 0 || !potentialMines.All(nearbyPotentialMines.Contains)) {
                 continue;
