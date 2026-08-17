@@ -62,7 +62,7 @@ class Grid(int width, int height, int mineCount) {
             Console.Error.WriteLine("Found all mines, returning first non-mine cell");
             return unknownCells.Except(mines).First();
         }
-        Console.Error.WriteLine($"Can't find safe cell. Mines found: {mines.Count}");
+        Console.Error.WriteLine($"Can't find safe cell, mines found: {mines.Count}, returning random");
         return RandomUnknown();
     }
 
