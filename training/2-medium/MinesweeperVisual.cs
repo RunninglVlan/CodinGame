@@ -16,6 +16,7 @@ class Grid(int width, int height, int mineCount) {
     readonly HashSet<Point> unknownCells = [];
     readonly HashSet<Point> mines = [];
     public HashSet<Point> TurnMines { get; } = [];
+    readonly HashSet<Point> safeCells = [];
 
     public void ReadInput() {
         minesAround.Clear();
@@ -44,14 +45,14 @@ class Grid(int width, int height, int mineCount) {
             return RandomUnknown();
         }
         TurnMines.Clear();
-        var safeCells = new HashSet<Point>();
+        safeCells.Clear();
         while (mines.Count < mineCount) {
             (int mines, int safeCells) before = (mines.Count, safeCells.Count);
             foreach ((var cell, int count) in minesAround) {
                 if (count == 2 && TryFindOneTwoOneSafeCell(cell, out var safeCell)) {
                     safeCells.Add(safeCell);
                 }
-                FindMinesAndSafeCells(cell, count, safeCells);
+                FindMinesAndSafeCells(cell, count);
             }
             if (mines.Count == before.mines && safeCells.Count == before.safeCells) {
                 break;
@@ -91,7 +92,7 @@ class Grid(int width, int height, int mineCount) {
     }
 
     /// Marks cells as safe or mines using direct deduction and adjacent-pair subset elimination
-    void FindMinesAndSafeCells(Point cell, int count, HashSet<Point> safeCells) {
+    void FindMinesAndSafeCells(Point cell, int count) {
         var neighbors = Point.Directions8.Select(it => cell + it).ToArray();
         var nearbyPotentialMines = neighbors.Where(it => unknownCells.Contains(it)).ToList();
         if (nearbyPotentialMines.Count == 0) {
@@ -100,28 +101,37 @@ class Grid(int width, int height, int mineCount) {
         int remainingMines = count - neighbors.Count(it => mines.Contains(it));
         if (remainingMines == 0) {
             // found our mines, extra cells around are safe
-            Log("Found safe cell(s) using direct deduction", nearbyPotentialMines);
-            safeCells.UnionWith(nearbyPotentialMines);
+            AddSafeCells(nearbyPotentialMines, direct: true);
             return;
         }
         if (remainingMines == nearbyPotentialMines.Count) {
             // found new mines
-            Log("Found new mine(s) using direct deduction", nearbyPotentialMines);
-            foreach (var mine in nearbyPotentialMines) {
-                mines.Add(mine);
-                TurnMines.Add(mine);
-                unknownCells.Remove(mine);
-            }
+            AddMines(nearbyPotentialMines, direct: true);
             return;
         }
         if (remainingMines == 1 && nearbyPotentialMines.Count == 2) {
             // check if nearby cell needs the same 1 mine among a superset of these cells
-            FindMinesAndSafeCellsAround(cell, nearbyPotentialMines, safeCells);
+            FindMinesAndSafeCellsAround(cell, nearbyPotentialMines);
+        }
+    }
+
+    void AddSafeCells(List<Point> cells, bool direct) {
+        foreach (var cell in cells.Where(it => safeCells.Add(it))) {
+            Log("Found safe cell using", cell, direct);
+        }
+    }
+
+    void AddMines(List<Point> cells, bool direct) {
+        foreach (var mine in cells) {
+            Log("Found new mine using", mine, direct);
+            mines.Add(mine);
+            TurnMines.Add(mine);
+            unknownCells.Remove(mine);
         }
     }
 
     [SuppressMessage("ReSharper", "InvertIf")]
-    void FindMinesAndSafeCellsAround(Point cell, List<Point> twoCellsWithOneMine, HashSet<Point> safeCells) {
+    void FindMinesAndSafeCellsAround(Point cell, List<Point> twoCellsWithOneMine) {
         foreach (var direction in Point.Directions4) {
             var nearbyCell = cell + direction;
             if (!minesAround.TryGetValue(nearbyCell, out int count) || count == 0) {
@@ -139,25 +149,20 @@ class Grid(int width, int height, int mineCount) {
             int remainingMines = count - neighbors.Count(it => mines.Contains(it));
             if (remainingMines == 1) {
                 // found our mines, extra cells around are safe
-                Log("Found safe cell(s) using adjacent-pair subset elimination", extra);
-                safeCells.UnionWith(extra);
+                AddSafeCells(extra, direct: false);
                 return;
             }
             if (remainingMines - extra.Count == 1) {
                 // extra cells around are mines
-                Log("Found mine(s) using adjacent-pair subset elimination", extra);
-                foreach (var mine in extra) {
-                    mines.Add(mine);
-                    TurnMines.Add(mine);
-                    unknownCells.Remove(mine);
-                }
+                AddMines(extra, direct: false);
                 return;
             }
         }
     }
 
-    static void Log(string message, List<Point> cells) {
-        Console.Error.WriteLine($"{message}: {string.Join(", ", cells)}");
+    static void Log(string message, Point cell, bool direct) {
+        string type = direct ? "direct deduction" : "adjacent-pair subset elimination";
+        Console.Error.WriteLine($"{message} {type}: {cell}");
     }
 
     /// Finds safe cell near 1-2-1 pattern
