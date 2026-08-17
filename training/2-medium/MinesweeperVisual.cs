@@ -90,20 +90,22 @@ class Grid(int width, int height, int mineCount) {
             return;
         }
         int nearbyMines = neighbors.Count(it => mines.Contains(it));
-        if (nearbyMines == count) {
-            // found our mines, extra cells around are safe
-            safeCells.UnionWith(nearbyPotentialMines);
-            return;
-        }
-        if (count - nearbyMines == 1 && nearbyPotentialMines.Count == 2) {
-            // check if nearby cell needs the same 1 mine among a superset of these cells - its extra cells are safe
-            var safeCellsNearby = FindSafeCellsNearby(cell, nearbyPotentialMines);
-            if (safeCellsNearby != null) {
-                safeCells.UnionWith(safeCellsNearby);
+        switch (count - nearbyMines) {
+            case 0:
+                // found our mines, extra cells around are safe
+                safeCells.UnionWith(nearbyPotentialMines);
                 return;
+            case 1 when nearbyPotentialMines.Count == 2: {
+                // check if nearby cell needs the same 1 mine among a superset of these cells - its extra cells are safe
+                var safeCellsNearby = FindSafeCellsNearby(cell, nearbyPotentialMines);
+                if (safeCellsNearby != null) {
+                    safeCells.UnionWith(safeCellsNearby);
+                    return;
+                }
+                break;
             }
         }
-        if (nearbyPotentialMines.Count + nearbyMines != count) {
+        if (count - nearbyMines != nearbyPotentialMines.Count) {
             return;
         }
         // found new mines
@@ -114,7 +116,7 @@ class Grid(int width, int height, int mineCount) {
         }
     }
 
-    List<Point>? FindSafeCellsNearby(Point cell, List<Point> potentialMines) {
+    List<Point>? FindSafeCellsNearby(Point cell, List<Point> twoCellsWithOneMine) {
         foreach (var direction in Point.Directions4) {
             var nearbyCell = cell + direction;
             if (!minesAround.TryGetValue(nearbyCell, out int count) || count == 0) {
@@ -126,10 +128,10 @@ class Grid(int width, int height, int mineCount) {
                 continue;
             }
             int nearbyMines = neighbors.Count(it => mines.Contains(it));
-            if (count - nearbyMines != 1 || !potentialMines.All(nearbyPotentialMines.Contains)) {
+            if (count - nearbyMines != 1 || !twoCellsWithOneMine.All(nearbyPotentialMines.Contains)) {
                 continue;
             }
-            var safeCells = nearbyPotentialMines.Except(potentialMines).ToList();
+            var safeCells = nearbyPotentialMines.Except(twoCellsWithOneMine).ToList();
             if (safeCells.Count == 0) {
                 continue;
             }
@@ -179,11 +181,6 @@ readonly record struct Point(int X, int Y) {
         RIGHT, LEFT, UP, DOWN,
         new(1, 1), new(-1, 1), new(1, -1), new(-1, -1)
     ];
-
-    public static Point Random(int width, int height) => new(
-            System.Random.Shared.Next(width),
-            System.Random.Shared.Next(height)
-    );
 
     public Point TurnLeft() => new(Y, -X);
     public Point TurnRight() => new(-Y, X);
