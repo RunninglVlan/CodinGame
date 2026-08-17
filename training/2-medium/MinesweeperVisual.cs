@@ -109,10 +109,7 @@ class Grid(int width, int height, int mineCount) {
             AddMines(nearbyPotentialMines, direct: true);
             return;
         }
-        if (remainingMines == 1 && nearbyPotentialMines.Count == 2) {
-            // check if nearby cell needs the same 1 mine among a superset of these cells
-            FindMinesAndSafeCellsAround(cell, nearbyPotentialMines);
-        }
+        FindMinesAndSafeCellsAround(cell, remainingMines, nearbyPotentialMines);
     }
 
     void AddSafeCells(List<Point> cells, bool direct) {
@@ -131,28 +128,28 @@ class Grid(int width, int height, int mineCount) {
     }
 
     [SuppressMessage("ReSharper", "InvertIf")]
-    void FindMinesAndSafeCellsAround(Point cell, List<Point> twoCellsWithOneMine) {
-        foreach (var direction in Point.Directions4) {
+    void FindMinesAndSafeCellsAround(Point cell, int cellMines, List<Point> potentialMines) {
+        foreach (var direction in Point.Directions8) {
             var nearbyCell = cell + direction;
             if (!minesAround.TryGetValue(nearbyCell, out int count) || count == 0) {
                 continue;
             }
             var neighbors = Point.Directions8.Select(it => nearbyCell + it).ToArray();
             var nearbyPotentialMines = neighbors.Where(it => unknownCells.Contains(it)).ToList();
-            if (nearbyPotentialMines.Count == 0 || !twoCellsWithOneMine.All(nearbyPotentialMines.Contains)) {
+            if (nearbyPotentialMines.Count == 0 || !potentialMines.All(nearbyPotentialMines.Contains)) {
                 continue;
             }
-            var extra = nearbyPotentialMines.Except(twoCellsWithOneMine).ToList();
+            var extra = nearbyPotentialMines.Except(potentialMines).ToList();
             if (extra.Count == 0) {
                 continue;
             }
             int remainingMines = count - neighbors.Count(it => mines.Contains(it));
-            if (remainingMines == 1) {
+            if (remainingMines == cellMines) {
                 // found our mines, extra cells around are safe
                 AddSafeCells(extra, direct: false);
                 return;
             }
-            if (remainingMines - extra.Count == 1) {
+            if (remainingMines - extra.Count == cellMines) {
                 // extra cells around are mines
                 AddMines(extra, direct: false);
                 return;
@@ -200,8 +197,6 @@ readonly record struct Point(int X, int Y) {
     static readonly Point RIGHT = new(1, 0);
 
     public static Point[] Axes { get; } = [UP, RIGHT];
-
-    public static Point[] Directions4 { get; } = [RIGHT, LEFT, UP, DOWN];
 
     public static Point[] Directions8 { get; } = [
         RIGHT, LEFT, UP, DOWN,
