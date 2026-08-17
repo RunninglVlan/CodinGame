@@ -39,7 +39,7 @@ class Grid(int width, int height, int mineCount) {
     public Point NextCell() {
         bool firstTurn = unknownCells.Count == width * height;
         if (firstTurn) {
-            return Point.Random(width, height);
+            return RandomUnknown();
         }
         if (TryFindOneTwoOneSafeCell(out var safeCell)) {
             return safeCell;
@@ -55,9 +55,17 @@ class Grid(int width, int height, int mineCount) {
                 break;
             }
         }
-        return safeCells.Count > 0
-                ? safeCells.First()
-                : throw new Exception($"Can't find safe cell. Mines found: {mines.Count}");
+        if (safeCells.Count > 0) {
+            return safeCells.First();
+        }
+        Console.Error.WriteLine($"Can't find safe cell. Mines found: {mines.Count}");
+        return RandomUnknown();
+    }
+
+    Point RandomUnknown() {
+        var cells = unknownCells.ToArray();
+        int random = Random.Shared.Next(0, cells.Length);
+        return cells[random];
     }
 
     /// Marks cells as safe or mines using direct deduction and adjacent-pair subset elimination
