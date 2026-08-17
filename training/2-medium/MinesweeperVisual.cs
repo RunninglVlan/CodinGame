@@ -101,6 +101,9 @@ class Grid(int width, int height, int mineCount) {
             }
             var neighbors = Point.Directions8.Select(it => nearbyCell + it).ToArray();
             var nearbyPotentialMines = neighbors.Where(it => unknownCells.Contains(it)).ToList();
+            if (nearbyPotentialMines.Count == 0) {
+                continue;
+            }
             int nearbyMines = neighbors.Count(it => mines.Contains(it));
             if (count - nearbyMines != 1 || !potentialMines.All(nearbyPotentialMines.Contains)) {
                 continue;
