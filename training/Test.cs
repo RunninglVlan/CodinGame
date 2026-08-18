@@ -4,69 +4,22 @@ using System.IO;
 using System.Linq;
 
 const string testCase = """
-                        200
-                        2
+                        1
+                        4
+                        1
                         1
                         3
                         1
                         1
-                        3
-                        3
                         1
                         3
-                        2
                         3
-                        1
-                        2
-                        2
-                        3
-                        4
-                        1
-                        1
-                        1
-                        4
-                        1
-                        2
-                        2
-                        2
-                        3
-                        2
-                        2
-                        4
-                        2
-                        4
-                        1
-                        4
-                        1
-                        4
-                        4
-                        3
-                        4
-                        1
-                        1
-                        2
-                        2
-                        4
-                        2
-                        4
-                        1
-                        2
-                        1
-                        2
-                        3
-                        2
-                        4
-                        1
-                        2
-                        2
-                        4
-                        4
                         3
                         """;
 Console.SetIn(new StringReader(testCase));
 // https://codeforces.com/contest/2001/problem/C
 int tests = Math.Clamp(int.Parse(Console.ReadLine()!), 1, 200);
-for (var _ = 0; _ < tests; _++) {
+for (var i = 0; i < tests; i++) {
     int nodes = Math.Clamp(int.Parse(Debug.ReadLine()!), 2, 1000);
     var tree = new Tree(nodes);
     tree.Build();
@@ -77,74 +30,71 @@ for (var _ = 0; _ < tests; _++) {
 
 /// Undirected acyclic connected graph. A tree with n nodes will always have n−1 edges.
 class Tree {
-    readonly Dictionary<int, Node> nodes;
+    readonly int[] nodes;
+    readonly HashSet<Edge> edges = [];
 
     public Tree(int nodeCount) {
-        nodes = new Dictionary<int, Node>();
-        // nodes are indexed from 1 to count
-        for (var i = 1; i <= nodeCount; i++) {
-            nodes.Add(i, new Node(i));
+        nodes = new int[nodeCount];
+        for (var i = 0; i < nodeCount; i++) {
+            // nodes are indexed from 1 to count
+            nodes[i] = i + 1;
         }
     }
 
     public void Build() {
-        int maxQueries = 15 * nodes.Count;
+        int maxQueries = 15 * nodes.Length;
         for (var _ = 0; _ < maxQueries; _++) {
-            var nodesWithoutEdges = nodes.Values.Where(it => it.Connections.Count == 0).ToArray();
-            if (nodesWithoutEdges.Length == 0) {
+            foreach (int a in nodes) {
+                foreach (int b in nodes) {
+                    if (a == b) {
+                        continue;
+                    }
+                    var edge = Edge.From(a, b);
+                    if (edges.Contains(edge)) {
+                        continue;
+                    }
+                    int answer = Query(a, b);
+                    Console.Error.WriteLine($" => {answer}");
+                    if (answer == a) {
+                        edges.Add(edge);
+                    }
+                    if (answer == a) {
+                        edges.Add(Edge.From(a, b));
+                        Console.Error.WriteLine($" Found edge: {a} {b}");
+                    } else if (answer == b) {
+                        Console.Error.WriteLine($" Found edge? Query returned: {answer}");
+                        // check
+                        // a.Connections.Add(b);
+                        // b.Connections.Add(a);
+                    } else {
+                        Console.Error.WriteLine($" Query returned: {answer}");
+                        // var next = nodes[queryAnswer];
+                        // a.Connections.Add(next);
+                        // next.Connections.Add(a);
+                    }
+                }
+            }
+            if (edges.Count == nodes.Length - 1) {
                 break;
             }
-            var a = nodesWithoutEdges.First();
-            var connections = 0;
-            foreach (var b in nodes.Values) {
-                if (b.Index == a.Index) {
-                    continue;
-                }
-                var query = $"? {a.Index} {b.Index}";
-                Console.WriteLine(query);
-                /*
-                "? a b" — Misuki will tell you which node x minimizes |d(a,x)−d(b,x)|, where d(x,y) is the distance between nodes x and y.
-                If more than one such node exists, Misuki will tell you the one which minimizes d(a,x).
-                 */
-                int queryAnswer = int.Parse(Console.ReadLine()!);
-                Console.Error.WriteLine($" => {queryAnswer}");
-                if (queryAnswer == a.Index) {
-                    a.Connections.Add(b);
-                    b.Connections.Add(a);
-                } /* else if (queryAnswer == b.Index) {
-                    // check
-                    a.Connections.Add(b);
-                    b.Connections.Add(a);
-                } */ else {
-                    var next = nodes[queryAnswer];
-                    a.Connections.Add(next);
-                    next.Connections.Add(a);
-                }
-                if (a.Connections.Count > connections) {
-                    Console.Error.WriteLine($"Found edge: {a.Index} {a.Connections.Last().Index}");
-                    connections++;
-                }
-            }
         }
+    }
+
+    /// Checks which node x minimizes |d(a,x)−d(b,x)|, where d(x,y) is the distance between nodes x and y.
+    /// If more than one such node exists, returns the one which minimizes d(a,x).
+    static int Query(int a, int b) {
+        var query = $"? {a} {b}";
+        Console.WriteLine(query);
+        return int.Parse(Console.ReadLine()!);
     }
 
     public void PrintEdges() {
-        HashSet<(int a, int b)> edges = [];
-        foreach (var node in nodes.Values) {
-            foreach (var connection in node.Connections) {
-                edges.Add((Math.Min(node.Index, connection.Index), Math.Max(node.Index, connection.Index)));
-            }
-        }
-        if (edges.Count != nodes.Count - 1) {
-            Console.Error.WriteLine("WRONG ANSWER");
-        }
-        Console.WriteLine($"! {string.Join(" ", edges.Select(it => $"{it.a} {it.b}"))}");
+        Console.WriteLine($"! {string.Join(" ", edges.Select(it => $"{it.A} {it.B}"))}");
     }
 }
 
-class Node(int index) {
-    public int Index { get; } = index;
-    public HashSet<Node> Connections { get; } = [];
+record struct Edge(int A, int B) {
+    public static Edge From(int a, int b) => new(Math.Min(a, b), Math.Max(a, b));
 }
 
 static class Debug {
