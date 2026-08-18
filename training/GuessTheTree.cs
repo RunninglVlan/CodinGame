@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
 // https://codeforces.com/contest/2001/problem/C
@@ -25,28 +26,35 @@ class Tree {
         }
     }
 
+    [SuppressMessage("ReSharper", "LoopCanBeConvertedToQuery")]
     public void Build() {
         int maxQueries = 15 * nodes.Length;
         for (var _ = 0; _ < maxQueries; _++) {
-            foreach (int a in nodes) {
-                foreach (int b in nodes) {
-                    if (a == b) {
-                        continue;
-                    }
-                    var edge = Edge.From(a, b);
-                    if (edges.Contains(edge)) {
-                        continue;
-                    }
-                    int answer = Query(a, b);
-                    if (answer == a) {
-                        edges.Add(edge);
-                    }
-                    if (edges.Count == nodes.Length - 1) {
-                        return;
-                    }
+            int a = nodes.First();
+            foreach (int b in nodes) {
+                if (a == b) {
+                    continue;
+                }
+                if (TryFindEdge(a, b)) {
+                    return;
                 }
             }
         }
+    }
+
+    [SuppressMessage("ReSharper", "TailRecursiveCall")]
+    bool TryFindEdge(int a, int b) {
+        var edge = Edge.From(a, b);
+        if (edges.Contains(edge)) {
+            return false;
+        }
+        int answer = Query(a, b);
+        if (answer == a) {
+            edges.Add(edge);
+            return edges.Count == nodes.Length - 1;
+        }
+        int node = edges.Contains(Edge.From(a, answer)) ? b : a;
+        return TryFindEdge(node, answer);
     }
 
     /// Checks which node x minimizes |d(a,x)−d(b,x)|, where d(x,y) is the distance between nodes x and y.
