@@ -30,13 +30,14 @@ class Tree {
     public void Build() {
         int maxQueries = 15 * nodes.Length;
         for (var _ = 0; _ < maxQueries; _++) {
-            int a = nodes.First();
-            foreach (int b in nodes) {
-                if (a == b) {
-                    continue;
-                }
-                if (TryFindEdge(a, b)) {
-                    return;
+            foreach (int a in nodes) {
+                foreach (int b in nodes) {
+                    if (a == b) {
+                        continue;
+                    }
+                    if (TryFindEdge(a, b)) {
+                        return;
+                    }
                 }
             }
         }
