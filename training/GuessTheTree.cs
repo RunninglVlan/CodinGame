@@ -14,49 +14,43 @@ for (var _ = 0; _ < tests; _++) {
 
 /// Undirected acyclic connected graph. A tree with n nodes will always have n−1 edges.
 class Tree {
-    readonly Dictionary<int, Node> nodes;
+    readonly int[] nodes;
     readonly HashSet<Edge> edges = [];
 
     public Tree(int nodeCount) {
-        nodes = new Dictionary<int, Node>();
-        // nodes are indexed from 1 to count
-        for (var i = 1; i <= nodeCount; i++) {
-            nodes.Add(i, new Node(i));
+        nodes = new int[nodeCount];
+        for (var i = 0; i < nodeCount; i++) {
+            // nodes are indexed from 1 to count
+            nodes[i] = i + 1;
         }
     }
 
     public void Build() {
-        int maxQueries = 15 * nodes.Count;
+        int maxQueries = 15 * nodes.Length;
         for (var _ = 0; _ < maxQueries; _++) {
-            var notCheckedNodes = nodes.Values.Where(it => !it.Checked).ToArray();
-            if (notCheckedNodes.Length == 0) {
+            foreach (int a in nodes) {
+                foreach (int b in nodes) {
+                    if (a == b) {
+                        continue;
+                    }
+                    var query = $"? {a} {b}";
+                    Console.WriteLine(query);
+                    int queryAnswer = int.Parse(Console.ReadLine()!);
+                    if (queryAnswer != a) {
+                        continue;
+                    }
+                    edges.Add(Edge.From(a, b));
+                }
+            }
+            if (edges.Count == nodes.Length - 1) {
                 break;
             }
-            var a = notCheckedNodes.First();
-            foreach (var b in nodes.Values) {
-                if (b.Index == a.Index) {
-                    continue;
-                }
-                var query = $"? {a.Index} {b.Index}";
-                Console.WriteLine(query);
-                int queryAnswer = int.Parse(Console.ReadLine()!);
-                if (queryAnswer != a.Index) {
-                    continue;
-                }
-                edges.Add(Edge.From(a.Index, b.Index));
-            }
-            a.Checked = true;
         }
     }
 
     public void PrintEdges() {
         Console.WriteLine($"! {string.Join(" ", edges.Select(it => $"{it.A} {it.B}"))}");
     }
-}
-
-class Node(int index) {
-    public int Index { get; } = index;
-    public bool Checked { get; set; }
 }
 
 record struct Edge(int A, int B) {
