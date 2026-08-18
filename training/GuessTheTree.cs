@@ -18,7 +18,7 @@ class Tree {
     readonly int[] nodes;
     readonly HashSet<Edge> edges = [];
     readonly Dictionary<int, int> connections = [];
-    int queries;
+    readonly HashSet<Query> queries = [];
 
     public Tree(int nodeCount) {
         nodes = new int[nodeCount];
@@ -50,10 +50,9 @@ class Tree {
     [SuppressMessage("ReSharper", "TailRecursiveCall")]
     bool TryFindEdge(int a, int b) {
         var edge = Edge.From(a, b);
-        if (edges.Contains(edge)) {
+        if (edges.Contains(edge) || !TryQuery(a, b, out int answer)) {
             return false;
         }
-        int answer = Query(a, b);
         if (answer == a) {
             AddEdge(edge);
             return edges.Count == nodes.Length - 1;
@@ -64,14 +63,19 @@ class Tree {
 
     /// Checks which node x minimizes |d(a,x)−d(b,x)|, where d(x,y) is the distance between nodes x and y.
     /// If more than one such node exists, returns the one which minimizes d(a,x).
-    int Query(int a, int b) {
+    bool TryQuery(int a, int b, out int answer) {
         int maxQueries = 15 * nodes.Length;
-        if (queries++ > maxQueries) {
+        if (queries.Count > maxQueries) {
             Console.Error.WriteLine("Max queries reached");
         }
-        var query = $"? {a} {b}";
+        var query = new Query(a, b);
+        if (!queries.Add(query)) {
+            answer = 0;
+            return false;
+        }
         Console.WriteLine(query);
-        return int.Parse(Console.ReadLine()!);
+        answer = int.Parse(Console.ReadLine()!);
+        return true;
     }
 
     void AddEdge(Edge edge) {
@@ -89,4 +93,8 @@ class Tree {
 
 record struct Edge(int A, int B) {
     public static Edge From(int a, int b) => new(Math.Min(a, b), Math.Max(a, b));
+}
+
+readonly record struct Query(int A, int B) {
+    public override string ToString() => $"? {A} {B}";
 }
