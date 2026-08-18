@@ -41,10 +41,10 @@ class Tree {
                     if (answer == a) {
                         edges.Add(edge);
                     }
+                    if (edges.Count == nodes.Length - 1) {
+                        return;
+                    }
                 }
-            }
-            if (edges.Count == nodes.Length - 1) {
-                break;
             }
         }
     }
