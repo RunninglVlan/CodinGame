@@ -39,14 +39,11 @@ class Tree {
                 var query = $"? {a.Index} {b.Index}";
                 Console.WriteLine(query);
                 int queryAnswer = int.Parse(Console.ReadLine()!);
-                if (queryAnswer == a.Index) {
-                    a.Connections.Add(b);
-                    b.Connections.Add(a);
-                } else {
-                    var next = nodes[queryAnswer];
-                    a.Connections.Add(next);
-                    next.Connections.Add(a);
+                if (queryAnswer != a.Index) {
+                    continue;
                 }
+                a.Connections.Add(b);
+                b.Connections.Add(a);
             }
             a.Checked = true;
         }
