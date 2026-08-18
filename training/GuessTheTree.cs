@@ -49,6 +49,8 @@ class Tree {
         }
     }
 
+    /// Checks which node x minimizes |d(a,x)−d(b,x)|, where d(x,y) is the distance between nodes x and y.
+    /// If more than one such node exists, returns the one which minimizes d(a,x).
     static int Query(int a, int b) {
         var query = $"? {a} {b}";
         Console.WriteLine(query);
