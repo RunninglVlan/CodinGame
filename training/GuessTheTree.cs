@@ -15,6 +15,7 @@ for (var _ = 0; _ < tests; _++) {
 /// Undirected acyclic connected graph. A tree with n nodes will always have n−1 edges.
 class Tree {
     readonly Dictionary<int, Node> nodes;
+    readonly HashSet<Edge> edges = [];
 
     public Tree(int nodeCount) {
         nodes = new Dictionary<int, Node>();
@@ -42,26 +43,22 @@ class Tree {
                 if (queryAnswer != a.Index) {
                     continue;
                 }
-                a.Connections.Add(b);
-                b.Connections.Add(a);
+                edges.Add(Edge.From(a.Index, b.Index));
             }
             a.Checked = true;
         }
     }
 
     public void PrintEdges() {
-        HashSet<(int a, int b)> edges = [];
-        foreach (var node in nodes.Values) {
-            foreach (var connection in node.Connections) {
-                edges.Add((Math.Min(node.Index, connection.Index), Math.Max(node.Index, connection.Index)));
-            }
-        }
-        Console.WriteLine($"! {string.Join(" ", edges.Select(it => $"{it.a} {it.b}"))}");
+        Console.WriteLine($"! {string.Join(" ", edges.Select(it => $"{it.A} {it.B}"))}");
     }
 }
 
 class Node(int index) {
     public int Index { get; } = index;
-    public HashSet<Node> Connections { get; } = [];
     public bool Checked { get; set; }
+}
+
+record struct Edge(int A, int B) {
+    public static Edge From(int a, int b) => new(Math.Min(a, b), Math.Max(a, b));
 }
