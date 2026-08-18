@@ -33,13 +33,16 @@ class Tree {
                     if (a == b) {
                         continue;
                     }
+                    var edge = Edge.From(a, b);
+                    if (edges.Contains(edge)) {
+                        continue;
+                    }
                     var query = $"? {a} {b}";
                     Console.WriteLine(query);
                     int queryAnswer = int.Parse(Console.ReadLine()!);
-                    if (queryAnswer != a) {
-                        continue;
+                    if (queryAnswer == a) {
+                        edges.Add(edge);
                     }
-                    edges.Add(Edge.From(a, b));
                 }
             }
             if (edges.Count == nodes.Length - 1) {
