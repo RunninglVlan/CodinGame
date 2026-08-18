@@ -27,11 +27,11 @@ class Tree {
     public void Build() {
         int maxQueries = 15 * nodes.Count;
         for (var _ = 0; _ < maxQueries; _++) {
-            var nodesWithoutEdges = nodes.Values.Where(it => it.Connections.Count == 0).ToArray();
-            if (nodesWithoutEdges.Length == 0) {
+            var notCheckedNodes = nodes.Values.Where(it => !it.Checked).ToArray();
+            if (notCheckedNodes.Length == 0) {
                 break;
             }
-            var a = nodesWithoutEdges.First();
+            var a = notCheckedNodes.First();
             foreach (var b in nodes.Values) {
                 if (b.Index == a.Index) {
                     continue;
@@ -48,6 +48,7 @@ class Tree {
                     next.Connections.Add(a);
                 }
             }
+            a.Checked = true;
         }
     }
 
@@ -65,4 +66,5 @@ class Tree {
 class Node(int index) {
     public int Index { get; } = index;
     public HashSet<Node> Connections { get; } = [];
+    public bool Checked { get; set; }
 }
