@@ -37,10 +37,8 @@ class Tree {
                     if (edges.Contains(edge)) {
                         continue;
                     }
-                    var query = $"? {a} {b}";
-                    Console.WriteLine(query);
-                    int queryAnswer = int.Parse(Console.ReadLine()!);
-                    if (queryAnswer == a) {
+                    int answer = Query(a, b);
+                    if (answer == a) {
                         edges.Add(edge);
                     }
                 }
@@ -49,6 +47,12 @@ class Tree {
                 break;
             }
         }
+    }
+
+    static int Query(int a, int b) {
+        var query = $"? {a} {b}";
+        Console.WriteLine(query);
+        return int.Parse(Console.ReadLine()!);
     }
 
     public void PrintEdges() {
