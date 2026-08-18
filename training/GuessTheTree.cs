@@ -17,6 +17,7 @@ for (var _ = 0; _ < tests; _++) {
 class Tree {
     readonly int[] nodes;
     readonly HashSet<Edge> edges = [];
+    readonly Dictionary<int, int> connections = [];
 
     public Tree(int nodeCount) {
         nodes = new int[nodeCount];
@@ -29,17 +30,20 @@ class Tree {
     [SuppressMessage("ReSharper", "LoopCanBeConvertedToQuery")]
     public void Build() {
         int maxQueries = 15 * nodes.Length;
+        HashSet<int> processed = [];
         for (var _ = 0; _ < maxQueries; _++) {
-            foreach (int a in nodes) {
-                foreach (int b in nodes) {
-                    if (a == b) {
-                        continue;
-                    }
-                    if (TryFindEdge(a, b)) {
-                        return;
-                    }
+            int a = edges.Count == 0
+                    ? nodes.First()
+                    : connections.First(it => it.Value == 1 && !processed.Contains(it.Key)).Key;
+            foreach (int b in nodes) {
+                if (a == b) {
+                    continue;
+                }
+                if (TryFindEdge(a, b)) {
+                    return;
                 }
             }
+            processed.Add(a);
         }
     }
 
@@ -51,7 +55,7 @@ class Tree {
         }
         int answer = Query(a, b);
         if (answer == a) {
-            edges.Add(edge);
+            AddEdge(edge);
             return edges.Count == nodes.Length - 1;
         }
         int node = edges.Contains(Edge.From(a, answer)) ? b : a;
@@ -64,6 +68,14 @@ class Tree {
         var query = $"? {a} {b}";
         Console.WriteLine(query);
         return int.Parse(Console.ReadLine()!);
+    }
+
+    void AddEdge(Edge edge) {
+        edges.Add(edge);
+        int count = connections.GetValueOrDefault(edge.A, 0);
+        connections[edge.A] = ++count;
+        count = connections.GetValueOrDefault(edge.B, 0);
+        connections[edge.B] = ++count;
     }
 
     public void PrintEdges() {
