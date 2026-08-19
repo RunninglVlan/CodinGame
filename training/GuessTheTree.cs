@@ -15,12 +15,13 @@ for (var _ = 0; _ < tests; _++) {
 
 /// Undirected acyclic connected graph. A tree with n nodes will always have n−1 edges.
 class Tree {
+    readonly Query query;
     readonly int[] nodes;
     readonly HashSet<Edge> edges = [];
     readonly Dictionary<int, int> connections = [];
-    readonly HashSet<Query> queries = [];
 
     public Tree(int nodeCount) {
+        query = new Query(nodeCount);
         nodes = new int[nodeCount];
         for (var i = 0; i < nodeCount; i++) {
             // nodes are indexed from 1 to count
@@ -50,7 +51,7 @@ class Tree {
     [SuppressMessage("ReSharper", "TailRecursiveCall")]
     bool TryFindEdge(int a, int b) {
         var edge = Edge.From(a, b);
-        if (edges.Contains(edge) || !TryQuery(a, b, out int answer)) {
+        if (edges.Contains(edge) || !query.Try(a, b, out int answer)) {
             return false;
         }
         if (answer == a) {
@@ -59,23 +60,6 @@ class Tree {
         }
         int node = edges.Contains(Edge.From(a, answer)) ? b : a;
         return TryFindEdge(node, answer);
-    }
-
-    /// Checks which node x minimizes |d(a,x)−d(b,x)|, where d(x,y) is the distance between nodes x and y.
-    /// If more than one such node exists, returns the one which minimizes d(a,x).
-    bool TryQuery(int a, int b, out int answer) {
-        int maxQueries = 15 * nodes.Length;
-        if (queries.Count > maxQueries) {
-            Console.Error.WriteLine("Max queries reached");
-        }
-        var query = new Query(a, b);
-        if (!queries.Add(query)) {
-            answer = 0;
-            return false;
-        }
-        Console.WriteLine(query);
-        answer = int.Parse(Console.ReadLine()!);
-        return true;
     }
 
     void AddEdge(Edge edge) {
@@ -95,6 +79,22 @@ record struct Edge(int A, int B) {
     public static Edge From(int a, int b) => new(Math.Min(a, b), Math.Max(a, b));
 }
 
-readonly record struct Query(int A, int B) {
-    public override string ToString() => $"? {A} {B}";
+class Query(int nodes) {
+    readonly int maxQueries = 15 * nodes;
+    readonly HashSet<(int a, int b)> queries = [];
+
+    /// Checks which node x minimizes |d(a,x)−d(b,x)|, where d(x,y) is the distance between nodes x and y.
+    /// If more than one such node exists, returns the one which minimizes d(a,x).
+    public bool Try(int a, int b, out int answer) {
+        if (queries.Count > maxQueries) {
+            Console.Error.WriteLine("Max queries reached");
+        }
+        if (!queries.Add((a, b))) {
+            answer = 0;
+            return false;
+        }
+        Console.WriteLine($"? {a} {b}");
+        answer = int.Parse(Console.ReadLine()!);
+        return true;
+    }
 }
