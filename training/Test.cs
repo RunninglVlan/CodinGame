@@ -14,7 +14,7 @@ const string testCase = """
                         3
                         3
                         1
-                        3
+                        2
                         3
                         1
                         2
@@ -29,521 +29,61 @@ const string testCase = """
                         2
                         2
                         2
-                        4
-                        1
                         4
-                        1
-                        1
                         1
-                        1
                         4
-                        4
                         1
                         1
-                        2
-                        2
+                        3
                         4
-                        1
-                        2
-                        2
                         1
-                        4
                         1
-                        2
-                        4
-                        2
                         2
                         2
-                        4
-                        4
-                        3
-                        1
-                        3
-                        3
-                        3
-                        3
-                        3
-                        4
-                        3
-                        1
-                        1
-                        3
-                        4
-                        1
-                        1
-                        3
-                        3
                         4
-                        3
                         1
-                        3
                         2
-                        3
-                        3
                         2
-                        4
-                        4
-                        1
-                        1
-                        4
-                        4
-                        3
                         1
-                        3
-                        3
-                        3
-                        4
-                        4
-                        4
-                        1
-                        4
-                        4
-                        4
-                        4
-                        4
                         4
-                        4
                         1
-                        4
                         2
-                        4
                         4
                         2
-                        4
-                        4
-                        1
-                        4
-                        4
-                        4
                         3
                         4
-                        1
-                        2
-                        2
-                        2
-                        3
-                        3
-                        5
-                        1
-                        1
-                        1
-                        1
-                        5
-                        1
-                        2
-                        2
-                        2
-                        2
-                        2
-                        2
-                        5
-                        1
-                        1
-                        3
-                        3
-                        3
-                        3
-                        5
-                        1
-                        2
-                        2
-                        5
-                        1
-                        2
-                        1
-                        2
-                        1
-                        1
-                        1
-                        5
-                        5
-                        1
-                        1
-                        1
-                        2
-                        2
-                        5
-                        1
-                        2
-                        2
-                        2
-                        2
-                        2
-                        3
-                        3
-                        5
-                        1
-                        1
-                        3
-                        3
-                        1
-                        5
-                        1
-                        2
-                        2
-                        2
-                        5
-                        2
-                        2
-                        2
-                        2
-                        2
-                        2
-                        2
-                        5
-                        5
-                        1
-                        1
-                        1
-                        3
-                        3
-                        5
-                        1
-                        2
-                        2
-                        2
-                        2
-                        1
-                        5
-                        1
-                        1
                         3
-                        3
-                        2
-                        2
-                        5
                         1
-                        2
-                        2
-                        3
-                        5
-                        3
                         2
                         3
-                        3
-                        2
                         3
-                        5
-                        5
-                        1
-                        4
-                        1
                         4
-                        4
-                        1
-                        1
-                        1
-                        4
-                        4
-                        1
-                        4
-                        4
-                        5
-                        1
-                        1
-                        2
-                        2
                         3
-                        3
-                        5
-                        1
-                        2
-                        2
-                        1
                         1
-                        5
-                        1
-                        2
-                        4
-                        2
-                        2
-                        2
                         2
-                        2
-                        4
-                        5
-                        1
-                        1
-                        1
-                        4
-                        4
-                        5
-                        1
-                        4
-                        1
-                        1
-                        1
                         1
-                        1
-                        1
                         4
-                        5
-                        1
-                        1
-                        2
-                        2
-                        2
-                        2
-                        5
-                        1
-                        2
-                        2
                         1
-                        4
-                        4
-                        5
                         1
-                        2
-                        4
-                        2
-                        2
-                        4
                         3
-                        4
-                        4
-                        2
-                        4
                         3
-                        5
-                        1
-                        5
-                        1
-                        2
-                        2
-                        1
-                        5
-                        5
-                        1
-                        2
-                        2
-                        2
-                        2
-                        2
-                        4
-                        4
-                        5
-                        1
-                        2
-                        5
-                        2
-                        2
-                        2
-                        2
-                        2
-                        5
-                        5
-                        1
-                        4
-                        1
-                        2
-                        2
-                        1
                         4
-                        5
-                        1
-                        4
-                        2
-                        2
-                        2
-                        4
-                        4
-                        4
-                        2
-                        4
-                        5
-                        5
-                        1
-                        5
-                        1
-                        5
-                        5
-                        1
-                        1
-                        1
-                        5
-                        5
-                        1
-                        5
-                        5
-                        5
-                        1
-                        1
-                        5
-                        1
-                        1
-                        1
-                        1
-                        1
-                        1
-                        1
-                        1
-                        1
-                        5
-                        5
-                        1
-                        2
-                        2
-                        2
                         3
-                        3
-                        2
-                        2
-                        5
-                        1
-                        5
-                        1
                         1
-                        1
-                        1
-                        1
-                        1
-                        5
-                        5
-                        1
-                        2
-                        5
                         2
-                        5
-                        2
-                        3
-                        5
-                        5
-                        2
-                        5
                         3
-                        5
-                        1
-                        1
-                        2
                         2
-                        1
-                        5
-                        1
-                        2
-                        2
-                        1
-                        2
                         2
-                        5
-                        1
-                        5
-                        2
-                        2
-                        2
-                        5
-                        5
-                        5
-                        2
-                        5
-                        4
-                        5
-                        3
-                        1
-                        3
-                        3
-                        3
-                        3
-                        3
-                        3
-                        3
-                        5
-                        3
-                        1
-                        1
                         4
                         4
-                        3
-                        5
-                        3
                         1
-                        3
-                        2
-                        3
-                        3
-                        3
-                        3
                         2
-                        5
-                        3
                         1
-                        3
-                        3
-                        3
                         4
-                        4
-                        4
-                        3
-                        4
-                        3
-                        3
-                        5
-                        3
-                        1
-                        1
-                        3
-                        3
-                        1
-                        1
-                        1
-                        3
                         3
-                        3
-                        5
-                        3
                         1
-                        3
-                        2
-                        3
-                        2
-                        4
-                        2
-                        2
-                        3
-                        2
                         4
-                        5
-                        3
-                        1
-                        5
-                        1
-                        3
-                        1
-                        1
-                        1
-                        1
-                        5
-                        5
-                        3
-                        1
-                        3
-                        3
-                        3
-                        2
-                        3
-                        3
-                        3
-                        3
-                        3
-                        3
                         2
-                        5
-                        3
-                        1
-                        3
-                        5
-                        3
-                        3
-                        3
-                        3
-                        3
-                        5
-                        5
-                        3
-                        1
-                        3
-                        3
-                        1
-                        3
                         """;
 Console.SetIn(new StringReader(testCase));
 // https://codeforces.com/contest/2001/problem/C
@@ -563,6 +103,7 @@ class Tree {
     readonly Query query;
     readonly int[] nodes;
     readonly HashSet<Edge> edges = [];
+    readonly HashSet<Edge> edgesChecked = [];
     readonly Dictionary<int, int> connections = [];
 
     public Tree(int nodeCount) {
@@ -574,50 +115,54 @@ class Tree {
         }
     }
 
-    [SuppressMessage("ReSharper", "LoopCanBeConvertedToQuery")]
     public void Build() {
-        HashSet<int> processed = [];
         while (true) {
-            int a = edges.Count == 0
-                    ? nodes.First()
-                    : connections.First(it => it.Value == 1 && !processed.Contains(it.Key)).Key;
-            Console.Error.WriteLine($"Processing {a}");
-            foreach (int b in nodes) {
-                if (a == b) {
-                    continue;
-                }
-                TryFindEdge(a, b, 1, out bool end);
-                if (end) {
-                    return;
-                }
+            var edge = EdgeToCheck();
+            edgesChecked.Add(edge);
+            TryFindEdge(edge, 1, out bool end);
+            if (end) {
+                return;
             }
-            processed.Add(a);
-            Console.Error.WriteLine();
         }
     }
 
+    Edge EdgeToCheck() {
+        foreach (var existing in edges) {
+            foreach (int node in nodes.Where(it => !connections.ContainsKey(it))) {
+                var edge = Edge.From(existing.A, node);
+                if (!edgesChecked.Contains(edge)) {
+                    return edge;
+                }
+                edge = Edge.From(existing.B, node);
+                if (!edgesChecked.Contains(edge)) {
+                    return edge;
+                }
+            }
+        }
+        return Edge.From(1, 2);
+    }
+
     [SuppressMessage("ReSharper", "InvertIf")]
-    bool TryFindEdge(int a, int b, int depth, out bool end) {
+    bool TryFindEdge(Edge edge, int depth, out bool end) {
         end = false;
         Console.Error.WriteLine($"{new string(' ', depth)}depth: {depth}");
-        var edge = Edge.From(a, b);
         if (edges.Contains(edge)) {
             Console.Error.WriteLine($"{new string(' ', depth)}Already found edge: {edge.A}-{edge.B}");
             return false;
         }
-        if (!query.Try(a, b, out int answer)) {
-            Console.Error.WriteLine($"{new string(' ', depth)}Already did query {a} {b}");
+        if (!query.Try(edge, out int answer)) {
+            Console.Error.WriteLine($"{new string(' ', depth)}Already did query {edge.A} {edge.B}");
             return false;
         }
         // Console.Error.WriteLine($"{new string(' ', depth)}=> {answer}");
-        if (answer == a) {
+        if (answer == edge.A) {
             AddEdge(edge, out end);
             Console.Error.WriteLine($"{new string(' ', depth)}Found edge: {edge.A}-{edge.B}, all ({edges.Count}):");
             Console.Error.WriteLine($"{new string(' ', depth + 1)}{string.Join(", ", edges.Select(it => $"{it.A} {it.B}"))}");
             return true;
         }
         Console.Error.WriteLine($"{new string(' ', depth)}Found middle: {edge.A}- {answer} -{edge.B}");
-        return TryFindEdge(a, answer, depth + 1, out end) || TryFindEdge(answer, b, depth + 1, out end);
+        return TryFindEdge(Edge.From(edge.A, answer), depth + 1, out end) || TryFindEdge(Edge.From(answer, edge.B), depth + 1, out end);
     }
 
     void AddEdge(Edge edge, out bool end) {
@@ -631,6 +176,7 @@ class Tree {
 
     public void PrintEdges() {
         Console.WriteLine($"! {string.Join(" ", edges.Select(it => $"{it.A} {it.B}"))}");
+        Console.Error.WriteLine($"queries: {query.Count} / {query.Max}");
     }
 }
 
@@ -639,20 +185,21 @@ record struct Edge(int A, int B) {
 }
 
 class Query(int nodes) {
-    readonly int maxQueries = 15 * nodes;
-    readonly HashSet<(int a, int b)> queries = [];
+    readonly HashSet<Edge> queries = [];
+    public int Count => queries.Count;
+    public int Max { get; } = 15 * nodes;
 
     /// Checks which node x minimizes |d(a,x)−d(b,x)|, where d(x,y) is the distance between nodes x and y.
     /// If more than one such node exists, returns the one which minimizes d(a,x).
-    public bool Try(int a, int b, out int answer) {
-        if (queries.Count > maxQueries) {
+    public bool Try(Edge edge, out int answer) {
+        if (queries.Count > Max) {
             Console.Error.WriteLine("Max queries reached");
         }
-        if (!queries.Add((a, b))) {
+        if (!queries.Add(edge)) {
             answer = 0;
             return false;
         }
-        Console.WriteLine($"? {a} {b}");
+        Console.WriteLine($"? {edge.A} {edge.B}");
         answer = int.Parse(Console.ReadLine()!);
         return true;
     }
