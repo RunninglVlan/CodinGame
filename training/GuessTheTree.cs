@@ -29,30 +29,35 @@ class Tree {
         }
     }
 
-    [SuppressMessage("ReSharper", "LoopCanBeConvertedToQuery")]
     public void Build() {
-        HashSet<int> processed = [];
         while (true) {
-            int a = edges.Count == 0
-                    ? nodes.First()
-                    : connections.First(it => it.Value == 1 && !processed.Contains(it.Key)).Key;
-            foreach (int b in nodes) {
-                if (a == b) {
-                    continue;
-                }
-                TryFindEdge(a, b, out bool end);
-                if (end) {
-                    return;
-                }
+            var edge = EdgeToCheck();
+            TryFindEdge(edge, out bool end);
+            if (end) {
+                return;
             }
-            processed.Add(a);
         }
     }
 
+    Edge EdgeToCheck() {
+        foreach (var existing in edges) {
+            foreach (int node in nodes.OrderBy(it => connections.ContainsKey(it))) {
+                var edge = Edge.From(existing.A, node);
+                if (node != existing.A && !edges.Contains(edge) && !query.Tried(edge)) {
+                    return edge;
+                }
+                edge = Edge.From(existing.B, node);
+                if (node != existing.B && !edges.Contains(edge) && !query.Tried(edge)) {
+                    return edge;
+                }
+            }
+        }
+        return Edge.From(1, 2);
+    }
+
     [SuppressMessage("ReSharper", "InvertIf")]
-    bool TryFindEdge(int a, int b, out bool end) {
+    bool TryFindEdge(Edge edge, out bool end) {
         end = false;
-        var edge = Edge.From(a, b);
         if (edges.Contains(edge) || !query.Try(edge, out int answer)) {
             return false;
         }
@@ -60,7 +65,7 @@ class Tree {
             AddEdge(edge, out end);
             return true;
         }
-        return TryFindEdge(edge.A, answer, out end) || TryFindEdge(answer, edge.B, out end);
+        return TryFindEdge(Edge.From(edge.A, answer), out end) || TryFindEdge(Edge.From(answer, edge.B), out end);
     }
 
     void AddEdge(Edge edge, out bool end) {
@@ -84,6 +89,8 @@ record struct Edge(int A, int B) {
 class Query(int nodes) {
     readonly int maxQueries = 15 * nodes;
     readonly HashSet<Edge> queries = [];
+
+    public bool Tried(Edge edge) => queries.Contains(edge);
 
     /// Checks which node x minimizes |d(a,x)−d(b,x)|, where d(x,y) is the distance between nodes x and y.
     /// If more than one such node exists, returns the one which minimizes d(a,x).
