@@ -40,14 +40,10 @@ class Tree {
     }
 
     Edge EdgeToCheck() {
-        foreach (var existing in edges) {
-            foreach (int node in nodes.OrderBy(it => connections.ContainsKey(it))) {
-                var edge = Edge.From(existing.A, node);
-                if (node != existing.A && !edges.Contains(edge) && !query.Tried(edge)) {
-                    return edge;
-                }
-                edge = Edge.From(existing.B, node);
-                if (node != existing.B && !edges.Contains(edge) && !query.Tried(edge)) {
+        foreach ((int a, int _) in connections.OrderBy(it => it.Value)) {
+            foreach (int b in nodes.OrderBy(it => connections.ContainsKey(it))) {
+                var edge = Edge.From(a, b);
+                if (b != a && !edges.Contains(edge) && !query.Tried(edge)) {
                     return edge;
                 }
             }
