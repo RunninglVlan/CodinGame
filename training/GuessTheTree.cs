@@ -53,14 +53,14 @@ class Tree {
     bool TryFindEdge(int a, int b, out bool end) {
         end = false;
         var edge = Edge.From(a, b);
-        if (edges.Contains(edge) || !query.Try(a, b, out int answer)) {
+        if (edges.Contains(edge) || !query.Try(edge, out int answer)) {
             return false;
         }
-        if (answer == a) {
+        if (answer == edge.A) {
             AddEdge(edge, out end);
             return true;
         }
-        return TryFindEdge(a, answer, out end) || TryFindEdge(answer, b, out end);
+        return TryFindEdge(edge.A, answer, out end) || TryFindEdge(answer, edge.B, out end);
     }
 
     void AddEdge(Edge edge, out bool end) {
@@ -83,19 +83,19 @@ record struct Edge(int A, int B) {
 
 class Query(int nodes) {
     readonly int maxQueries = 15 * nodes;
-    readonly HashSet<(int a, int b)> queries = [];
+    readonly HashSet<Edge> queries = [];
 
     /// Checks which node x minimizes |d(a,x)−d(b,x)|, where d(x,y) is the distance between nodes x and y.
     /// If more than one such node exists, returns the one which minimizes d(a,x).
-    public bool Try(int a, int b, out int answer) {
+    public bool Try(Edge edge, out int answer) {
         if (queries.Count > maxQueries) {
             Console.Error.WriteLine("Max queries reached");
         }
-        if (!queries.Add((a, b))) {
+        if (!queries.Add(edge)) {
             answer = 0;
             return false;
         }
-        Console.WriteLine($"? {a} {b}");
+        Console.WriteLine($"? {edge.A} {edge.B}");
         answer = int.Parse(Console.ReadLine()!);
         return true;
     }
