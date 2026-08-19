@@ -40,7 +40,8 @@ class Tree {
                 if (a == b) {
                     continue;
                 }
-                if (TryFindEdge(a, b)) {
+                TryFindEdge(a, b, out bool end);
+                if (end) {
                     return;
                 }
             }
@@ -49,24 +50,35 @@ class Tree {
     }
 
     [SuppressMessage("ReSharper", "InvertIf")]
-    bool TryFindEdge(int a, int b) {
+    [SuppressMessage("ReSharper", "TailRecursiveCall")]
+    bool TryFindEdge(int a, int b, out bool end) {
+        end = false;
         var edge = Edge.From(a, b);
         if (edges.Contains(edge) || !query.Try(a, b, out int answer)) {
             return false;
         }
         if (answer == a) {
-            AddEdge(edge);
-            return edges.Count == nodes.Length - 1;
+            AddEdge(edge, out end);
+            return true;
         }
-        return TryFindEdge(a, answer) || TryFindEdge(answer, b);
+        var edgeLeft = Edge.From(a, answer);
+        bool noEdgeBefore = !edges.Contains(edgeLeft);
+        if (TryFindEdge(a, answer, out end)) {
+            if (noEdgeBefore && edges.Contains(edgeLeft)) {
+                AddEdge(Edge.From(answer, b), out end);
+            }
+            return true;
+        }
+        return TryFindEdge(answer, b, out end);
     }
 
-    void AddEdge(Edge edge) {
+    void AddEdge(Edge edge, out bool end) {
         edges.Add(edge);
         int count = connections.GetValueOrDefault(edge.A, 0);
         connections[edge.A] = ++count;
         count = connections.GetValueOrDefault(edge.B, 0);
         connections[edge.B] = ++count;
+        end = edges.Count == nodes.Length - 1;
     }
 
     public void PrintEdges() {
