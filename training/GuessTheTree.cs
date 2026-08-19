@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
 // https://codeforces.com/contest/2001/problem/C
@@ -51,7 +50,6 @@ class Tree {
         return Edge.From(1, 2);
     }
 
-    [SuppressMessage("ReSharper", "InvertIf")]
     bool TryFindEdge(Edge edge, out bool end) {
         end = false;
         if (edges.Contains(edge) || !query.Try(edge, out int answer)) {
@@ -61,7 +59,10 @@ class Tree {
             AddEdge(edge, out end);
             return true;
         }
-        return TryFindEdge(Edge.From(edge.A, answer), out end) || TryFindEdge(Edge.From(answer, edge.B), out end);
+        bool foundLeft = TryFindEdge(Edge.From(edge.A, answer), out bool endA);
+        bool foundRight = TryFindEdge(Edge.From(answer, edge.B), out bool endB);
+        end = endA || endB;
+        return foundLeft || foundRight;
     }
 
     void AddEdge(Edge edge, out bool end) {
