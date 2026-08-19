@@ -50,7 +50,6 @@ class Tree {
     }
 
     [SuppressMessage("ReSharper", "InvertIf")]
-    [SuppressMessage("ReSharper", "TailRecursiveCall")]
     bool TryFindEdge(int a, int b, out bool end) {
         end = false;
         var edge = Edge.From(a, b);
@@ -61,15 +60,7 @@ class Tree {
             AddEdge(edge, out end);
             return true;
         }
-        var edgeLeft = Edge.From(a, answer);
-        bool noEdgeBefore = !edges.Contains(edgeLeft);
-        if (TryFindEdge(a, answer, out end)) {
-            if (noEdgeBefore && edges.Contains(edgeLeft)) {
-                AddEdge(Edge.From(answer, b), out end);
-            }
-            return true;
-        }
-        return TryFindEdge(answer, b, out end);
+        return TryFindEdge(a, answer, out end) || TryFindEdge(answer, b, out end);
     }
 
     void AddEdge(Edge edge, out bool end) {
