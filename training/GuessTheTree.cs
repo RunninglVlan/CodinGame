@@ -48,7 +48,7 @@ class Tree {
         }
     }
 
-    [SuppressMessage("ReSharper", "TailRecursiveCall")]
+    [SuppressMessage("ReSharper", "InvertIf")]
     bool TryFindEdge(int a, int b) {
         var edge = Edge.From(a, b);
         if (edges.Contains(edge) || !query.Try(a, b, out int answer)) {
@@ -58,8 +58,7 @@ class Tree {
             AddEdge(edge);
             return edges.Count == nodes.Length - 1;
         }
-        int node = edges.Contains(Edge.From(a, answer)) ? b : a;
-        return TryFindEdge(node, answer);
+        return TryFindEdge(a, answer) || TryFindEdge(answer, b);
     }
 
     void AddEdge(Edge edge) {
