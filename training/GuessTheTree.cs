@@ -43,7 +43,7 @@ class Tree {
         foreach ((int a, int _) in connections.OrderBy(it => it.Value)) {
             foreach (int b in nodes.OrderBy(it => connections.ContainsKey(it))) {
                 var edge = Edge.From(a, b);
-                if (b != a && !edges.Contains(edge) && !query.Tried(edge)) {
+                if (b != a && !query.Tried(edge)) {
                     return edge;
                 }
             }
