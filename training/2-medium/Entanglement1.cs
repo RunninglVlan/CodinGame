@@ -10,18 +10,21 @@ while (true) {
 }
 
 class Game {
+    readonly Dictionary<Point, Tile> grid = [];
     public int Score { get; private set; }
     Point nextPoint = new(0, -1);
     int nextEntrance;
 
     public List<PathSegment> DoTurn() {
         var visited = new List<PathSegment>();
-        var tile = Tile.Read();
-        (var segment, int exit) = tile.Visit(nextEntrance);
-        Score++;
-        visited.Add(new PathSegment(nextPoint, segment));
-        nextPoint = Tile.NextPoint(nextPoint, exit);
-        nextEntrance = Tile.NextEntrance(exit);
+        grid.Add(nextPoint, Tile.Read());
+        for (var scoreIncrement = 1; grid.TryGetValue(nextPoint, out var tile); scoreIncrement++) {
+            (var segment, int exit) = tile.Visit(nextEntrance);
+            Score += scoreIncrement;
+            visited.Add(new PathSegment(nextPoint, segment));
+            nextPoint = Tile.NextPoint(nextPoint, exit);
+            nextEntrance = Tile.NextEntrance(exit);
+        }
         return visited;
     }
 }
