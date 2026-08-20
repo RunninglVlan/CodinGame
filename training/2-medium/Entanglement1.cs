@@ -17,47 +17,25 @@ class Game {
 
     public List<PathSegment> DoTurn() {
         var visited = new List<PathSegment>();
-        var tile = HexTile.Read();
+        var tile = Tile.Read();
         var segment = tile.Segments.First(it => it.A == nextEntrance);
         Score++;
         visited.Add(new PathSegment(nextPoint, segment));
-        nextPoint = segment.B switch {
-            0 or 1 => nextPoint with { Y = nextPoint.Y + 1 },
-            2 or 3 => new Point(nextPoint.X + 1, nextPoint.Y + 1),
-            4 or 5 => nextPoint with { X = nextPoint.X + 1 },
-            6 or 7 => nextPoint with { Y = nextPoint.Y - 1 },
-            8 or 9 => new Point(nextPoint.X - 1, nextPoint.Y - 1),
-            10 or 11 => nextPoint with { X = nextPoint.X - 1 },
-            _ => throw new ArgumentException($"Can't find next point based on entrance B: {segment.B}")
-        };
-        nextEntrance = segment.B switch {
-            0 => 7,
-            1 => 6,
-            2 => 9,
-            3 => 8,
-            4 => 11,
-            5 => 10,
-            6 => 1,
-            7 => 0,
-            8 => 3,
-            9 => 2,
-            10 => 5,
-            11 => 4,
-            _ => throw new ArgumentException($"Can't find next entrance based on entrance B: {segment.B}")
-        };
+        nextPoint = Tile.NextPoint(nextPoint, segment.B);
+        nextEntrance = Tile.NextEntrance(segment.B);
         return visited;
     }
 }
 
-/// Has 12 entrances: <br/>
+/// Hexagonal tile with 12 entrances: <br/>
 /// - south: 0, 1 <br/>
 /// - south-east: 2, 3 <br/>
 /// - north-east: 4, 5 <br/>
 /// - north: 6, 7 <br/>
 /// - north-west: 8, 9 <br/>
 /// - south-west: 10, 11
-record HexTile(Segment[] Segments) {
-    public static HexTile Read() {
+record Tile(Segment[] Segments) {
+    public static Tile Read() {
         var segments = new Segment[6];
         for (var i = 0; i < 6; i++) {
             string[] entrances = Debug.ReadLine()!.Split(' ');
@@ -65,8 +43,34 @@ record HexTile(Segment[] Segments) {
             int b = int.Parse(entrances[1]);
             segments[i] = new Segment(a, b);
         }
-        return new HexTile(segments);
+        return new Tile(segments);
     }
+
+    public static Point NextPoint(Point current, int entrance) => entrance switch {
+        0 or 1 => current with { Y = current.Y + 1 },
+        2 or 3 => new Point(current.X + 1, current.Y + 1),
+        4 or 5 => current with { X = current.X + 1 },
+        6 or 7 => current with { Y = current.Y - 1 },
+        8 or 9 => new Point(current.X - 1, current.Y - 1),
+        10 or 11 => current with { X = current.X - 1 },
+        _ => throw new ArgumentException($"Can't find next point based on entrance: {entrance}")
+    };
+
+    public static int NextEntrance(int current) => current switch {
+        0 => 7,
+        1 => 6,
+        2 => 9,
+        3 => 8,
+        4 => 11,
+        5 => 10,
+        6 => 1,
+        7 => 0,
+        8 => 3,
+        9 => 2,
+        10 => 5,
+        11 => 4,
+        _ => throw new ArgumentException($"Can't find next entrance based on entrance: {current}")
+    };
 }
 
 /// <param name="A">entrance A</param>
