@@ -18,10 +18,10 @@ class Game {
     public List<PathSegment> DoTurn() {
         var visited = new List<PathSegment>();
         grid.Add(nextPoint, Tile.Read());
-        for (var scoreIncrement = 1; grid.TryGetValue(nextPoint, out var tile); scoreIncrement++) {
+        while (grid.TryGetValue(nextPoint, out var tile)) {
             (var segment, int exit) = tile.Visit(nextEntrance);
-            Score += scoreIncrement;
             visited.Add(new PathSegment(nextPoint, segment));
+            Score += visited.Count;
             nextPoint = Tile.NextPoint(nextPoint, exit);
             nextEntrance = Tile.NextEntrance(exit);
         }
@@ -29,13 +29,15 @@ class Game {
     }
 }
 
-/// Hexagonal tile with 12 entrances: <br/>
-/// - south: 0, 1 <br/>
-/// - south-east: 2, 3 <br/>
-/// - north-east: 4, 5 <br/>
-/// - north: 6, 7 <br/>
-/// - north-west: 8, 9 <br/>
-/// - south-west: 10, 11
+/// Hexagonal tile with 6 segments and 12 entrances:
+/// <list type="bullet">
+/// <item>south: 0, 1</item>
+/// <item>south-east: 2, 3</item>
+/// <item>north-east: 4, 5</item>
+/// <item>north: 6, 7</item>
+/// <item>north-west: 8, 9</item>
+/// <item>south-west: 10, 11</item>
+/// </list>
 record Tile(Segment[] Segments) {
     public static Tile Read() {
         var segments = new Segment[6];
