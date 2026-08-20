@@ -5,23 +5,22 @@ using System.Linq;
 // https://www.codingame.com/training/medium/entanglement---episode-1
 var game = new Game();
 while (true) {
-    game.DoTurn();
+    var visited = game.DoTurn();
     Console.WriteLine(game.Score);
-    Console.WriteLine(game.Path);
+    Console.WriteLine(string.Join("; ", visited));
 }
 
 class Game {
     public int Score { get; private set; }
-    readonly List<PathSegment> path = [];
-    public string Path => string.Join("; ", path);
     Point nextPoint = new(0, -1);
     int nextEntrance;
 
-    public void DoTurn() {
+    public List<PathSegment> DoTurn() {
+        var visited = new List<PathSegment>();
         var tile = HexTile.Read();
         var segment = tile.Segments.First(it => it.A == nextEntrance);
         Score++;
-        path.Add(new PathSegment(nextPoint, segment));
+        visited.Add(new PathSegment(nextPoint, segment));
         nextPoint = segment.B switch {
             0 or 1 => nextPoint with { Y = nextPoint.Y + 1 },
             2 or 3 => new Point(nextPoint.X + 1, nextPoint.Y + 1),
@@ -46,6 +45,7 @@ class Game {
             11 => 4,
             _ => throw new ArgumentException($"Can't find next entrance based on entrance B: {segment.B}")
         };
+        return visited;
     }
 }
 
