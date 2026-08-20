@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 
 // https://www.codingame.com/training/medium/entanglement---episode-1
 var game = new Game();
@@ -18,11 +17,11 @@ class Game {
     public List<PathSegment> DoTurn() {
         var visited = new List<PathSegment>();
         var tile = Tile.Read();
-        var segment = tile.Segments.First(it => it.A == nextEntrance);
+        (var segment, int exit) = tile.Visit(nextEntrance);
         Score++;
         visited.Add(new PathSegment(nextPoint, segment));
-        nextPoint = Tile.NextPoint(nextPoint, segment.B);
-        nextEntrance = Tile.NextEntrance(segment.B);
+        nextPoint = Tile.NextPoint(nextPoint, exit);
+        nextEntrance = Tile.NextEntrance(exit);
         return visited;
     }
 }
@@ -71,6 +70,18 @@ record Tile(Segment[] Segments) {
         11 => 4,
         _ => throw new ArgumentException($"Can't find next entrance based on entrance: {current}")
     };
+
+    public (Segment, int) Visit(int entrance) {
+        foreach (var segment in Segments) {
+            if (segment.A == entrance) {
+                return (segment, segment.B);
+            }
+            if (segment.B == entrance) {
+                return (segment, segment.A);
+            }
+        }
+        throw new ArgumentException($"Can't find segment based on entrance: {entrance}");
+    }
 }
 
 /// <param name="A">entrance A</param>
