@@ -7,13 +7,13 @@ using System.Text.RegularExpressions;
 int lines = Math.Clamp(int.Parse(Console.ReadLine()!), 1, 20);
 for (var _ = 0; _ < lines; _++) {
     string line = Console.ReadLine()!;
-    (string dialogue, string tag) = Split(line);
+    (string dialogue, string tag) = SplitLine(line);
     Console.WriteLine(IsHagridSpeaking(tag) ? $"\"{Transform(dialogue)}\"{tag}" : line);
 }
 return;
 
 [SuppressMessage("Performance", "SYSLIB1045:Convert to 'GeneratedRegexAttribute'.")]
-(string dialogue, string tag) Split(string line) {
+(string dialogue, string tag) SplitLine(string line) {
     const string pattern = """
                            "([^"]*)"(.*)
                            """;
@@ -24,41 +24,48 @@ return;
 bool IsHagridSpeaking(string tag) => tag.Contains("Hagrid");
 
 string Transform(string dialogue) {
-    char last = dialogue.Last();
-    bool hasQuestionMark = last is '?';
-    if (hasQuestionMark) {
-        dialogue = dialogue[..^1];
+    var transformed = dialogue.Split(' ').Select(word => {
+        (word, string punctuation) = SplitWord(word);
+        return Replace(word) + punctuation;
+    });
+    return string.Join(' ', transformed);
+}
+
+(string word, string punctuation) SplitWord(string word) {
+    string[] punctuationMarks = ["...", ".", "?"];
+    foreach (string mark in punctuationMarks) {
+        int length = mark.Length;
+        if (word.EndsWith(mark)) {
+            return (word[..^length], word[^length..]);
+        }
     }
-    string transformed = string.Join(' ', dialogue.Split(' ').Select(Replace));
-    return hasQuestionMark ? $"{transformed}?" : transformed;
+    return (word, string.Empty);
 }
 
 string Replace(string word) {
+    string lowerCaseWord = word.ToLower();
     // replace words
-    if (word.Contains("you", StringComparison.OrdinalIgnoreCase)) {
-        return word.Replace("ou", "eh");
+    switch (lowerCaseWord) {
+        case "you":
+            return word.Replace("ou", "eh");
+        case "to":
+            return word.Replace("o", "er");
+        case "and":
+            return word.Replace("d", "'");
+        case "me":
+            return $"{word}h";
     }
-    if (word.Contains("to", StringComparison.OrdinalIgnoreCase)) {
-        return word.Replace("o", "er");
-    }
-    if (word.Contains("and", StringComparison.OrdinalIgnoreCase)) {
-        return word.Replace("d", "'");
-    }
-    if (word.Contains("me", StringComparison.OrdinalIgnoreCase)) {
-        return $"{word}h";
-    }
-    // replace letters
     if (word.Length <= 2) {
         return word;
     }
-    string lowerCaseWord = word.ToLower();
+    // replace letters
     char first = lowerCaseWord.First();
     char last = lowerCaseWord.Last();
     if (last is 'f' or 't' or 'd' or 'g') {
         word = $"{word[..^1]}'";
     }
     if (first is 'h') {
-        word = $"'{word[..^1]}";
+        word = $"'{word[1..]}";
     }
     return word;
 }
