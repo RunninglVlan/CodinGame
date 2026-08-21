@@ -5,7 +5,7 @@ using System.Linq;
 // https://www.codingame.com/training/medium/squares
 string[] inputs = Console.ReadLine()!.Split(' ');
 int gridSide = Math.Clamp(int.Parse(inputs[0]), 1, 20_000);
-var grid = Rect.From(Point.ZERO, gridSide);
+var grid = Rect.Square(Point.ZERO, gridSide);
 int squareCount = Math.Clamp(int.Parse(inputs[1]), 1, 4);
 int targetTiles = Math.Clamp(int.Parse(inputs[2]), 1, 100);
 var squares = new Rect[squareCount];
@@ -14,7 +14,7 @@ for (var i = 0; i < squareCount; i++) {
     int x = Math.Clamp(int.Parse(squareInputs[0]), 1, gridSide);
     int y = Math.Clamp(int.Parse(squareInputs[1]), 1, gridSide);
     int side = Math.Clamp(int.Parse(squareInputs[2]), 1, gridSide);
-    squares[i] = Rect.From(new Point(x, y), side);
+    squares[i] = Rect.Square(new Point(x, y), side);
 }
 for (var _ = 0; _ < targetTiles; _++) {
     string[] coordinates = Console.ReadLine()!.Split(' ');
@@ -29,50 +29,44 @@ int RegionArea(Point tile) {
     var belongsToSquares = squares.Where(it => it.Contains(tile)).ToArray();
     switch (belongsToSquares.Length) {
         case 0:
-            return grid.Area() - squares.SelectMany(it => it.Points()).Distinct().Count();
+            return Points(grid).Except(squares.SelectMany(Points)).Count();
         case 1: {
-            var squarePoints = belongsToSquares.First().Points().ToList();
-            var otherPoints = squares.Except(belongsToSquares).SelectMany(it => it.Points()).Distinct().ToHashSet();
-            for (int i = squarePoints.Count - 1; i >= 0; i--) {
-                var point = squarePoints[i];
+            var points = Points(belongsToSquares.First()).ToList();
+            var otherPoints = squares.Except(belongsToSquares).SelectMany(Points).ToHashSet();
+            for (int i = points.Count - 1; i >= 0; i--) {
+                var point = points[i];
                 if (otherPoints.Contains(point)) {
-                    squarePoints.RemoveAt(i);
+                    points.RemoveAt(i);
                 }
             }
-            return squarePoints.Count;
+            return points.Count;
         }
         default:
-            var points = belongsToSquares.First().Points();
-            for (var i = 1; i < belongsToSquares.Length; i++) {
-                var square = belongsToSquares[i];
-                points = points.Intersect(square.Points());
-            }
-            return points.Count();
+            var firstSquare = belongsToSquares.First();
+            return belongsToSquares.Skip(1)
+                    .Select(Points)
+                    .Aggregate(Points(firstSquare), (current, it) => current.Intersect(it))
+                    .Count();
+    }
+}
+
+IEnumerable<Point> Points(Rect square) {
+    for (int y = square.Min.Y; y < square.Max.Y; y++) {
+        for (int x = square.Min.X; x < square.Max.X; x++) {
+            yield return new Point(x, y);
+        }
     }
 }
 
 readonly record struct Rect(Point Min, Point Max) {
-    Point Size => Max - Min;
-
-    public static Rect From(Point topLeft, int size) {
-        var max = topLeft + Point.ONE * size;
-        return new Rect(topLeft, max);
+    public static Rect Square(Point min, int size) {
+        var max = min + Point.ONE * size;
+        return new Rect(min, max);
     }
 
     public bool Contains(Point point) {
-        int x = point.X;
-        int y = point.Y;
+        (int x, int y) = point;
         return x >= Min.X && y >= Min.Y && x < Max.X && y < Max.Y;
-    }
-
-    public int Area() => Size.X * Size.Y;
-
-    public IEnumerable<Point> Points() {
-        for (int y = Min.Y; y < Max.Y; y++) {
-            for (int x = Min.X; x < Max.X; x++) {
-                yield return new Point(x, y);
-            }
-        }
     }
 }
 
