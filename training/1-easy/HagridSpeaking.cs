@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Diagnostics.CodeAnalysis;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 
@@ -10,13 +10,29 @@ for (var _ = 0; _ < lines; _++) {
     Console.WriteLine(Solution.Transform(line));
 }
 
-static class Solution {
-    const string DIALOGUE_AND_TAG = """
-                                    "([^"]*)"(.*)
-                                    """;
+static partial class Solution {
+    static readonly Dictionary<string, string> wordReplacements = new(StringComparer.OrdinalIgnoreCase) {
+        { "you", "yeh" },
+        { "to", "ter" },
+        { "and", "an'" },
+        { "me", "meh" }
+    };
+
+    [GeneratedRegex("""
+                    "([^"]*)"(.*)
+                    """)]
+    private static partial Regex DialogueTag();
+
+    [GeneratedRegex("""
+                    ([^\w]*)([\w]*)([^\w]*)
+                    """)]
+    private static partial Regex PrefixWordPostfix();
+
+    [GeneratedRegex("^h|[ftdg]$", RegexOptions.IgnoreCase)]
+    private static partial Regex ApostropheLetters();
 
     public static string Transform(string line) {
-        (string dialogue, string tag) = Split(line);
+        (string dialogue, string tag, _) = Split(line, DialogueTag());
         if (!tag.Contains("Hagrid")) {
             return line;
         }
@@ -24,66 +40,31 @@ static class Solution {
             if (word.Contains('\'') || word.Contains('-')) {
                 return word;
             }
-            (word, string punctuation) = GetPunctuation(word);
-            (string firstParenthesis, word, string lastParenthesis) = GetParentheses(word);
-            return $"{firstParenthesis}{ReplaceWord(word)}{lastParenthesis}{punctuation}";
+            (string prefix, word, string postfix) = Split(word, PrefixWordPostfix());
+            return $"{prefix}{Replace(word)}{postfix}";
         });
         return $"\"{string.Join(' ', transformed)}\"{tag}";
     }
 
-    [SuppressMessage("Performance", "SYSLIB1045:Convert to 'GeneratedRegexAttribute'.")]
-    static (string dialogue, string tag) Split(string line) {
-        var match = Regex.Match(line, DIALOGUE_AND_TAG);
-        return (match.Groups[1].Value, match.Groups[2].Value);
+    static (string first, string second, string third) Split(string line, Regex regex) {
+        var match = regex.Match(line);
+        string first = match.Groups[1].Value;
+        string second = match.Groups[2].Value;
+        string third = match.Groups.Count > 3 ? match.Groups[3].Value : string.Empty;
+        return (first, second, third);
     }
 
-    static (string word, string punctuation) GetPunctuation(string word) {
-        string[] punctuationMarks = ["...", ",", ".", "?", "!"];
-        foreach (string mark in punctuationMarks) {
-            int length = mark.Length;
-            if (word.EndsWith(mark)) {
-                return (word[..^length], word[^length..]);
-            }
+    static string Replace(string word) {
+        if (!wordReplacements.TryGetValue(word, out string? replacement)) {
+            return word.Length <= 2
+                    ? word
+                    : ApostropheLetters().Replace(word, "'");
         }
-        return (word, string.Empty);
-    }
-
-    static (string first, string word, string last) GetParentheses(string word) {
-        string[] parentheses = ["()", "[]", "{}"];
-        foreach (string group in parentheses) {
-            string first = group[..^1];
-            string last = group[1..];
-            if (word.StartsWith(first) && word.EndsWith(last)) {
-                return (first, word[1..^1], last);
-            }
+        char[] letters = replacement.ToCharArray();
+        for (var i = 0; i < letters.Length; i++) {
+            char original = i < word.Length ? word[i] : word.Last();
+            letters[i] = char.IsUpper(original) ? char.ToUpper(letters[i]) : letters[i];
         }
-        return (string.Empty, word, string.Empty);
-    }
-
-    static string ReplaceWord(string word) {
-        string lowerCaseWord = word.ToLower();
-        switch (lowerCaseWord) {
-            case "you":
-                return $"{word[0]}{ReplaceLetter(word[1], "e")}{ReplaceLetter(word[2], "h")}";
-            case "to":
-                return $"{word[0]}{ReplaceLetter(word[1], "er")}";
-            case "me":
-                return $"{word[0]}{ReplaceLetter(word[1], "eh")}";
-        }
-        if (word.Length <= 2) {
-            return word;
-        }
-        if (lowerCaseWord.Last() is 'f' or 't' or 'd' or 'g') {
-            word = $"{word[..^1]}'";
-        }
-        if (lowerCaseWord.First() is 'h') {
-            word = $"'{word[1..]}";
-        }
-        return word;
-    }
-
-    static string ReplaceLetter(char letter, string withLetters) {
-        bool isUpper = char.IsUpper(letter);
-        return isUpper ? withLetters.ToUpper() : withLetters;
+        return new string(letters);
     }
 }
