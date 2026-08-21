@@ -17,32 +17,36 @@ for (var i = 0; i < squareCount; i++) {
     int side = Math.Clamp(int.Parse(squareInputs[2]), 1, gridSide);
     squares[i] = Rect.Square(new Point(x, y), side);
 }
+var areas = new HashSet<HashSet<Point>>();
 for (var _ = 0; _ < targetTiles; _++) {
     string[] coordinates = Console.ReadLine()!.Split(' ');
     int x = Math.Clamp(int.Parse(coordinates[0]), 1, gridSide);
     int y = Math.Clamp(int.Parse(coordinates[1]), 1, gridSide);
     var tile = new Point(x, y);
-    Console.WriteLine(RegionArea(tile));
+    var area = areas.FirstOrDefault(it => it.Contains(tile));
+    area ??= RegionArea(tile);
+    areas.Add(area);
+    Console.WriteLine(area.Count);
 }
 return;
 
-int RegionArea(Point tile) {
+HashSet<Point> RegionArea(Point tile) {
     var belongsToSquares = squares.Where(it => it.Contains(tile)).ToArray();
     switch (belongsToSquares.Length) {
         case 0:
-            return CountArea(tile, grid, squares);
+            return Area(tile, grid, squares);
         case 1: {
-            return CountArea(tile, belongsToSquares.First(), [.. squares.Except(belongsToSquares)]);
+            return Area(tile, belongsToSquares.First(), [.. squares.Except(belongsToSquares)]);
         }
         default:
             var intersection = belongsToSquares.Skip(1)
                     .Aggregate(belongsToSquares.First(), (current, it) => current.Intersect(it)!.Value);
-            return CountArea(tile, intersection, [.. squares.Except(belongsToSquares)]);
+            return Area(tile, intersection, [.. squares.Except(belongsToSquares)]);
     }
 }
 
 [SuppressMessage("ReSharper", "LoopCanBeConvertedToQuery")]
-int CountArea(Point start, Rect included, Rect[] excluded) {
+HashSet<Point> Area(Point start, Rect included, Rect[] excluded) {
     Queue<Point> queue = [];
     HashSet<Point> visited = [start];
     queue.Enqueue(start);
@@ -58,7 +62,7 @@ int CountArea(Point start, Rect included, Rect[] excluded) {
             queue.Enqueue(next);
         }
     }
-    return visited.Count;
+    return visited;
 
     bool BelongsToAny(Rect[] rects, Point point) {
         foreach (var rect in rects) {
