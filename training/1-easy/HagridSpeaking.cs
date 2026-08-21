@@ -25,6 +25,9 @@ bool IsHagridSpeaking(string tag) => tag.Contains("Hagrid");
 
 string Transform(string dialogue) {
     var transformed = dialogue.Split(' ').Select(word => {
+        if (word.Contains('\'') || word.Contains('-')) {
+            return word;
+        }
         (word, string punctuation) = SplitWord(word);
         return Replace(word) + punctuation;
     });
