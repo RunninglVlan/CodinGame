@@ -31,15 +31,9 @@ int RegionArea(Point tile) {
         case 0:
             return Points(grid).Except(squares.SelectMany(Points)).Count();
         case 1: {
-            var points = Points(belongsToSquares.First()).ToList();
+            var points = Points(belongsToSquares.First()).ToArray();
             var otherPoints = squares.Except(belongsToSquares).SelectMany(Points).ToHashSet();
-            for (int i = points.Count - 1; i >= 0; i--) {
-                var point = points[i];
-                if (otherPoints.Contains(point)) {
-                    points.RemoveAt(i);
-                }
-            }
-            return points.Count;
+            return points.Length - points.Where(otherPoints.Contains).Count();
         }
         default:
             var firstSquare = belongsToSquares.First();
