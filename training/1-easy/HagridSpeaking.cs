@@ -7,13 +7,13 @@ using System.Text.RegularExpressions;
 int lines = Math.Clamp(int.Parse(Console.ReadLine()!), 1, 20);
 for (var _ = 0; _ < lines; _++) {
     string line = Console.ReadLine()!;
-    (string dialogue, string tag) = SplitLine(line);
+    (string dialogue, string tag) = Split(line);
     Console.WriteLine(IsHagridSpeaking(tag) ? $"\"{Transform(dialogue)}\"{tag}" : line);
 }
 return;
 
 [SuppressMessage("Performance", "SYSLIB1045:Convert to 'GeneratedRegexAttribute'.")]
-(string dialogue, string tag) SplitLine(string line) {
+(string dialogue, string tag) Split(string line) {
     const string pattern = """
                            "([^"]*)"(.*)
                            """;
@@ -28,13 +28,14 @@ string Transform(string dialogue) {
         if (word.Contains('\'') || word.Contains('-')) {
             return word;
         }
-        (word, string punctuation) = SplitWord(word);
-        return ReplaceWord(word) + punctuation;
+        (word, string punctuation) = GetPunctuation(word);
+        (string firstParenthesis, word, string lastParenthesis) = GetParentheses(word);
+        return $"{firstParenthesis}{ReplaceWord(word)}{lastParenthesis}{punctuation}";
     });
     return string.Join(' ', transformed);
 }
 
-(string word, string punctuation) SplitWord(string word) {
+(string word, string punctuation) GetPunctuation(string word) {
     string[] punctuationMarks = ["...", ",", ".", "?", "!"];
     foreach (string mark in punctuationMarks) {
         int length = mark.Length;
@@ -43,6 +44,18 @@ string Transform(string dialogue) {
         }
     }
     return (word, string.Empty);
+}
+
+(string firstParenthesis, string word, string lastParenthesis) GetParentheses(string word) {
+    string[] parentheses = ["()", "[]", "{}"];
+    foreach (string group in parentheses) {
+        string firstParenthesis = group[..^1];
+        string lastParenthesis = group[1..];
+        if (word.StartsWith(firstParenthesis) && word.EndsWith(lastParenthesis)) {
+            return (firstParenthesis, word[1..^1], lastParenthesis);
+        }
+    }
+    return (string.Empty, word, string.Empty);
 }
 
 string ReplaceWord(string word) {
