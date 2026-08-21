@@ -4,77 +4,95 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
 // https://www.codingame.com/training/medium/squares
-string[] inputs = Console.ReadLine()!.Split(' ');
-int gridSide = Math.Clamp(int.Parse(inputs[0]), 1, 20_000);
-var grid = Rect.Square(Point.ONE, gridSide);
-int squareCount = Math.Clamp(int.Parse(inputs[1]), 1, 4);
-int targetTiles = Math.Clamp(int.Parse(inputs[2]), 1, 100);
-var squares = new Rect[squareCount];
-for (var i = 0; i < squareCount; i++) {
-    string[] squareInputs = Console.ReadLine()!.Split(' ');
-    int x = Math.Clamp(int.Parse(squareInputs[0]), 1, gridSide);
-    int y = Math.Clamp(int.Parse(squareInputs[1]), 1, gridSide);
-    int side = Math.Clamp(int.Parse(squareInputs[2]), 1, gridSide);
-    squares[i] = Rect.Square(new Point(x, y), side);
-}
-var areas = new HashSet<HashSet<Point>>();
+var regions = new Regions();
+regions.ReadSquares(out int targetTiles);
 for (var _ = 0; _ < targetTiles; _++) {
-    string[] coordinates = Console.ReadLine()!.Split(' ');
-    int x = Math.Clamp(int.Parse(coordinates[0]), 1, gridSide);
-    int y = Math.Clamp(int.Parse(coordinates[1]), 1, gridSide);
-    var tile = new Point(x, y);
-    var area = areas.FirstOrDefault(it => it.Contains(tile));
-    area ??= RegionArea(tile);
-    areas.Add(area);
-    Console.WriteLine(area.Count);
-}
-return;
-
-HashSet<Point> RegionArea(Point tile) {
-    var belongsToSquares = squares.Where(it => it.Contains(tile)).ToArray();
-    switch (belongsToSquares.Length) {
-        case 0:
-            return Area(tile, grid, squares);
-        case 1: {
-            return Area(tile, belongsToSquares.First(), [.. squares.Except(belongsToSquares)]);
-        }
-        default:
-            var intersection = belongsToSquares.Skip(1)
-                    .Aggregate(belongsToSquares.First(), (current, it) => current.Intersect(it)!.Value);
-            return Area(tile, intersection, [.. squares.Except(belongsToSquares)]);
-    }
+    var tile = regions.ReadTile();
+    Console.WriteLine(regions.Area(tile).Count);
 }
 
-[SuppressMessage("ReSharper", "LoopCanBeConvertedToQuery")]
-HashSet<Point> Area(Point start, Rect included, Rect[] excluded) {
-    Queue<Point> queue = [];
-    HashSet<Point> visited = [start];
-    queue.Enqueue(start);
-    while (queue.TryDequeue(out var current)) {
-        foreach (var direction in Point.Directions4) {
-            var next = current + direction;
-            if (!included.Contains(next) || BelongsToAny(excluded, next)) {
-                continue;
-            }
-            if (!visited.Add(next)) {
-                continue;
-            }
-            queue.Enqueue(next);
+class Regions {
+    Rect grid;
+    Rect[] squares = null!;
+    readonly HashSet<HashSet<Point>> areas = [];
+
+    public void ReadSquares(out int targetTiles) {
+        string[] inputs = Console.ReadLine()!.Split(' ');
+        int gridSide = Math.Clamp(int.Parse(inputs[0]), 1, 20_000);
+        grid = Rect.Square(Point.ONE, gridSide);
+        int squareCount = Math.Clamp(int.Parse(inputs[1]), 1, 4);
+        targetTiles = Math.Clamp(int.Parse(inputs[2]), 1, 100);
+        squares = new Rect[squareCount];
+        for (var i = 0; i < squareCount; i++) {
+            string[] squareInputs = Console.ReadLine()!.Split(' ');
+            int x = Math.Clamp(int.Parse(squareInputs[0]), 1, gridSide);
+            int y = Math.Clamp(int.Parse(squareInputs[1]), 1, gridSide);
+            int side = Math.Clamp(int.Parse(squareInputs[2]), 1, gridSide);
+            squares[i] = Rect.Square(new Point(x, y), side);
         }
     }
-    return visited;
 
-    bool BelongsToAny(Rect[] rects, Point point) {
-        foreach (var rect in rects) {
-            if (rect.Contains(point)) {
-                return true;
+    public Point ReadTile() {
+        string[] coordinates = Console.ReadLine()!.Split(' ');
+        int x = Math.Clamp(int.Parse(coordinates[0]), 1, grid.Size.X);
+        int y = Math.Clamp(int.Parse(coordinates[1]), 1, grid.Size.X);
+        return new Point(x, y);
+    }
+
+    public HashSet<Point> Area(Point tile) {
+        var area = areas.FirstOrDefault(it => it.Contains(tile));
+        if (area != null) {
+            return area;
+        }
+        var belongsToSquares = squares.Where(it => it.Contains(tile)).ToArray();
+        switch (belongsToSquares.Length) {
+            case 0:
+                return Area(tile, grid, squares);
+            case 1: {
+                return Area(tile, belongsToSquares.First(), [.. squares.Except(belongsToSquares)]);
+            }
+            default:
+                var intersection = belongsToSquares.Skip(1)
+                        .Aggregate(belongsToSquares.First(), (current, it) => current.Intersect(it)!.Value);
+                return Area(tile, intersection, [.. squares.Except(belongsToSquares)]);
+        }
+    }
+
+    /// Flood fill
+    [SuppressMessage("ReSharper", "LoopCanBeConvertedToQuery")]
+    HashSet<Point> Area(Point start, Rect included, Rect[] excluded) {
+        Queue<Point> queue = [];
+        HashSet<Point> visited = [start];
+        queue.Enqueue(start);
+        while (queue.TryDequeue(out var current)) {
+            foreach (var direction in Point.Directions4) {
+                var next = current + direction;
+                if (!included.Contains(next) || BelongsToAny(next, excluded)) {
+                    continue;
+                }
+                if (!visited.Add(next)) {
+                    continue;
+                }
+                queue.Enqueue(next);
             }
         }
-        return false;
+        areas.Add(visited);
+        return visited;
+
+        bool BelongsToAny(Point point, Rect[] rects) {
+            foreach (var rect in rects) {
+                if (rect.Contains(point)) {
+                    return true;
+                }
+            }
+            return false;
+        }
     }
 }
 
 readonly record struct Rect(Point Min, Point Max) {
+    public Point Size => Max - Min;
+
     public static Rect Square(Point min, int size) {
         var max = min + Point.ONE * size;
         return new Rect(min, max);
