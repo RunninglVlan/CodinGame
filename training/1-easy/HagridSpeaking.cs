@@ -29,7 +29,7 @@ string Transform(string dialogue) {
             return word;
         }
         (word, string punctuation) = SplitWord(word);
-        return Replace(word) + punctuation;
+        return ReplaceWord(word) + punctuation;
     });
     return string.Join(' ', transformed);
 }
@@ -45,18 +45,16 @@ string Transform(string dialogue) {
     return (word, string.Empty);
 }
 
-string Replace(string word) {
+string ReplaceWord(string word) {
     string lowerCaseWord = word.ToLower();
     // replace words
     switch (lowerCaseWord) {
         case "you":
-            return word.Replace("ou", "eh");
+            return $"{word[0]}{ReplaceLetter(word[1], "e")}{ReplaceLetter(word[2], "h")}";
         case "to":
-            return word.Replace("o", "er");
-        case "and":
-            return word.Replace("d", "'");
+            return $"{word[0]}{ReplaceLetter(word[1], "er")}";
         case "me":
-            return $"{word}h";
+            return $"{word[0]}{ReplaceLetter(word[1], "eh")}";
     }
     if (word.Length <= 2) {
         return word;
@@ -71,4 +69,9 @@ string Replace(string word) {
         word = $"'{word[1..]}";
     }
     return word;
+}
+
+string ReplaceLetter(char letter, string letters) {
+    bool isUpper = char.IsUpper(letter);
+    return isUpper ? letters.ToUpper() : letters;
 }
