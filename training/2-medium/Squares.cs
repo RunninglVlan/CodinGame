@@ -15,6 +15,8 @@ class Regions {
     Rect grid;
     Rect[] squares = null!;
     readonly HashSet<HashSet<Point>> areas = [];
+    readonly Queue<Point> queue = [];
+    readonly HashSet<Point> visited = [];
 
     public void ReadSquares(out int targetTiles) {
         string[] inputs = Console.ReadLine()!.Split(' ');
@@ -61,9 +63,10 @@ class Regions {
     /// Flood fill
     [SuppressMessage("ReSharper", "LoopCanBeConvertedToQuery")]
     HashSet<Point> Area(Point start, Rect included, Rect[] excluded) {
-        Queue<Point> queue = [];
-        HashSet<Point> visited = [start];
+        queue.Clear();
+        visited.Clear();
         queue.Enqueue(start);
+        visited.Add(start);
         while (queue.TryDequeue(out var current)) {
             foreach (var direction in Point.Directions4) {
                 var next = current + direction;
