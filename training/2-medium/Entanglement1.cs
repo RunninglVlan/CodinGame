@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
+// Visual
 // https://www.codingame.com/training/medium/entanglement---episode-1
 var game = new Game();
 while (true) {
