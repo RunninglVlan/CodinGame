@@ -35,7 +35,7 @@ string Transform(string dialogue) {
 }
 
 (string word, string punctuation) SplitWord(string word) {
-    string[] punctuationMarks = ["...", ".", "?", "!"];
+    string[] punctuationMarks = ["...", ",", ".", "?", "!"];
     foreach (string mark in punctuationMarks) {
         int length = mark.Length;
         if (word.EndsWith(mark)) {
