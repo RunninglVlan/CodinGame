@@ -16,7 +16,6 @@ class Regions {
     Rect grid;
     Rect[] squares = null!;
     readonly HashSet<List<Rect>> regions = [];
-    readonly Queue<Point> queue = [];
 
     public void ReadSquares(out int targetTiles) {
         string[] inputs = Console.ReadLine()!.Split(' ');
@@ -63,7 +62,7 @@ class Regions {
     /// Flood fill
     List<Rect> Region(Point start, Rect included, Rect[] excluded) {
         var visited = new List<Rect>();
-        queue.Clear();
+        var queue = new Queue<Point>();
         queue.Enqueue(start);
         Visit(start);
         while (queue.TryDequeue(out var current)) {
