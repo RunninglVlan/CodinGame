@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
 // https://www.codingame.com/training/medium/squares
@@ -9,7 +8,7 @@ regions.ReadSquares(out int targetTiles);
 for (var _ = 0; _ < targetTiles; _++) {
     var tile = regions.ReadTile();
     var region = regions.Get(tile);
-    int area = region.Select(it => it.Size.X * it.Size.Y).Sum();
+    int area = region.Select(it => it.Area).Sum();
     Console.WriteLine(area);
 }
 
@@ -27,10 +26,10 @@ class Regions {
         targetTiles = Math.Clamp(int.Parse(inputs[2]), 1, 100);
         squares = new Rect[squareCount];
         for (var i = 0; i < squareCount; i++) {
-            string[] squareInputs = Console.ReadLine()!.Split(' ');
-            int x = Math.Clamp(int.Parse(squareInputs[0]), 1, gridSide);
-            int y = Math.Clamp(int.Parse(squareInputs[1]), 1, gridSide);
-            int side = Math.Clamp(int.Parse(squareInputs[2]), 1, gridSide);
+            inputs = Console.ReadLine()!.Split(' ');
+            int x = Math.Clamp(int.Parse(inputs[0]), 1, gridSide);
+            int y = Math.Clamp(int.Parse(inputs[1]), 1, gridSide);
+            int side = Math.Clamp(int.Parse(inputs[2]), 1, gridSide);
             squares[i] = Rect.Square(new Point(x, y), side);
         }
     }
@@ -38,7 +37,7 @@ class Regions {
     public Point ReadTile() {
         string[] coordinates = Console.ReadLine()!.Split(' ');
         int x = Math.Clamp(int.Parse(coordinates[0]), 1, grid.Size.X);
-        int y = Math.Clamp(int.Parse(coordinates[1]), 1, grid.Size.X);
+        int y = Math.Clamp(int.Parse(coordinates[1]), 1, grid.Size.Y);
         return new Point(x, y);
     }
 
@@ -62,7 +61,6 @@ class Regions {
     }
 
     /// Flood fill
-    [SuppressMessage("ReSharper", "LoopCanBeConvertedToQuery")]
     List<Rect> Region(Point start, Rect included, Rect[] excluded) {
         var visited = new List<Rect>();
         queue.Clear();
@@ -71,7 +69,7 @@ class Regions {
         while (queue.TryDequeue(out var current)) {
             foreach (var direction in Point.Directions4) {
                 var next = current + direction;
-                if (!included.Contains(next) || BelongsToAny(next, excluded)) {
+                if (!included.Contains(next) || excluded.Any(it => it.Contains(next))) {
                     continue;
                 }
                 if (visited.Any(it => it.Contains(next))) {
@@ -84,9 +82,9 @@ class Regions {
         return visited;
 
         void Visit(Point point) {
-            var rect = Grow(point);
+            var rect = GrowRect(point);
             visited.Add(rect);
-            // add border, ignore duplicate corners, refactor?
+            // add borders, duplicate corners are ok - they are ignored downstream
             for (int y = rect.Min.Y; y < rect.Max.Y; y++) {
                 queue.Enqueue(rect.Min with { Y = y });
                 queue.Enqueue(new Point(rect.Max.X - 1, y));
@@ -97,54 +95,27 @@ class Regions {
             }
         }
 
-        Rect Grow(Point point) {
-            var rect = Rect.Square(point, 1);
-            while (true) {
-                var previous = rect;
+        Rect GrowRect(Point point) {
+            var current = Rect.Square(point, 1);
+            Rect previous;
+            do {
+                previous = current;
                 foreach (var direction in Point.Directions4) {
-                    var bigger = GrowInDirection(rect, direction);
-                    if (!included.Contains(bigger)
-                            || IntersectsAny(bigger, visited)
-                            || IntersectsAny(bigger, excluded)) {
+                    var next = current.GrowIn(direction);
+                    if (!included.Contains(next) || visited.Any(next.Intersects) || excluded.Any(next.Intersects)) {
                         continue;
                     }
-                    rect = bigger;
+                    current = next;
                 }
-                if (rect == previous) {
-                    break;
-                }
-            }
-            return rect;
-        }
-
-        Rect GrowInDirection(Rect rect, Point direction) {
-            var min = rect.Min + Point.Min(direction, Point.ZERO);
-            var max = rect.Max + Point.Max(direction, Point.ZERO);
-            return new Rect(min, max);
-        }
-
-        bool IntersectsAny(Rect rect, IEnumerable<Rect> others) {
-            foreach (var other in others) {
-                if (rect.Intersects(other)) {
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        bool BelongsToAny(Point point, Rect[] rects) {
-            foreach (var rect in rects) {
-                if (rect.Contains(point)) {
-                    return true;
-                }
-            }
-            return false;
+            } while (current != previous);
+            return current;
         }
     }
 }
 
 readonly record struct Rect(Point Min, Point Max) {
     public Point Size => Max - Min;
+    public int Area => Size.X * Size.Y;
 
     public static Rect Square(Point min, int size) {
         var max = min + Point.ONE * size;
@@ -156,10 +127,7 @@ readonly record struct Rect(Point Min, Point Max) {
         return x >= Min.X && y >= Min.Y && x < Max.X && y < Max.Y;
     }
 
-    public bool Contains(Rect other) {
-        // refactor
-        return Contains(other.Min) && Contains(new Point(other.Max.X - 1, other.Max.Y - 1));
-    }
+    public bool Contains(Rect other) => Contains(other.Min) && Contains(other.Max - Point.ONE);
 
     public Rect? Intersect(Rect other) {
         int xMin = Math.Max(Min.X, other.Min.X);
@@ -173,16 +141,21 @@ readonly record struct Rect(Point Min, Point Max) {
     }
 
     public bool Intersects(Rect other) => Intersect(other) is not null;
+
+    public Rect GrowIn(Point direction) {
+        var min = Min + Point.Min(direction, Point.ZERO);
+        var max = Max + Point.Max(direction, Point.ZERO);
+        return new Rect(min, max);
+    }
 }
 
-[SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
 readonly record struct Point(int X, int Y) {
     public static readonly Point ZERO = new(0, 0);
     public static readonly Point ONE = new(1, 1);
-    public static readonly Point UP = new(0, 1);
-    public static readonly Point DOWN = new(0, -1);
-    public static readonly Point LEFT = new(-1, 0);
-    public static readonly Point RIGHT = new(1, 0);
+    static readonly Point UP = new(0, 1);
+    static readonly Point DOWN = new(0, -1);
+    static readonly Point LEFT = new(-1, 0);
+    static readonly Point RIGHT = new(1, 0);
 
     public static Point[] Directions4 { get; } = [RIGHT, LEFT, UP, DOWN];
 
