@@ -1,6 +1,8 @@
 ﻿using System;
 
 readonly record struct Point(int X, int Y) {
+    public static readonly Point ZERO = new(0, 0);
+    public static readonly Point ONE = new(1, 1);
     public static readonly Point UP = new(0, 1);
     public static readonly Point DOWN = new(0, -1);
     public static readonly Point LEFT = new(-1, 0);
@@ -125,6 +127,36 @@ static class Screen {
         _ when direction == DOWN => nameof(DOWN),
         _ when direction == LEFT => nameof(LEFT),
         _ when direction == RIGHT => nameof(RIGHT),
-        _ => direction.ToString()
+        _ => throw new ArgumentException($"Unsupported direction: {direction}")
     };
+}
+
+readonly record struct Rect(Point Min, Point Max) {
+    public Point Size => Max - Min;
+    public int Area => Size.X * Size.Y;
+
+    public static Rect Square(Point min, int size) {
+        var max = min + Point.ONE * size;
+        return new Rect(min, max);
+    }
+
+    public bool Contains(Point point) {
+        (int x, int y) = point;
+        return x >= Min.X && y >= Min.Y && x < Max.X && y < Max.Y;
+    }
+
+    public bool Contains(Rect other) => Contains(other.Min) && Contains(other.Max - Point.ONE);
+
+    public Rect? Intersect(Rect other) {
+        int xMin = Math.Max(Min.X, other.Min.X);
+        int xMax = Math.Min(Max.X, other.Max.X);
+        int yMin = Math.Max(Min.Y, other.Min.Y);
+        int yMax = Math.Min(Max.Y, other.Max.Y);
+        if (xMin < xMax && yMin < yMax) {
+            return new Rect(new Point(xMin, yMin), new Point(xMax, yMax));
+        }
+        return null;
+    }
+
+    public bool Intersects(Rect other) => Intersect(other) is not null;
 }
