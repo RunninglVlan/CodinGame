@@ -5,8 +5,8 @@ using System.Collections.Generic;
 static class MovesInMaze {
     static void Main() {
         var solution = new Solution();
-        solution.ReadInput();
-        solution.CountMoves();
+        solution.ReadInput(out var start);
+        solution.CountMoves(start, exclude: it => it.type == CellType.WALL);
         solution.PrintMaze();
     }
 }
@@ -16,9 +16,9 @@ class Solution {
 
     int width, height;
     Cell[,] maze = null!;
-    Cell start = null!;
 
-    public void ReadInput() {
+    public void ReadInput(out Cell start) {
+        start = null!;
         string[] inputs = Console.ReadLine()!.Split(' ');
         width = Math.Clamp(int.Parse(inputs[0]), 3, 30);
         height = Math.Clamp(int.Parse(inputs[1]), 3, 30);
@@ -36,7 +36,7 @@ class Solution {
     }
 
     /// Flood fill
-    public void CountMoves() {
+    public void CountMoves(Cell start, Predicate<Cell> exclude) {
         Queue<(Cell, int)> queue = [];
         HashSet<Cell> visited = [start];
         queue.Enqueue((start, 0));
@@ -48,7 +48,7 @@ class Solution {
                 x = (x + width) % width;
                 y = (y + height) % height;
                 var next = maze[x, y];
-                if (next.type == CellType.WALL || !visited.Add(next)) {
+                if (exclude(next) || !visited.Add(next)) {
                     continue;
                 }
                 queue.Enqueue((next, moves + 1));
