@@ -7,4 +7,10 @@ static class Debug {
         Console.Error.WriteLine(line);
         return line;
     }
+
+    public static void WriteLine(object line) {
+        Console.ForegroundColor = ConsoleColor.Red;
+        Console.Error.WriteLine(line);
+        Console.ResetColor();
+    }
 }
