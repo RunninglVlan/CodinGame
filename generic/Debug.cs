@@ -8,7 +8,7 @@ static class Debug {
         return line;
     }
 
-    public static void WriteLine(object line) {
+    public static void Log(object? line = null) {
         Console.ForegroundColor = ConsoleColor.Red;
         Console.Error.WriteLine(line);
         Console.ResetColor();
