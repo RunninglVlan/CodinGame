@@ -1,8 +1,7 @@
 ﻿using System;
-using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq;
+using System.Numerics;
 
 // https://www.codingame.com/training/medium/elliptic-curve-cryptography
 var g = new Point(0x69d463ce83b758e, 0x287a120903f7ef5c);
@@ -11,7 +10,7 @@ for (var i = 0; i < keys; i++) {
     string[] line = Console.ReadLine()!.Split('x');
     long privateKey = long.Parse(line.Last(), NumberStyles.HexNumber);
     var publicKey = g;
-    for (var j = 0; j < privateKey; j++) {
+    for (var j = 0; j < privateKey - 1; j++) {
         publicKey = publicKey.Double();
     }
     Console.WriteLine($"0x{publicKey.X:x}");
@@ -28,33 +27,36 @@ readonly record struct Point(long X, long Y) {
     /// Xs = L² - Xc - Xd          mod P <br/>
     /// Ys = L * (Xc - Xs) - Yc    mod P
     public Point Double() {
-        long x = X;
-        // Modular division: (a / b) % M => (a × b^-1 ) % M, where b^-1 is modular inverse of b modulo M
-        long l = (3 * x * x + A) * MathUtils.ModularInverse(2 * Y, P) % P;
-        long newX = (l * l - x - x) % P;
-        return new(newX, (l * (x - newX) - Y) % P);
+        var x = (BigInteger)X;
+        var y = (BigInteger)Y;
+        // Modular division: (a / b) % M => (a × b^-1) % M, where b^-1 is modular inverse of b modulo M
+        var l = MathUtils.Mod((3 * x * x + A) * MathUtils.ModularInverse(2 * y, P), P);
+        var newX = MathUtils.Mod(l * l - x - x, P);
+        return new((long)newX, (long)MathUtils.Mod(l * (x - newX) - y, P));
     }
 }
 
 static class MathUtils {
-    /// Euclidean algorithm
-    [SuppressMessage("ReSharper", "TailRecursiveCall")]
-    public static long GreatestCommonDivisor(long a, long b) {
-        return b == 0 ? a : GreatestCommonDivisor(b, a % b);
-    }
+    /// Modulo operation that supports negative a
+    public static BigInteger Mod(BigInteger a, BigInteger m) => (a % m + m) % m;
 
-    public static long ModularInverse(long a, long m) {
-        // inverse exists only if gcd(a, m) = 1, i.e., a and m are coprime
-        if (GreatestCommonDivisor(a, m) != 1) {
-            throw new ArgumentException("No modular inverse exists: a and m are not coprime");
+    /// Extended Euclidean algorithm
+    public static BigInteger ModularInverse(BigInteger a, BigInteger n) {
+        // r is remainder
+        // t is one of Bézout coefficients
+        BigInteger rPrevious = n, r = a;
+        BigInteger tPrevious = 0, t = 1;
+        // modular inverse t must satisfy: a * t ≡ 1 (mod n)
+        while (r != 0) {
+            var quotient = rPrevious / r;
+            (rPrevious, r) = (r, rPrevious - quotient * r);
+            (tPrevious, t) = (t, tPrevious - quotient * t);
         }
-        // x must be in the range [1, ... , m−1] (it cannot be 0 since a × 0 mod m is never 1)
-        for (var x = 1; x < m; x++) {
-            // modular inverse x must satisfy: a * x ≡ 1 (mod m)
-            if (a * x % m == 1) {
-                return x;
-            }
+        // inverse exists only if gcd(a, n) = 1, i.e., a and n are coprime
+        if (rPrevious != 1) {
+            throw new ArgumentException("No modular inverse exists: a and n are not coprime");
         }
-        throw new UnreachableException();
+        // algorithm satisfies |t| < n
+        return tPrevious < 0 ? tPrevious + n : tPrevious;
     }
 }
