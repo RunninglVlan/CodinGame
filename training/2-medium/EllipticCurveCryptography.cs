@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Globalization;
-using System.Linq;
 using System.Numerics;
 
 // https://www.codingame.com/training/medium/elliptic-curve-cryptography
@@ -9,8 +7,7 @@ var curve = new EllipticCurve(0, 0x3fddbf07bb3bc551);
 var g = new Point(0x69d463ce83b758e, 0x287a120903f7ef5c);
 int keys = Math.Clamp(int.Parse(Console.ReadLine()!), 1, 50);
 for (var i = 0; i < keys; i++) {
-    string[] line = Console.ReadLine()!.Split('x');
-    long privateKey = long.Parse(line.Last(), NumberStyles.HexNumber);
+    var privateKey = Convert.ToInt64(Console.ReadLine()!, fromBase: 16);
     var publicKey = curve.PublicKey(privateKey, g);
     Console.WriteLine($"0x{(long)publicKey.X:x}");
 }
