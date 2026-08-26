@@ -13,7 +13,7 @@ for (var _ = 0; _ < points; _++) {
 }
 
 class Canvas {
-    readonly Dictionary<Shape, Color> shapeColors = [];
+    readonly List<(Shape, Color)> shapeColors = [];
 
     public void ReadShapes(out int points) {
         string[] inputs = Console.ReadLine()!.Split(' ');
@@ -26,7 +26,7 @@ class Canvas {
             int length = Math.Clamp(int.Parse(line[3]), 1, 500);
             var color = Color.Parse(line[4], line[5], line[6]);
             Shape shape = name == "SQUARE" ? Square.From(point, length) : new Circle(point, length);
-            shapeColors.Add(shape, color);
+            shapeColors.Add((shape, color));
         }
     }
 
