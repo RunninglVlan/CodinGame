@@ -37,20 +37,20 @@ class Canvas {
     public Color MixColorsAt(Point point) {
         List<Color> colors = [];
         foreach (var (shape, color) in shapeColors) {
-            (bool onBorder, bool inside) = shape.Contains(point);
+            if (!shape.Contains(point, out bool onBorder)) {
+                continue;
+            }
             if (onBorder) {
                 return Color.BLACK;
             }
-            if (inside) {
-                colors.Add(color);
-            }
+            colors.Add(color);
         }
         return Color.Mix(colors);
     }
 }
 
 abstract record Shape {
-    public abstract (bool onBorder, bool inside) Contains(Point point);
+    public abstract bool Contains(Point point, out bool onBorder);
 }
 
 record Square(Point Min, Point Max) : Shape {
@@ -59,20 +59,22 @@ record Square(Point Min, Point Max) : Shape {
         return new Square(min, max);
     }
 
-    public override (bool onBorder, bool inside) Contains(Point point) {
+    public override bool Contains(Point point, out bool onBorder) {
+        onBorder = false;
         (int x, int y) = point;
         if (x < Min.X || x > Max.X || y < Min.Y || y > Max.Y) {
-            return (false, false);
+            return false;
         }
         if (x == Min.X || x == Max.X || y == Min.Y || y == Max.Y) {
-            return (true, false);
+            onBorder = true;
         }
-        return (false, true);
+        return true;
     }
 }
 
 record Circle(Point Center, int Radius) : Shape {
-    public override (bool onBorder, bool inside) Contains(Point point) {
+    public override bool Contains(Point point, out bool onBorder) {
+        onBorder = false;
         int yBottom = Center.Y - Radius, yTop = Center.Y + Radius;
         for (int y = yBottom; y <= yTop; y++) {
             if (point.Y != y) {
@@ -85,11 +87,11 @@ record Circle(Point Center, int Radius) : Shape {
                 continue;
             }
             if (Mathf.Approximately(point.X, xLeft) || Mathf.Approximately(point.X, xRight)) {
-                return (true, false);
+                onBorder = true;
             }
-            return (false, true);
+            return true;
         }
-        return (false, false);
+        return false;
     }
 }
 
