@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 
 // https://www.codingame.com/training/easy/blending-colors
 string[] inputs = Console.ReadLine()!.Split(' ');
@@ -16,23 +18,25 @@ for (var i = 0; i < shapeCount; i++) {
 for (var _ = 0; _ < points; _++) {
     string[] coordinates = Debug.ReadLine()!.Split(' ');
     var point = ParsePoint(coordinates[0], coordinates[1]);
-    Color? color = null;
-    foreach (var shape in shapes) {
-        (bool onBorder, bool inside) = shape.Contains(point);
-        if (!onBorder && !inside) {
-            continue;
-        }
-        if (onBorder) {
-            color = Color.BLACK;
-            break;
-        }
-        color = color?.Mix(shape.Color) ?? shape.Color;
-    }
-    Console.WriteLine(color ?? Color.WHITE);
+    Console.WriteLine(MixColorsAt(point));
 }
 return;
 
 Point ParsePoint(string x, string y) => new(Math.Clamp(int.Parse(x), 0, 1000), Math.Clamp(int.Parse(y), 0, 1000));
+
+Color MixColorsAt(Point point) {
+    List<Color> colors = [];
+    foreach (var shape in shapes) {
+        (bool onBorder, bool inside) = shape.Contains(point);
+        if (onBorder) {
+            return Color.BLACK;
+        }
+        if (inside) {
+            colors.Add(shape.Color);
+        }
+    }
+    return Color.Mix(colors);
+}
 
 abstract record Shape(Color Color) {
     public abstract (bool onBorder, bool inside) Contains(Point point);
@@ -82,7 +86,7 @@ readonly record struct Point(int X, int Y) {
 
 readonly record struct Color(int R, int G, int B) {
     public static readonly Color BLACK = new(0, 0, 0);
-    public static readonly Color WHITE = new(255, 255, 255);
+    static readonly Color WHITE = new(255, 255, 255);
 
     public static Color Parse(string r, string g, string b) => new(
             Math.Clamp(int.Parse(r), 0, 255),
@@ -90,10 +94,14 @@ readonly record struct Color(int R, int G, int B) {
             Math.Clamp(int.Parse(b), 0, 255)
     );
 
-    public Color Mix(Color other) {
-        return new Color(MixValues(R, other.R), MixValues(G, other.G), MixValues(B, other.B));
+    public static Color Mix(List<Color> colors) {
+        return colors.Count == 0
+                ? WHITE
+                : new Color(MixValues(it => it.R), MixValues(it => it.G), MixValues(it => it.B));
 
-        int MixValues(int a, int b) => (int)Math.Round((a + b) / 2f);
+        int MixValues(Func<Color, int> value) {
+            return (int)Math.Round(colors.Select(value).Sum() / (float)colors.Count, MidpointRounding.AwayFromZero);
+        }
     }
 
     public override string ToString() => $"({R}, {G}, {B})";
