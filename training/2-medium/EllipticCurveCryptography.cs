@@ -18,11 +18,16 @@ for (var i = 0; i < keys; i++) {
 /// Y² = X³ + A*X + B mod P
 class EllipticCurve(long a, long p) {
     public Point PublicKey(long privateKey, Point point) {
-        var sum = Double(point);
-        for (var i = 2; i < privateKey; i++) {
-            sum = Add(sum, point);
+        var keyBits = privateKey.ToString("B");
+        Point? sum = null;
+        var shiftedPoint = point;
+        for (int i = keyBits.Length - 1; i >= 0; i--) {
+            if (keyBits[i] == '1') {
+                sum = sum == null ? shiftedPoint : Add(sum.Value, shiftedPoint);
+            }
+            shiftedPoint = Double(shiftedPoint);
         }
-        return sum;
+        return sum!.Value;
     }
 
     /// L = (3*Xc² + A) / (2*Yc) mod P
