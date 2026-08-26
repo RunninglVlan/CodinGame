@@ -9,15 +9,21 @@ int keys = Math.Clamp(int.Parse(Console.ReadLine()!), 1, 50);
 for (var i = 0; i < keys; i++) {
     string[] line = Console.ReadLine()!.Split('x');
     long privateKey = long.Parse(line.Last(), NumberStyles.HexNumber);
-    var publicKey = g;
+    var publicKey = PublicKey(privateKey, g);
+    Console.WriteLine($"0x{publicKey.X:x}");
+}
+return;
+
+Point PublicKey(long privateKey, Point point) {
+    var publicKey = point;
     for (var j = 0; j < privateKey - 1; j++) {
         publicKey = publicKey.Double();
     }
-    Console.WriteLine($"0x{publicKey.X:x}");
+    return publicKey;
 }
 
 /// Point on Elliptic-Curve
-readonly record struct Point(long X, long Y) {
+readonly record struct Point(BigInteger X, BigInteger Y) {
     const long A = 0;
     const long B = 7;
     const long P = 0x3fddbf07bb3bc551;
@@ -27,12 +33,9 @@ readonly record struct Point(long X, long Y) {
     /// Xs = L² - Xc - Xd          mod P <br/>
     /// Ys = L * (Xc - Xs) - Yc    mod P
     public Point Double() {
-        var x = (BigInteger)X;
-        var y = (BigInteger)Y;
-        // Modular division: (a / b) % M => (a × b^-1) % M, where b^-1 is modular inverse of b modulo M
-        var l = MathUtils.Mod((3 * x * x + A) * MathUtils.ModularInverse(2 * y, P), P);
-        var newX = MathUtils.Mod(l * l - x - x, P);
-        return new((long)newX, (long)MathUtils.Mod(l * (x - newX) - y, P));
+        var l = MathUtils.ModularDivide(3 * X * X + A, 2 * Y, P);
+        var newX = MathUtils.Mod(l * l - X - X, P);
+        return new(newX, MathUtils.Mod(l * (X - newX) - Y, P));
     }
 }
 
@@ -40,8 +43,14 @@ static class MathUtils {
     /// Modulo operation that supports negative a
     public static BigInteger Mod(BigInteger a, BigInteger m) => (a % m + m) % m;
 
+    /// (a / b) % M => (a × b^-1) % M, where b^-1 is modular inverse of b modulo M
+    public static BigInteger ModularDivide(BigInteger a, BigInteger b, BigInteger m) {
+        BigInteger aMod = Mod(a, m), bMod = Mod(b, m);
+        return Mod(aMod * ModularInverse(bMod, m), m);
+    }
+
     /// Extended Euclidean algorithm
-    public static BigInteger ModularInverse(BigInteger a, BigInteger n) {
+    static BigInteger ModularInverse(BigInteger a, BigInteger n) {
         // r is remainder
         // t is one of Bézout coefficients
         BigInteger rPrevious = n, r = a;
