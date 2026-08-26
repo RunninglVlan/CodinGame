@@ -15,10 +15,6 @@ readonly record struct Point(int X, int Y) {
         new(1, 1), new(-1, 1), new(1, -1), new(-1, -1)
     ];
 
-    public static Point From(string x, string y) {
-        return new Point(int.Parse(x), int.Parse(y));
-    }
-
     public bool InBounds(int width, int height) {
         return X >= 0 && X < width && Y >= 0 && Y < height;
     }
@@ -45,10 +41,6 @@ readonly record struct Point(int X, int Y) {
 
 readonly record struct Vector(double X, double Y) {
     public static readonly Vector ZERO = new(0, 0);
-
-    public static Vector From(string x, string y) {
-        return new Vector(int.Parse(x), int.Parse(y));
-    }
 
     public double Magnitude() => Math.Sqrt(X * X + Y * Y);
 
