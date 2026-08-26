@@ -79,11 +79,14 @@ record Circle(Point Center, int Radius) : Shape {
                 continue;
             }
             int yPart = y - Center.Y;
-            double x = Math.Sqrt(r2 - yPart * yPart - Center.X);
-            x = Math.Round(x);
-            if (point.X >= Center.X - x && point.X <= Center.X + x) {
-                return (false, true);
+            double x = Math.Sqrt(r2 - yPart * yPart);
+            if (point.X < Center.X - x || point.X > Center.X + x) {
+                continue;
             }
+            if (Mathf.Approximately(point.X, Center.X - x) || Mathf.Approximately(point.X, Center.X + x)) {
+                return (true, false);
+            }
+            return (false, true);
         }
         return (false, false);
     }
@@ -117,6 +120,10 @@ readonly record struct Color(int R, int G, int B) {
     }
 
     public override string ToString() => $"({R}, {G}, {B})";
+}
+
+static class Mathf {
+    public static bool Approximately(double a, double b) => Math.Abs(a - b) < 0.01;
 }
 
 static class Debug {

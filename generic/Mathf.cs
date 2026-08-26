@@ -1,4 +1,6 @@
-﻿static class MathUtils {
+﻿static class Mathf {
+    public static bool Approximately(double a, double b) => Math.Abs(a - b) < 0.01;
+
     /// Euclidean algorithm
     public static long GreatestCommonDivisor(long a, long b) {
         // r is remainder
