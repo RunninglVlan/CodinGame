@@ -79,7 +79,8 @@ record Circle(Point Center, int Radius) : Shape {
                 continue;
             }
             int yPart = y - Center.Y;
-            var x = (int)Math.Sqrt(r2 - yPart * yPart - Center.X);
+            double x = Math.Sqrt(r2 - yPart * yPart - Center.X);
+            x = Math.Round(x);
             if (point.X >= Center.X - x && point.X <= Center.X + x) {
                 return (false, true);
             }
