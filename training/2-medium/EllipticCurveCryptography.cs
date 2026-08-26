@@ -12,7 +12,7 @@ for (var i = 0; i < keys; i++) {
     string[] line = Console.ReadLine()!.Split('x');
     long privateKey = long.Parse(line.Last(), NumberStyles.HexNumber);
     var publicKey = curve.PublicKey(privateKey, g);
-    Console.WriteLine($"0x{publicKey.X:x}");
+    Console.WriteLine($"0x{(long)publicKey.X:x}");
 }
 
 /// Y² = X³ + A*X + B mod P
