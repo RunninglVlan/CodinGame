@@ -3,39 +3,50 @@ using System.Collections.Generic;
 using System.Linq;
 
 // https://www.codingame.com/training/easy/blending-colors
-string[] inputs = Console.ReadLine()!.Split(' ');
-int shapeCount = Math.Clamp(int.Parse(inputs[0]), 1, 50);
-int points = Math.Clamp(int.Parse(inputs[1]), 1, 50);
-var shapes = new Shape[shapeCount];
-for (var i = 0; i < shapeCount; i++) {
-    string[] line = Debug.ReadLine()!.Split(' ');
-    string name = line[0];
-    var point = ParsePoint(line[1], line[2]);
-    int length = Math.Clamp(int.Parse(line[3]), 1, 500);
-    var color = Color.Parse(line[4], line[5], line[6]);
-    shapes[i] = name == "SQUARE" ? Square.From(point, length, color) : new Circle(point, length, color);
-}
+var canvas = new Canvas();
+canvas.ReadShapes(out int points);
 for (var _ = 0; _ < points; _++) {
     string[] coordinates = Debug.ReadLine()!.Split(' ');
-    var point = ParsePoint(coordinates[0], coordinates[1]);
-    Console.WriteLine(MixColorsAt(point));
+    var point = Canvas.ParsePoint(coordinates[0], coordinates[1]);
+    var color = canvas.MixColorsAt(point);
+    Console.WriteLine(color);
 }
-return;
 
-Point ParsePoint(string x, string y) => new(Math.Clamp(int.Parse(x), 0, 1000), Math.Clamp(int.Parse(y), 0, 1000));
+class Canvas {
+    Shape[] shapes = null!;
 
-Color MixColorsAt(Point point) {
-    List<Color> colors = [];
-    foreach (var shape in shapes) {
-        (bool onBorder, bool inside) = shape.Contains(point);
-        if (onBorder) {
-            return Color.BLACK;
-        }
-        if (inside) {
-            colors.Add(shape.Color);
+    public void ReadShapes(out int points) {
+        string[] inputs = Console.ReadLine()!.Split(' ');
+        int shapeCount = Math.Clamp(int.Parse(inputs[0]), 1, 50);
+        points = Math.Clamp(int.Parse(inputs[1]), 1, 50);
+        shapes = new Shape[shapeCount];
+        for (var i = 0; i < shapeCount; i++) {
+            string[] line = Debug.ReadLine()!.Split(' ');
+            string name = line[0];
+            var point = ParsePoint(line[1], line[2]);
+            int length = Math.Clamp(int.Parse(line[3]), 1, 500);
+            var color = Color.Parse(line[4], line[5], line[6]);
+            shapes[i] = name == "SQUARE" ? Square.From(point, length, color) : new Circle(point, length, color);
         }
     }
-    return Color.Mix(colors);
+
+    public static Point ParsePoint(string x, string y) {
+        return new Point(Math.Clamp(int.Parse(x), 0, 1000), Math.Clamp(int.Parse(y), 0, 1000));
+    }
+
+    public Color MixColorsAt(Point point) {
+        List<Color> colors = [];
+        foreach (var shape in shapes) {
+            (bool onBorder, bool inside) = shape.Contains(point);
+            if (onBorder) {
+                return Color.BLACK;
+            }
+            if (inside) {
+                colors.Add(shape.Color);
+            }
+        }
+        return Color.Mix(colors);
+    }
 }
 
 abstract record Shape(Color Color) {
