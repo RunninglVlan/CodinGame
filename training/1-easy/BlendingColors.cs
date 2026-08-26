@@ -13,20 +13,20 @@ for (var _ = 0; _ < points; _++) {
 }
 
 class Canvas {
-    Shape[] shapes = null!;
+    readonly Dictionary<Shape, Color> shapeColors = [];
 
     public void ReadShapes(out int points) {
         string[] inputs = Console.ReadLine()!.Split(' ');
         int shapeCount = Math.Clamp(int.Parse(inputs[0]), 1, 50);
         points = Math.Clamp(int.Parse(inputs[1]), 1, 50);
-        shapes = new Shape[shapeCount];
-        for (var i = 0; i < shapeCount; i++) {
+        for (var _ = 0; _ < shapeCount; _++) {
             string[] line = Debug.ReadLine()!.Split(' ');
             string name = line[0];
             var point = ParsePoint(line[1], line[2]);
             int length = Math.Clamp(int.Parse(line[3]), 1, 500);
             var color = Color.Parse(line[4], line[5], line[6]);
-            shapes[i] = name == "SQUARE" ? Square.From(point, length, color) : new Circle(point, length, color);
+            Shape shape = name == "SQUARE" ? Square.From(point, length) : new Circle(point, length);
+            shapeColors.Add(shape, color);
         }
     }
 
@@ -36,27 +36,27 @@ class Canvas {
 
     public Color MixColorsAt(Point point) {
         List<Color> colors = [];
-        foreach (var shape in shapes) {
+        foreach (var (shape, color) in shapeColors) {
             (bool onBorder, bool inside) = shape.Contains(point);
             if (onBorder) {
                 return Color.BLACK;
             }
             if (inside) {
-                colors.Add(shape.Color);
+                colors.Add(color);
             }
         }
         return Color.Mix(colors);
     }
 }
 
-abstract record Shape(Color Color) {
+abstract record Shape {
     public abstract (bool onBorder, bool inside) Contains(Point point);
 }
 
-record Square(Point Min, Point Max, Color Color) : Shape(Color) {
-    public static Square From(Point min, int side, Color color) {
+record Square(Point Min, Point Max) : Shape {
+    public static Square From(Point min, int side) {
         var max = min + Point.ONE * side;
-        return new Square(min, max, color);
+        return new Square(min, max);
     }
 
     public override (bool, bool) Contains(Point point) {
@@ -71,7 +71,7 @@ record Square(Point Min, Point Max, Color Color) : Shape(Color) {
     }
 }
 
-record Circle(Point Center, int Radius, Color Color) : Shape(Color) {
+record Circle(Point Center, int Radius) : Shape {
     public override (bool, bool) Contains(Point point) {
         int r2 = Radius * Radius;
         for (int y = Center.Y - Radius; y <= Center.Y + Radius; y++) {
