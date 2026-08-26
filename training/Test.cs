@@ -1,160 +1,132 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.IO;
-using System.Linq;
-
 
 const string testCase = """
-                        1000 4 10
-                        1 1 700
-                        501 501 500
-                        499 500 3
-                        10 900 2
-                        2 3
+                        3 6
+                        SQUARE 0 5 6 255 0 0
+                        SQUARE 4 2 3 0 255 0
+                        CIRCLE 4 6 3 0 0 255
+                        0 0
+                        (255, 255, 255)
                         4 5
-                        6 7
-                        100 200
-                        400 753
-                        500 500
-                        999 1
-                        533 599
-                        1000 1000
-                        501 502
+                        (0, 0, 0)
+                        2 6
+                        (128, 0, 128)
+                        5 3
+                        (0, 255, 0)
+                        5 4
+                        (0, 128, 128)
+                        3 4
+                        (0, 0, 255)
                         """;
 Console.SetIn(new StringReader(testCase));
 
-// https://www.codingame.com/training/medium/squares
-var regions = new Regions();
-regions.ReadSquares(out int targetTiles);
-for (var _ = 0; _ < targetTiles; _++) {
-    var stopwatch = Stopwatch.StartNew();
-    var tile = regions.ReadTile();
-    Console.WriteLine(regions.Area(tile).Count);
-    Console.Error.WriteLine($"  elapsed: {stopwatch.ElapsedMilliseconds}");
+// https://www.codingame.com/training/easy/blending-colors
+string[] inputs = Console.ReadLine()!.Split(' ');
+int shapeCount = Math.Clamp(int.Parse(inputs[0]), 1, 50);
+int points = Math.Clamp(int.Parse(inputs[1]), 1, 50);
+var shapes = new Shape[shapeCount];
+for (var i = 0; i < shapeCount; i++) {
+    string[] line = Debug.ReadLine()!.Split(' ');
+    string name = line[0];
+    var point = ParsePoint(line[1], line[2]);
+    int length = Math.Clamp(int.Parse(line[3]), 1, 500);
+    var color = Color.Parse(line[4], line[5], line[6]);
+    shapes[i] = name == "SQUARE" ? Square.From(point, length, color) : new Circle(point, length, color);
+}
+for (var _ = 0; _ < points; _++) {
+    string[] coordinates = Debug.ReadLine()!.Split(' ');
+    var point = ParsePoint(coordinates[0], coordinates[1]);
+    Color? color = null;
+    foreach (var shape in shapes) {
+        if (shape.Contains(point)) {
+            Debug.Log($"  belongs to {shape}");
+            color ??= Color.BLACK;
+            color = color.Value.Mix(shape.Color);
+        }
+    }
+    if (color == null) {
+        Debug.Log("  is outside all shapes");
+    }
+    color ??= Color.WHITE;
+    string? expected = Console.ReadLine();
+    var actual = color.ToString();
+    Console.WriteLine(expected == actual ? $"✅ {actual}" : $"❌ expected {expected}, but found {actual}");
+}
+return;
+
+Point ParsePoint(string x, string y) => new(Math.Clamp(int.Parse(x), 0, 1000), Math.Clamp(int.Parse(y), 0, 1000));
+
+abstract record Shape(Color Color) {
+    public abstract bool Contains(Point point);
 }
 
-class Regions {
-    Rect grid;
-    Rect[] squares = null!;
-    readonly HashSet<HashSet<Point>> areas = [];
-    readonly Queue<Point> queue = [];
-    readonly HashSet<Point> visited = [];
-
-    public void ReadSquares(out int targetTiles) {
-        string[] inputs = Console.ReadLine()!.Split(' ');
-        int gridSide = Math.Clamp(int.Parse(inputs[0]), 1, 20_000);
-        grid = Rect.Square(Point.ONE, gridSide);
-        int squareCount = Math.Clamp(int.Parse(inputs[1]), 1, 4);
-        targetTiles = Math.Clamp(int.Parse(inputs[2]), 1, 100);
-        squares = new Rect[squareCount];
-        for (var i = 0; i < squareCount; i++) {
-            string[] squareInputs = Console.ReadLine()!.Split(' ');
-            int x = Math.Clamp(int.Parse(squareInputs[0]), 1, gridSide);
-            int y = Math.Clamp(int.Parse(squareInputs[1]), 1, gridSide);
-            int side = Math.Clamp(int.Parse(squareInputs[2]), 1, gridSide);
-            squares[i] = Rect.Square(new Point(x, y), side);
-        }
+record Square(Point Min, Point Max, Color Color) : Shape(Color) {
+    public static Square From(Point min, int side, Color color) {
+        var max = min + Point.ONE * side;
+        return new Square(min, max, color);
     }
 
-    public Point ReadTile() {
-        string[] coordinates = Console.ReadLine()!.Split(' ');
-        int x = Math.Clamp(int.Parse(coordinates[0]), 1, grid.Size.X);
-        int y = Math.Clamp(int.Parse(coordinates[1]), 1, grid.Size.X);
-        return new Point(x, y);
-    }
-
-    public HashSet<Point> Area(Point tile) {
-        var area = areas.FirstOrDefault(it => it.Contains(tile));
-        if (area != null) {
-            return area;
-        }
-        var belongsToSquares = squares.Where(it => it.Contains(tile)).ToArray();
-        switch (belongsToSquares.Length) {
-            case 0:
-                return Area(tile, grid, squares);
-            case 1: {
-                return Area(tile, belongsToSquares.First(), [.. squares.Except(belongsToSquares)]);
-            }
-            default:
-                var intersection = belongsToSquares.Skip(1)
-                        .Aggregate(belongsToSquares.First(), (current, it) => current.Intersect(it)!.Value);
-                return Area(tile, intersection, [.. squares.Except(belongsToSquares)]);
-        }
-    }
-
-    /// Flood fill
-    [SuppressMessage("ReSharper", "LoopCanBeConvertedToQuery")]
-    HashSet<Point> Area(Point start, Rect included, Rect[] excluded) {
-        queue.Clear();
-        visited.Clear();
-        queue.Enqueue(start);
-        visited.Add(start);
-        while (queue.TryDequeue(out var current)) {
-            foreach (var direction in Point.Directions4) {
-                var next = current + direction;
-                if (!included.Contains(next) || BelongsToAny(excluded, next)) {
-                    continue;
-                }
-                if (!visited.Add(next)) {
-                    continue;
-                }
-                queue.Enqueue(next);
-            }
-        }
-        areas.Add(visited);
-        return visited;
-
-        bool BelongsToAny(Rect[] rects, Point point) {
-            foreach (var rect in rects) {
-                if (rect.Contains(point)) {
-                    return true;
-                }
-            }
-            return false;
-        }
-    }
-}
-
-readonly record struct Rect(Point Min, Point Max) {
-    public Point Size => Max - Min;
-
-    public static Rect Square(Point min, int size) {
-        var max = min + Point.ONE * size;
-        return new Rect(min, max);
-    }
-
-    public bool Contains(Point point) {
+    public override bool Contains(Point point) {
         (int x, int y) = point;
         return x >= Min.X && y >= Min.Y && x < Max.X && y < Max.Y;
     }
+}
 
-    public Rect? Intersect(Rect other) {
-        int xMin = Math.Max(Min.X, other.Min.X);
-        int xMax = Math.Min(Max.X, other.Max.X);
-        int yMin = Math.Max(Min.Y, other.Min.Y);
-        int yMax = Math.Min(Max.Y, other.Max.Y);
-        if (xMin < xMax && yMin < yMax) {
-            return new Rect(new Point(xMin, yMin), new Point(xMax, yMax));
+record Circle(Point Center, int Radius, Color Color) : Shape(Color) {
+    public override bool Contains(Point point) {
+        int r2 = Radius * Radius;
+        for (int y = Center.Y - Radius; y < Center.Y + Radius; y++) {
+            if (point.Y != y) {
+                continue;
+            }
+            var x = (int)Math.Sqrt(r2 - y * y);
+            if (point.X >= Center.X - x && point.X < Center.X + x) {
+                return true;
+            }
         }
-        return null;
+        return false;
     }
 }
 
-[SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
 readonly record struct Point(int X, int Y) {
     public static readonly Point ONE = new(1, 1);
-    public static readonly Point UP = new(0, 1);
-    public static readonly Point DOWN = new(0, -1);
-    public static readonly Point LEFT = new(-1, 0);
-    public static readonly Point RIGHT = new(1, 0);
 
-    public static Point[] Directions4 { get; } = [RIGHT, LEFT, UP, DOWN];
-
-    public static Point operator +(Point a, Point b) => new(a.X + b.X, a.Y + b.Y);
-    public static Point operator -(Point a, Point b) => new(a.X - b.X, a.Y - b.Y);
     public static Point operator *(Point a, int value) => new(a.X * value, a.Y * value);
+    public static Point operator +(Point a, Point b) => new(a.X + b.X, a.Y + b.Y);
 
     public override string ToString() => $"({X}, {Y})";
+}
+
+readonly record struct Color(int R, int G, int B) {
+    public static readonly Color BLACK = new(0, 0, 0);
+    public static readonly Color WHITE = new(255, 255, 255);
+
+    public static Color Parse(string r, string g, string b) => new(
+            Math.Clamp(int.Parse(r), 0, 255),
+            Math.Clamp(int.Parse(g), 0, 255),
+            Math.Clamp(int.Parse(b), 0, 255)
+    );
+
+    public Color Mix(Color other) {
+        // todo: improve
+        return new Color((R + other.R) / 2, (G + other.G) / 2, (B + other.B) / 2);
+    }
+
+    public override string ToString() => $"({R}, {G}, {B})";
+}
+
+static class Debug {
+    /// Reads line from Console and also writes it to Console.Error
+    public static string? ReadLine() {
+        string? line = Console.ReadLine();
+        Console.Error.WriteLine(line);
+        return line;
+    }
+
+    public static void Log(object? line = null) {
+        Console.ForegroundColor = ConsoleColor.Red;
+        Console.Error.WriteLine(line);
+        Console.ResetColor();
+    }
 }
