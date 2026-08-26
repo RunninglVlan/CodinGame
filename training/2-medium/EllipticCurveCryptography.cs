@@ -15,11 +15,11 @@ for (var i = 0; i < keys; i++) {
 return;
 
 Point PublicKey(long privateKey, Point point) {
-    var publicKey = point;
-    for (var j = 0; j < privateKey - 1; j++) {
-        publicKey = publicKey.Double();
+    var sum = point.Double();
+    for (var i = 2; i < privateKey; i++) {
+        sum = sum.Add(point);
     }
-    return publicKey;
+    return sum;
 }
 
 /// Point on Elliptic-Curve
@@ -28,14 +28,23 @@ readonly record struct Point(BigInteger X, BigInteger Y) {
     const long B = 7;
     const long P = 0x3fddbf07bb3bc551;
 
-    /// L  = (Yd - Yc) / (Xd - Xc) mod P (when C != D) <br/>
-    /// L  = (3*Xc² + A) / (2*Yc)  mod P (when C == D) <br/>
-    /// Xs = L² - Xc - Xd          mod P <br/>
-    /// Ys = L * (Xc - Xs) - Yc    mod P
+    /// L = (3*Xc² + A) / (2*Yc) mod P
     public Point Double() {
         var l = MathUtils.ModularDivide(3 * X * X + A, 2 * Y, P);
-        var newX = MathUtils.Mod(l * l - X - X, P);
-        return new(newX, MathUtils.Mod(l * (X - newX) - Y, P));
+        return Add(l, this, this);
+    }
+
+    /// L = (Yd - Yc) / (Xd - Xc) mod P
+    public Point Add(Point d) {
+        var l = MathUtils.ModularDivide(d.Y - Y, d.X - X, P);
+        return Add(l, this, d);
+    }
+
+    /// Xs = L² - Xc - Xd       mod P <br/>
+    /// Ys = L * (Xc - Xs) - Yc mod P
+    static Point Add(BigInteger l, Point c, Point d) {
+        var newX = MathUtils.Mod(l * l - c.X - d.X, P);
+        return new(newX, MathUtils.Mod(l * (c.X - newX) - c.Y, P));
     }
 }
 
