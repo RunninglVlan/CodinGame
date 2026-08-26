@@ -73,17 +73,18 @@ record Square(Point Min, Point Max) : Shape {
 
 record Circle(Point Center, int Radius) : Shape {
     public override (bool onBorder, bool inside) Contains(Point point) {
-        int r2 = Radius * Radius;
-        for (int y = Center.Y - Radius; y <= Center.Y + Radius; y++) {
+        int yBottom = Center.Y - Radius, yTop = Center.Y + Radius;
+        for (int y = yBottom; y <= yTop; y++) {
             if (point.Y != y) {
                 continue;
             }
-            int yPart = y - Center.Y;
-            double x = Math.Sqrt(r2 - yPart * yPart);
-            if (point.X < Center.X - x || point.X > Center.X + x) {
+            int yOffset = y - Center.Y;
+            double x = Math.Sqrt(Radius * Radius - yOffset * yOffset);
+            double xLeft = Center.X - x, xRight = Center.X + x;
+            if (point.X < xLeft || point.X > xRight) {
                 continue;
             }
-            if (Mathf.Approximately(point.X, Center.X - x) || Mathf.Approximately(point.X, Center.X + x)) {
+            if (Mathf.Approximately(point.X, xLeft) || Mathf.Approximately(point.X, xRight)) {
                 return (true, false);
             }
             return (false, true);
