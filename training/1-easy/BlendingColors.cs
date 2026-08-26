@@ -59,7 +59,7 @@ record Square(Point Min, Point Max) : Shape {
         return new Square(min, max);
     }
 
-    public override (bool, bool) Contains(Point point) {
+    public override (bool onBorder, bool inside) Contains(Point point) {
         (int x, int y) = point;
         if (x < Min.X || x > Max.X || y < Min.Y || y > Max.Y) {
             return (false, false);
@@ -72,7 +72,7 @@ record Square(Point Min, Point Max) : Shape {
 }
 
 record Circle(Point Center, int Radius) : Shape {
-    public override (bool, bool) Contains(Point point) {
+    public override (bool onBorder, bool inside) Contains(Point point) {
         int r2 = Radius * Radius;
         for (int y = Center.Y - Radius; y <= Center.Y + Radius; y++) {
             if (point.Y != y) {
