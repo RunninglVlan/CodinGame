@@ -29,7 +29,7 @@ class Board {
                 if (squares[x, y] != Square.EMPTY) {
                     continue;
                 }
-                if (PlayerSquaresInRow(y) != 2) {
+                if (PlayerSquaresInRow(y) != 2 && PlayerSquaresInColumn(x) != 2) {
                     continue;
                 }
                 squares[x, y] = Square.PLAYER;
@@ -42,6 +42,16 @@ class Board {
     int PlayerSquaresInRow(int y) {
         var count = 0;
         for (var x = 0; x < SIZE; x++) {
+            if (squares[x, y] == Square.PLAYER) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    int PlayerSquaresInColumn(int x) {
+        var count = 0;
+        for (var y = 0; y < SIZE; y++) {
             if (squares[x, y] == Square.PLAYER) {
                 count++;
             }
