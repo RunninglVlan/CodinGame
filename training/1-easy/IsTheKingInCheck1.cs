@@ -3,15 +3,15 @@ using System.Collections.Generic;
 
 // https://www.codingame.com/training/easy/is-the-king-in-check-part-1
 var board = new Board();
-board.Read();
-Console.WriteLine(board.IsKingInCheck() ? "Check" : "No Check");
+board.Read(out string enemyPiece);
+Console.WriteLine(board.IsKingInCheckBy(enemyPiece) ? "Check" : "No Check");
 
 class Board {
     const int SIZE = 8;
     Point king, enemy;
-    string enemyPiece = null!;
 
-    public void Read() {
+    public void Read(out string enemyPiece) {
+        enemyPiece = null!;
         for (var y = 0; y < SIZE; y++) {
             string[] chessRow = Console.ReadLine()!.Split(' ');
             for (var x = 0; x < SIZE; x++) {
@@ -26,7 +26,7 @@ class Board {
         }
     }
 
-    public bool IsKingInCheck() {
+    public bool IsKingInCheckBy(string enemyPiece) {
         switch (enemyPiece) {
             case Piece.BISHOP:
                 // top-right, bottom-left, bottom-right, top-left
@@ -43,6 +43,8 @@ class Board {
                 break;
             case Piece.ROOK:
                 return king.X == enemy.X || king.Y == enemy.Y;
+            case Piece.QUEEN:
+                return IsKingInCheckBy(Piece.ROOK) || IsKingInCheckBy(Piece.BISHOP);
         }
         return false;
     }
@@ -53,6 +55,7 @@ static class Piece {
     public const string KING = "K";
     public const string BISHOP = "B";
     public const string ROOK = "R";
+    public const string QUEEN = "Q";
 }
 
 readonly record struct Point(int X, int Y) {
