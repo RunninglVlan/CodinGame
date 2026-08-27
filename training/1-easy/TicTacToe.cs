@@ -18,12 +18,12 @@ class Board {
     readonly Point[][] lines = [
         // rows
         [Point.ZERO, Point.RIGHT, Point.RIGHT * 2],
-        [Point.UP, Point.ONE, new Point(2, 1)],
-        [Point.UP * 2, new Point(1, 2), Point.ONE * 2],
+        [Point.UP, Point.ONE, Point.RIGHT * 2 + Point.UP],
+        [Point.UP * 2, Point.UP * 2 + Point.RIGHT, Point.ONE * 2],
         // columns
         [Point.ZERO, Point.UP, Point.UP * 2],
-        [Point.RIGHT, Point.ONE, new Point(1, 2)],
-        [Point.RIGHT * 2, new Point(2, 1), Point.ONE * 2],
+        [Point.RIGHT, Point.ONE, Point.UP * 2 + Point.RIGHT],
+        [Point.RIGHT * 2, Point.RIGHT * 2 + Point.UP, Point.ONE * 2],
         // diagonals
         [Point.ZERO, Point.ONE, Point.ONE * 2],
         [Point.RIGHT * 2, Point.ONE, Point.UP * 2]
@@ -44,7 +44,7 @@ class Board {
                 if (squares[x, y] != Square.EMPTY) {
                     continue;
                 }
-                if (!Check(x, y)) {
+                if (!HasLineWithTwoPlayerSquares(x, y)) {
                     continue;
                 }
                 squares[x, y] = Square.PLAYER;
@@ -54,7 +54,7 @@ class Board {
         return false;
     }
 
-    bool Check(int x, int y) {
+    bool HasLineWithTwoPlayerSquares(int x, int y) {
         var point = new Point(x, y);
         return lines.Where(it => it.Contains(point))
                 .Select(line => line.Count(it => squares[it.X, it.Y] == Square.PLAYER))
@@ -73,7 +73,6 @@ class Board {
 
 static class Square {
     public const char EMPTY = '.';
-    public const char ENEMY = 'X';
     public const char PLAYER = 'O';
 }
 
@@ -83,7 +82,6 @@ readonly record struct Point(int X, int Y) {
     public static readonly Point UP = new(0, 1);
     public static readonly Point RIGHT = new(1, 0);
 
+    public static Point operator +(Point a, Point b) => new(a.X + b.X, a.Y + b.Y);
     public static Point operator *(Point a, int value) => new(a.X * value, a.Y * value);
-
-    public override string ToString() => $"({X}, {Y})";
 }
