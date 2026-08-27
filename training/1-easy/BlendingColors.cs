@@ -45,7 +45,9 @@ class Canvas {
             }
             colors.Add(color);
         }
-        return Color.Mix(colors);
+        return colors.Count == 0 ? Color.WHITE : new Color(Mix(it => it.R), Mix(it => it.G), Mix(it => it.B));
+
+        int Mix(Func<Color, int> value) => (int)Math.Round(colors.Average(value), MidpointRounding.AwayFromZero);
     }
 }
 
@@ -104,23 +106,13 @@ readonly record struct Point(int X, int Y) {
 
 readonly record struct Color(int R, int G, int B) {
     public static readonly Color BLACK = new(0, 0, 0);
-    static readonly Color WHITE = new(255, 255, 255);
+    public static readonly Color WHITE = new(255, 255, 255);
 
     public static Color Parse(string r, string g, string b) => new(
             Math.Clamp(int.Parse(r), 0, 255),
             Math.Clamp(int.Parse(g), 0, 255),
             Math.Clamp(int.Parse(b), 0, 255)
     );
-
-    public static Color Mix(List<Color> colors) {
-        return colors.Count == 0
-                ? WHITE
-                : new Color(MixValues(it => it.R), MixValues(it => it.G), MixValues(it => it.B));
-
-        int MixValues(Func<Color, int> value) {
-            return (int)Math.Round(colors.Select(value).Sum() / (float)colors.Count, MidpointRounding.AwayFromZero);
-        }
-    }
 
     public override string ToString() => $"({R}, {G}, {B})";
 }
