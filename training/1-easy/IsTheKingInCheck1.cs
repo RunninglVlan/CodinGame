@@ -9,6 +9,12 @@ Console.WriteLine(board.IsKingInCheck() ? "Check" : "No Check");
 
 class Board {
     const int SIZE = 8;
+
+    static readonly List<Point> DIAGONAL_DIRECTIONS = [
+        Point.UP + Point.RIGHT, Point.UP + Point.LEFT,
+        Point.DOWN + Point.RIGHT, Point.DOWN + Point.LEFT
+    ];
+
     Point king, enemy;
     string enemyPiece = null!;
 
@@ -39,11 +45,7 @@ class Board {
     bool IsCheckedByRook() => king.X == enemy.X || king.Y == enemy.Y;
 
     bool IsCheckedByBishop() {
-        List<Point> directions = [
-            Point.UP + Point.RIGHT, Point.UP + Point.LEFT,
-            Point.DOWN + Point.RIGHT, Point.DOWN + Point.LEFT
-        ];
-        foreach (var direction in directions) {
+        foreach (var direction in DIAGONAL_DIRECTIONS) {
             var point = king;
             for (var _ = 0; _ < SIZE - 1; _++) {
                 point += direction;
@@ -56,13 +58,10 @@ class Board {
     }
 
     bool IsCheckedByKnight() {
-        List<Point> moves = [
-            Point.UP * 2 + Point.RIGHT, Point.UP + Point.RIGHT * 2,
-            (Point.UP * 2 + Point.RIGHT) * -1, (Point.UP + Point.RIGHT * 2) * -1,
-            Point.UP * -2 + Point.RIGHT, Point.UP * -1 + Point.RIGHT * 2,
-            Point.UP * 2 + Point.RIGHT * -1, Point.UP + Point.RIGHT * -2
-        ];
-        return moves.Any(it => king + it == enemy);
+        List<Point> moves = [Point.UP * 2 + Point.RIGHT, Point.UP + Point.RIGHT * 2];
+        return DIAGONAL_DIRECTIONS
+                .SelectMany(direction => moves.Select(move => king + direction * move))
+                .Any(it => it == enemy);
     }
 }
 
@@ -82,5 +81,6 @@ readonly record struct Point(int X, int Y) {
     public static readonly Point RIGHT = new(1, 0);
 
     public static Point operator +(Point a, Point b) => new(a.X + b.X, a.Y + b.Y);
+    public static Point operator *(Point a, Point b) => new(a.X * b.X, a.Y * b.Y);
     public static Point operator *(Point a, int value) => new(a.X * value, a.Y * value);
 }
