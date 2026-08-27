@@ -78,22 +78,18 @@ record Circle(Point Center, int Radius) : Shape {
     public override bool Contains(Point point, out bool onBorder) {
         onBorder = false;
         int yBottom = Center.Y - Radius, yTop = Center.Y + Radius;
-        for (int y = yBottom; y <= yTop; y++) {
-            if (point.Y != y) {
-                continue;
-            }
-            int yOffset = y - Center.Y;
-            double x = Math.Sqrt(Radius * Radius - yOffset * yOffset);
-            double xLeft = Center.X - x, xRight = Center.X + x;
-            if (point.X < xLeft || point.X > xRight) {
-                continue;
-            }
-            if (Mathf.Approximately(point.X, xLeft) || Mathf.Approximately(point.X, xRight)) {
-                onBorder = true;
-            }
-            return true;
+        if (point.Y < yBottom || point.Y > yTop) {
+            return false;
         }
-        return false;
+        double x = Math.Sqrt(Math.Pow(Radius, 2) - Math.Pow(point.Y - Center.Y, 2));
+        double xLeft = Center.X - x, xRight = Center.X + x;
+        if (point.X < xLeft || point.X > xRight) {
+            return false;
+        }
+        if (Mathf.Approximately(point.X, xLeft) || Mathf.Approximately(point.X, xRight)) {
+            onBorder = true;
+        }
+        return true;
     }
 }
 
