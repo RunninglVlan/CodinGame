@@ -27,23 +27,20 @@ class Board {
         }
     }
 
-    public bool IsKingInCheck() {
-        switch (enemyPiece) {
-            case Piece.ROOK:
-                return IsCheckedByRook();
-            case Piece.BISHOP:
-                return IsCheckedByBishop();
-            case Piece.QUEEN:
-                return IsCheckedByRook() || IsCheckedByBishop();
-        }
-        return false;
-    }
+    public bool IsKingInCheck() => enemyPiece switch {
+        Piece.ROOK => IsCheckedByRook(),
+        Piece.BISHOP => IsCheckedByBishop(),
+        Piece.QUEEN => IsCheckedByRook() || IsCheckedByBishop(),
+        _ => false
+    };
 
     bool IsCheckedByRook() => king.X == enemy.X || king.Y == enemy.Y;
 
     bool IsCheckedByBishop() {
-        // top-right, bottom-left, bottom-right, top-left
-        List<Point> directions = [new(1, 1), new(-1, -1), new(1, -1), new(-1, 1)];
+        List<Point> directions = [
+            Point.UP + Point.RIGHT, Point.UP + Point.LEFT,
+            Point.DOWN + Point.RIGHT, Point.DOWN + Point.LEFT
+        ];
         foreach (var direction in directions) {
             var point = king;
             for (var _ = 0; _ < SIZE - 1; _++) {
@@ -66,5 +63,10 @@ static class Piece {
 }
 
 readonly record struct Point(int X, int Y) {
+    public static readonly Point UP = new(0, 1);
+    public static readonly Point DOWN = new(0, -1);
+    public static readonly Point LEFT = new(-1, 0);
+    public static readonly Point RIGHT = new(1, 0);
+
     public static Point operator +(Point a, Point b) => new(a.X + b.X, a.Y + b.Y);
 }
