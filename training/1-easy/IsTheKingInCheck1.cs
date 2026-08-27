@@ -3,14 +3,15 @@ using System.Collections.Generic;
 
 // https://www.codingame.com/training/easy/is-the-king-in-check-part-1
 var board = new Board();
-board.Read(out string enemyPiece);
-Console.WriteLine(board.IsKingInCheckBy(enemyPiece) ? "Check" : "No Check");
+board.Read();
+Console.WriteLine(board.IsKingInCheck() ? "Check" : "No Check");
 
 class Board {
     const int SIZE = 8;
     Point king, enemy;
+    string enemyPiece = null!;
 
-    public void Read(out string enemyPiece) {
+    public void Read() {
         enemyPiece = null!;
         for (var y = 0; y < SIZE; y++) {
             string[] chessRow = Console.ReadLine()!.Split(' ');
@@ -26,25 +27,31 @@ class Board {
         }
     }
 
-    public bool IsKingInCheckBy(string enemyPiece) {
+    public bool IsKingInCheck() {
         switch (enemyPiece) {
-            case Piece.BISHOP:
-                // top-right, bottom-left, bottom-right, top-left
-                List<Point> directions = [new(1, 1), new(-1, -1), new(1, -1), new(-1, 1)];
-                foreach (var direction in directions) {
-                    var point = king;
-                    for (var _ = 0; _ < 7; _++) {
-                        point += direction;
-                        if (point == enemy) {
-                            return true;
-                        }
-                    }
-                }
-                break;
             case Piece.ROOK:
-                return king.X == enemy.X || king.Y == enemy.Y;
+                return IsCheckedByRook();
+            case Piece.BISHOP:
+                return IsCheckedByBishop();
             case Piece.QUEEN:
-                return IsKingInCheckBy(Piece.ROOK) || IsKingInCheckBy(Piece.BISHOP);
+                return IsCheckedByRook() || IsCheckedByBishop();
+        }
+        return false;
+    }
+
+    bool IsCheckedByRook() => king.X == enemy.X || king.Y == enemy.Y;
+
+    bool IsCheckedByBishop() {
+        // top-right, bottom-left, bottom-right, top-left
+        List<Point> directions = [new(1, 1), new(-1, -1), new(1, -1), new(-1, 1)];
+        foreach (var direction in directions) {
+            var point = king;
+            for (var _ = 0; _ < SIZE - 1; _++) {
+                point += direction;
+                if (point == enemy) {
+                    return true;
+                }
+            }
         }
         return false;
     }
@@ -53,8 +60,8 @@ class Board {
 static class Piece {
     public const string EMPTY = "_";
     public const string KING = "K";
-    public const string BISHOP = "B";
     public const string ROOK = "R";
+    public const string BISHOP = "B";
     public const string QUEEN = "Q";
 }
 
