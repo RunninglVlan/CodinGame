@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 
 // https://www.codingame.com/training/easy/is-the-king-in-check-part-1
 var board = new Board();
@@ -9,11 +7,6 @@ Console.WriteLine(board.IsKingInCheck() ? "Check" : "No Check");
 
 class Board {
     const int SIZE = 8;
-
-    static readonly List<Point> DIAGONAL_DIRECTIONS = [
-        Point.UP + Point.RIGHT, Point.UP + Point.LEFT,
-        Point.DOWN + Point.RIGHT, Point.DOWN + Point.LEFT
-    ];
 
     Point king, enemy;
     string enemyPiece = null!;
@@ -45,23 +38,12 @@ class Board {
     bool IsCheckedByRook() => king.X == enemy.X || king.Y == enemy.Y;
 
     bool IsCheckedByBishop() {
-        foreach (var direction in DIAGONAL_DIRECTIONS) {
-            var point = king;
-            for (var _ = 0; _ < SIZE - 1; _++) {
-                point += direction;
-                if (point == enemy) {
-                    return true;
-                }
-            }
-        }
-        return false;
+        return Math.Abs(enemy.X - king.X) == Math.Abs(enemy.Y - king.Y);
     }
 
     bool IsCheckedByKnight() {
-        List<Point> moves = [Point.UP * 2 + Point.RIGHT, Point.UP + Point.RIGHT * 2];
-        return DIAGONAL_DIRECTIONS
-                .SelectMany(direction => moves.Select(move => king + direction * move))
-                .Any(it => it == enemy);
+        return Math.Abs(enemy.X - king.X) == 1 && Math.Abs(enemy.Y - king.Y) == 2
+                || Math.Abs(enemy.X - king.X) == 2 && Math.Abs(enemy.Y - king.Y) == 1;
     }
 }
 
@@ -74,13 +56,4 @@ static class Piece {
     public const string KNIGHT = "N";
 }
 
-readonly record struct Point(int X, int Y) {
-    public static readonly Point UP = new(0, 1);
-    public static readonly Point DOWN = new(0, -1);
-    public static readonly Point LEFT = new(-1, 0);
-    public static readonly Point RIGHT = new(1, 0);
-
-    public static Point operator +(Point a, Point b) => new(a.X + b.X, a.Y + b.Y);
-    public static Point operator *(Point a, Point b) => new(a.X * b.X, a.Y * b.Y);
-    public static Point operator *(Point a, int value) => new(a.X * value, a.Y * value);
-}
+readonly record struct Point(int X, int Y);
