@@ -75,20 +75,17 @@ record Square(Point Min, Point Max) : Shape {
 }
 
 record Circle(Point Center, int Radius) : Shape {
+    /// Compares distance from point to center with radius
     public override bool Contains(Point point, out bool onBorder) {
         onBorder = false;
-        int yBottom = Center.Y - Radius, yTop = Center.Y + Radius;
-        if (point.Y < yBottom || point.Y > yTop) {
+        double distance = Math.Sqrt(Math.Pow(point.X - Center.X, 2) + Math.Pow(point.Y - Center.Y, 2));
+        if (distance < Radius) {
+            return true;
+        }
+        if (!Mathf.Approximately(distance, Radius)) {
             return false;
         }
-        double x = Math.Sqrt(Math.Pow(Radius, 2) - Math.Pow(point.Y - Center.Y, 2));
-        double xLeft = Center.X - x, xRight = Center.X + x;
-        if (point.X < xLeft || point.X > xRight) {
-            return false;
-        }
-        if (Mathf.Approximately(point.X, xLeft) || Mathf.Approximately(point.X, xRight)) {
-            onBorder = true;
-        }
+        onBorder = true;
         return true;
     }
 }
@@ -114,7 +111,7 @@ readonly record struct Color(int R, int G, int B) {
 }
 
 static class Mathf {
-    public static bool Approximately(double a, double b) => Math.Abs(a - b) < 0.01;
+    public static bool Approximately(double a, double b) => Math.Abs(a - b) < 0.001;
 }
 
 static class Debug {

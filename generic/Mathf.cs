@@ -1,5 +1,7 @@
-﻿static class Mathf {
-    public static bool Approximately(double a, double b) => Math.Abs(a - b) < 0.01;
+﻿using System;
+
+static class Mathf {
+    public static bool Approximately(double a, double b) => Math.Abs(a - b) < 0.001;
 
     /// Euclidean algorithm
     public static long GreatestCommonDivisor(long a, long b) {
