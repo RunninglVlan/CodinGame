@@ -23,7 +23,10 @@ class Board {
         // columns
         [Point.ZERO, Point.UP, Point.UP * 2],
         [Point.RIGHT, Point.ONE, new Point(1, 2)],
-        [Point.RIGHT * 2, new Point(2, 1), Point.ONE * 2]
+        [Point.RIGHT * 2, new Point(2, 1), Point.ONE * 2],
+        // diagonals
+        [Point.ZERO, Point.ONE, Point.ONE * 2],
+        [Point.RIGHT * 2, Point.ONE, Point.UP * 2]
     ];
 
     public void Read() {
