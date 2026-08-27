@@ -2,119 +2,160 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 
 const string testCase = """
-                        10 50
-                        (153, 51, 102)
-                        (64, 128, 128)
-                        (0, 255, 255)
-                        (191, 64, 64)
-                        (85, 85, 85)
+                        50 50
                         (255, 255, 0)
-                        (0, 255, 255)
-                        (170, 43, 85)
+                        (255, 0, 255)
+                        (128, 255, 0)
+                        (255, 255, 0)
+                        (128, 191, 0)
+                        (128, 255, 0)
+                        (255, 128, 0)
+                        (64, 191, 191)
+                        (255, 0, 255)
+                        (128, 255, 0)
+                        (128, 255, 0)
+                        (255, 0, 255)
+                        (85, 170, 170)
+                        (128, 128, 128)
+                        (128, 255, 0)
+                        (128, 255, 0)
+                        (191, 128, 128)
+                        (128, 0, 128)
                         (85, 85, 85)
-                        (153, 51, 102)
-                        (128, 0, 255)
-                        (64, 128, 128)
-                        (85, 85, 170)
-                        (85, 85, 170)
-                        (191, 64, 128)
-                        (0, 255, 255)
-                        (255, 0, 0)
-                        (170, 85, 170)
-                        (191, 0, 128)
-                        (170, 85, 170)
-                        (0, 255, 0)
-                        (128, 128, 0)
-                        (153, 51, 51)
-                        (0, 255, 255)
-                        (255, 0, 0)
-                        (153, 51, 102)
-                        (170, 85, 170)
-                        (128, 128, 0)
-                        (85, 85, 170)
-                        (191, 64, 128)
-                        (85, 85, 170)
-                        (0, 128, 255)
-                        (85, 85, 170)
-                        (255, 0, 0)
-                        (85, 85, 170)
-                        (128, 128, 0)
-                        (85, 85, 170)
-                        (153, 51, 51)
-                        (191, 64, 128)
-                        (255, 0, 0)
-                        (0, 255, 0)
-                        (0, 255, 255)
-                        (128, 64, 128)
-                        (85, 85, 170)
-                        (0, 255, 128)
-                        (0, 255, 0)
-                        (0, 255, 0)
-                        (85, 85, 170)
+                        (64, 128, 191)
+                        (0, 128, 128)
+                        (128, 255, 0)
+                        (128, 191, 0)
+                        (255, 0, 255)
+                        (255, 0, 255)
+                        (255, 0, 255)
+                        (170, 170, 85)
+                        (128, 0, 128)
                         (170, 85, 85)
+                        (51, 153, 204)
+                        (0, 128, 128)
+                        (0, 255, 0)
+                        (170, 85, 170)
+                        (255, 0, 255)
+                        (255, 255, 0)
+                        (128, 191, 128)
+                        (255, 255, 0)
+                        (128, 255, 0)
+                        (128, 128, 128)
+                        (102, 102, 204)
+                        (128, 128, 128)
+                        (255, 255, 0)
+                        (85, 85, 170)
+                        (255, 0, 255)
+                        (128, 128, 255)
+                        (0, 255, 255)
+                        (153, 153, 102)
                         (255, 0, 0)
-                        SQUARE 78 56 96 0 255 0
-                        CIRCLE 41 5 52 255 255 0
-                        CIRCLE 81 0 32 255 0 0
-                        SQUARE 29 53 82 255 0 0
-                        CIRCLE 72 45 74 0 0 255
-                        CIRCLE 91 62 60 255 0 0
-                        CIRCLE 39 53 47 255 0 255
-                        SQUARE 54 89 82 255 0 0
-                        SQUARE 32 75 75 0 255 0
-                        SQUARE 86 1 90 0 255 255
-                        40 87
-                        134 70
-                        141 8
-                        81 18
-                        50 110
-                        5 6
-                        159 41
-                        60 94
-                        44 106
-                        48 80
-                        8 70
-                        116 77
-                        109 19
-                        135 23
-                        72 44
-                        154 37
-                        67 167
-                        42 27
-                        41 67
-                        29 18
-                        53 148
-                        50 119
-                        69 117
-                        160 16
-                        135 162
-                        60 79
-                        0 29
-                        99 127
-                        110 27
-                        43 42
-                        116 17
-                        137 10
-                        101 26
-                        87 165
-                        122 22
-                        76 136
-                        127 25
-                        59 99
-                        42 41
-                        101 156
-                        143 137
-                        159 46
-                        95 14
-                        104 30
-                        157 86
-                        48 140
-                        165 134
-                        123 29
-                        83 1
-                        65 165
+                        (255, 0, 255)
+                        (128, 128, 128)
+                        CIRCLE 733 830 266 255 0 0
+                        SQUARE 494 228 33 0 255 255
+                        CIRCLE 938 272 3 0 0 255
+                        SQUARE 201 570 7 0 255 0
+                        SQUARE 260 936 24 255 0 0
+                        CIRCLE 177 120 206 0 0 255
+                        SQUARE 412 725 114 0 255 0
+                        SQUARE 40 559 208 255 0 0
+                        CIRCLE 810 84 98 255 0 0
+                        CIRCLE 867 613 6 255 255 0
+                        CIRCLE 845 531 146 255 0 0
+                        SQUARE 975 325 172 0 0 255
+                        SQUARE 489 485 69 255 0 0
+                        SQUARE 421 758 12 255 0 0
+                        CIRCLE 877 315 217 255 255 0
+                        SQUARE 740 941 216 255 0 0
+                        CIRCLE 531 794 286 0 255 255
+                        SQUARE 280 783 76 0 255 255
+                        CIRCLE 780 89 42 255 0 255
+                        SQUARE 98 100 112 0 255 0
+                        CIRCLE 91 189 128 255 0 0
+                        CIRCLE 219 216 42 255 255 0
+                        CIRCLE 440 784 83 255 0 255
+                        SQUARE 276 203 199 0 255 0
+                        SQUARE 688 278 198 0 255 0
+                        CIRCLE 363 820 25 255 0 0
+                        SQUARE 342 153 35 255 255 0
+                        CIRCLE 384 734 35 255 0 0
+                        SQUARE 608 938 5 255 0 0
+                        SQUARE 558 97 57 255 255 0
+                        SQUARE 627 793 200 0 0 255
+                        SQUARE 489 501 205 0 255 255
+                        CIRCLE 910 407 299 0 255 0
+                        CIRCLE 764 914 282 0 255 255
+                        SQUARE 843 358 10 255 0 255
+                        CIRCLE 402 229 210 255 0 255
+                        SQUARE 373 802 205 255 255 0
+                        CIRCLE 452 601 249 255 0 0
+                        CIRCLE 185 736 230 255 255 0
+                        SQUARE 860 897 236 0 255 255
+                        SQUARE 875 432 57 0 255 255
+                        SQUARE 140 998 162 0 0 255
+                        SQUARE 897 383 154 255 0 0
+                        SQUARE 162 1 168 0 255 0
+                        SQUARE 748 876 63 0 255 255
+                        SQUARE 255 959 180 255 0 255
+                        CIRCLE 443 541 159 0 255 255
+                        CIRCLE 116 17 13 0 0 255
+                        SQUARE 973 559 262 255 0 0
+                        CIRCLE 644 786 121 255 0 255
+                        32 618
+                        427 62
+                        783 207
+                        227 835
+                        769 464
+                        971 283
+                        198 763
+                        551 636
+                        480 46
+                        977 124
+                        925 119
+                        528 275
+                        884 922
+                        402 442
+                        687 398
+                        906 201
+                        463 847
+                        119 290
+                        137 156
+                        713 978
+                        207 4
+                        770 270
+                        762 455
+                        464 78
+                        419 139
+                        576 188
+                        324 704
+                        107 82
+                        424 382
+                        780 931
+                        226 13
+                        952 647
+                        349 176
+                        569 227
+                        139 943
+                        562 991
+                        85 801
+                        947 171
+                        944 948
+                        641 810
+                        834 871
+                        585 105
+                        267 141
+                        580 328
+                        368 963
+                        335 948
+                        434 831
+                        894 87
+                        319 997
+                        650 639
                         """;
 Console.SetIn(new StringReader(testCase));
 
@@ -127,11 +168,14 @@ for (var i = 0; i < points; i++) {
     var color = canvas.MixColorsAt(point);
     string? expected = canvas.ExpectedAt(i);
     var actual = color.ToString();
+    if (expected != actual) {
+        canvas.Log();
+    }
     Console.WriteLine(expected == actual ? $"✅ {actual}" : $"❌ expected {expected}, but found {actual}");
 }
 
 class Canvas {
-    readonly Dictionary<Shape, Color> shapeColors = [];
+    readonly List<(Shape, Color)> shapeColors = [];
     readonly List<string?> expected = [];
 
     public void ReadShapes(out int points) {
@@ -148,7 +192,7 @@ class Canvas {
             int length = Math.Clamp(int.Parse(line[3]), 1, 500);
             var color = Color.Parse(line[4], line[5], line[6]);
             Shape shape = name == "SQUARE" ? Square.From(point, length) : new Circle(point, length);
-            shapeColors.Add(shape, color);
+            shapeColors.Add((shape, color));
         }
     }
 
@@ -159,27 +203,35 @@ class Canvas {
     }
 
     public Color MixColorsAt(Point point) {
+        log.Clear();
         List<Color> colors = [];
         foreach (var (shape, color) in shapeColors) {
-            (bool onBorder, bool inside) = shape.Contains(point);
+            log.AppendLine($"  {shape} with {color}");
+            if (!shape.Contains(point, out bool onBorder)) {
+                continue;
+            }
             if (onBorder) {
-                Debug.Log($"  on the border of {shape}");
+                log.AppendLine("    has point on the border");
                 return Color.BLACK;
             }
-            if (inside) {
-                Debug.Log($"  belongs to {shape} with {color}");
-                colors.Add(color);
-            }
+            log.AppendLine("    contains inside");
+            colors.Add(color);
         }
         if (colors.Count == 0) {
-            Debug.Log("  is outside all shapes");
+            log.AppendLine("  is outside all shapes");
         }
-        return Color.Mix(colors);
+        return colors.Count == 0 ? Color.WHITE : new Color(Mix(it => it.R), Mix(it => it.G), Mix(it => it.B));
+
+        int Mix(Func<Color, int> value) => (int)Math.Round(colors.Average(value), MidpointRounding.AwayFromZero);
     }
+
+    readonly StringBuilder log = new();
+
+    public void Log() => Debug.Log(log);
 }
 
 abstract record Shape {
-    public abstract (bool onBorder, bool inside) Contains(Point point);
+    public abstract bool Contains(Point point, out bool onBorder);
 }
 
 record Square(Point Min, Point Max) : Shape {
@@ -188,33 +240,34 @@ record Square(Point Min, Point Max) : Shape {
         return new Square(min, max);
     }
 
-    public override (bool, bool) Contains(Point point) {
+    public override bool Contains(Point point, out bool onBorder) {
+        onBorder = false;
         (int x, int y) = point;
         if (x < Min.X || x > Max.X || y < Min.Y || y > Max.Y) {
-            return (false, false);
+            return false;
         }
         if (x == Min.X || x == Max.X || y == Min.Y || y == Max.Y) {
-            return (true, false);
+            onBorder = true;
         }
-        return (false, true);
+        return true;
     }
 }
 
 record Circle(Point Center, int Radius) : Shape {
-    public override (bool, bool) Contains(Point point) {
-        // todo: handle border
-        int r2 = Radius * Radius;
-        for (int y = Center.Y - Radius; y <= Center.Y + Radius; y++) {
-            if (point.Y != y) {
-                continue;
-            }
-            int yPart = y - Center.Y;
-            var x = (int)Math.Sqrt(r2 - yPart * yPart - Center.X);
-            if (point.X >= Center.X - x && point.X <= Center.X + x) {
-                return (false, true);
-            }
+    public override bool Contains(Point point, out bool onBorder) {
+        onBorder = false;
+        if (point == new Point(551, 636)) {
+            Debug.Log();
         }
-        return (false, false);
+        double r = Math.Sqrt(Math.Pow(point.X - Center.X, 2) + Math.Pow(point.Y - Center.Y, 2));
+        if (r < Radius) {
+            return true;
+        }
+        if (!Mathf.Approximately(r, Radius)) {
+            return false;
+        }
+        onBorder = true;
+        return true;
     }
 }
 
@@ -223,11 +276,13 @@ readonly record struct Point(int X, int Y) {
 
     public static Point operator *(Point a, int value) => new(a.X * value, a.Y * value);
     public static Point operator +(Point a, Point b) => new(a.X + b.X, a.Y + b.Y);
+
+    public override string ToString() => $"({X}, {Y})";
 }
 
 readonly record struct Color(int R, int G, int B) {
     public static readonly Color BLACK = new(0, 0, 0);
-    static readonly Color WHITE = new(255, 255, 255);
+    public static readonly Color WHITE = new(255, 255, 255);
 
     public static Color Parse(string r, string g, string b) => new(
             Math.Clamp(int.Parse(r), 0, 255),
@@ -235,17 +290,11 @@ readonly record struct Color(int R, int G, int B) {
             Math.Clamp(int.Parse(b), 0, 255)
     );
 
-    public static Color Mix(List<Color> colors) {
-        return colors.Count == 0
-                ? WHITE
-                : new Color(MixValues(it => it.R), MixValues(it => it.G), MixValues(it => it.B));
-
-        int MixValues(Func<Color, int> value) {
-            return (int)Math.Round(colors.Select(value).Sum() / (float)colors.Count, MidpointRounding.AwayFromZero);
-        }
-    }
-
     public override string ToString() => $"({R}, {G}, {B})";
+}
+
+static class Mathf {
+    public static bool Approximately(double a, double b) => Math.Abs(a - b) < 0.001;
 }
 
 static class Debug {
