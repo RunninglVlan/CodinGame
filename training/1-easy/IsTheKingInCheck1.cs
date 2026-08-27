@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
 // https://www.codingame.com/training/easy/is-the-king-in-check-part-1
 var board = new Board();
@@ -31,6 +32,7 @@ class Board {
         Piece.ROOK => IsCheckedByRook(),
         Piece.BISHOP => IsCheckedByBishop(),
         Piece.QUEEN => IsCheckedByRook() || IsCheckedByBishop(),
+        Piece.KNIGHT => IsCheckedByKnight(),
         _ => false
     };
 
@@ -52,6 +54,16 @@ class Board {
         }
         return false;
     }
+
+    bool IsCheckedByKnight() {
+        List<Point> moves = [
+            Point.UP * 2 + Point.RIGHT, Point.UP + Point.RIGHT * 2,
+            (Point.UP * 2 + Point.RIGHT) * -1, (Point.UP + Point.RIGHT * 2) * -1,
+            Point.UP * -2 + Point.RIGHT, Point.UP * -1 + Point.RIGHT * 2,
+            Point.UP * 2 + Point.RIGHT * -1, Point.UP + Point.RIGHT * -2
+        ];
+        return moves.Any(it => king + it == enemy);
+    }
 }
 
 static class Piece {
@@ -60,6 +72,7 @@ static class Piece {
     public const string ROOK = "R";
     public const string BISHOP = "B";
     public const string QUEEN = "Q";
+    public const string KNIGHT = "N";
 }
 
 readonly record struct Point(int X, int Y) {
@@ -69,4 +82,5 @@ readonly record struct Point(int X, int Y) {
     public static readonly Point RIGHT = new(1, 0);
 
     public static Point operator +(Point a, Point b) => new(a.X + b.X, a.Y + b.Y);
+    public static Point operator *(Point a, int value) => new(a.X * value, a.Y * value);
 }
