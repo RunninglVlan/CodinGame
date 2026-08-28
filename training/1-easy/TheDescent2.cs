@@ -34,17 +34,17 @@ class Grid(int width, int height) {
         foreach (var orientation in starship.Orientations()) {
             for (var y = 0; y < height - orientation.Y; y++) {
                 for (var x = 0; x < width - orientation.X; x++) {
-                    allShots.Add(CountShotsAt(x, y, orientation));
+                    allShots.Add(CountShotsAt(new Point(x, y), orientation));
                 }
             }
         }
         return allShots.Min();
     }
 
-    int CountShotsAt(int xStart, int yStart, Point orientation) {
+    int CountShotsAt(Point start, Point orientation) {
         List<int> heights = [];
-        for (int y = yStart; y < yStart + orientation.Y; y++) {
-            for (int x = xStart; x < xStart + orientation.X; x++) {
+        for (int y = start.Y; y < start.Y + orientation.Y; y++) {
+            for (int x = start.X; x < start.X + orientation.X; x++) {
                 heights.Add(mountainHeights[x, y]);
             }
         }
