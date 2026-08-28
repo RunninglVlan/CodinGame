@@ -67,11 +67,11 @@ class Board {
 
     bool IsCheckedDiagonally(Point enemy, Point other) {
         var toKing = enemy - king;
-        if (!IsOnDiagonal(toKing)) {
+        if (!IsDiagonal(toKing)) {
             return false;
         }
         var otherToKing = other - king;
-        if (!IsOnDiagonal(otherToKing)) {
+        if (!IsDiagonal(otherToKing)) {
             return true;
         }
         bool sameDiagonal = Math.Sign(toKing.X) == Math.Sign(otherToKing.X)
@@ -83,7 +83,7 @@ class Board {
                 && Math.Abs(otherToKing.Y) > Math.Abs(toKing.Y);
         return otherIsBeyond;
 
-        bool IsOnDiagonal(Point difference) => Math.Abs(difference.X) == Math.Abs(difference.Y);
+        bool IsDiagonal(Point difference) => Math.Abs(difference.X) == Math.Abs(difference.Y);
     }
 
     bool IsCheckedByKnight(Point enemy) {
