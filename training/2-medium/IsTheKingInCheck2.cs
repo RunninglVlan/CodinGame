@@ -28,21 +28,29 @@ class Board {
     }
 
     public bool IsKingInCheck() {
-        return IsCheckedBy(enemies.First()) || IsCheckedBy(enemies.Last());
+        return IsCheckedBy(enemies.First(), enemies.Last()) || IsCheckedBy(enemies.Last(), enemies.First());
 
-        bool IsCheckedBy(Enemy enemy) => enemy.Piece switch {
-            Piece.ROOK => IsCheckedByRook(enemy.Point),
-            Piece.BISHOP => IsCheckedByBishop(enemy.Point),
-            Piece.QUEEN => IsCheckedByRook(enemy.Point) || IsCheckedByBishop(enemy.Point),
+        bool IsCheckedBy(Enemy enemy, Enemy other) => enemy.Piece switch {
+            Piece.ROOK => IsCheckedByRook(enemy.Point, other),
+            Piece.BISHOP => IsCheckedByBishop(enemy.Point, other),
+            Piece.QUEEN => IsCheckedByRook(enemy.Point, other) || IsCheckedByBishop(enemy.Point, other),
             Piece.KNIGHT => IsCheckedByKnight(enemy.Point),
             _ => false
         };
     }
 
-    bool IsCheckedByRook(Point enemy) => king.X == enemy.X || king.Y == enemy.Y;
+    bool IsCheckedByRook(Point enemy, Enemy other) {
+        if (king.X != enemy.X && king.Y != enemy.Y) {
+            return false;
+        }
+        return other.Piece is not (Piece.BISHOP or Piece.KNIGHT);
+    }
 
-    bool IsCheckedByBishop(Point enemy) {
-        return Math.Abs(enemy.X - king.X) == Math.Abs(enemy.Y - king.Y);
+    bool IsCheckedByBishop(Point enemy, Enemy other) {
+        if (Math.Abs(enemy.X - king.X) != Math.Abs(enemy.Y - king.Y)) {
+            return false;
+        }
+        return other.Piece is not (Piece.ROOK or Piece.KNIGHT);
     }
 
     bool IsCheckedByKnight(Point enemy) {
