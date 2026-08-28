@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 
 // https://www.codingame.com/training/easy/the-descent---part-2
 string[] dimensions = Console.ReadLine()!.Split(' ');
@@ -27,7 +29,37 @@ class Grid(int width, int height) {
         starship = new Starship(a, b);
     }
 
-    public int ShotsToLand() => 0;
+    public int ShotsToLand() {
+        List<int> allShots = [];
+        foreach (var orientation in starship.Orientations()) {
+            for (var y = 0; y < height - orientation.Y; y++) {
+                for (var x = 0; x < width - orientation.X; x++) {
+                    allShots.Add(CountShotsAt(x, y, orientation));
+                }
+            }
+        }
+        return allShots.Min();
+    }
+
+    int CountShotsAt(int xStart, int yStart, Point orientation) {
+        List<int> heights = [];
+        for (int y = yStart; y < yStart + orientation.Y; y++) {
+            for (int x = xStart; x < xStart + orientation.X; x++) {
+                heights.Add(mountainHeights[x, y]);
+            }
+        }
+        int min = heights.Min();
+        return heights.Where(it => it > min).Select(it => it - min).Sum();
+    }
 }
 
-readonly record struct Starship(int A, int B);
+readonly record struct Starship(int A, int B) {
+    public IEnumerable<Point> Orientations() {
+        yield return new Point(A, B);
+        if (A != B) {
+            yield return new Point(B, A);
+        }
+    }
+}
+
+readonly record struct Point(int X, int Y);
