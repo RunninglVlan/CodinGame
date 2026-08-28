@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 
 // https://www.codingame.com/training/medium/is-the-king-in-check-part-2
 var board = new Board();
@@ -8,8 +10,8 @@ Console.WriteLine(board.IsKingInCheck() ? "Check" : "No Check");
 class Board {
     const int SIZE = 8;
 
-    Point king, enemy;
-    string enemyPiece = null!;
+    Point king;
+    readonly List<Enemy> enemies = [];
 
     public void Read() {
         for (var y = 0; y < SIZE; y++) {
@@ -19,32 +21,37 @@ class Board {
                 if (piece == Piece.KING) {
                     king = new Point(x, y);
                 } else if (piece != Piece.EMPTY) {
-                    enemy = new Point(x, y);
-                    enemyPiece = piece;
+                    enemies.Add(new(new Point(x, y), piece));
                 }
             }
         }
     }
 
-    public bool IsKingInCheck() => enemyPiece switch {
-        Piece.ROOK => IsCheckedByRook(),
-        Piece.BISHOP => IsCheckedByBishop(),
-        Piece.QUEEN => IsCheckedByRook() || IsCheckedByBishop(),
-        Piece.KNIGHT => IsCheckedByKnight(),
-        _ => false
-    };
+    public bool IsKingInCheck() {
+        return IsCheckedBy(enemies.First()) || IsCheckedBy(enemies.Last());
 
-    bool IsCheckedByRook() => king.X == enemy.X || king.Y == enemy.Y;
+        bool IsCheckedBy(Enemy enemy) => enemy.Piece switch {
+            Piece.ROOK => IsCheckedByRook(enemy.Point),
+            Piece.BISHOP => IsCheckedByBishop(enemy.Point),
+            Piece.QUEEN => IsCheckedByRook(enemy.Point) || IsCheckedByBishop(enemy.Point),
+            Piece.KNIGHT => IsCheckedByKnight(enemy.Point),
+            _ => false
+        };
+    }
 
-    bool IsCheckedByBishop() {
+    bool IsCheckedByRook(Point enemy) => king.X == enemy.X || king.Y == enemy.Y;
+
+    bool IsCheckedByBishop(Point enemy) {
         return Math.Abs(enemy.X - king.X) == Math.Abs(enemy.Y - king.Y);
     }
 
-    bool IsCheckedByKnight() {
+    bool IsCheckedByKnight(Point enemy) {
         return Math.Abs(enemy.X - king.X) == 1 && Math.Abs(enemy.Y - king.Y) == 2
                 || Math.Abs(enemy.X - king.X) == 2 && Math.Abs(enemy.Y - king.Y) == 1;
     }
 }
+
+readonly record struct Enemy(Point Point, string Piece);
 
 static class Piece {
     public const string EMPTY = "_";
