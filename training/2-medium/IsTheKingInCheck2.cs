@@ -47,10 +47,15 @@ class Board {
     }
 
     bool IsCheckedByBishop(Point self, Enemy other) {
-        if (Math.Abs(self.X - king.X) != Math.Abs(self.Y - king.Y)) {
+        var selfDifference = self - king;
+        if (Math.Abs(selfDifference.X) != Math.Abs(selfDifference.Y)) {
             return false;
         }
-        return other.Piece is not (Piece.ROOK or Piece.KNIGHT);
+        if (other.Piece is not (Piece.ROOK or Piece.KNIGHT)) {
+            return true;
+        }
+        var otherDifference = other.Point - king;
+        return Math.Abs(otherDifference.X) != Math.Abs(otherDifference.Y);
     }
 
     bool IsCheckedByKnight(Point enemy) {
@@ -70,4 +75,6 @@ static class Piece {
     public const string KNIGHT = "N";
 }
 
-readonly record struct Point(int X, int Y);
+readonly record struct Point(int X, int Y) {
+    public static Point operator -(Point a, Point b) => new(a.X - b.X, a.Y - b.Y);
+}
