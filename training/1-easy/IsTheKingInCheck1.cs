@@ -12,7 +12,6 @@ class Board {
     string enemyPiece = null!;
 
     public void Read() {
-        enemyPiece = null!;
         for (var y = 0; y < SIZE; y++) {
             string[] chessRow = Console.ReadLine()!.Split(' ');
             for (var x = 0; x < SIZE; x++) {
