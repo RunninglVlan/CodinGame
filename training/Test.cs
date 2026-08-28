@@ -1,4 +1,32 @@
 ﻿const string testCase = """
+                        6
+                        _ _ _ _ _ _ _ _
+                        _ _ _ _ _ _ _ _
+                        _ _ _ _ _ _ _ _
+                        _ _ _ _ B _ _ _
+                        _ _ _ _ _ _ _ _
+                        _ _ k _ _ _ _ _
+                        _ R _ _ _ _ _ _
+                        _ _ _ _ _ _ _ _
+                        Check
+                        _ _ _ _ _ _ _ _
+                        _ _ _ _ _ _ _ _
+                        _ _ _ _ _ _ _ _
+                        _ _ _ _ B _ _ _
+                        _ R _ _ _ _ _ _
+                        _ _ k _ _ _ _ _
+                        _ _ _ _ _ _ _ _
+                        _ _ _ _ _ _ _ _
+                        Check
+                        _ _ _ _ _ _ _ _
+                        _ _ _ _ _ _ _ _
+                        _ _ _ _ _ _ _ _
+                        _ _ _ _ B _ _ _
+                        _ _ _ R _ _ _ _
+                        _ _ k _ _ _ _ _
+                        _ _ _ _ _ _ _ _
+                        _ _ _ _ _ _ _ _
+                        No Check
                         _ _ _ _ _ _ _ _
                         _ _ _ _ _ _ _ _
                         _ _ _ _ _ _ _ _
@@ -8,17 +36,38 @@
                         _ _ _ _ _ _ _ _
                         _ _ _ _ _ _ _ _
                         Check
+                        _ _ _ _ _ _ _ _
+                        _ _ _ _ _ _ _ _
+                        _ _ _ _ _ _ _ _
+                        _ _ _ _ _ _ _ _
+                        _ _ B _ _ _ _ _
+                        _ _ k _ R _ _ _
+                        _ _ _ _ _ _ _ _
+                        _ _ _ _ _ _ _ _
+                        Check
+                        _ _ _ _ _ _ _ _
+                        _ _ _ _ _ _ _ _
+                        _ _ _ _ _ _ _ _
+                        _ _ _ _ _ _ _ _
+                        _ _ _ _ _ _ _ _
+                        _ _ k B R _ _ _
+                        _ _ _ _ _ _ _ _
+                        _ _ _ _ _ _ _ _
+                        No Check
                         """;
 // let's write some more tests
 // - checked by rook
 Console.SetIn(new StringReader(testCase));
 
 // https://www.codingame.com/training/medium/is-the-king-in-check-part-2
-var board = new Board();
-board.Read();
-string? expected = Console.ReadLine();
-string actual = board.IsKingInCheck() ? "Check" : "No Check";
-Console.WriteLine(expected == actual ? $"✅ {actual}" : $"❌ expected {expected}, but found {actual}");
+int tests = int.Parse(Console.ReadLine()!);
+for (var _ = 0; _ < tests; _++) {
+    var board = new Board();
+    board.Read();
+    string? expected = Console.ReadLine();
+    string actual = board.IsKingInCheck() ? "Check" : "No Check";
+    Console.WriteLine(expected == actual ? $"✅ {actual}" : $"❌ expected {expected}, but found {actual}");
+}
 
 class Board {
     const int SIZE = 8;
@@ -55,21 +104,27 @@ class Board {
 
     bool IsCheckedOrthogonally(Point enemy, Point other) {
         var toKing = enemy - king;
-        if (!IsOnOrthogonal(toKing)) {
+        if (!IsOrthogonal(toKing)) {
             return false;
         }
         var otherToKing = other - king;
-        if (!IsOnOrthogonal(otherToKing)) {
+        if (!IsOrthogonal(otherToKing)) {
             return true;
         }
-        // bool sameOrthogonal = toKing.X == otherToKing.X || toKing.Y == otherToKing.Y;
-        // if (sameOrthogonal) {
-        //     return false;
-        // }
-        Console.Error.WriteLine($"toKing: {toKing}, otherToKing: {otherToKing}");
-        return true;
+        bool sameColumn = toKing.X == otherToKing.X, sameRow = toKing.Y == otherToKing.Y;
+        if (!sameColumn && !sameRow) {
+            return true;
+        }
+        int distance = sameColumn ? toKing.Y : toKing.X;
+        int otherDistance = sameColumn ? otherToKing.Y : otherToKing.X;
+        bool sameSide = Math.Sign(otherDistance) == Math.Sign(distance);
+        if (!sameSide) {
+            return true;
+        }
+        bool otherIsBeyond = Math.Abs(otherDistance) > Math.Abs(distance);
+        return otherIsBeyond;
 
-        bool IsOnOrthogonal(Point difference) => Math.Abs(difference.X) == 0 || Math.Abs(difference.Y) == 0;
+        bool IsOrthogonal(Point difference) => difference.X == 0 || difference.Y == 0;
     }
 
     bool IsCheckedDiagonally(Point enemy, Point other) {
