@@ -31,19 +31,38 @@ class Board {
         return IsCheckedBy(enemies.First(), enemies.Last()) || IsCheckedBy(enemies.Last(), enemies.First());
 
         bool IsCheckedBy(Enemy enemy, Enemy other) => enemy.Piece switch {
-            Piece.ROOK => IsCheckedOrthogonally(enemy.Point, other),
+            Piece.ROOK => IsCheckedOrthogonally(enemy.Point, other.Point),
             Piece.BISHOP => IsCheckedDiagonally(enemy.Point, other.Point),
-            Piece.QUEEN => IsCheckedOrthogonally(enemy.Point, other) || IsCheckedDiagonally(enemy.Point, other.Point),
+            Piece.QUEEN => IsCheckedOrthogonally(enemy.Point, other.Point)
+                    || IsCheckedDiagonally(enemy.Point, other.Point),
             Piece.KNIGHT => IsCheckedByKnight(enemy.Point),
             _ => false
         };
     }
 
-    bool IsCheckedOrthogonally(Point self, Enemy other) {
-        if (king.X != self.X && king.Y != self.Y) {
+    bool IsCheckedOrthogonally(Point enemy, Point other) {
+        var toKing = enemy - king;
+        if (!IsOrthogonal(toKing)) {
             return false;
         }
-        return other.Piece is not (Piece.BISHOP or Piece.KNIGHT);
+        var otherToKing = other - king;
+        if (!IsOrthogonal(otherToKing)) {
+            return true;
+        }
+        bool sameColumn = toKing.X == otherToKing.X, sameRow = toKing.Y == otherToKing.Y;
+        if (!sameColumn && !sameRow) {
+            return true;
+        }
+        int distance = sameColumn ? toKing.Y : toKing.X;
+        int otherDistance = sameColumn ? otherToKing.Y : otherToKing.X;
+        bool sameSide = Math.Sign(otherDistance) == Math.Sign(distance);
+        if (!sameSide) {
+            return true;
+        }
+        bool otherIsBeyond = Math.Abs(otherDistance) > Math.Abs(distance);
+        return otherIsBeyond;
+
+        bool IsOrthogonal(Point difference) => difference.X == 0 || difference.Y == 0;
     }
 
     bool IsCheckedDiagonally(Point enemy, Point other) {
