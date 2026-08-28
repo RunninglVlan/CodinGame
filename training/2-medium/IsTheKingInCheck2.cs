@@ -39,15 +39,15 @@ class Board {
         };
     }
 
-    bool IsCheckedByRook(Point enemy, Enemy other) {
-        if (king.X != enemy.X && king.Y != enemy.Y) {
+    bool IsCheckedByRook(Point self, Enemy other) {
+        if (king.X != self.X && king.Y != self.Y) {
             return false;
         }
         return other.Piece is not (Piece.BISHOP or Piece.KNIGHT);
     }
 
-    bool IsCheckedByBishop(Point enemy, Enemy other) {
-        if (Math.Abs(enemy.X - king.X) != Math.Abs(enemy.Y - king.Y)) {
+    bool IsCheckedByBishop(Point self, Enemy other) {
+        if (Math.Abs(self.X - king.X) != Math.Abs(self.Y - king.Y)) {
             return false;
         }
         return other.Piece is not (Piece.ROOK or Piece.KNIGHT);
