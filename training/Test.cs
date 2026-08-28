@@ -1,14 +1,16 @@
 ﻿const string testCase = """
-                        _ _ _ _ _ _ _ Q
-                        _ _ _ _ R _ _ _
                         _ _ _ _ _ _ _ _
                         _ _ _ _ _ _ _ _
                         _ _ _ _ _ _ _ _
-                        _ _ k _ _ _ _ _
+                        _ _ _ _ _ _ _ _
+                        _ _ _ _ _ _ _ _
+                        _ B k _ R _ _ _
                         _ _ _ _ _ _ _ _
                         _ _ _ _ _ _ _ _
                         Check
                         """;
+// let's write some more tests
+// - checked by rook
 Console.SetIn(new StringReader(testCase));
 
 // https://www.codingame.com/training/medium/is-the-king-in-check-part-2
@@ -42,31 +44,53 @@ class Board {
         return IsCheckedBy(enemies.First(), enemies.Last()) || IsCheckedBy(enemies.Last(), enemies.First());
 
         bool IsCheckedBy(Enemy enemy, Enemy other) => enemy.Piece switch {
-            Piece.ROOK => IsCheckedByRook(enemy.Point, other),
-            Piece.BISHOP => IsCheckedByBishop(enemy.Point, other),
-            Piece.QUEEN => IsCheckedByRook(enemy.Point, other) || IsCheckedByBishop(enemy.Point, other),
+            Piece.ROOK => IsCheckedOrthogonally(enemy.Point, other.Point),
+            Piece.BISHOP => IsCheckedDiagonally(enemy.Point, other.Point),
+            Piece.QUEEN => IsCheckedOrthogonally(enemy.Point, other.Point)
+                    || IsCheckedDiagonally(enemy.Point, other.Point),
             Piece.KNIGHT => IsCheckedByKnight(enemy.Point),
             _ => false
         };
     }
 
-    bool IsCheckedByRook(Point self, Enemy other) {
-        if (king.X != self.X && king.Y != self.Y) {
+    bool IsCheckedOrthogonally(Point enemy, Point other) {
+        var toKing = enemy - king;
+        if (!IsOnOrthogonal(toKing)) {
             return false;
         }
-        return other.Piece is not (Piece.BISHOP or Piece.KNIGHT);
-    }
-
-    bool IsCheckedByBishop(Point self, Enemy other) {
-        var selfDifference = self - king;
-        if (Math.Abs(selfDifference.X) != Math.Abs(selfDifference.Y)) {
-            return false;
-        }
-        if (other.Piece is not (Piece.ROOK or Piece.KNIGHT)) {
+        var otherToKing = other - king;
+        if (!IsOnOrthogonal(otherToKing)) {
             return true;
         }
-        var otherDifference = other.Point - king;
-        return Math.Abs(otherDifference.X) != Math.Abs(otherDifference.Y);
+        // bool sameOrthogonal = toKing.X == otherToKing.X || toKing.Y == otherToKing.Y;
+        // if (sameOrthogonal) {
+        //     return false;
+        // }
+        Console.Error.WriteLine($"toKing: {toKing}, otherToKing: {otherToKing}");
+        return true;
+
+        bool IsOnOrthogonal(Point difference) => Math.Abs(difference.X) == 0 || Math.Abs(difference.Y) == 0;
+    }
+
+    bool IsCheckedDiagonally(Point enemy, Point other) {
+        var toKing = enemy - king;
+        if (!IsOnDiagonal(toKing)) {
+            return false;
+        }
+        var otherToKing = other - king;
+        if (!IsOnDiagonal(otherToKing)) {
+            return true;
+        }
+        bool sameDiagonal = Math.Sign(toKing.X) == Math.Sign(otherToKing.X)
+                && Math.Sign(toKing.Y) == Math.Sign(otherToKing.Y);
+        if (!sameDiagonal) {
+            return true;
+        }
+        bool otherIsBeyond = Math.Abs(otherToKing.X) > Math.Abs(toKing.X)
+                && Math.Abs(otherToKing.Y) > Math.Abs(toKing.Y);
+        return otherIsBeyond;
+
+        bool IsOnDiagonal(Point difference) => Math.Abs(difference.X) == Math.Abs(difference.Y);
     }
 
     bool IsCheckedByKnight(Point enemy) {
