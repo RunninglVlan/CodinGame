@@ -55,7 +55,15 @@ class Board {
             return true;
         }
         var otherDifference = other.Point - king;
-        return Math.Abs(otherDifference.X) != Math.Abs(otherDifference.Y);
+        if (Math.Abs(otherDifference.X) != Math.Abs(otherDifference.Y)) {
+            return true;
+        }
+        if (Math.Sign(selfDifference.X) != Math.Sign(otherDifference.X)
+                || Math.Sign(selfDifference.Y) != Math.Sign(otherDifference.Y)) {
+            return true;
+        }
+        return Math.Abs(otherDifference.X) > Math.Abs(selfDifference.X)
+                && Math.Abs(otherDifference.Y) > Math.Abs(selfDifference.Y);
     }
 
     bool IsCheckedByKnight(Point enemy) {
