@@ -32,8 +32,8 @@ class Grid(int width, int height) {
     public int ShotsToLand() {
         List<int> allShots = [];
         foreach (var orientation in starship.Orientations()) {
-            for (var y = 0; y < height - orientation.Y; y++) {
-                for (var x = 0; x < width - orientation.X; x++) {
+            for (var y = 0; y <= height - orientation.Y; y++) {
+                for (var x = 0; x <= width - orientation.X; x++) {
                     allShots.Add(CountShotsAt(new Point(x, y), orientation));
                 }
             }
