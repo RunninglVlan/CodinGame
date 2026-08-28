@@ -31,39 +31,40 @@ class Board {
         return IsCheckedBy(enemies.First(), enemies.Last()) || IsCheckedBy(enemies.Last(), enemies.First());
 
         bool IsCheckedBy(Enemy enemy, Enemy other) => enemy.Piece switch {
-            Piece.ROOK => IsCheckedByRook(enemy.Point, other),
-            Piece.BISHOP => IsCheckedByBishop(enemy.Point, other),
-            Piece.QUEEN => IsCheckedByRook(enemy.Point, other) || IsCheckedByBishop(enemy.Point, other),
+            Piece.ROOK => IsCheckedOrthogonally(enemy.Point, other),
+            Piece.BISHOP => IsCheckedDiagonally(enemy.Point, other.Point),
+            Piece.QUEEN => IsCheckedOrthogonally(enemy.Point, other) || IsCheckedDiagonally(enemy.Point, other.Point),
             Piece.KNIGHT => IsCheckedByKnight(enemy.Point),
             _ => false
         };
     }
 
-    bool IsCheckedByRook(Point self, Enemy other) {
+    bool IsCheckedOrthogonally(Point self, Enemy other) {
         if (king.X != self.X && king.Y != self.Y) {
             return false;
         }
         return other.Piece is not (Piece.BISHOP or Piece.KNIGHT);
     }
 
-    bool IsCheckedByBishop(Point self, Enemy other) {
-        var selfDifference = self - king;
-        if (Math.Abs(selfDifference.X) != Math.Abs(selfDifference.Y)) {
+    bool IsCheckedDiagonally(Point enemy, Point other) {
+        var toKing = enemy - king;
+        if (!IsOnDiagonal(toKing)) {
             return false;
         }
-        if (other.Piece is not (Piece.ROOK or Piece.KNIGHT)) {
+        var otherToKing = other - king;
+        if (!IsOnDiagonal(otherToKing)) {
             return true;
         }
-        var otherDifference = other.Point - king;
-        if (Math.Abs(otherDifference.X) != Math.Abs(otherDifference.Y)) {
+        bool sameDiagonal = Math.Sign(toKing.X) == Math.Sign(otherToKing.X)
+                && Math.Sign(toKing.Y) == Math.Sign(otherToKing.Y);
+        if (!sameDiagonal) {
             return true;
         }
-        if (Math.Sign(selfDifference.X) != Math.Sign(otherDifference.X)
-                || Math.Sign(selfDifference.Y) != Math.Sign(otherDifference.Y)) {
-            return true;
-        }
-        return Math.Abs(otherDifference.X) > Math.Abs(selfDifference.X)
-                && Math.Abs(otherDifference.Y) > Math.Abs(selfDifference.Y);
+        bool otherIsBeyond = Math.Abs(otherToKing.X) > Math.Abs(toKing.X)
+                && Math.Abs(otherToKing.Y) > Math.Abs(toKing.Y);
+        return otherIsBeyond;
+
+        bool IsOnDiagonal(Point difference) => Math.Abs(difference.X) == Math.Abs(difference.Y);
     }
 
     bool IsCheckedByKnight(Point enemy) {
