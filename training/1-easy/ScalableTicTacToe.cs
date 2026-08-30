@@ -10,14 +10,16 @@ board.Print();
 Console.WriteLine(result);
 
 class Board {
+    const char EMPTY = ' ';
+
     int size;
-    int winningCells;
+    int winningSquares;
     char[,] squares = null!;
 
     public void Read() {
         string[] inputs = Console.ReadLine()!.Split(' ');
         size = Math.Clamp(int.Parse(inputs[0]), 3, 12);
-        winningCells = Math.Clamp(int.Parse(inputs[1]), 3, size);
+        winningSquares = Math.Clamp(int.Parse(inputs[1]), 3, size);
         squares = new char[size, size];
         for (var y = 0; y < size; y++) {
             string line = Console.ReadLine()!;
@@ -29,7 +31,7 @@ class Board {
 
     public void AnalyzeState(out string result) {
         if (TryFindVerticalWinner(out var winner) || TryFindHorizonalWinner(out winner)) {
-            foreach (var point in winner.Cells) {
+            foreach (var point in winner.Points) {
                 squares[point.X, point.Y] = winner.Line;
             }
             result = $"The winner is {winner.Player}.";
@@ -39,26 +41,26 @@ class Board {
     }
 
     bool TryFindVerticalWinner(out Winner winner) {
-        Dictionary<char, List<Point>> playerCells = [];
+        Dictionary<char, List<Point>> playerPoints = [];
         for (var x = 0; x < size; x++) {
-            playerCells.Clear();
+            playerPoints.Clear();
             for (var y = 0; y < size; y++) {
                 char square = squares[x, y];
-                if (square == Square.EMPTY) {
+                if (square == EMPTY) {
                     continue;
                 }
-                var cells = playerCells.GetValueOrDefault(square, []);
-                cells.Add(new Point(x, y));
-                playerCells[square] = cells;
+                var points = playerPoints.GetValueOrDefault(square, []);
+                points.Add(new Point(x, y));
+                playerPoints[square] = points;
             }
-            char player = playerCells
-                    .Where(it => it.Value.Count == winningCells)
+            char player = playerPoints
+                    .Where(it => it.Value.Count == winningSquares)
                     .Select(it => it.Key)
-                    .FirstOrDefault(Square.EMPTY);
-            if (player == Square.EMPTY) {
+                    .FirstOrDefault(EMPTY);
+            if (player == EMPTY) {
                 continue;
             }
-            winner = new Winner(player, '|', playerCells[player]);
+            winner = new Winner(player, '|', playerPoints[player]);
             return true;
         }
         winner = default;
@@ -66,26 +68,26 @@ class Board {
     }
 
     bool TryFindHorizonalWinner(out Winner winner) {
-        Dictionary<char, List<Point>> playerCells = [];
+        Dictionary<char, List<Point>> playerPoints = [];
         for (var y = 0; y < size; y++) {
-            playerCells.Clear();
+            playerPoints.Clear();
             for (var x = 0; x < size; x++) {
                 char square = squares[x, y];
-                if (square == Square.EMPTY) {
+                if (square == EMPTY) {
                     continue;
                 }
-                var cells = playerCells.GetValueOrDefault(square, []);
-                cells.Add(new Point(x, y));
-                playerCells[square] = cells;
+                var points = playerPoints.GetValueOrDefault(square, []);
+                points.Add(new Point(x, y));
+                playerPoints[square] = points;
             }
-            char player = playerCells
-                    .Where(it => it.Value.Count == winningCells)
+            char player = playerPoints
+                    .Where(it => it.Value.Count == winningSquares)
                     .Select(it => it.Key)
-                    .FirstOrDefault(Square.EMPTY);
-            if (player == Square.EMPTY) {
+                    .FirstOrDefault(EMPTY);
+            if (player == EMPTY) {
                 continue;
             }
-            winner = new Winner(player, '-', playerCells[player]);
+            winner = new Winner(player, '-', playerPoints[player]);
             return true;
         }
         winner = default;
@@ -102,10 +104,6 @@ class Board {
     }
 }
 
-static class Square {
-    public const char EMPTY = ' ';
-}
-
-readonly record struct Winner(char Player, char Line, List<Point> Cells);
+readonly record struct Winner(char Player, char Line, List<Point> Points);
 
 readonly record struct Point(int X, int Y);
