@@ -41,43 +41,32 @@ class Board {
     }
 
     bool TryFindVerticalWinner(out Winner winner) {
-        Dictionary<char, List<Point>> playerPoints = [];
+        List<Point> startPoints = [];
         for (var x = 0; x < size; x++) {
-            playerPoints.Clear();
-            for (var y = 0; y < size; y++) {
-                char square = squares[x, y];
-                if (square == EMPTY) {
-                    continue;
-                }
-                var points = playerPoints.GetValueOrDefault(square, []);
-                points.Add(new Point(x, y));
-                playerPoints[square] = points;
-            }
-            char player = playerPoints
-                    .Where(it => it.Value.Count == winningSquares)
-                    .Select(it => it.Key)
-                    .FirstOrDefault(EMPTY);
-            if (player == EMPTY) {
-                continue;
-            }
-            winner = new Winner(player, '|', playerPoints[player]);
-            return true;
+            startPoints.Add(new Point(x, 0));
         }
-        winner = default;
-        return false;
+        return TryFindWinner(startPoints, Point.UP, '|', out winner);
     }
 
     bool TryFindHorizonalWinner(out Winner winner) {
-        Dictionary<char, List<Point>> playerPoints = [];
+        List<Point> startPoints = [];
         for (var y = 0; y < size; y++) {
+            startPoints.Add(new Point(0, y));
+        }
+        return TryFindWinner(startPoints, Point.RIGHT, '-', out winner);
+    }
+
+    bool TryFindWinner(List<Point> startPoints, Point direction, char line, out Winner winner) {
+        Dictionary<char, List<Point>> playerPoints = [];
+        foreach (var start in startPoints) {
             playerPoints.Clear();
-            for (var x = 0; x < size; x++) {
-                char square = squares[x, y];
+            for (var current = start; current.InBounds(size, size); current += direction) {
+                char square = squares[current.X, current.Y];
                 if (square == EMPTY) {
                     continue;
                 }
                 var points = playerPoints.GetValueOrDefault(square, []);
-                points.Add(new Point(x, y));
+                points.Add(new Point(current.X, current.Y));
                 playerPoints[square] = points;
             }
             char player = playerPoints
@@ -87,7 +76,7 @@ class Board {
             if (player == EMPTY) {
                 continue;
             }
-            winner = new Winner(player, '-', playerPoints[player]);
+            winner = new Winner(player, line, playerPoints[player]);
             return true;
         }
         winner = default;
@@ -106,4 +95,13 @@ class Board {
 
 readonly record struct Winner(char Player, char Line, List<Point> Points);
 
-readonly record struct Point(int X, int Y);
+readonly record struct Point(int X, int Y) {
+    public static readonly Point UP = new(0, 1);
+    public static readonly Point RIGHT = new(1, 0);
+
+    public bool InBounds(int width, int height) {
+        return X >= 0 && X < width && Y >= 0 && Y < height;
+    }
+
+    public static Point operator +(Point a, Point b) => new(a.X + b.X, a.Y + b.Y);
+}
