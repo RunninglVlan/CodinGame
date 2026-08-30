@@ -15,6 +15,7 @@ class Board {
     int size;
     int winningSquares;
     char[,] squares = null!;
+    int emptySquares;
 
     public void Read() {
         string[] inputs = Console.ReadLine()!.Split(' ');
@@ -24,7 +25,11 @@ class Board {
         for (var y = 0; y < size; y++) {
             string line = Console.ReadLine()!;
             for (var x = 0; x < size; x++) {
-                squares[x, y] = line[x];
+                char square = line[x];
+                squares[x, y] = square;
+                if (square == EMPTY) {
+                    emptySquares++;
+                }
             }
         }
     }
@@ -45,7 +50,7 @@ class Board {
                 return;
             }
         }
-        result = "The game isn't over yet!";
+        result = emptySquares == 0 ? "The game ended in a draw!" : "The game isn't over yet!";
     }
 
     bool TryFindVerticalWinner(int x, int y, out Winner winner) {
