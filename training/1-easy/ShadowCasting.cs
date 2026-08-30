@@ -8,6 +8,7 @@ ascii.AddShadows();
 ascii.Print();
 
 class Ascii {
+    const char EMPTY = ' ';
     const char ASCII_CHAR = '#';
     const char SHADOW_DARKER = '-';
     const char SHADOW_LIGHTER = '`';
@@ -29,27 +30,28 @@ class Ascii {
                 if (c != ASCII_CHAR) {
                     continue;
                 }
-                if (TryGet(x + 1, y + 1, out char darker) && darker != ASCII_CHAR) {
+                char darker = Get(x + 1, y + 1);
+                if (darker != ASCII_CHAR) {
                     Set(x + 1, y + 1, SHADOW_DARKER);
                 }
-                if (TryGet(x + 2, y + 2, out char lighter) && lighter != ASCII_CHAR) {
+                char lighter = Get(x + 2, y + 2);
+                if (lighter != ASCII_CHAR) {
                     Set(x + 2, y + 2, SHADOW_LIGHTER);
                 }
             }
         }
     }
 
-    bool TryGet(int x, int y, out char c) {
-        c = '\0';
-        if (y >= lines.Count) {
-            return false;
+    /// Also adds necessary chars when non-existing is requested
+    char Get(int x, int y) {
+        while (y >= lines.Count) {
+            lines.Add([]);
         }
         var line = lines[y];
-        if (x >= line.Count) {
-            return false;
+        while (x >= line.Count) {
+            line.Add(EMPTY);
         }
-        c = lines[y][x];
-        return true;
+        return lines[y][x];
     }
 
     void Set(int x, int y, char c) => lines[y][x] = c;
