@@ -30,34 +30,38 @@ class Ascii {
                 if (c != ASCII_CHAR) {
                     continue;
                 }
-                char darker = Get(x + 1, y + 1);
+                var point = new Point(x + 1, y + 1);
+                char darker = Get(point);
                 if (darker != ASCII_CHAR) {
-                    Set(x + 1, y + 1, SHADOW_DARKER);
+                    Set(point, SHADOW_DARKER);
                 }
-                char lighter = Get(x + 2, y + 2);
+                point = new Point(x + 2, y + 2);
+                char lighter = Get(point);
                 if (lighter != ASCII_CHAR) {
-                    Set(x + 2, y + 2, SHADOW_LIGHTER);
+                    Set(point, SHADOW_LIGHTER);
                 }
             }
         }
     }
 
-    /// Also adds necessary chars when non-existing is requested
-    char Get(int x, int y) {
-        while (y >= lines.Count) {
+    /// Returns the char at point, expanding rows/columns with EMPTY as needed
+    char Get(Point point) {
+        while (point.Y >= lines.Count) {
             lines.Add([]);
         }
-        var line = lines[y];
-        while (x >= line.Count) {
+        var line = lines[point.Y];
+        while (point.X >= line.Count) {
             line.Add(EMPTY);
         }
-        return lines[y][x];
+        return line[point.X];
     }
 
-    void Set(int x, int y, char c) => lines[y][x] = c;
+    void Set(Point point, char c) => lines[point.Y][point.X] = c;
 
     public void Print() => lines.ForEach(line => {
         line.ForEach(Console.Write);
         Console.WriteLine();
     });
 }
+
+readonly record struct Point(int X, int Y);
