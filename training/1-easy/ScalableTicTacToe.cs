@@ -5,7 +5,7 @@ using System.Linq;
 // https://www.codingame.com/training/easy/scaleable-tictactoe
 var board = new Board();
 board.Read();
-board.AnalyzeState(out string result);
+string result = board.AnalyzeAndMarkWinner();
 board.Print();
 Console.WriteLine(result);
 
@@ -34,11 +34,15 @@ class Board {
         }
     }
 
-    public void AnalyzeState(out string result) {
+    /// Slides a winningSquares x winningSquares window over every valid
+    /// top-left anchor (x, y). For each window, checks all rows, columns and
+    /// both diagonals within it for a winning line. Windows overlap so every
+    /// possible line on the board is covered exactly once per orientation.
+    public string AnalyzeAndMarkWinner() {
         for (var y = 0; y <= size - winningSquares; y++) {
             for (var x = 0; x <= size - winningSquares; x++) {
                 if (!TryFindVerticalWinner(x, y, out var winner)
-                        && !TryFindHorizonalWinner(x, y, out winner)
+                        && !TryFindHorizontalWinner(x, y, out winner)
                         && !TryFindRightDiagonalWinner(x, y, out winner)
                         && !TryFindLeftDiagonalWinner(x, y, out winner)) {
                     continue;
@@ -46,11 +50,10 @@ class Board {
                 foreach (var point in winner.Points) {
                     squares[point.X, point.Y] = winner.Line;
                 }
-                result = $"The winner is {winner.Player}.";
-                return;
+                return $"The winner is {winner.Player}.";
             }
         }
-        result = emptySquares == 0 ? "The game ended in a draw!" : "The game isn't over yet!";
+        return emptySquares == 0 ? "The game ended in a draw!" : "The game isn't over yet!";
     }
 
     bool TryFindVerticalWinner(int x, int y, out Winner winner) {
@@ -58,18 +61,18 @@ class Board {
         return TryFindWinner(x, y, startPoints, Point.UP, '|', out winner);
     }
 
-    bool TryFindHorizonalWinner(int x, int y, out Winner winner) {
+    bool TryFindHorizontalWinner(int x, int y, out Winner winner) {
         var startPoints = Enumerable.Range(0, winningSquares).Select(it => new Point(x + 0, y + it));
         return TryFindWinner(x, y, startPoints, Point.RIGHT, '-', out winner);
     }
 
     bool TryFindRightDiagonalWinner(int x, int y, out Winner winner) {
-        return TryFindWinner(x, y, [new(x, y)], Point.RIGHT + Point.UP, '\\', out winner);
+        return TryFindWinner(x, y, [new(x, y)], Point.UP + Point.RIGHT, '\\', out winner);
     }
 
     bool TryFindLeftDiagonalWinner(int x, int y, out Winner winner) {
         Point[] startPoints = [new Point(x, y) + Point.RIGHT * (winningSquares - 1)];
-        return TryFindWinner(x, y, startPoints, Point.LEFT + Point.UP, '/', out winner);
+        return TryFindWinner(x, y, startPoints, Point.UP + Point.LEFT, '/', out winner);
     }
 
     bool TryFindWinner(int x, int y, IEnumerable<Point> startPoints, Point direction, char line, out Winner winner) {
