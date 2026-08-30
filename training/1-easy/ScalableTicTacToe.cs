@@ -32,7 +32,9 @@ class Board {
     public void AnalyzeState(out string result) {
         for (var y = 0; y <= size - winningSquares; y++) {
             for (var x = 0; x <= size - winningSquares; x++) {
-                if (!TryFindVerticalWinner(x, y, out var winner) && !TryFindHorizonalWinner(x, y, out winner)) {
+                if (!TryFindVerticalWinner(x, y, out var winner)
+                        && !TryFindHorizonalWinner(x, y, out winner)
+                        && !TryFindRightDiagonalWinner(x, y, out winner)) {
                     continue;
                 }
                 foreach (var point in winner.Points) {
@@ -53,6 +55,10 @@ class Board {
     bool TryFindHorizonalWinner(int x, int y, out Winner winner) {
         var startPoints = Enumerable.Range(0, winningSquares).Select(it => new Point(x + 0, y + it));
         return TryFindWinner(x, y, startPoints, Point.RIGHT, '-', out winner);
+    }
+
+    bool TryFindRightDiagonalWinner(int x, int y, out Winner winner) {
+        return TryFindWinner(x, y, [new(x, y)], Point.RIGHT + Point.UP, '\\', out winner);
     }
 
     bool TryFindWinner(int x, int y, IEnumerable<Point> startPoints, Point direction, char line, out Winner winner) {
