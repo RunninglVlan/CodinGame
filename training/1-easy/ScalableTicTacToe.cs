@@ -41,22 +41,16 @@ class Board {
     }
 
     bool TryFindVerticalWinner(out Winner winner) {
-        List<Point> startPoints = [];
-        for (var x = 0; x < size; x++) {
-            startPoints.Add(new Point(x, 0));
-        }
+        var startPoints = Enumerable.Range(0, size).Select(x => new Point(x, 0));
         return TryFindWinner(startPoints, Point.UP, '|', out winner);
     }
 
     bool TryFindHorizonalWinner(out Winner winner) {
-        List<Point> startPoints = [];
-        for (var y = 0; y < size; y++) {
-            startPoints.Add(new Point(0, y));
-        }
+        var startPoints = Enumerable.Range(0, size).Select(y => new Point(0, y));
         return TryFindWinner(startPoints, Point.RIGHT, '-', out winner);
     }
 
-    bool TryFindWinner(List<Point> startPoints, Point direction, char line, out Winner winner) {
+    bool TryFindWinner(IEnumerable<Point> startPoints, Point direction, char line, out Winner winner) {
         Dictionary<char, List<Point>> playerPoints = [];
         foreach (var start in startPoints) {
             playerPoints.Clear();
