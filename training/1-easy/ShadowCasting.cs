@@ -13,7 +13,7 @@ class Ascii {
     const char SHADOW_LIGHTER = '`';
 
     readonly List<List<char>> lines = [];
-    readonly List<List<char>> shadows = [];
+    readonly List<List<char>> linesFinal = [];
 
     public void Read() {
         int lineCount = Math.Clamp(int.Parse(Console.ReadLine()!), 1, 50);
@@ -29,51 +29,34 @@ class Ascii {
                 if (line[x] == EMPTY) {
                     continue;
                 }
-                AddShadow(new Point(x + 1, y + 1), SHADOW_DARKER);
-                AddShadow(new Point(x + 2, y + 2), SHADOW_LIGHTER);
+                SetFinal(x + 1, y + 1, SHADOW_DARKER);
+                SetFinal(x + 2, y + 2, SHADOW_LIGHTER);
+            }
+        }
+        for (var y = 0; y < lines.Count; y++) {
+            var line = lines[y];
+            for (var x = 0; x < line.Count; x++) {
+                char c = line[x];
+                if (c != EMPTY) {
+                    SetFinal(x, y, c);
+                }
             }
         }
     }
 
-    void AddShadow(Point point, char c) {
-        while (point.Y >= shadows.Count) {
-            shadows.Add([]);
+    void SetFinal(int x, int y, char c) {
+        while (y >= linesFinal.Count) {
+            linesFinal.Add([]);
         }
-        var line = shadows[point.Y];
-        while (point.X >= line.Count) {
+        var line = linesFinal[y];
+        while (x >= line.Count) {
             line.Add(EMPTY);
         }
-        line[point.X] = c;
+        line[x] = c;
     }
 
-    public void Print() {
-        for (var y = 0; y < Math.Max(lines.Count, shadows.Count); y++) {
-            int width = y < lines.Count ? Math.Max(lines[y].Count, shadows[y].Count) : shadows[y].Count;
-            for (var x = 0; x < width; x++) {
-                bool foundChar = TryGet(x, y, lines, out char lineChar);
-                bool foundShadow = TryGet(x, y, shadows, out char shadowChar);
-                if (!foundChar && !foundShadow) {
-                    continue;
-                }
-                Console.Write(lineChar != EMPTY ? lineChar : shadowChar);
-            }
-            Console.WriteLine();
-        }
-        return;
-
-        bool TryGet(int x, int y, List<List<char>> charLines, out char c) {
-            c = EMPTY;
-            if (y >= charLines.Count) {
-                return false;
-            }
-            var line = charLines[y];
-            if (x >= line.Count) {
-                return false;
-            }
-            c = line[x];
-            return true;
-        }
-    }
+    public void Print() => linesFinal.ForEach(line => {
+        line.ForEach(Console.Write);
+        Console.WriteLine();
+    });
 }
-
-readonly record struct Point(int X, int Y);
