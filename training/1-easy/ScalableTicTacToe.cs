@@ -30,31 +30,36 @@ class Board {
     }
 
     public void AnalyzeState(out string result) {
-        if (TryFindVerticalWinner(out var winner) || TryFindHorizonalWinner(out winner)) {
-            foreach (var point in winner.Points) {
-                squares[point.X, point.Y] = winner.Line;
+        for (var y = 0; y <= size - winningSquares; y++) {
+            for (var x = 0; x <= size - winningSquares; x++) {
+                if (!TryFindVerticalWinner(x, y, out var winner) && !TryFindHorizonalWinner(x, y, out winner)) {
+                    continue;
+                }
+                foreach (var point in winner.Points) {
+                    squares[point.X, point.Y] = winner.Line;
+                }
+                result = $"The winner is {winner.Player}.";
+                return;
             }
-            result = $"The winner is {winner.Player}.";
-            return;
         }
         result = "The game isn't over yet!";
     }
 
-    bool TryFindVerticalWinner(out Winner winner) {
-        var startPoints = Enumerable.Range(0, size).Select(x => new Point(x, 0));
-        return TryFindWinner(startPoints, Point.UP, '|', out winner);
+    bool TryFindVerticalWinner(int x, int y, out Winner winner) {
+        var startPoints = Enumerable.Range(0, winningSquares).Select(it => new Point(x + it, y + 0));
+        return TryFindWinner(x, y, startPoints, Point.UP, '|', out winner);
     }
 
-    bool TryFindHorizonalWinner(out Winner winner) {
-        var startPoints = Enumerable.Range(0, size).Select(y => new Point(0, y));
-        return TryFindWinner(startPoints, Point.RIGHT, '-', out winner);
+    bool TryFindHorizonalWinner(int x, int y, out Winner winner) {
+        var startPoints = Enumerable.Range(0, winningSquares).Select(it => new Point(x + 0, y + it));
+        return TryFindWinner(x, y, startPoints, Point.RIGHT, '-', out winner);
     }
 
-    bool TryFindWinner(IEnumerable<Point> startPoints, Point direction, char line, out Winner winner) {
+    bool TryFindWinner(int x, int y, IEnumerable<Point> startPoints, Point direction, char line, out Winner winner) {
         Dictionary<char, List<Point>> playerPoints = [];
         foreach (var start in startPoints) {
             playerPoints.Clear();
-            for (var current = start; current.InBounds(size, size); current += direction) {
+            for (var current = start; current.InBounds(x + winningSquares, y + winningSquares); current += direction) {
                 char square = squares[current.X, current.Y];
                 if (square == EMPTY) {
                     continue;
