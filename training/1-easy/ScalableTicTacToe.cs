@@ -34,7 +34,8 @@ class Board {
             for (var x = 0; x <= size - winningSquares; x++) {
                 if (!TryFindVerticalWinner(x, y, out var winner)
                         && !TryFindHorizonalWinner(x, y, out winner)
-                        && !TryFindRightDiagonalWinner(x, y, out winner)) {
+                        && !TryFindRightDiagonalWinner(x, y, out winner)
+                        && !TryFindLeftDiagonalWinner(x, y, out winner)) {
                     continue;
                 }
                 foreach (var point in winner.Points) {
@@ -59,6 +60,11 @@ class Board {
 
     bool TryFindRightDiagonalWinner(int x, int y, out Winner winner) {
         return TryFindWinner(x, y, [new(x, y)], Point.RIGHT + Point.UP, '\\', out winner);
+    }
+
+    bool TryFindLeftDiagonalWinner(int x, int y, out Winner winner) {
+        Point[] startPoints = [new Point(x, y) + Point.RIGHT * (winningSquares - 1)];
+        return TryFindWinner(x, y, startPoints, Point.LEFT + Point.UP, '/', out winner);
     }
 
     bool TryFindWinner(int x, int y, IEnumerable<Point> startPoints, Point direction, char line, out Winner winner) {
@@ -102,6 +108,7 @@ readonly record struct Winner(char Player, char Line, List<Point> Points);
 
 readonly record struct Point(int X, int Y) {
     public static readonly Point UP = new(0, 1);
+    public static readonly Point LEFT = new(-1, 0);
     public static readonly Point RIGHT = new(1, 0);
 
     public bool InBounds(int width, int height) {
@@ -109,4 +116,5 @@ readonly record struct Point(int X, int Y) {
     }
 
     public static Point operator +(Point a, Point b) => new(a.X + b.X, a.Y + b.Y);
+    public static Point operator *(Point a, int value) => new(a.X * value, a.Y * value);
 }
