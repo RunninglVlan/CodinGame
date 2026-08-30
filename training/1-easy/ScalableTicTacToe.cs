@@ -28,6 +28,17 @@ class Board {
     }
 
     public void AnalyzeState(out string result) {
+        if (TryFindVerticalWinner(out var winner)) {
+            foreach (var point in winner.cells) {
+                squares[point.X, point.Y] = '|';
+            }
+            result = $"The winner is {winner.player}.";
+            return;
+        }
+        result = "The game isn't over yet!";
+    }
+
+    bool TryFindVerticalWinner(out (char player, List<Point> cells) winner) {
         Dictionary<char, List<Point>> playerCells = [];
         for (var x = 0; x < size; x++) {
             playerCells.Clear();
@@ -40,20 +51,18 @@ class Board {
                 cells.Add(new Point(x, y));
                 playerCells[square] = cells;
             }
-            char winner = playerCells
+            char winningPlayer = playerCells
                     .Where(it => it.Value.Count == winningCells)
                     .Select(it => it.Key)
                     .FirstOrDefault(Square.EMPTY);
-            if (winner == Square.EMPTY) {
+            if (winningPlayer == Square.EMPTY) {
                 continue;
             }
-            foreach (var point in playerCells[winner]) {
-                squares[point.X, point.Y] = '|';
-            }
-            result = $"The winner is {winner}.";
-            return;
+            winner = (winningPlayer, playerCells[winningPlayer]);
+            return true;
         }
-        result = "The game isn't over yet!";
+        winner = default;
+        return false;
     }
 
     public void Print() {
