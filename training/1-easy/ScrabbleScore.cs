@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
 // Compute how many points you scored with your new words!
@@ -74,7 +75,27 @@ class Scrabble {
         }
     }
 
-    public List<Score> ComputeScore() => [new("OF", 5)];
+    public List<Score> ComputeScore() => [.. newTiles.Select(ScoreAt)];
+
+    Score ScoreAt(Point point) {
+        var cell = board[point.X, point.Y];
+        var word = $"{cell.Tile}";
+        int score = tileScores[cell.Tile!.Value];
+        foreach (var direction in Point.Directions4) {
+            var neighbor = point + direction;
+            var cellNeighbor = board[neighbor.X, neighbor.Y];
+            if (cellNeighbor.Tile == null) {
+                continue;
+            }
+            if (direction == Point.UP || direction == Point.RIGHT) {
+                word += cellNeighbor.Tile;
+            } else {
+                word = $"{cellNeighbor.Tile}{word}";
+            }
+            score += tileScores[cellNeighbor.Tile!.Value];
+        }
+        return new Score(word, score);
+    }
 }
 
 record Cell(CellType Type) {
@@ -91,4 +112,14 @@ enum CellType {
 
 record Score(string Word, int Value);
 
-readonly record struct Point(int X, int Y);
+[SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
+readonly record struct Point(int X, int Y) {
+    public static readonly Point UP = new(0, 1);
+    public static readonly Point DOWN = new(0, -1);
+    public static readonly Point LEFT = new(-1, 0);
+    public static readonly Point RIGHT = new(1, 0);
+
+    public static Point[] Directions4 { get; } = [RIGHT, LEFT, UP, DOWN];
+
+    public static Point operator +(Point a, Point b) => new(a.X + b.X, a.Y + b.Y);
+}
