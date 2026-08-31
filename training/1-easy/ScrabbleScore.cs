@@ -86,13 +86,8 @@ class Scrabble {
                 if (cell.Tile == null) {
                     break;
                 }
-                int multiplier = cell.Type switch {
-                    CellType.DoubleLetter => 2,
-                    CellType.TripleLetter => 3,
-                    _ => 1
-                };
                 score.Word += cell.Tile;
-                score.Value += tileScores[cell.Tile!.Value] * multiplier;
+                score.Add(tileScores[cell.Tile!.Value], cell.Type);
                 score.Points.Add(current);
             }
             scores.Add(score);
@@ -135,8 +130,24 @@ enum CellType {
 
 class Score {
     public string Word { get; set; } = string.Empty;
-    public int Value { get; set; }
-    public List<Point> Points { get; } = [];
+    int value, multiplier = 1;
+    public int Value => value * multiplier;
+    public HashSet<Point> Points { get; } = [];
+
+    public void Add(int score, CellType type) {
+        int letterMultiplier = type switch {
+            CellType.DoubleLetter => 2,
+            CellType.TripleLetter => 3,
+            _ => 1
+        };
+        value += score * letterMultiplier;
+        int wordMultiplier = type switch {
+            CellType.DoubleWord => 2,
+            CellType.TripleWord => 3,
+            _ => 1
+        };
+        multiplier *= wordMultiplier;
+    }
 }
 
 readonly record struct Point(int X, int Y) {
