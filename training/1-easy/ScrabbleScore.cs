@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
@@ -80,69 +79,45 @@ class Scrabble {
     public List<Score> ComputeScore() {
         List<Score> scores = [];
         foreach (var point in newTiles.Where(point => !scores.Any(it => it.Points.Contains(point)))) {
-            scores.Add(ScoreAt(point));
+            var (start, direction) = FindWordStart(point);
+            var score = new Score();
+            for (var current = start; current.InBounds(width, height); current += direction) {
+                var cell = board[current.X, current.Y];
+                if (cell.Tile == null) {
+                    break;
+                }
+                int multiplier = cell.Type switch {
+                    CellType.DoubleLetter => 2,
+                    CellType.TripleLetter => 3,
+                    _ => 1
+                };
+                score.Word += cell.Tile;
+                score.Value += tileScores[cell.Tile!.Value] * multiplier;
+                score.Points.Add(current);
+            }
+            scores.Add(score);
         }
         return scores;
     }
 
-    Score ScoreAt(Point point) {
-        var (start, direction) = FindWordStart(point);
-        var score = new Score();
-        AddTile(score, start);
-        var current = start;
-        while (true) {
-            var next = current + direction;
-            if (!next.InBounds(width, height)) {
-                break;
-            }
-            var nextCell = board[next.X, next.Y];
-            if (nextCell.Tile == null) {
-                break;
-            }
-            current = next;
-            AddTile(score, current);
-        }
-        return score;
-    }
-
     (Point point, Point direction) FindWordStart(Point point) {
+        (Point point, Point direction) start = default;
         foreach (var direction in Screen.Directions4) {
             var neighbor = point + direction;
-            if (!neighbor.InBounds(width, height)) {
-                continue;
-            }
-            if (board[neighbor.X, neighbor.Y].Tile == null) {
+            if (!neighbor.InBounds(width, height) || board[neighbor.X, neighbor.Y].Tile == null) {
                 continue;
             }
             if (direction == Screen.RIGHT || direction == Screen.DOWN) {
-                return (point, direction);
+                start = (point, direction);
+                break;
             }
-            var current = neighbor;
-            while (true) {
-                var next = current + direction;
-                if (!next.InBounds(width, height)) {
-                    return (current, direction * -1);
-                }
-                var nextCell = board[next.X, next.Y];
-                if (nextCell.Tile == null) {
-                    return (current, direction * -1);
-                }
-                current = next;
+            for (var current = neighbor;
+                    current.InBounds(width, height) && board[current.X, current.Y].Tile != null;
+                    current += direction) {
+                start = (current, direction * -1);
             }
         }
-        throw new UnreachableException();
-    }
-
-    void AddTile(Score score, Point point) {
-        var cell = board[point.X, point.Y];
-        int multiplier = cell.Type switch {
-            CellType.DoubleLetter => 2,
-            CellType.TripleLetter => 3,
-            _ => 1
-        };
-        score.Word += cell.Tile;
-        score.Value += tileScores[cell.Tile!.Value] * multiplier;
-        score.Points.Add(point);
+        return start;
     }
 }
 
