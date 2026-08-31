@@ -18,6 +18,7 @@ class Scrabble {
     const char EMPTY = '.';
 
     readonly Dictionary<char, int> tileScores = [];
+    int width, height;
     Cell[,] board = null!;
     readonly List<Point> newTiles = [];
 
@@ -33,9 +34,9 @@ class Scrabble {
 
     public void ReadBoard() {
         InitBoard();
-        for (var y = 0; y < board.GetLength(1); y++) {
+        for (var y = 0; y < height; y++) {
             string previousWordBoardRow = Console.ReadLine()!;
-            for (var x = 0; x < board.GetLength(0); x++) {
+            for (var x = 0; x < width; x++) {
                 char c = previousWordBoardRow[x];
                 if (c == EMPTY) {
                     continue;
@@ -43,9 +44,9 @@ class Scrabble {
                 board[x, y].Tile = c;
             }
         }
-        for (var y = 0; y < board.GetLength(1); y++) {
+        for (var y = 0; y < height; y++) {
             string playedWordBoardRow = Console.ReadLine()!;
-            for (var x = 0; x < board.GetLength(0); x++) {
+            for (var x = 0; x < width; x++) {
                 char c = playedWordBoardRow[x];
                 if (c == EMPTY || c == board[x, y].Tile) {
                     continue;
@@ -58,8 +59,8 @@ class Scrabble {
 
     void InitBoard() {
         string[] dimensions = Console.ReadLine()!.Split(' ');
-        int width = Math.Clamp(int.Parse(dimensions[0]), 4, 15);
-        int height = Math.Clamp(int.Parse(dimensions[1]), 4, 15);
+        width = Math.Clamp(int.Parse(dimensions[0]), 4, 15);
+        height = Math.Clamp(int.Parse(dimensions[1]), 4, 15);
         board = new Cell[width, height];
         for (var y = 0; y < height; y++) {
             string emptyBoardRow = Console.ReadLine()!;
