@@ -81,7 +81,7 @@ class Scrabble {
     Score ScoreAt(Point point) {
         var cell = board[point.X, point.Y];
         var word = $"{cell.Tile}";
-        int score = tileScores[cell.Tile!.Value];
+        int score = TileScore(cell);
         foreach (var direction in Point.Directions4) {
             var neighbor = point + direction;
             if (!neighbor.InBounds(width, height)) {
@@ -96,9 +96,18 @@ class Scrabble {
             } else {
                 word = $"{cellNeighbor.Tile}{word}";
             }
-            score += tileScores[cellNeighbor.Tile!.Value];
+            score += TileScore(cellNeighbor);
         }
         return new Score(word, score);
+    }
+
+    int TileScore(Cell cell) {
+        int multiplier = cell.Type switch {
+            CellType.DoubleLetter => 2,
+            CellType.TripleLetter => 3,
+            _ => 1
+        };
+        return tileScores[cell.Tile!.Value] * multiplier;
     }
 }
 
