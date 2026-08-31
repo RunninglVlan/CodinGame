@@ -8,7 +8,6 @@ board.PlayBestMove();
 board.Print();
 
 class Board {
-    const char EMPTY = '.';
     const int SIZE = 3;
 
     char player;
@@ -45,7 +44,7 @@ class Board {
     bool TryWin() {
         for (var y = 0; y < SIZE; y++) {
             for (var x = 0; x < SIZE; x++) {
-                if (squares[x, y] != EMPTY) {
+                if (squares[x, y] != Square.EMPTY) {
                     continue;
                 }
                 if (!HasLineWithTwoPlayerSquares(x, y)) {
@@ -73,6 +72,10 @@ class Board {
             Console.WriteLine();
         }
     }
+}
+
+static class Square {
+    public const char EMPTY = '.';
 }
 
 readonly record struct Point(int X, int Y) {
