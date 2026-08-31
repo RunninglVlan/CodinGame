@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
@@ -9,8 +10,8 @@ var scrabble = new Scrabble();
 scrabble.ReadTileScores();
 scrabble.ReadBoard();
 var wordScores = scrabble.ComputeScore();
-foreach ((string word, int score) in wordScores) {
-    Console.WriteLine($"{word} {score}");
+foreach (var score in wordScores) {
+    Console.WriteLine($"{score.Word} {score.Value}");
 }
 Console.WriteLine($"Total {wordScores.Sum(it => it.Value)}");
 
@@ -76,38 +77,72 @@ class Scrabble {
         }
     }
 
-    public List<Score> ComputeScore() => [.. newTiles.Select(ScoreAt)];
+    public List<Score> ComputeScore() {
+        List<Score> scores = [];
+        foreach (var point in newTiles.Where(point => !scores.Any(it => it.Points.Contains(point)))) {
+            scores.Add(ScoreAt(point));
+        }
+        return scores;
+    }
 
     Score ScoreAt(Point point) {
-        var cell = board[point.X, point.Y];
-        var word = $"{cell.Tile}";
-        int score = TileScore(cell);
-        foreach (var direction in Point.Directions4) {
+        var (start, direction) = FindWordStart(point);
+        var score = new Score();
+        AddTile(score, start);
+        var current = start;
+        while (true) {
+            var next = current + direction;
+            if (!next.InBounds(width, height)) {
+                break;
+            }
+            var nextCell = board[next.X, next.Y];
+            if (nextCell.Tile == null) {
+                break;
+            }
+            current = next;
+            AddTile(score, current);
+        }
+        return score;
+    }
+
+    (Point point, Point direction) FindWordStart(Point point) {
+        foreach (var direction in Screen.Directions4) {
             var neighbor = point + direction;
             if (!neighbor.InBounds(width, height)) {
                 continue;
             }
-            var cellNeighbor = board[neighbor.X, neighbor.Y];
-            if (cellNeighbor.Tile == null) {
+            if (board[neighbor.X, neighbor.Y].Tile == null) {
                 continue;
             }
-            if (direction == Point.UP || direction == Point.RIGHT) {
-                word += cellNeighbor.Tile;
-            } else {
-                word = $"{cellNeighbor.Tile}{word}";
+            if (direction == Screen.RIGHT || direction == Screen.DOWN) {
+                return (point, direction);
             }
-            score += TileScore(cellNeighbor);
+            var current = neighbor;
+            while (true) {
+                var next = current + direction;
+                if (!next.InBounds(width, height)) {
+                    return (current, direction * -1);
+                }
+                var nextCell = board[next.X, next.Y];
+                if (nextCell.Tile == null) {
+                    return (current, direction * -1);
+                }
+                current = next;
+            }
         }
-        return new Score(word, score);
+        throw new UnreachableException();
     }
 
-    int TileScore(Cell cell) {
+    void AddTile(Score score, Point point) {
+        var cell = board[point.X, point.Y];
         int multiplier = cell.Type switch {
             CellType.DoubleLetter => 2,
             CellType.TripleLetter => 3,
             _ => 1
         };
-        return tileScores[cell.Tile!.Value] * multiplier;
+        score.Word += cell.Tile;
+        score.Value += tileScores[cell.Tile!.Value] * multiplier;
+        score.Points.Add(point);
     }
 }
 
@@ -123,20 +158,27 @@ enum CellType {
     TripleWord
 }
 
-record Score(string Word, int Value);
+class Score {
+    public string Word { get; set; } = string.Empty;
+    public int Value { get; set; }
+    public List<Point> Points { get; } = [];
+}
 
-[SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
 readonly record struct Point(int X, int Y) {
-    public static readonly Point UP = new(0, 1);
-    public static readonly Point DOWN = new(0, -1);
-    public static readonly Point LEFT = new(-1, 0);
-    public static readonly Point RIGHT = new(1, 0);
-
-    public static Point[] Directions4 { get; } = [RIGHT, LEFT, UP, DOWN];
-
     public bool InBounds(int width, int height) {
         return X >= 0 && X < width && Y >= 0 && Y < height;
     }
 
     public static Point operator +(Point a, Point b) => new(a.X + b.X, a.Y + b.Y);
+    public static Point operator *(Point a, int value) => new(a.X * value, a.Y * value);
+}
+
+[SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
+static class Screen {
+    public static readonly Point UP = new(0, -1);
+    public static readonly Point DOWN = new(0, 1);
+    public static readonly Point LEFT = new(-1, 0);
+    public static readonly Point RIGHT = new(1, 0);
+
+    public static Point[] Directions4 { get; } = [LEFT, UP, RIGHT, DOWN];
 }
