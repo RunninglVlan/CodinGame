@@ -10,7 +10,7 @@ board.Print();
 class Board {
     const int SIZE = 3;
 
-    char player;
+    char player, enemy;
     readonly char[,] squares = new char[SIZE, SIZE];
 
     readonly Point[][] lines = [
@@ -29,6 +29,7 @@ class Board {
 
     public void Read() {
         player = Console.ReadLine()!.First();
+        enemy = player == Square.PLAYER_O ? Square.PLAYER_X : Square.PLAYER_O;
         for (var y = 0; y < SIZE; y++) {
             string line = Console.ReadLine()!;
             for (var x = 0; x < SIZE; x++) {
@@ -38,29 +39,30 @@ class Board {
     }
 
     public void PlayBestMove() {
-        TryWin();
-    }
-
-    bool TryWin() {
         for (var y = 0; y < SIZE; y++) {
             for (var x = 0; x < SIZE; x++) {
-                if (squares[x, y] != Square.EMPTY) {
-                    continue;
-                }
-                if (!HasLineWithTwoPlayerSquares(x, y)) {
+                if (squares[x, y] != Square.EMPTY || !HasLineWithTwoSquares(x, y, player)) {
                     continue;
                 }
                 squares[x, y] = player;
-                return true;
+                return;
             }
         }
-        return false;
+        for (var y = 0; y < SIZE; y++) {
+            for (var x = 0; x < SIZE; x++) {
+                if (squares[x, y] != Square.EMPTY || !HasLineWithTwoSquares(x, y, enemy)) {
+                    continue;
+                }
+                squares[x, y] = player;
+                return;
+            }
+        }
     }
 
-    bool HasLineWithTwoPlayerSquares(int x, int y) {
+    bool HasLineWithTwoSquares(int x, int y, char square) {
         var point = new Point(x, y);
         return lines.Where(it => it.Contains(point))
-                .Select(line => line.Count(it => squares[it.X, it.Y] == player))
+                .Select(line => line.Count(it => squares[it.X, it.Y] == square))
                 .Any(count => count == 2);
     }
 
@@ -76,6 +78,8 @@ class Board {
 
 static class Square {
     public const char EMPTY = '.';
+    public const char PLAYER_X = 'X';
+    public const char PLAYER_O = 'O';
 }
 
 readonly record struct Point(int X, int Y) {
