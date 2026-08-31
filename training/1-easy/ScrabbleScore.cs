@@ -72,13 +72,14 @@ class Scrabble {
         for (var y = 0; y < height; y++) {
             string emptyBoardRow = Console.ReadLine()!;
             for (var x = 0; x < width; x++) {
-                board[x, y] = new Cell(emptyBoardRow[x] switch {
-                    'l' => CellType.DoubleLetter,
-                    'L' => CellType.TripleLetter,
-                    'w' => CellType.DoubleWord,
-                    'W' => CellType.TripleWord,
-                    _ => CellType.Normal
-                });
+                (int letter, int word) multiplier = emptyBoardRow[x] switch {
+                    'l' => (2, 1),
+                    'L' => (3, 1),
+                    'w' => (1, 2),
+                    'W' => (1, 3),
+                    _ => (1, 1)
+                };
+                board[x, y] = new Cell(multiplier.letter, multiplier.word);
             }
         }
     }
@@ -120,16 +121,8 @@ class Scrabble {
     }
 }
 
-record Cell(CellType Type) {
+record Cell(int LetterMultiplier, int WordMultiplier) {
     public char? Tile { get; set; }
-}
-
-enum CellType {
-    Normal,
-    DoubleLetter,
-    TripleLetter,
-    DoubleWord,
-    TripleWord
 }
 
 class Score {
@@ -139,15 +132,8 @@ class Score {
 
     public void Add(int score, Cell cell, bool newTile) {
         Word += cell.Tile;
-        (int letterMultiplier, int wordMultiplier) = cell.Type switch {
-            CellType.DoubleLetter => (2, 1),
-            CellType.TripleLetter => (3, 1),
-            CellType.DoubleWord => (1, 2),
-            CellType.TripleWord => (1, 3),
-            _ => (1, 1)
-        };
-        value += score * (newTile ? letterMultiplier : 1);
-        multiplier *= newTile ? wordMultiplier : 1;
+        value += score * (newTile ? cell.LetterMultiplier : 1);
+        multiplier *= newTile ? cell.WordMultiplier : 1;
     }
 }
 
