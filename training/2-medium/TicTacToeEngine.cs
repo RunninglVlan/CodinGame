@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 
 // https://www.codingame.com/training/medium/tic-tac-toe-engine
@@ -39,16 +40,19 @@ class Board {
         Debug.Log();
     }
 
+    char Get(Point point) => squares[point.X, point.Y];
+    void Set(Point point, char square) => squares[point.X, point.Y] = square;
+
     public void PlayBestMove() {
-        var point = FindBestMove(PlayerCanWin);
-        point ??= FindBestMove(EnemyCanWin);
-        point ??= FindBestMove(PlayerCanWinNext);
-        if (!point.HasValue) {
+        var points = EmptySquares(PlayerCanWin)
+                .Concat(EmptySquares(EnemyCanWin))
+                .Concat(EmptySquares(PlayerCanWinNext))
+                .ToArray();
+        if (points.Length == 0) {
             Console.Error.WriteLine("No best move");
             return;
         }
-        (int x, int y) = point.Value;
-        squares[x, y] = player;
+        Set(points.First(), player);
         return;
 
         bool PlayerCanWin(Point cell) => HasLineWithTwoSquares(cell, player);
@@ -62,22 +66,24 @@ class Board {
         }
     }
 
-    Point? FindBestMove(Predicate<Point> predicate) {
+    IEnumerable<Point> EmptySquares(Predicate<Point> predicate) {
         for (var y = 0; y < SIZE; y++) {
             for (var x = 0; x < SIZE; x++) {
                 var point = new Point(x, y);
-                if (squares[x, y] != Square.EMPTY || !predicate(point)) {
+                if (Get(point) != Square.EMPTY) {
                     continue;
                 }
-                return point;
+                if (!predicate(point)) {
+                    continue;
+                }
+                yield return point;
             }
         }
-        return null;
     }
 
     bool HasLineWithTwoSquares(Point point, char square) {
         return lines.Where(it => it.Contains(point))
-                .Select(line => line.Count(it => squares[it.X, it.Y] == square))
+                .Select(line => line.Count(it => Get(it) == square))
                 .Any(count => count == 2);
     }
 
