@@ -91,11 +91,9 @@ class Board {
     }
 
     public void Print() {
-        for (var y = 0; y < SIZE; y++) {
-            for (var x = 0; x < SIZE; x++) {
-                Console.Write(squares[x, y]);
-            }
-            Console.WriteLine();
+        foreach (int y in Enumerable.Range(0, SIZE)) {
+            var line = Enumerable.Range(0, SIZE).Select(x => squares[x, y]);
+            Console.WriteLine(string.Concat(line));
         }
     }
 }
