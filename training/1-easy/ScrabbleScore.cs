@@ -85,7 +85,7 @@ class Scrabble {
 
     public List<Score> ComputeScore(out int? bonus) {
         List<Score> scores = [];
-        foreach (var point in newTiles.Where(point => !scores.Any(it => it.Points.Contains(point)))) {
+        foreach (var point in newTiles) {
             foreach (var (start, direction) in FindWordStart(point)) {
                 var score = new Score();
                 for (var current = start; current.InBounds(width, height); current += direction) {
@@ -94,13 +94,12 @@ class Scrabble {
                         break;
                     }
                     score.Add(tileScores[cell.Tile!.Value], cell, newTiles.Contains(current));
-                    score.Points.Add(current);
                 }
                 scores.Add(score);
             }
         }
         bonus = newTiles.Count >= BONUS_TILES ? BONUS_SCORE : null;
-        return scores;
+        return [.. scores.DistinctBy(it => it.Word)];
     }
 
     IEnumerable<(Point point, Point direction)> FindWordStart(Point point) {
@@ -109,15 +108,12 @@ class Scrabble {
             if (!neighbor.InBounds(width, height) || board[neighbor.X, neighbor.Y].Tile == null) {
                 continue;
             }
-            if (direction == Screen.RIGHT || direction == Screen.DOWN) {
-                yield return (point, direction);
-                continue;
-            }
+            var nextDirection = direction == Screen.RIGHT || direction == Screen.DOWN ? direction * -1 : direction;
             (Point point, Point direction) start = default;
             for (var current = neighbor;
                     current.InBounds(width, height) && board[current.X, current.Y].Tile != null;
-                    current += direction) {
-                start = (current, direction * -1);
+                    current += nextDirection) {
+                start = (current, nextDirection * -1);
             }
             yield return start;
         }
@@ -140,7 +136,6 @@ class Score {
     public string Word { get; private set; } = string.Empty;
     int value, multiplier = 1;
     public int Value => value * multiplier;
-    public HashSet<Point> Points { get; } = [];
 
     public void Add(int score, Cell cell, bool newTile) {
         Word += cell.Tile;
