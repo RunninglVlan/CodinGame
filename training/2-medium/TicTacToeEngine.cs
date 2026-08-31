@@ -28,14 +28,15 @@ class Board {
     ];
 
     public void Read() {
-        player = Console.ReadLine()!.First();
+        player = Debug.ReadLine()!.First();
         enemy = player == Square.PLAYER_O ? Square.PLAYER_X : Square.PLAYER_O;
         for (var y = 0; y < SIZE; y++) {
-            string line = Console.ReadLine()!;
+            string line = Debug.ReadLine()!;
             for (var x = 0; x < SIZE; x++) {
                 squares[x, y] = line[x];
             }
         }
+        Debug.Log();
     }
 
     public void PlayBestMove() {
@@ -104,4 +105,17 @@ readonly record struct Point(int X, int Y) {
 
     public static Point operator +(Point a, Point b) => new(a.X + b.X, a.Y + b.Y);
     public static Point operator *(Point a, int value) => new(a.X * value, a.Y * value);
+}
+
+static class Debug {
+    /// Reads line from Console and also writes it to Console.Error
+    public static string? ReadLine() {
+        string? line = Console.ReadLine();
+        Console.Error.WriteLine(line);
+        return line;
+    }
+
+    public static void Log(object? line = null) {
+        Console.Error.WriteLine(line);
+    }
 }
