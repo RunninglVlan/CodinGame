@@ -8,21 +8,21 @@ using System.Linq;
 var scrabble = new Scrabble();
 scrabble.ReadTileScores();
 scrabble.ReadBoard();
-var wordScores = scrabble.ComputeScore(out bool bonus);
+var wordScores = scrabble.ComputeScore(out int? bonus);
 foreach (var score in wordScores) {
     Console.WriteLine($"{score.Word} {score.Value}");
 }
 int total = wordScores.Sum(it => it.Value);
-if (bonus) {
-    total += Scrabble.BONUS_SCORE;
-    Console.WriteLine($"Bonus {Scrabble.BONUS_SCORE}");
+if (bonus.HasValue) {
+    total += bonus.Value;
+    Console.WriteLine($"Bonus {bonus.Value}");
 }
 Console.WriteLine($"Total {total}");
 
 class Scrabble {
     const char EMPTY = '.';
     const int BONUS_TILES = 7;
-    public const int BONUS_SCORE = 50;
+    const int BONUS_SCORE = 50;
 
     readonly Dictionary<char, int> tileScores = [];
     int width, height;
@@ -83,7 +83,7 @@ class Scrabble {
         }
     }
 
-    public List<Score> ComputeScore(out bool bonus) {
+    public List<Score> ComputeScore(out int? bonus) {
         List<Score> scores = [];
         foreach (var point in newTiles.Where(point => !scores.Any(it => it.Points.Contains(point)))) {
             var (start, direction) = FindWordStart(point);
@@ -93,13 +93,12 @@ class Scrabble {
                 if (cell.Tile == null) {
                     break;
                 }
-                score.Word += cell.Tile;
-                score.Add(tileScores[cell.Tile!.Value], cell.Type);
+                score.Add(tileScores[cell.Tile!.Value], cell);
                 score.Points.Add(current);
             }
             scores.Add(score);
         }
-        bonus = newTiles.Count >= BONUS_TILES;
+        bonus = newTiles.Count >= BONUS_TILES ? BONUS_SCORE : null;
         return scores;
     }
 
@@ -137,23 +136,21 @@ enum CellType {
 }
 
 class Score {
-    public string Word { get; set; } = string.Empty;
+    public string Word { get; private set; } = string.Empty;
     int value, multiplier = 1;
     public int Value => value * multiplier;
     public HashSet<Point> Points { get; } = [];
 
-    public void Add(int score, CellType type) {
-        int letterMultiplier = type switch {
-            CellType.DoubleLetter => 2,
-            CellType.TripleLetter => 3,
-            _ => 1
+    public void Add(int score, Cell cell) {
+        Word += cell.Tile;
+        (int letterMultiplier, int wordMultiplier) = cell.Type switch {
+            CellType.DoubleLetter => (2, 1),
+            CellType.TripleLetter => (3, 1),
+            CellType.DoubleWord => (1, 2),
+            CellType.TripleWord => (1, 3),
+            _ => (1, 1)
         };
         value += score * letterMultiplier;
-        int wordMultiplier = type switch {
-            CellType.DoubleWord => 2,
-            CellType.TripleWord => 3,
-            _ => 1
-        };
         multiplier *= wordMultiplier;
     }
 }
