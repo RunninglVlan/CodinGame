@@ -9,7 +9,7 @@ var scrabble = new Scrabble();
 scrabble.ReadTileScores();
 scrabble.ReadBoard();
 var wordScores = scrabble.ComputeScore(out int? bonus);
-foreach (var score in wordScores) {
+foreach (var score in wordScores.OrderBy(it => it.Word)) {
     Console.WriteLine($"{score.Word} {score.Value}");
 }
 int total = wordScores.Sum(it => it.Value);
@@ -86,40 +86,41 @@ class Scrabble {
     public List<Score> ComputeScore(out int? bonus) {
         List<Score> scores = [];
         foreach (var point in newTiles.Where(point => !scores.Any(it => it.Points.Contains(point)))) {
-            var (start, direction) = FindWordStart(point);
-            var score = new Score();
-            for (var current = start; current.InBounds(width, height); current += direction) {
-                var cell = board[current.X, current.Y];
-                if (cell.Tile == null) {
-                    break;
+            foreach (var (start, direction) in FindWordStart(point)) {
+                var score = new Score();
+                for (var current = start; current.InBounds(width, height); current += direction) {
+                    var cell = board[current.X, current.Y];
+                    if (cell.Tile == null) {
+                        break;
+                    }
+                    score.Add(tileScores[cell.Tile!.Value], cell, newTiles.Contains(current));
+                    score.Points.Add(current);
                 }
-                score.Add(tileScores[cell.Tile!.Value], cell);
-                score.Points.Add(current);
+                scores.Add(score);
             }
-            scores.Add(score);
         }
         bonus = newTiles.Count >= BONUS_TILES ? BONUS_SCORE : null;
         return scores;
     }
 
-    (Point point, Point direction) FindWordStart(Point point) {
-        (Point point, Point direction) start = default;
+    IEnumerable<(Point point, Point direction)> FindWordStart(Point point) {
         foreach (var direction in Screen.Directions4) {
             var neighbor = point + direction;
             if (!neighbor.InBounds(width, height) || board[neighbor.X, neighbor.Y].Tile == null) {
                 continue;
             }
             if (direction == Screen.RIGHT || direction == Screen.DOWN) {
-                start = (point, direction);
-                break;
+                yield return (point, direction);
+                continue;
             }
+            (Point point, Point direction) start = default;
             for (var current = neighbor;
                     current.InBounds(width, height) && board[current.X, current.Y].Tile != null;
                     current += direction) {
                 start = (current, direction * -1);
             }
+            yield return start;
         }
-        return start;
     }
 }
 
@@ -141,7 +142,7 @@ class Score {
     public int Value => value * multiplier;
     public HashSet<Point> Points { get; } = [];
 
-    public void Add(int score, Cell cell) {
+    public void Add(int score, Cell cell, bool newTile) {
         Word += cell.Tile;
         (int letterMultiplier, int wordMultiplier) = cell.Type switch {
             CellType.DoubleLetter => (2, 1),
@@ -150,8 +151,8 @@ class Score {
             CellType.TripleWord => (1, 3),
             _ => (1, 1)
         };
-        value += score * letterMultiplier;
-        multiplier *= wordMultiplier;
+        value += score * (newTile ? letterMultiplier : 1);
+        multiplier *= newTile ? wordMultiplier : 1;
     }
 }
 
