@@ -39,28 +39,34 @@ class Board {
     }
 
     public void PlayBestMove() {
-        for (var y = 0; y < SIZE; y++) {
-            for (var x = 0; x < SIZE; x++) {
-                if (squares[x, y] != Square.EMPTY || !HasLineWithTwoSquares(x, y, player)) {
-                    continue;
-                }
-                squares[x, y] = player;
-                return;
-            }
+        var point = FindBestMove(PlayerCanWin);
+        point ??= FindBestMove(EnemyCanWin);
+        if (!point.HasValue) {
+            Console.Error.WriteLine("No best move");
+            return;
         }
-        for (var y = 0; y < SIZE; y++) {
-            for (var x = 0; x < SIZE; x++) {
-                if (squares[x, y] != Square.EMPTY || !HasLineWithTwoSquares(x, y, enemy)) {
-                    continue;
-                }
-                squares[x, y] = player;
-                return;
-            }
-        }
+        (int x, int y) = point.Value;
+        squares[x, y] = player;
+        return;
+
+        bool PlayerCanWin(Point cell) => HasLineWithTwoSquares(cell, player);
+        bool EnemyCanWin(Point cell) => HasLineWithTwoSquares(cell, enemy);
     }
 
-    bool HasLineWithTwoSquares(int x, int y, char square) {
-        var point = new Point(x, y);
+    Point? FindBestMove(Predicate<Point> predicate) {
+        for (var y = 0; y < SIZE; y++) {
+            for (var x = 0; x < SIZE; x++) {
+                var point = new Point(x, y);
+                if (squares[x, y] != Square.EMPTY || !predicate(point)) {
+                    continue;
+                }
+                return point;
+            }
+        }
+        return null;
+    }
+
+    bool HasLineWithTwoSquares(Point point, char square) {
         return lines.Where(it => it.Contains(point))
                 .Select(line => line.Count(it => squares[it.X, it.Y] == square))
                 .Any(count => count == 2);
