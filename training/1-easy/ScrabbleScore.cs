@@ -8,14 +8,21 @@ using System.Linq;
 var scrabble = new Scrabble();
 scrabble.ReadTileScores();
 scrabble.ReadBoard();
-var wordScores = scrabble.ComputeScore();
+var wordScores = scrabble.ComputeScore(out bool bonus);
 foreach (var score in wordScores) {
     Console.WriteLine($"{score.Word} {score.Value}");
 }
-Console.WriteLine($"Total {wordScores.Sum(it => it.Value)}");
+int total = wordScores.Sum(it => it.Value);
+if (bonus) {
+    total += Scrabble.BONUS_SCORE;
+    Console.WriteLine($"Bonus {Scrabble.BONUS_SCORE}");
+}
+Console.WriteLine($"Total {total}");
 
 class Scrabble {
     const char EMPTY = '.';
+    const int BONUS_TILES = 7;
+    public const int BONUS_SCORE = 50;
 
     readonly Dictionary<char, int> tileScores = [];
     int width, height;
@@ -76,7 +83,7 @@ class Scrabble {
         }
     }
 
-    public List<Score> ComputeScore() {
+    public List<Score> ComputeScore(out bool bonus) {
         List<Score> scores = [];
         foreach (var point in newTiles.Where(point => !scores.Any(it => it.Points.Contains(point)))) {
             var (start, direction) = FindWordStart(point);
@@ -92,6 +99,7 @@ class Scrabble {
             }
             scores.Add(score);
         }
+        bonus = newTiles.Count >= BONUS_TILES;
         return scores;
     }
 
