@@ -11,13 +11,14 @@ var wordScores = scrabble.ComputeScore();
 foreach ((string word, int score) in wordScores) {
     Console.WriteLine($"{word} {score}");
 }
-Console.WriteLine($"Total {wordScores.Sum(it => it.score)}");
+Console.WriteLine($"Total {wordScores.Sum(it => it.Value)}");
 
 class Scrabble {
     const char EMPTY = '.';
 
     readonly Dictionary<char, int> tileScores = [];
     Cell[,] board = null!;
+    readonly List<Point> newTiles = [];
 
     public void ReadTileScores() {
         int tiles = Math.Clamp(int.Parse(Console.ReadLine()!), 2, 30);
@@ -38,17 +39,18 @@ class Scrabble {
                 if (c == EMPTY) {
                     continue;
                 }
-                board[x, y].TileAlreadyPlayed = c;
+                board[x, y].Tile = c;
             }
         }
         for (var y = 0; y < board.GetLength(1); y++) {
             string playedWordBoardRow = Console.ReadLine()!;
             for (var x = 0; x < board.GetLength(0); x++) {
                 char c = playedWordBoardRow[x];
-                if (c == EMPTY) {
+                if (c == EMPTY || c == board[x, y].Tile) {
                     continue;
                 }
-                board[x, y].TileAfterPlay = c;
+                board[x, y].Tile = c;
+                newTiles.Add(new Point(x, y));
             }
         }
     }
@@ -72,14 +74,11 @@ class Scrabble {
         }
     }
 
-    public List<(string word, int score)> ComputeScore() {
-        return [("OF", 5)];
-    }
+    public List<Score> ComputeScore() => [new("OF", 5)];
 }
 
 record Cell(CellType Type) {
-    public char? TileAlreadyPlayed { get; set; }
-    public char? TileAfterPlay { get; set; }
+    public char? Tile { get; set; }
 }
 
 enum CellType {
@@ -89,3 +88,7 @@ enum CellType {
     DoubleWord,
     TripleWord
 }
+
+record Score(string Word, int Value);
+
+readonly record struct Point(int X, int Y);
