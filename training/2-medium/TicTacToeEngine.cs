@@ -43,37 +43,40 @@ class Board {
     char Get(Point point) => squares[point.X, point.Y];
     void Set(Point point, char square) => squares[point.X, point.Y] = square;
 
-    public void PlayBestMove() {
-        var points = EmptySquares(PlayerCanWin)
-                .Concat(EmptySquares(EnemyCanWin))
-                .Concat(EmptySquares(PlayerCanWinNext))
-                .ToArray();
-        if (points.Length == 0) {
-            Console.Error.WriteLine("No best move");
-            return;
+    /// Backtracking
+    public bool PlayBestMove() {
+        var points = EmptySquares(PlayerCanWin).Concat(EmptySquares(EnemyCanWin)).ToArray();
+        if (points.Length > 0) {
+            Set(points.First(), player);
+            return true;
         }
-        Set(points.First(), player);
-        return;
+        foreach (var playerPoint in EmptySquares()) {
+            Set(playerPoint, player);
+            foreach (var enemyPoint in EmptySquares()) {
+                Set(enemyPoint, enemy);
+                if (PlayBestMove()) {
+                    Set(playerPoint, Square.EMPTY);
+                    Set(enemyPoint, Square.EMPTY);
+                    return true;
+                }
+                Set(enemyPoint, Square.EMPTY);
+            }
+            Set(playerPoint, Square.EMPTY);
+        }
+        return false;
 
         bool PlayerCanWin(Point cell) => HasLineWithTwoSquares(cell, player);
         bool EnemyCanWin(Point cell) => HasLineWithTwoSquares(cell, enemy);
-
-        bool PlayerCanWinNext(Point cell) {
-            var nextLines = lines.Where(it => it.Contains(cell))
-                    .Where(line => line.Any(it => squares[it.X, it.Y] == player))
-                    .Where(line => line.Any(it => squares[it.X, it.Y] == Square.EMPTY));
-            return nextLines.Count() >= 2;
-        }
     }
 
-    IEnumerable<Point> EmptySquares(Predicate<Point> predicate) {
+    IEnumerable<Point> EmptySquares(Predicate<Point>? predicate = null) {
         for (var y = 0; y < SIZE; y++) {
             for (var x = 0; x < SIZE; x++) {
                 var point = new Point(x, y);
                 if (Get(point) != Square.EMPTY) {
                     continue;
                 }
-                if (!predicate(point)) {
+                if (predicate != null && !predicate(point)) {
                     continue;
                 }
                 yield return point;
