@@ -84,6 +84,9 @@ class Scrabble {
         int score = tileScores[cell.Tile!.Value];
         foreach (var direction in Point.Directions4) {
             var neighbor = point + direction;
+            if (!neighbor.InBounds(width, height)) {
+                continue;
+            }
             var cellNeighbor = board[neighbor.X, neighbor.Y];
             if (cellNeighbor.Tile == null) {
                 continue;
@@ -121,6 +124,10 @@ readonly record struct Point(int X, int Y) {
     public static readonly Point RIGHT = new(1, 0);
 
     public static Point[] Directions4 { get; } = [RIGHT, LEFT, UP, DOWN];
+
+    public bool InBounds(int width, int height) {
+        return X >= 0 && X < width && Y >= 0 && Y < height;
+    }
 
     public static Point operator +(Point a, Point b) => new(a.X + b.X, a.Y + b.Y);
 }
