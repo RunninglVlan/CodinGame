@@ -41,6 +41,7 @@ class Board {
     public void PlayBestMove() {
         var point = FindBestMove(PlayerCanWin);
         point ??= FindBestMove(EnemyCanWin);
+        point ??= FindBestMove(PlayerCanWinNext);
         if (!point.HasValue) {
             Console.Error.WriteLine("No best move");
             return;
@@ -51,6 +52,13 @@ class Board {
 
         bool PlayerCanWin(Point cell) => HasLineWithTwoSquares(cell, player);
         bool EnemyCanWin(Point cell) => HasLineWithTwoSquares(cell, enemy);
+
+        bool PlayerCanWinNext(Point cell) {
+            var nextLines = lines.Where(it => it.Contains(cell))
+                    .Where(line => line.Any(it => squares[it.X, it.Y] == player))
+                    .Where(line => line.Any(it => squares[it.X, it.Y] == Square.EMPTY));
+            return nextLines.Count() >= 2;
+        }
     }
 
     Point? FindBestMove(Predicate<Point> predicate) {
