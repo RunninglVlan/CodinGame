@@ -62,9 +62,12 @@ class Board {
     void Set(Point point, char square) => squares[point.X, point.Y] = square;
 
     public void PlayBestMove() {
+        if (Squares(PlayerWon).Any() || Squares(EnemyWon).Any()) {
+            return;
+        }
         var moves = FindBestMoves([]).ToArray();
         if (moves.Length == 0) {
-            var blockingMoves = NextMoves(EnemyCanWin).ToArray();
+            var blockingMoves = Squares(EnemyCanWin).ToArray();
             if (blockingMoves.Length > 0) {
                 Set(blockingMoves.First(), player);
             }
@@ -82,18 +85,18 @@ class Board {
 
     /// Backtracking
     IEnumerable<List<Point>> FindBestMoves(List<Point> path) {
-        var winningMoves = NextMoves(PlayerCanWin).ToArray();
+        var winningMoves = Squares(PlayerCanWin).ToArray();
         if (winningMoves.Length > 0) {
             yield return [.. path, winningMoves.First()];
             yield break;
         }
-        foreach (var playerMove in NextMoves()) {
+        foreach (var playerMove in Squares(IsEmpty)) {
             Set(playerMove, player);
-            if (NextMoves(EnemyCanWin).Any()) {
+            if (Squares(EnemyCanWin).Any()) {
                 Set(playerMove, Square.EMPTY);
                 continue;
             }
-            foreach (var enemyMove in NextMoves(PlayerCanWin)) {
+            foreach (var enemyMove in Squares(PlayerCanWin)) {
                 Set(enemyMove, enemy);
                 foreach (var moves in FindBestMoves([.. path, playerMove])) {
                     yield return moves;
@@ -104,28 +107,27 @@ class Board {
         }
     }
 
-    bool PlayerCanWin(Point point) => HasLineWithTwoSquares(point, player);
-    bool EnemyCanWin(Point point) => HasLineWithTwoSquares(point, enemy);
+    bool IsEmpty(Point point) => Get(point) == Square.EMPTY;
+    bool PlayerCanWin(Point point) => IsEmpty(point) && HasLineWithNumberOfSquares(point, player, 2);
+    bool EnemyCanWin(Point point) => IsEmpty(point) && HasLineWithNumberOfSquares(point, enemy, 2);
+    bool PlayerWon(Point point) => HasLineWithNumberOfSquares(point, player, 3);
+    bool EnemyWon(Point point) => HasLineWithNumberOfSquares(point, enemy, 3);
 
-    IEnumerable<Point> NextMoves(Predicate<Point>? predicate = null) {
+    static IEnumerable<Point> Squares(Predicate<Point> predicate) {
         for (var y = 0; y < SIZE; y++) {
             for (var x = 0; x < SIZE; x++) {
                 var point = new Point(x, y);
-                if (Get(point) != Square.EMPTY) {
-                    continue;
+                if (predicate(point)) {
+                    yield return point;
                 }
-                if (predicate != null && !predicate(point)) {
-                    continue;
-                }
-                yield return point;
             }
         }
     }
 
-    bool HasLineWithTwoSquares(Point point, char playerSquare) {
+    bool HasLineWithNumberOfSquares(Point point, char playerSquare, int number) {
         return LINES.Where(it => it.Contains(point))
                 .Select(line => line.Count(it => Get(it) == playerSquare))
-                .Any(count => count == 2);
+                .Any(count => count == number);
     }
 
     public void Print() {
