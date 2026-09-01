@@ -115,6 +115,8 @@ readonly record struct Point(int X, int Y) {
 }
 
 static class Debug {
+    const int TAB_LENGTH = 2;
+
     /// Reads line from Console and also writes it to Console.Error
     public static string? ReadLine() {
         string? line = Console.ReadLine();
@@ -122,7 +124,10 @@ static class Debug {
         return line;
     }
 
-    public static void Log(object? line = null) {
-        Console.Error.WriteLine(line);
+    public static void Log(object? line = null, int tab = 0, ConsoleColor? color = null) {
+        Console.ForegroundColor = color ?? ConsoleColor.Red;
+        var padding = new string(' ', tab * TAB_LENGTH);
+        Console.Error.WriteLine($"{padding}{line}");
+        Console.ResetColor();
     }
 }
