@@ -11,10 +11,7 @@ board.Print();
 class Board {
     const int SIZE = 3;
 
-    char player, enemy;
-    readonly char[,] squares = new char[SIZE, SIZE];
-
-    readonly Point[][] lines = [
+    static readonly Point[][] LINES = [
         // rows
         [Point.ZERO, Point.RIGHT, Point.RIGHT * 2],
         [Point.UP, Point.ONE, Point.RIGHT * 2 + Point.UP],
@@ -27,6 +24,9 @@ class Board {
         [Point.ZERO, Point.ONE, Point.ONE * 2],
         [Point.RIGHT * 2, Point.ONE, Point.UP * 2]
     ];
+
+    char player, enemy;
+    readonly char[,] squares = new char[SIZE, SIZE];
 
     public void Read() {
         player = Debug.ReadLine()!.First();
@@ -85,7 +85,7 @@ class Board {
     }
 
     bool HasLineWithTwoSquares(Point point, char square) {
-        return lines.Where(it => it.Contains(point))
+        return LINES.Where(it => it.Contains(point))
                 .Select(line => line.Count(it => Get(it) == square))
                 .Any(count => count == 2);
     }
