@@ -25,6 +25,24 @@ class Board {
         [Point.RIGHT * 2, Point.ONE, Point.UP * 2]
     ];
 
+    /// Priorities on the screen: <code>
+    /// 8 | 4 | 7 
+    ///---+---+---
+    /// 3 | 9 | 2 
+    ///---+---+---
+    /// 6 | 1 | 5 </code>
+    static readonly Point[] PRIORITIES = [
+        Point.ONE,
+        Point.ZERO,
+        Point.RIGHT * 2,
+        Point.UP * 2,
+        Point.UP * 2 + Point.RIGHT * 2,
+        Point.RIGHT,
+        Point.UP,
+        Point.UP + Point.RIGHT * 2,
+        Point.UP * 2 + Point.RIGHT
+    ];
+
     char player, enemy;
     readonly char[,] squares = new char[SIZE, SIZE];
 
@@ -43,30 +61,50 @@ class Board {
     char Get(Point point) => squares[point.X, point.Y];
     void Set(Point point, char square) => squares[point.X, point.Y] = square;
 
+    public void PlayBestMove() {
+        var moves = FindBestMoves(PlayerCanWin, EnemyCanWin, []).ToArray();
+        if (moves.Length == 0) {
+            var blockingMoves = EmptySquares(EnemyCanWin).ToArray();
+            if (blockingMoves.Length > 0) {
+                Set(blockingMoves.First(), player);
+            }
+            return;
+        }
+        var movesWithLeastTurns = moves.GroupBy(it => it.Count).First().ToArray();
+        foreach (var point in PRIORITIES) {
+            if (movesWithLeastTurns.Select(it => it.First()).Contains(point)) {
+                Set(point, player);
+                return;
+            }
+        }
+        return;
+
+        bool PlayerCanWin(Point cell) => HasLineWithTwoSquares(cell, player);
+        bool EnemyCanWin(Point cell) => HasLineWithTwoSquares(cell, enemy);
+    }
+
     /// Backtracking
-    public bool PlayBestMove() {
-        var points = EmptySquares(PlayerCanWin).Concat(EmptySquares(EnemyCanWin)).ToArray();
+    IEnumerable<List<Point>> FindBestMoves(Predicate<Point> winning, Predicate<Point> losing, List<Point> path) {
+        var points = EmptySquares(winning).ToArray();
         if (points.Length > 0) {
-            Set(points.First(), player);
-            return true;
+            yield return [.. path, points.First()];
+            yield break;
         }
         foreach (var playerPoint in EmptySquares()) {
             Set(playerPoint, player);
-            foreach (var enemyPoint in EmptySquares()) {
+            if (EmptySquares(losing).Any()) {
+                Set(playerPoint, Square.EMPTY);
+                continue;
+            }
+            foreach (var enemyPoint in EmptySquares(winning)) {
                 Set(enemyPoint, enemy);
-                if (PlayBestMove()) {
-                    Set(playerPoint, Square.EMPTY);
-                    Set(enemyPoint, Square.EMPTY);
-                    return true;
+                foreach (var result in FindBestMoves(winning, losing, [.. path, playerPoint])) {
+                    yield return result;
                 }
                 Set(enemyPoint, Square.EMPTY);
             }
             Set(playerPoint, Square.EMPTY);
         }
-        return false;
-
-        bool PlayerCanWin(Point cell) => HasLineWithTwoSquares(cell, player);
-        bool EnemyCanWin(Point cell) => HasLineWithTwoSquares(cell, enemy);
     }
 
     IEnumerable<Point> EmptySquares(Predicate<Point>? predicate = null) {
