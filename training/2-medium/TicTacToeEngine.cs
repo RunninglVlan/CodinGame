@@ -62,52 +62,52 @@ class Board {
     void Set(Point point, char square) => squares[point.X, point.Y] = square;
 
     public void PlayBestMove() {
-        var moves = FindBestMoves(PlayerCanWin, EnemyCanWin, []).ToArray();
+        var moves = FindBestMoves([]).ToArray();
         if (moves.Length == 0) {
-            var blockingMoves = EmptySquares(EnemyCanWin).ToArray();
+            var blockingMoves = NextMoves(EnemyCanWin).ToArray();
             if (blockingMoves.Length > 0) {
                 Set(blockingMoves.First(), player);
             }
             return;
         }
         var movesWithLeastTurns = moves.GroupBy(it => it.Count).First().ToArray();
-        foreach (var point in PRIORITIES) {
-            if (movesWithLeastTurns.Select(it => it.First()).Contains(point)) {
-                Set(point, player);
-                return;
+        foreach (var square in PRIORITIES) {
+            if (!movesWithLeastTurns.Select(it => it.First()).Contains(square)) {
+                continue;
             }
+            Set(square, player);
+            return;
         }
-        return;
-
-        bool PlayerCanWin(Point cell) => HasLineWithTwoSquares(cell, player);
-        bool EnemyCanWin(Point cell) => HasLineWithTwoSquares(cell, enemy);
     }
 
     /// Backtracking
-    IEnumerable<List<Point>> FindBestMoves(Predicate<Point> winning, Predicate<Point> losing, List<Point> path) {
-        var points = EmptySquares(winning).ToArray();
-        if (points.Length > 0) {
-            yield return [.. path, points.First()];
+    IEnumerable<List<Point>> FindBestMoves(List<Point> path) {
+        var winningMoves = NextMoves(PlayerCanWin).ToArray();
+        if (winningMoves.Length > 0) {
+            yield return [.. path, winningMoves.First()];
             yield break;
         }
-        foreach (var playerPoint in EmptySquares()) {
-            Set(playerPoint, player);
-            if (EmptySquares(losing).Any()) {
-                Set(playerPoint, Square.EMPTY);
+        foreach (var playerMove in NextMoves()) {
+            Set(playerMove, player);
+            if (NextMoves(EnemyCanWin).Any()) {
+                Set(playerMove, Square.EMPTY);
                 continue;
             }
-            foreach (var enemyPoint in EmptySquares(winning)) {
-                Set(enemyPoint, enemy);
-                foreach (var result in FindBestMoves(winning, losing, [.. path, playerPoint])) {
-                    yield return result;
+            foreach (var enemyMove in NextMoves(PlayerCanWin)) {
+                Set(enemyMove, enemy);
+                foreach (var moves in FindBestMoves([.. path, playerMove])) {
+                    yield return moves;
                 }
-                Set(enemyPoint, Square.EMPTY);
+                Set(enemyMove, Square.EMPTY);
             }
-            Set(playerPoint, Square.EMPTY);
+            Set(playerMove, Square.EMPTY);
         }
     }
 
-    IEnumerable<Point> EmptySquares(Predicate<Point>? predicate = null) {
+    bool PlayerCanWin(Point point) => HasLineWithTwoSquares(point, player);
+    bool EnemyCanWin(Point point) => HasLineWithTwoSquares(point, enemy);
+
+    IEnumerable<Point> NextMoves(Predicate<Point>? predicate = null) {
         for (var y = 0; y < SIZE; y++) {
             for (var x = 0; x < SIZE; x++) {
                 var point = new Point(x, y);
@@ -122,9 +122,9 @@ class Board {
         }
     }
 
-    bool HasLineWithTwoSquares(Point point, char square) {
+    bool HasLineWithTwoSquares(Point point, char playerSquare) {
         return LINES.Where(it => it.Contains(point))
-                .Select(line => line.Count(it => Get(it) == square))
+                .Select(line => line.Count(it => Get(it) == playerSquare))
                 .Any(count => count == 2);
     }
 
