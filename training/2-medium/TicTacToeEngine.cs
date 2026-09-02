@@ -13,34 +13,34 @@ class Board {
 
     static readonly Point[][] LINES = [
         // rows
-        [Point.ZERO, Point.RIGHT, Point.RIGHT * 2],
-        [Point.UP, Point.ONE, Point.RIGHT * 2 + Point.UP],
-        [Point.UP * 2, Point.UP * 2 + Point.RIGHT, Point.ONE * 2],
+        [Screen.ZERO, Screen.RIGHT, Screen.RIGHT * 2],
+        [Screen.DOWN, Screen.ONE, Screen.RIGHT * 2 + Screen.DOWN],
+        [Screen.DOWN * 2, Screen.DOWN * 2 + Screen.RIGHT, Screen.ONE * 2],
         // columns
-        [Point.ZERO, Point.UP, Point.UP * 2],
-        [Point.RIGHT, Point.ONE, Point.UP * 2 + Point.RIGHT],
-        [Point.RIGHT * 2, Point.RIGHT * 2 + Point.UP, Point.ONE * 2],
+        [Screen.ZERO, Screen.DOWN, Screen.DOWN * 2],
+        [Screen.RIGHT, Screen.ONE, Screen.DOWN * 2 + Screen.RIGHT],
+        [Screen.RIGHT * 2, Screen.RIGHT * 2 + Screen.DOWN, Screen.ONE * 2],
         // diagonals
-        [Point.ZERO, Point.ONE, Point.ONE * 2],
-        [Point.RIGHT * 2, Point.ONE, Point.UP * 2]
+        [Screen.ZERO, Screen.ONE, Screen.ONE * 2],
+        [Screen.RIGHT * 2, Screen.ONE, Screen.DOWN * 2]
     ];
 
-    /// Priorities on the screen: <code>
+    /// <code>
     /// 8 | 4 | 7 
     ///---+---+---
     /// 3 | 9 | 2 
     ///---+---+---
     /// 6 | 1 | 5 </code>
-    static readonly Point[] PRIORITIES = [
-        Point.ONE,
-        Point.ZERO,
-        Point.RIGHT * 2,
-        Point.UP * 2,
-        Point.UP * 2 + Point.RIGHT * 2,
-        Point.RIGHT,
-        Point.UP,
-        Point.UP + Point.RIGHT * 2,
-        Point.UP * 2 + Point.RIGHT
+    static readonly Point[] SQUARE_PRIORITIES = [
+        Screen.ONE,
+        Screen.ZERO,
+        Screen.RIGHT * 2,
+        Screen.DOWN * 2,
+        Screen.DOWN * 2 + Screen.RIGHT * 2,
+        Screen.RIGHT,
+        Screen.DOWN,
+        Screen.DOWN + Screen.RIGHT * 2,
+        Screen.DOWN * 2 + Screen.RIGHT
     ];
 
     char player, enemy;
@@ -74,7 +74,7 @@ class Board {
             return;
         }
         var movesWithLeastTurns = moves.GroupBy(it => it.Count).First().ToArray();
-        foreach (var square in PRIORITIES) {
+        foreach (var square in SQUARE_PRIORITIES) {
             if (!movesWithLeastTurns.Select(it => it.First()).Contains(square)) {
                 continue;
             }
@@ -145,13 +145,15 @@ static class Square {
 }
 
 readonly record struct Point(int X, int Y) {
-    public static readonly Point ZERO = new(0, 0);
-    public static readonly Point ONE = new(1, 1);
-    public static readonly Point UP = new(0, 1);
-    public static readonly Point RIGHT = new(1, 0);
-
     public static Point operator +(Point a, Point b) => new(a.X + b.X, a.Y + b.Y);
     public static Point operator *(Point a, int value) => new(a.X * value, a.Y * value);
+}
+
+static class Screen {
+    public static readonly Point ZERO = new(0, 0);
+    public static readonly Point ONE = new(1, 1);
+    public static readonly Point DOWN = new(0, 1);
+    public static readonly Point RIGHT = new(1, 0);
 }
 
 static class Debug {

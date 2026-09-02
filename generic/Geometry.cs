@@ -100,6 +100,8 @@ readonly record struct Vector(double X, double Y) {
 }
 
 static class Screen {
+    public static readonly Point ZERO = new(0, 0);
+    public static readonly Point ONE = new(1, 1);
     public static readonly Point UP = new(0, -1);
     public static readonly Point DOWN = new(0, 1);
     public static readonly Point LEFT = new(-1, 0);
