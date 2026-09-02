@@ -8,6 +8,8 @@ board.Read();
 board.PlayBestMove();
 board.Print();
 
+// todo: when priorities will be used again, refactor the logic
+// todo: remove extra debug from submission, like point to string, log turns, enemy moves
 class Board {
     const int SIZE = 3;
 
@@ -62,44 +64,66 @@ class Board {
     void Set(Point point, char square) => squares[point.X, point.Y] = square;
 
     public void PlayBestMove() {
-        if (Squares(PlayerWon).Any() || Squares(EnemyWon).Any()) {
+        if (GameOver() is not null) {
             return;
         }
-        var moves = FindBestMoves([]).ToArray();
-        if (moves.Length == 0) {
-            var blockingMoves = Squares(EnemyCanWin).ToArray();
-            if (blockingMoves.Length > 0) {
-                Set(blockingMoves.First(), player);
-            }
+        var games = SimulateGames(new GameState([]))
+                .GroupBy(it => it.First)
+                .Select(firstGroup => {
+                    var result = new Dictionary<GameResult, (GameState[] states, float chance)>();
+                    var resultGroups = firstGroup.GroupBy(it => it.Result).ToArray();
+                    foreach (var resultGroup in resultGroups) {
+                        float chance = resultGroup.Count() / (float)resultGroups.Select(it => it.Count()).Sum();
+                        result.Add(resultGroup.Key!.Value, ([.. resultGroup], chance));
+                    }
+                    return result;
+                }).ToArray();
+        var winningGames = games
+                .Where(it => it.ContainsKey(GameResult.PlayerWon))
+                .ToArray();
+        if (winningGames.Length == 0) {
+            var bestLosingMove = games
+                    .SelectMany(it => it)
+                    .OrderByDescending(it => it.Value.chance)
+                    .SelectMany(it => it.Value.states)
+                    .OrderByDescending(it => it.Turns)
+                    .Select(it => it.First)
+                    .First();
+            Set(bestLosingMove, player);
             return;
         }
-        var movesWithLeastTurns = moves.GroupBy(it => it.Count).First().ToArray();
-        foreach (var square in SQUARE_PRIORITIES) {
-            if (!movesWithLeastTurns.Select(it => it.First()).Contains(square)) {
-                continue;
-            }
-            Set(square, player);
-            return;
-        }
+        var bestWinningMove = winningGames
+                .SelectMany(it => it)
+                .OrderByDescending(it => it.Value.chance)
+                .SelectMany(it => it.Value.states)
+                .OrderBy(it => it.Turns)
+                .Select(it => it.First)
+                .First();
+        Set(bestWinningMove, player);
     }
 
     /// Backtracking
-    IEnumerable<List<Point>> FindBestMoves(List<Point> path) {
-        var winningMoves = Squares(PlayerCanWin).ToArray();
-        if (winningMoves.Length > 0) {
-            yield return [.. path, winningMoves.First()];
-            yield break;
-        }
-        foreach (var playerMove in Squares(IsEmpty)) {
+    IEnumerable<GameState> SimulateGames(GameState state) {
+        foreach (var playerMove in Squares(it => CanPotentiallyWin(it, player, enemy))) {
             Set(playerMove, player);
-            if (Squares(EnemyCanWin).Any()) {
+            var gameResult = GameOver();
+            var nextWithPlayer = new GameState([.. state.Moves, (player, playerMove)]);
+            if (gameResult is not null) {
                 Set(playerMove, Square.EMPTY);
+                yield return nextWithPlayer with { Result = gameResult.Value };
                 continue;
             }
-            foreach (var enemyMove in Squares(PlayerCanWin)) {
+            foreach (var enemyMove in Squares(it => PlayerCanWin(it) || EnemyCanWin(it))) {
                 Set(enemyMove, enemy);
-                foreach (var moves in FindBestMoves([.. path, playerMove])) {
-                    yield return moves;
+                gameResult = GameOver();
+                var nextWithEnemy = new GameState([.. nextWithPlayer.Moves, (enemy, enemyMove)]);
+                if (gameResult is not null) {
+                    Set(enemyMove, Square.EMPTY);
+                    yield return nextWithEnemy with { Result = gameResult.Value };
+                    continue;
+                }
+                foreach (var nextMoves in SimulateGames(nextWithEnemy)) {
+                    yield return nextMoves;
                 }
                 Set(enemyMove, Square.EMPTY);
             }
@@ -107,11 +131,34 @@ class Board {
         }
     }
 
+    GameResult? GameOver() {
+        if (Squares(PlayerWon).Any()) {
+            return GameResult.PlayerWon;
+        }
+        if (Squares(EnemyWon).Any()) {
+            return GameResult.EnemyWon;
+        }
+        if (!Squares(IsEmpty).Any()) {
+            return GameResult.Draw;
+        }
+        return null;
+    }
+
     bool IsEmpty(Point point) => Get(point) == Square.EMPTY;
     bool PlayerCanWin(Point point) => IsEmpty(point) && HasLineWithNumberOfSquares(point, player, 2);
     bool EnemyCanWin(Point point) => IsEmpty(point) && HasLineWithNumberOfSquares(point, enemy, 2);
     bool PlayerWon(Point point) => HasLineWithNumberOfSquares(point, player, 3);
     bool EnemyWon(Point point) => HasLineWithNumberOfSquares(point, enemy, 3);
+
+    bool CanPotentiallyWin(Point point, char playerSquare, char enemySquare) {
+        if (!IsEmpty(point)) {
+            return false;
+        }
+        return LINES
+                .Where(it => it.Contains(point))
+                .Where(line => line.Any(it => squares[it.X, it.Y] == playerSquare))
+                .Any(line => line.Any(it => squares[it.X, it.Y] != enemySquare));
+    }
 
     static IEnumerable<Point> Squares(Predicate<Point> predicate) {
         for (var y = 0; y < SIZE; y++) {
@@ -136,6 +183,22 @@ class Board {
             Console.WriteLine(string.Concat(line));
         }
     }
+
+    static ConsoleColor Color(int turns) => turns switch {
+        0 => ConsoleColor.Red,
+        1 => ConsoleColor.Green,
+        2 => ConsoleColor.Blue,
+        3 => ConsoleColor.Cyan,
+        4 => ConsoleColor.Magenta,
+        _ => ConsoleColor.Yellow
+    };
+
+    void LogBoard(int turns = 0, ConsoleColor? color = null) {
+        foreach (int y in Enumerable.Range(0, SIZE)) {
+            var line = Enumerable.Range(0, SIZE).Select(x => squares[x, y]);
+            Debug.Log($"{string.Concat(line)}", turns, color);
+        }
+    }
 }
 
 static class Square {
@@ -147,6 +210,21 @@ static class Square {
 readonly record struct Point(int X, int Y) {
     public static Point operator +(Point a, Point b) => new(a.X + b.X, a.Y + b.Y);
     public static Point operator *(Point a, int value) => new(a.X * value, a.Y * value);
+
+    public override string ToString() => $"({X}, {Y})";
+}
+
+readonly record struct GameState(List<(char square, Point point)> Moves, GameResult? Result = null) {
+    public int Turns => Moves.Count;
+    public Point First => Moves.First().point;
+
+    public override string ToString() => $"Moves: {string.Join(", ", Moves)}, Result: {Result}";
+}
+
+enum GameResult {
+    PlayerWon,
+    EnemyWon,
+    Draw
 }
 
 static class Screen {
