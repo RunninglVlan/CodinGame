@@ -132,7 +132,7 @@ class Board {
     void Set(Point point, char square) => squares[point.X, point.Y] = square;
 
     public void PlayBestMove() {
-        if (IsGameOver() is not null) {
+        if (GameOver() is not null) {
             return;
         }
         if (false) {
@@ -372,7 +372,7 @@ class Board {
                 continue;
             }
             Set(playerMove, player);
-            var gameResult = IsGameOver();
+            var gameResult = GameOver();
             var nextWithPlayer = new GameState([.. state.Moves, (player, playerMove)]);
             if (gameResult is not null) {
                 Set(playerMove, Square.EMPTY);
@@ -386,7 +386,7 @@ class Board {
             foreach (var enemyMove in Squares(it => PlayerCanWin(it) || EnemyCanWin(it))) { // block
             // foreach (var enemyMove in Squares(it => IsEmpty(it))) {
                 Set(enemyMove, enemy);
-                gameResult = IsGameOver();
+                gameResult = GameOver();
                 var nextWithEnemy = new GameState([.. nextWithPlayer.Moves, (enemy, enemyMove)]);
                 if (gameResult is not null) {
                     Set(enemyMove, Square.EMPTY);
@@ -402,7 +402,7 @@ class Board {
         }
     }
 
-    GameResult? IsGameOver() {
+    GameResult? GameOver() {
         if (Squares(PlayerWon).Any()) {
             return GameResult.PlayerWon;
         }
@@ -436,22 +436,6 @@ class Board {
                 Set(enemyMove, Square.EMPTY);
             }
             Set(playerMove, Square.EMPTY);
-        }
-    }
-
-    static ConsoleColor Color(int turns) => turns switch {
-        0 => ConsoleColor.Red,
-        1 => ConsoleColor.Green,
-        2 => ConsoleColor.Blue,
-        3 => ConsoleColor.Cyan,
-        4 => ConsoleColor.Magenta,
-        _ => ConsoleColor.Yellow
-    };
-
-    void LogBoard(int turns = 0, ConsoleColor? color = null) {
-        foreach (int y in Enumerable.Range(0, SIZE)) {
-            var line = Enumerable.Range(0, SIZE).Select(x => squares[x, y]);
-            Debug.Log($"{string.Concat(line)}", turns, color);
         }
     }
 
@@ -512,6 +496,22 @@ class Board {
         foreach (int y in Enumerable.Range(0, SIZE)) {
             var line = Enumerable.Range(0, SIZE).Select(x => squares[x, y]);
             Console.WriteLine(string.Concat(line));
+        }
+    }
+
+    static ConsoleColor Color(int turns) => turns switch {
+        0 => ConsoleColor.Red,
+        1 => ConsoleColor.Green,
+        2 => ConsoleColor.Blue,
+        3 => ConsoleColor.Cyan,
+        4 => ConsoleColor.Magenta,
+        _ => ConsoleColor.Yellow
+    };
+
+    void LogBoard(int turns = 0, ConsoleColor? color = null) {
+        foreach (int y in Enumerable.Range(0, SIZE)) {
+            var line = Enumerable.Range(0, SIZE).Select(x => squares[x, y]);
+            Debug.Log($"{string.Concat(line)}", turns, color);
         }
     }
 
