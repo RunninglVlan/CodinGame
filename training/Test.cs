@@ -118,10 +118,10 @@ class Board {
     readonly char[,] squares = new char[SIZE, SIZE];
 
     public void Read() {
-        player = Debug.ReadLine()!.First();
+        player = Console.ReadLine()!.First();
         enemy = player == Square.PLAYER_O ? Square.PLAYER_X : Square.PLAYER_O;
         for (var y = 0; y < SIZE; y++) {
-            string line = Debug.ReadLine()!;
+            string line = Console.ReadLine()!;
             for (var x = 0; x < SIZE; x++) {
                 squares[x, y] = line[x];
             }
@@ -135,194 +135,79 @@ class Board {
         if (GameOver() is not null) {
             return;
         }
-        if (false) {
-            var games = SimulateGames(new GameState([])).ToArray();
-            (float win, float lose) chances = (Chances(games, GameResult.PlayerWon), Chances(games, GameResult.EnemyWon));
-            Debug.Log($"initial win: {chances.win}, lose: {chances.lose}");
-            // i know original winning chances
-            // let's try any next move and compare
-            (Point? move, int minWin, int maxLose, float deltaWin, float deltaLose) best = (null, 0, 0, 0, 0);
-            foreach (var playerMove in Squares(IsEmpty)) {
-                var nextGames = SimulateGames(new GameState([]), playerMove).ToArray();
-                if (nextGames.Length == 0) {
-                    continue;
-                }
-                (float win, float lose) nextChances = (Chances(nextGames, GameResult.PlayerWon), Chances(nextGames, GameResult.EnemyWon));
-                float deltaWin = nextChances.win - chances.win;
-                float deltaLose = nextChances.lose - chances.lose;
-                var wonGames = nextGames.Where(it => it.Result == GameResult.PlayerWon).ToArray();
-                int minWin = wonGames.Length > 0 ? wonGames.Min(it => it.Turns) : int.MaxValue;
-                var lostGames = nextGames.Where(it => it.Result == GameResult.EnemyWon).ToArray();
-                int maxLose = lostGames.Length > 0 ? lostGames.Max(it => it.Turns) : int.MinValue;
-                Debug.Log($"next for {playerMove} minWin: {minWin}, win: {nextChances.win} ({deltaWin}), lose: {nextChances.lose} ({deltaLose}), maxLose: {maxLose}", 1, ConsoleColor.Green);
-                foreach (var turnGroup in wonGames.GroupBy(it => it.Turns)) {
-                    Debug.Log($"won Turns: {turnGroup.Key}, Count: {turnGroup.Count()}", 3, ConsoleColor.Cyan);
-                    // if (turnGroup.Key <= 1) {
-                    //     continue;
-                    // }
-                    // foreach (var movesGroup in turnGroup.GroupBy(it => (it.Moves[0], it.Moves[1]))) {
-                    //     Debug.Log($"Moves: {movesGroup.Key}, Count: {movesGroup.Count()}", 4, ConsoleColor.Magenta);
-                    // }
-                    // if (resultGroup.Key != GameResult.PlayerWon) {
-                    //     continue;
-                    // }
-                    // foreach (var gameState in turnGroup) {
-                    //     PrintGame(gameState);
-                    // }
-                }
-                foreach (var turnGroup in lostGames.GroupBy(it => it.Turns)) {
-                    Debug.Log($"lost Turns: {turnGroup.Key}, Count: {turnGroup.Count()}", 3, ConsoleColor.Cyan);
-                }
-                if (best.move == null
-                        || deltaWin > best.deltaWin && nextChances.win > nextChances.lose
-                        || deltaWin > 0 && minWin < best.minWin
-                        // || deltaLose < best.deltaLose
-                        || Mathf.Approximately(deltaLose, best.deltaLose) && maxLose > best.maxLose) {
-                    Debug.Log($"deltaWin > best.deltaWin && nextChances.win > nextChances.lose: {deltaWin > best.deltaWin && nextChances.win > nextChances.lose}", 2, deltaWin > best.deltaWin && nextChances.win > nextChances.lose ? ConsoleColor.Red : ConsoleColor.Blue);
-                    Debug.Log($"deltaWin > 0 && minWin < best.minWin: {deltaWin > 0 && minWin < best.minWin}", 2, deltaWin > 0 && minWin < best.minWin ? ConsoleColor.Red : ConsoleColor.Blue);
-                    // Debug.Log($"deltaLose < best.deltaLose: {deltaLose < best.deltaLose}", 2, deltaLose < best.deltaLose ? ConsoleColor.Red : ConsoleColor.Blue);
-                    Debug.Log($"Mathf.Approximately(deltaLose, best.deltaLose) && maxLose > best.maxLose: {Mathf.Approximately(deltaLose, best.deltaLose) && maxLose > best.maxLose}", 2, Mathf.Approximately(deltaLose, best.deltaLose) && maxLose > best.maxLose ? ConsoleColor.Red : ConsoleColor.Blue);
-                    best = (playerMove, minWin, maxLose, deltaWin, deltaLose);
-                    Debug.Log($"next best: {best}", 2, ConsoleColor.Blue);
-                }
-            }
-            Set(best.move!.Value, player);
-            return;
-
-            float Chances(GameState[] states, GameResult result) {
-                var all = states.GroupBy(it => it.Result).ToArray();
-                return all
-                        .Where(it => it.Key == result)
-                        .Select(won => won.Count() / (float)all/*.Where(it => it.Key != GameResult.Draw)*/.Select(it => it.Count()).Sum())
-                        .FirstOrDefault();
-            }
-        }
-        {
-            var games = SimulateGames(new GameState([])).ToArray();
-            Debug.Log($"Total games: {games.Length}");
-            var firstGroups = games.GroupBy(it => it.First).ToArray();
-            foreach (var square in SQUARE_PRIORITIES) {
-                var filtered = firstGroups.Where(group => group.Key == square).ToArray();
-                if (filtered.Length == 0) {
-                    continue;
-                }
-                var firstGroup = filtered.First();
-                // if (firstGroup.Key != Screen.ONE && firstGroup.Key != Screen.ONE * 2) {
-                //     continue;
-                // }
-                var resultGroups = firstGroup.GroupBy(it => it.Result).ToDictionary(it => it.Key, it => it);
-                Debug.Log($"First: {firstGroup.Key}, Count: {firstGroup.Count()}", 1, ConsoleColor.Green);
-                foreach (var resultGroup in resultGroups.OrderBy(it => it.Key)) {
-                    float chance = resultGroup.Value.Count() / (float)resultGroups.Select(it => it.Value.Count()).Sum();
-                    Debug.Log($"Result: {resultGroup.Key}, Count: {resultGroup.Value.Count()}, chance: {chance}", 2, ConsoleColor.Blue);
-                    foreach (var turnGroup in resultGroup.Value.GroupBy(it => it.Turns)) {
-                        Debug.Log($"Turns: {turnGroup.Key}, Count: {turnGroup.Count()}", 3, ConsoleColor.Cyan);
-                        // if (turnGroup.Key <= 1) {
-                        //     continue;
-                        // }
-                        // foreach (var movesGroup in turnGroup.GroupBy(it => (it.Moves[0], it.Moves[1]))) {
-                        //     Debug.Log($"Moves: {movesGroup.Key}, Count: {movesGroup.Count()}", 4, ConsoleColor.Magenta);
-                        // }
-                        // if (resultGroup.Key != GameResult.PlayerWon) {
-                        //     continue;
-                        // }
-                        // foreach (var gameState in turnGroup) {
-                        //     PrintGame(gameState);
-                        // }
+        var games = SimulateGames(new GameState([])).ToArray();
+        var gamesWithChances = games
+                .GroupBy(it => it.First)
+                .Select(firstGroup => {
+                    var result = new Dictionary<GameResult, (GameState[] states, float chance)>();
+                    var resultGroups = firstGroup.GroupBy(it => it.Result).ToArray();
+                    foreach (var resultGroup in resultGroups) {
+                        float chance = resultGroup.Count() / (float)resultGroups.Select(it => it.Count()).Sum();
+                        result.Add(resultGroup.Key!.Value, ([.. resultGroup], chance));
                     }
-                }
-            }
-            var gamesWithChances = games
-                    .GroupBy(it => it.First)
-                    .Select(firstGroup => {
-                        var result = new Dictionary<GameResult, (GameState[] states, float chance)>();
-                        var resultGroups = firstGroup.GroupBy(it => it.Result).ToArray();
-                        foreach (var resultGroup in resultGroups) {
-                            float chance = resultGroup.Count() / (float)resultGroups.Select(it => it.Count()).Sum();
-                            result.Add(resultGroup.Key!.Value, ([.. resultGroup], chance));
-                        }
-                        return result;
-                    }).ToArray();
-            var winningGames = gamesWithChances
-                    .Where(it => {
-                        return it.ContainsKey(GameResult.PlayerWon);
-                        float wonChance = it.GetValueOrDefault(GameResult.PlayerWon).chance;
-                        float lostChance = it.GetValueOrDefault(GameResult.EnemyWon).chance;
-                        return wonChance >= lostChance;
-                    })
-                    .ToArray();
-            if (winningGames.Length == 0) {
-                Debug.Log("bestLosingMove");
-                var bestLosingMove = gamesWithChances
-                        .SelectMany(it => it)
-                        .OrderByDescending(it => it.Value.chance)
-                        .SelectMany(it => it.Value.states)
-                        .OrderByDescending(it => it.Turns)
-                        .Select(it => it.First)
-                        .First();
-                Set(bestLosingMove, player);
-                return;
-            }
-            Debug.Log("bestWinningMove");
-            var bestWinningMove = winningGames
+                    return result;
+                }).ToArray();
+        var winningGames = WinningGames(gamesWithChances);
+        if (winningGames.Length == 0) {
+            Debug.Log("bestLosingMove");
+            var bestLosingMove = gamesWithChances
                     .SelectMany(it => it)
                     .OrderByDescending(it => it.Value.chance)
                     .SelectMany(it => it.Value.states)
-                    .OrderBy(it => it.Turns)
+                    .OrderByDescending(it => it.Turns)
                     .Select(it => it.First)
                     .First();
-            Set(bestWinningMove, player);
+            Set(bestLosingMove, player);
+            return;
         }
-        return;
-        {
-            List<Point>[] moves = [.. FindWinningMoves([])];
-            if (moves.Length == 0) {
-                var blockingMoves = Squares(EnemyCanWin).ToArray();
-                if (blockingMoves.Length > 0) {
-                    Set(blockingMoves.First(), player);
-                    return;
-                }
-                moves = [.. FindDrawMoves([])];
-                foreach (var pointse in moves.GroupBy(it => it.Count)) {
-                    Debug.Log($"Draw moves: {pointse.Key}");
-                    foreach (var grouping in pointse.GroupBy(it => it.First())) {
-                        Set(grouping.Key, player);
-                        LogBoard();
-                        Set(grouping.Key, Square.EMPTY);
-                        Debug.Log();
+        Debug.Log("bestWinningMove");
+        var firstGroups = winningGames
+                .SelectMany(it => it)
+                .SelectMany(it => it.Value.states)
+                .GroupBy(it => it.First)
+                .ToArray();
+        foreach (var square in SQUARE_PRIORITIES) {
+            var filtered = firstGroups.Where(group => group.Key == square).ToArray();
+            if (filtered.Length == 0) {
+                continue;
+            }
+            var firstGroup = filtered.First();
+            if (false) {
+                var resultGroups = firstGroup.GroupBy(it => it.Result).ToDictionary(it => it.Key, it => it);
+                Debug.Log($"First: {firstGroup.Key}, Count: {firstGroup.Count()}", 1, ConsoleColor.Green);
+                foreach (var resultGroup in resultGroups.OrderBy(it => it.Key)) {
+                    float chance = resultGroup.Value.Count()
+                            / (float)resultGroups.Select(it => it.Value.Count()).Sum();
+                    Debug.Log($"Result: {resultGroup.Key}, Count: {resultGroup.Value.Count()}, chance: {chance}", 2,
+                            ConsoleColor.Blue);
+                    foreach (var turnGroup in resultGroup.Value.GroupBy(it => it.Turns)) {
+                        Debug.Log($"Turns: {turnGroup.Key}, Count: {turnGroup.Count()}", 3, ConsoleColor.Cyan);
                     }
                 }
-                return;
             }
-            var movesWithLeastTurns = moves.GroupBy(it => it.Count).First().ToArray();
-            foreach (var square in SQUARE_PRIORITIES) {
-                if (!movesWithLeastTurns.Select(it => it.First()).Contains(square)) {
-                    continue;
-                }
-                Set(square, player);
-                return;
-            }
-            /*
-            var movesWithLeastTurns = moves.GroupBy(it => it.Turns).First().ToArray();
-            foreach (var square in SQUARE_PRIORITIES) {
-                var filtered = movesWithLeastTurns.Where(it => it.First == square).ToArray();
-                if (filtered.Length == 0 || filtered.Select(it => it.Result).Distinct().Count() > 1) {
-                    continue;
-                }
-                // if (filtered.First().Result != GameResult.PlayerWon) {
-                //     continue;
-                // }
-                // foreach (var moves1 in filtered) {
-                //     Debug.Log(moves1, moves1.Turns, Color(moves1.Turns));
-                // }
-                // if (!movesWithLeastTurns.Select(it => it.First).Contains(square)) {
-                //     continue;
-                // }
-                Set(square, player);
-                return;
-            }
-            */
+            Set(firstGroup.Key, player);
+            return;
         }
+    }
+
+    static Dictionary<GameResult, (GameState[] states, float chance)>[] WinningGames(
+            Dictionary<GameResult, (GameState[] states, float chance)>[] games) {
+        var result = games
+                .Where(it => it.Count == 1 && it.ContainsKey(GameResult.PlayerWon))
+                .ToArray();
+        if (result.Length > 0) {
+            return result;
+        }
+        result = games
+                .Where(it => it.TryGetValue(GameResult.PlayerWon, out var won) && won.chance >= 0.5f)
+                .ToArray();
+        if (result.Length > 0) {
+            return result;
+        }
+        result = games
+                .Where(it => it.Count == 1 && it.ContainsKey(GameResult.Draw))
+                .ToArray();
+        return result.Length > 0 ? result : games;
     }
 
     void PrintGame(GameState state) {
@@ -338,39 +223,8 @@ class Board {
     }
 
     /// Backtracking
-    IEnumerable<List<Point>> FindWinningMoves(List<Point> path) {
-        var winningMoves = Squares(PlayerCanWin).ToArray();
-        if (winningMoves.Length > 0) {
-            yield return [.. path, winningMoves.First()];
-            yield break;
-        }
-        foreach (var playerMove in Squares(IsEmpty)) {
-            Set(playerMove, player);
-            if (Squares(EnemyCanWin).Any()) {
-                Set(playerMove, Square.EMPTY);
-                continue;
-            }
-            foreach (var enemyMove in Squares(PlayerCanWin)) {
-                Set(enemyMove, enemy);
-                foreach (var moves in FindWinningMoves([.. path, playerMove])) {
-                    yield return moves;
-                }
-                Set(enemyMove, Square.EMPTY);
-            }
-            Set(playerMove, Square.EMPTY);
-        }
-    }
-
-    /// Backtracking
-    IEnumerable<GameState> SimulateGames(GameState state, Point? firstMove = null) {
-        // i guess i need to improve strategies
-        // foreach (var playerMove in Squares(it => CanPotentiallyWin(it, player, enemy) || CanPotentiallyWin(it, enemy, player))) { // win or block
-        foreach (var playerMove in Squares(it => CanPotentiallyWin(it, player, enemy))) { // win
-        // foreach (var playerMove in Squares(it => IsEmpty(it))) {
-        // foreach (var playerMove in Squares(it => PlayerCanWin(it) || EnemyCanWin(it))) {
-            if (firstMove != null && playerMove != firstMove) {
-                continue;
-            }
+    IEnumerable<GameState> SimulateGames(GameState state) {
+        foreach (var playerMove in NextMoves(player, enemy)) {
             Set(playerMove, player);
             var gameResult = GameOver();
             var nextWithPlayer = new GameState([.. state.Moves, (player, playerMove)]);
@@ -379,12 +233,7 @@ class Board {
                 yield return nextWithPlayer with { Result = gameResult.Value };
                 continue;
             }
-            // maybe something is missing here
-            // foreach (var enemyMove in Squares(it => PlayerCanWin(it) || PlayerCanWinNext(it) || EnemyCanWin(it) || EnemyCanWinNext(it))) { // block or win
-            // foreach (var enemyMove in Squares(it => PlayerCanWin(it) || EnemyCanWin(it))) { // block or win - limits moves
-            // foreach (var enemyMove in Squares(it => CanPotentiallyWin(it, player, enemy) || CanPotentiallyWin(it, enemy, player))) { // block or win
-            foreach (var enemyMove in Squares(it => PlayerCanWin(it) || EnemyCanWin(it))) { // block
-            // foreach (var enemyMove in Squares(it => IsEmpty(it))) {
+            foreach (var enemyMove in NextMoves(enemy, player)) {
                 Set(enemyMove, enemy);
                 gameResult = GameOver();
                 var nextWithEnemy = new GameState([.. nextWithPlayer.Moves, (enemy, enemyMove)]);
@@ -413,65 +262,66 @@ class Board {
             return GameResult.Draw;
         }
         return null;
+
+        bool PlayerWon(Point point) => HasLineWithNumberOfSquares(point, player, 3);
+        bool EnemyWon(Point point) => HasLineWithNumberOfSquares(point, enemy, 3);
     }
 
-    /// Backtracking
-    IEnumerable<List<Point>> FindDrawMoves(List<Point> path) {
-        if (!Squares(IsEmpty).Any()) {
-            yield return path;
+    IEnumerable<Point> NextMoves(char playerSquare, char enemySquare) {
+        Point[] winningMoves = [.. Squares(it => CanWin(it, playerSquare))];
+        if (winningMoves.Length > 0) {
+            foreach (var move in winningMoves) {
+                yield return move;
+            }
             yield break;
         }
-        foreach (var playerMove in Squares(IsEmpty)) {
-            Set(playerMove, player);
-            // if all next moves end in draw, we got it
-            if (Squares(EnemyCanWinNext).Any()) {
-                Set(playerMove, Square.EMPTY);
-                continue;
+        Point[] blockingMoves = [.. Squares(it => CanWin(it, enemySquare))];
+        if (blockingMoves.Length > 0) {
+            foreach (var move in blockingMoves) {
+                yield return move;
             }
-            foreach (var enemyMove in Squares(IsEmpty)) {
-                Set(enemyMove, enemy);
-                foreach (var moves in FindDrawMoves([.. path, playerMove])) {
-                    yield return moves;
+            yield break;
+        }
+        Point[] nextWinningMoves = [.. Squares(it => CanWinNext(it, playerSquare, enemySquare))];
+        if (nextWinningMoves.Length > 0) {
+            foreach (var move in nextWinningMoves) {
+                yield return move;
+            }
+            yield break;
+        }
+        Point[] nextBlockingMoves = [.. Squares(it => CanWinNext(it, enemySquare, playerSquare))];
+        if (nextBlockingMoves.Length > 0) {
+            foreach (var nextMove in nextBlockingMoves) {
+                Set(nextMove, enemySquare);
+                blockingMoves = [.. Squares(it => CanWin(it, enemySquare))];
+                Set(nextMove, Square.EMPTY);
+                if (blockingMoves.Length > 0) {
+                    foreach (var move in blockingMoves) {
+                        yield return move;
+                    }
+                    yield break;
                 }
-                Set(enemyMove, Square.EMPTY);
             }
-            Set(playerMove, Square.EMPTY);
+        }
+        foreach (var move in Squares(IsEmpty)) {
+            yield return move;
         }
     }
 
     bool IsEmpty(Point point) => Get(point) == Square.EMPTY;
-    bool PlayerCanWin(Point point) => IsEmpty(point) && HasLineWithNumberOfSquares(point, player, 2);
-    bool EnemyCanWin(Point point) => IsEmpty(point) && HasLineWithNumberOfSquares(point, enemy, 2);
-    bool PlayerWon(Point point) => HasLineWithNumberOfSquares(point, player, 3);
-    bool EnemyWon(Point point) => HasLineWithNumberOfSquares(point, enemy, 3);
+    bool CanWin(Point point, char playerSquare) => IsEmpty(point) && HasLineWithNumberOfSquares(point, playerSquare, 2);
 
-    bool CanPotentiallyWin(Point point, char playerSquare, char enemySquare) {
+    bool CanWinNext(Point point, char playerSquare, char enemySquare) {
         if (!IsEmpty(point)) {
             return false;
         }
-        return LINES
-                .Where(it => it.Contains(point))
-                .Where(line => line.Any(it => squares[it.X, it.Y] == playerSquare))
-                .Any(line => line.Any(it => squares[it.X, it.Y] != enemySquare));
-    }
-
-    bool PlayerCanWinNext(Point point) {
-        if (!IsEmpty(point)) {
-            return false;
-        }
-        var nextLines = LINES.Where(it => it.Contains(point))
-                .Where(line => line.Any(it => squares[it.X, it.Y] == player))
-                .Where(line => line.Any(it => squares[it.X, it.Y] == Square.EMPTY));
-        return nextLines.Count() >= 2;
-    }
-
-    bool EnemyCanWinNext(Point point) {
-        if (!IsEmpty(point)) {
-            return false;
-        }
-        var nextLines = LINES.Where(it => it.Contains(point))
-                .Where(line => line.Any(it => squares[it.X, it.Y] == enemy))
-                .Where(line => line.Any(it => squares[it.X, it.Y] == Square.EMPTY));
+        var nextLines = LINES.Where(line => {
+            if (!line.Contains(point)) {
+                return false;
+            }
+            char[] lineSquares = [.. line.Select(it => squares[it.X, it.Y])];
+            return lineSquares.Contains(playerSquare) && !lineSquares.Contains(enemySquare);
+        });
         return nextLines.Count() >= 2;
     }
 
@@ -512,13 +362,6 @@ class Board {
         foreach (int y in Enumerable.Range(0, SIZE)) {
             var line = Enumerable.Range(0, SIZE).Select(x => squares[x, y]);
             Debug.Log($"{string.Concat(line)}", turns, color);
-        }
-    }
-
-    public static void ReadCorrect() {
-        Debug.Log("Correct:");
-        foreach (int _ in Enumerable.Range(0, SIZE)) {
-            Debug.ReadLine();
         }
     }
 
@@ -563,10 +406,6 @@ static class Screen {
     public static readonly Point ONE = new(1, 1);
     public static readonly Point DOWN = new(0, 1);
     public static readonly Point RIGHT = new(1, 0);
-}
-
-static class Mathf {
-    public static bool Approximately(double a, double b) => Math.Abs(a - b) < 0.001;
 }
 
 static class Debug {
