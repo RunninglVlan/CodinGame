@@ -78,9 +78,7 @@ class Board {
                     }
                     return result;
                 }).ToArray();
-        var winningGames = games
-                .Where(it => it.ContainsKey(GameResult.PlayerWon))
-                .ToArray();
+        var winningGames = WinningGames(games);
         if (winningGames.Length == 0) {
             var bestLosingMove = games
                     .SelectMany(it => it)
@@ -92,19 +90,44 @@ class Board {
             Set(bestLosingMove, player);
             return;
         }
-        var bestWinningMove = winningGames
+        var firstGroups = winningGames
                 .SelectMany(it => it)
-                .OrderByDescending(it => it.Value.chance)
                 .SelectMany(it => it.Value.states)
-                .OrderBy(it => it.Turns)
-                .Select(it => it.First)
-                .First();
-        Set(bestWinningMove, player);
+                .GroupBy(it => it.First)
+                .ToArray();
+        foreach (var square in SQUARE_PRIORITIES) {
+            var filtered = firstGroups.Where(group => group.Key == square).ToArray();
+            if (filtered.Length == 0) {
+                continue;
+            }
+            Set(filtered.First().Key, player);
+            return;
+        }
+    }
+
+    static Dictionary<GameResult, (GameState[] states, float chance)>[] WinningGames(
+            Dictionary<GameResult, (GameState[] states, float chance)>[] games) {
+        var result = games
+                .Where(it => it.Count == 1 && it.ContainsKey(GameResult.PlayerWon))
+                .ToArray();
+        if (result.Length > 0) {
+            return result;
+        }
+        result = games
+                .Where(it => it.TryGetValue(GameResult.PlayerWon, out var won) && won.chance >= 0.5f)
+                .ToArray();
+        if (result.Length > 0) {
+            return result;
+        }
+        result = games
+                .Where(it => it.Count == 1 && it.ContainsKey(GameResult.Draw))
+                .ToArray();
+        return result.Length > 0 ? result : games;
     }
 
     /// Backtracking
     IEnumerable<GameState> SimulateGames(GameState state) {
-        foreach (var playerMove in Squares(it => CanPotentiallyWin(it, player, enemy))) {
+        foreach (var playerMove in NextMoves(player, enemy)) {
             Set(playerMove, player);
             var gameResult = GameOver();
             var nextWithPlayer = new GameState([.. state.Moves, (player, playerMove)]);
@@ -113,7 +136,7 @@ class Board {
                 yield return nextWithPlayer with { Result = gameResult.Value };
                 continue;
             }
-            foreach (var enemyMove in Squares(it => PlayerCanWin(it) || EnemyCanWin(it))) {
+            foreach (var enemyMove in NextMoves(enemy, player)) {
                 Set(enemyMove, enemy);
                 gameResult = GameOver();
                 var nextWithEnemy = new GameState([.. nextWithPlayer.Moves, (enemy, enemyMove)]);
@@ -142,22 +165,67 @@ class Board {
             return GameResult.Draw;
         }
         return null;
+
+        bool PlayerWon(Point point) => HasLineWithNumberOfSquares(point, player, 3);
+        bool EnemyWon(Point point) => HasLineWithNumberOfSquares(point, enemy, 3);
+    }
+
+    IEnumerable<Point> NextMoves(char playerSquare, char enemySquare) {
+        Point[] winningMoves = [.. Squares(it => CanWin(it, playerSquare))];
+        if (winningMoves.Length > 0) {
+            foreach (var move in winningMoves) {
+                yield return move;
+            }
+            yield break;
+        }
+        Point[] blockingMoves = [.. Squares(it => CanWin(it, enemySquare))];
+        if (blockingMoves.Length > 0) {
+            foreach (var move in blockingMoves) {
+                yield return move;
+            }
+            yield break;
+        }
+        Point[] nextWinningMoves = [.. Squares(it => CanWinNext(it, playerSquare, enemySquare))];
+        if (nextWinningMoves.Length > 0) {
+            foreach (var move in nextWinningMoves) {
+                yield return move;
+            }
+            yield break;
+        }
+        Point[] nextBlockingMoves = [.. Squares(it => CanWinNext(it, enemySquare, playerSquare))];
+        if (nextBlockingMoves.Length > 0) {
+            foreach (var nextMove in nextBlockingMoves) {
+                Set(nextMove, enemySquare);
+                blockingMoves = [.. Squares(it => CanWin(it, enemySquare))];
+                Set(nextMove, Square.EMPTY);
+                if (blockingMoves.Length > 0) {
+                    foreach (var move in blockingMoves) {
+                        yield return move;
+                    }
+                    yield break;
+                }
+            }
+        }
+        foreach (var move in Squares(IsEmpty)) {
+            yield return move;
+        }
     }
 
     bool IsEmpty(Point point) => Get(point) == Square.EMPTY;
-    bool PlayerCanWin(Point point) => IsEmpty(point) && HasLineWithNumberOfSquares(point, player, 2);
-    bool EnemyCanWin(Point point) => IsEmpty(point) && HasLineWithNumberOfSquares(point, enemy, 2);
-    bool PlayerWon(Point point) => HasLineWithNumberOfSquares(point, player, 3);
-    bool EnemyWon(Point point) => HasLineWithNumberOfSquares(point, enemy, 3);
+    bool CanWin(Point point, char playerSquare) => IsEmpty(point) && HasLineWithNumberOfSquares(point, playerSquare, 2);
 
-    bool CanPotentiallyWin(Point point, char playerSquare, char enemySquare) {
+    bool CanWinNext(Point point, char playerSquare, char enemySquare) {
         if (!IsEmpty(point)) {
             return false;
         }
-        return LINES
-                .Where(it => it.Contains(point))
-                .Where(line => line.Any(it => squares[it.X, it.Y] == playerSquare))
-                .Any(line => line.Any(it => squares[it.X, it.Y] != enemySquare));
+        var nextLines = LINES.Where(line => {
+            if (!line.Contains(point)) {
+                return false;
+            }
+            char[] lineSquares = [.. line.Select(it => squares[it.X, it.Y])];
+            return lineSquares.Contains(playerSquare) && !lineSquares.Contains(enemySquare);
+        });
+        return nextLines.Count() >= 2;
     }
 
     static IEnumerable<Point> Squares(Predicate<Point> predicate) {
@@ -183,22 +251,6 @@ class Board {
             Console.WriteLine(string.Concat(line));
         }
     }
-
-    static ConsoleColor Color(int turns) => turns switch {
-        0 => ConsoleColor.Red,
-        1 => ConsoleColor.Green,
-        2 => ConsoleColor.Blue,
-        3 => ConsoleColor.Cyan,
-        4 => ConsoleColor.Magenta,
-        _ => ConsoleColor.Yellow
-    };
-
-    void LogBoard(int turns = 0, ConsoleColor? color = null) {
-        foreach (int y in Enumerable.Range(0, SIZE)) {
-            var line = Enumerable.Range(0, SIZE).Select(x => squares[x, y]);
-            Debug.Log($"{string.Concat(line)}", turns, color);
-        }
-    }
 }
 
 static class Square {
@@ -210,15 +262,11 @@ static class Square {
 readonly record struct Point(int X, int Y) {
     public static Point operator +(Point a, Point b) => new(a.X + b.X, a.Y + b.Y);
     public static Point operator *(Point a, int value) => new(a.X * value, a.Y * value);
-
-    public override string ToString() => $"({X}, {Y})";
 }
 
 readonly record struct GameState(List<(char square, Point point)> Moves, GameResult? Result = null) {
     public int Turns => Moves.Count;
     public Point First => Moves.First().point;
-
-    public override string ToString() => $"Moves: {string.Join(", ", Moves)}, Result: {Result}";
 }
 
 enum GameResult {
