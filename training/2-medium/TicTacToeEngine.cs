@@ -66,7 +66,7 @@ class Board {
             return;
         }
         var bestMoves = SimulateGames(new Game([]))
-                .GroupBy(it => it.First)
+                .GroupBy(it => it.Moves.First())
                 .GroupBy(BestGame)
                 .OrderBy(it => it.Key)
                 .First()
@@ -89,7 +89,7 @@ class Board {
         foreach (var playerMove in NextMoves(player, enemy)) {
             Set(playerMove, player);
             var state = GetState();
-            var nextWithPlayer = new Game([.. game.Moves, (player, playerMove)]);
+            var nextWithPlayer = new Game([.. game.Moves, playerMove]);
             if (state is not GameState.Playing) {
                 Set(playerMove, Square.EMPTY);
                 yield return nextWithPlayer with { State = state };
@@ -98,7 +98,7 @@ class Board {
             foreach (var enemyMove in NextMoves(enemy, player)) {
                 Set(enemyMove, enemy);
                 state = GetState();
-                var nextWithEnemy = new Game([.. nextWithPlayer.Moves, (enemy, enemyMove)]);
+                var nextWithEnemy = new Game([.. nextWithPlayer.Moves, enemyMove]);
                 if (state is not GameState.Playing) {
                     Set(enemyMove, Square.EMPTY);
                     yield return nextWithEnemy with { State = state };
@@ -207,10 +207,7 @@ readonly record struct Point(int X, int Y) {
     public static Point operator *(Point a, int value) => new(a.X * value, a.Y * value);
 }
 
-readonly record struct Game(List<(char square, Point point)> Moves, GameState State = GameState.Playing) {
-    public int Turns => Moves.Count;
-    public Point First => Moves.First().point;
-}
+readonly record struct Game(List<Point> Moves, GameState State = GameState.Playing);
 
 enum GameState {
     Playing,
