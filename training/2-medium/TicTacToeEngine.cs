@@ -78,8 +78,7 @@ class Board {
 
         int BestGame(IGrouping<Point, Game> firstGroup) {
             var results = firstGroup.GroupBy(it => it.State).Select(it => it.Key).ToHashSet();
-            return results.Count != 1 ? 2
-                    : results.Contains(GameState.PlayerWon) ? 0
+            return results.Count == 1 && results.Contains(GameState.PlayerWon) ? 0
                     : results.Contains(GameState.Draw) ? 1
                     : 2;
         }
@@ -131,27 +130,31 @@ class Board {
         bool EnemyWon(Point point) => HasLineWithNSquares(point, 3, enemy);
     }
 
-    Point[] NextMoves(char playerSquare, char enemySquare) {
-        Func<Point[]>[] strategies = [Win, Block, SetUpWin, ForcedBlock, AnyEmpty];
-        return strategies.Select(it => it()).First(moves => moves.Length > 0);
+    IEnumerable<Point> NextMoves(char playerSquare, char enemySquare) {
+        Func<IEnumerable<Point>>[] strategies = [Win, Block, SetUpWin, ForcedBlock, AnyEmpty];
+        return strategies.Select(it => it()).First(moves => moves.Any());
 
-        Point[] Win() => [.. Squares(it => CanWin(it, playerSquare))];
-        Point[] Block() => [.. Squares(it => CanWin(it, enemySquare))];
-        Point[] SetUpWin() => [.. Squares(it => CanWinNext(it, playerSquare, enemySquare))];
+        IEnumerable<Point> Win() => [.. Squares(it => CanWin(it, playerSquare))];
+        IEnumerable<Point> Block() => [.. Squares(it => CanWin(it, enemySquare))];
+        IEnumerable<Point> SetUpWin() => [.. Squares(it => CanWinNext(it, playerSquare, enemySquare))];
 
-        Point[] ForcedBlock() {
+        IEnumerable<Point> ForcedBlock() {
             foreach (var nextMove in Squares(it => CanWinNext(it, enemySquare, playerSquare))) {
+                yield return nextMove;
                 Set(nextMove, enemySquare);
                 Point[] blockingMoves = [.. Squares(it => CanWin(it, enemySquare))];
                 Set(nextMove, Square.EMPTY);
-                if (blockingMoves.Length > 0) {
-                    return blockingMoves;
+                if (blockingMoves.Length == 0) {
+                    continue;
                 }
+                foreach (var move in blockingMoves) {
+                    yield return move;
+                }
+                yield break;
             }
-            return [];
         }
 
-        Point[] AnyEmpty() => [.. Squares(IsEmpty)];
+        IEnumerable<Point> AnyEmpty() => [.. Squares(IsEmpty)];
     }
 
     bool IsEmpty(Point point) => Get(point) == Square.EMPTY;
