@@ -38,7 +38,7 @@ partial class Tokenizer {
     // A function call can be identified by a valid name, immediately followed by an opening paranthesis (
     // Valid function names might contain upper and lower case letters, digits and underscore _.
     // If a function name is immediately preceded by a $, it shall be omitted (a PHP-specific rule, call of function with a name stored in a variable).
-    [GeneratedRegex(@"(\$?\w+)\(")]
+    [GeneratedRegex(@"(?<!\$)(\w+)\(")]
     private static partial Regex Function();
 
     readonly HashSet<string> userDefined = [];
@@ -52,8 +52,7 @@ partial class Tokenizer {
         }
         foreach (Match match in Function().Matches(source)) {
             string name = match.Groups[1].Value;
-            // todo: refactor
-            if (KEYWORDS.Contains(name.ToLower()) || userDefined.Contains(name) || name.StartsWith("$")) {
+            if (KEYWORDS.Contains(name.ToLower()) || userDefined.Contains(name)) {
                 continue;
             }
             // Function names shall be treated case sensitively.
