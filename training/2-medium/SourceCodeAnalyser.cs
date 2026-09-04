@@ -18,19 +18,24 @@ int lines = Math.Clamp(int.Parse(Console.ReadLine()!), 1, 200);
  */
 
 /*
-Test 7: within a comment
-3
-// within a comment /* shall not start a comment, and a quote " shall not start a string literal
+Test 8: string literals
+6
+// string literals are not function calls. String literals can also span multiple lines
 fscanf(STDIN, "%s", $s);
-$len = strlen($s); 
+$len = strlen($s);
+$a = 'strlen()';
+echo "
+strlen()";
 
 fscanf 1
 strlen 1
  */
 var tokenizer = new Tokenizer();
 var functions = Enumerable.Range(0, lines)
-        .Select(_ => Console.ReadLine()!)
+        .Select(_ => Debug.ReadLine()!)
         .SelectMany(tokenizer.FindFunctions);
+functions = [.. functions];
+Debug.Log();
 foreach (var group in functions.GroupBy(it => it).OrderBy(it => it.Key)) {
     Console.WriteLine($"{group.Key} {group.Count()}");
 }
@@ -43,7 +48,7 @@ partial class Tokenizer {
     [GeneratedRegex(@"\w*\(")]
     private static partial Regex Function();
 
-    bool multiline;
+    string? multilineChar;
 
     public IEnumerable<string> FindFunctions(string line) {
         line = Filter(line);
@@ -64,11 +69,11 @@ partial class Tokenizer {
         if (commentStart != -1) {
             line = line[..commentStart];
         }
-        if (multiline) {
-            int commentEnd = line.IndexOf("*/", StringComparison.Ordinal);
-            if (commentEnd != -1) {
-                line = line[commentEnd..];
-                multiline = false;
+        if (multilineChar != null) {
+            int index = line.IndexOf(multilineChar, StringComparison.Ordinal);
+            if (index != -1) {
+                line = line[index..];
+                multilineChar = null;
             } else {
                 return string.Empty;
             }
@@ -79,7 +84,7 @@ partial class Tokenizer {
             if (commentEnd != -1) {
                 line = line[..commentStart] + line[commentEnd..];
             } else {
-                multiline = true;
+                multilineChar = "*/";
                 return line[..commentStart];
             }
         }
@@ -88,8 +93,31 @@ partial class Tokenizer {
         int stringStart = line.IndexOf('"');
         if (stringStart != -1) {
             int stringEnd = line.LastIndexOf('"');
-            line = line[..stringStart] + line[stringEnd..];
+            if (stringEnd != stringStart) {
+                line = line[..stringStart] + line[stringEnd..];
+            } else {
+                multilineChar = "\"";
+                return line[..stringStart];
+            }
         }
         return line;
+    }
+}
+
+static class Debug {
+    const int TAB_LENGTH = 2;
+
+    /// Reads line from Console and also writes it to Console.Error
+    public static string? ReadLine() {
+        string? line = Console.ReadLine();
+        Console.Error.WriteLine(line);
+        return line;
+    }
+
+    public static void Log(object? line = null, int tab = 0, ConsoleColor? color = null) {
+        Console.ForegroundColor = color ?? ConsoleColor.Red;
+        var padding = new string(' ', tab * TAB_LENGTH);
+        Console.Error.WriteLine($"{padding}{line}");
+        Console.ResetColor();
     }
 }
