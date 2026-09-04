@@ -9,22 +9,6 @@ int lineCount = Math.Clamp(int.Parse(Console.ReadLine()!), 1, 200);
 /*
  * Source might contain multiple whitespaces: space, tab (\t), new line (\n) or linefeed (\r).
  */
-
-/*
-// multiple whitespaces test
-  function 
-	lower_rev(string $s): string
-{
-    return	 strtolower(str_rev($s));
-} // lower_rev
- fscanf(STDIN, "%s", $s);
-echo	
-lower_rev(  $s  ) . "\n";
-
- strlen 1
-fscanf 1
-strlen 1
- */
 var tokenizer = new Tokenizer();
 var lines = Enumerable.Range(0, lineCount)
         .Select(_ => Debug.ReadLine()!)
