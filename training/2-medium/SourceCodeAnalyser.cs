@@ -10,23 +10,23 @@ int lines = Math.Clamp(int.Parse(Console.ReadLine()!), 1, 200);
 * Source might contain multiple whitespaces: space, tab (\t), new line (\n) or linefeed (\r).
 * Function names shall be treated case sensitively.
 * If a function name is immediately preceded by a $, it shall be omitted (a PHP-specific rule, call of function with a name stored in a variable).
-* Class names and user-defined functions shall be excluded. If the source contains "function name(" or "new name(", then the "name" shall be omitted from output.
 * Output lines shall be sorted by the function names (by ascending ascii values).
 * If no library call encountered, output NONE
  */
 
 /*
-Test 8: string literals
-6
-// string literals are not function calls. String literals can also span multiple lines
+// user-defined function test
+function lower_rev(string $s): string
+{
+    return strtolower(str_rev($s));
+} // lower_rev
 fscanf(STDIN, "%s", $s);
-$len = strlen($s);
-$a = 'strlen()';
-echo "
-strlen()";
+echo lower_rev($s) . "\n";
 
-fscanf 1
-strlen 1
+scanf 1
+lower_rev 2
+str_rev 1
+strtolower 1
  */
 var tokenizer = new Tokenizer();
 var functions = Enumerable.Range(0, lines)
@@ -44,18 +44,28 @@ partial class Tokenizer {
     // todo: complete list
     static readonly HashSet<string> KEYWORDS = ["and", "echo", "if", "for", "foreach"];
 
+    [GeneratedRegex(@"function (\w+)\(")]
+    private static partial Regex FunctionDefinition();
+
     // A function call can be identified by a valid name, immediately followed by an opening paranthesis (
     // Valid function names might contain upper and lower case letters, digits and underscore _.
     [GeneratedRegex(@"(\w+)\(")]
     private static partial Regex FunctionCall();
 
+    readonly HashSet<string> userDefined = [];
     string? multilineChar;
 
     public IEnumerable<string> FindFunctions(string line) {
         line = Filter(line);
+        // Class names and user-defined functions shall be excluded. If the source contains "function name(" or "new name(", then the "name" shall be omitted from output.
+        // todo: filter classes
+        foreach (Match match in FunctionDefinition().Matches(line)) {
+            string name = match.Groups[1].Value;
+            userDefined.Add(name);
+        }
         foreach (Match match in FunctionCall().Matches(line)) {
             string name = match.Groups[1].Value;
-            if (KEYWORDS.Contains(name.ToLower())) {
+            if (KEYWORDS.Contains(name.ToLower()) || userDefined.Contains(name)) {
                 continue;
             }
             yield return name;
