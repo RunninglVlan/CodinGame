@@ -18,25 +18,28 @@ int lines = Math.Clamp(int.Parse(Console.ReadLine()!), 1, 200);
  */
 
 /*
-Test 3: simple test with multiple lines, also with _ and numbers in identifiers
-4
-// simple test with multiple lines, also with _ and numbers in identifiers
+Test 6: multi-line comment
+7
+// multi-line comment test
 fscanf(STDIN, "%s", $s);
-fscanf(STDIN, "%f", $a);
-$r = str_rev($s);$t=atan2($a);
+/*
+fscanf() reads from input stream
+strlen() gives the length of the string
+* /
+$len = strlen($s);
 
-atan2 1
-fscanf 2
-str_rev 1
+fscanf 1
+strlen 1
  */
+var tokenizer = new Tokenizer();
 var functions = Enumerable.Range(0, lines)
         .Select(_ => Console.ReadLine()!)
-        .SelectMany(Tokenizer.FindFunctions);
+        .SelectMany(tokenizer.FindFunctions);
 foreach (var group in functions.GroupBy(it => it).OrderBy(it => it.Key)) {
     Console.WriteLine($"{group.Key} {group.Count()}");
 }
 
-static partial class Tokenizer {
+partial class Tokenizer {
     static readonly HashSet<string> KEYWORDS = ["if"];
 
     // A function call can be identified by a valid name, immediately followed by an opening paranthesis (
@@ -44,7 +47,9 @@ static partial class Tokenizer {
     [GeneratedRegex(@"\w*\(")]
     private static partial Regex Function();
 
-    public static IEnumerable<string> FindFunctions(string line) {
+    bool multiline;
+
+    public IEnumerable<string> FindFunctions(string line) {
         line = Filter(line);
         foreach (Match match in Function().Matches(line)) {
             string name = match.Value[..^1];
@@ -56,13 +61,27 @@ static partial class Tokenizer {
     }
 
     [SuppressMessage("ReSharper", "InvertIf")]
-    static string Filter(string line) {
+    string Filter(string line) {
         // Anything after single line comments (starting with //) or within multi-line comments (between /* and */ ) shall be omitted.
-        // todo: handle multi-lines
+        // todo: refactor
+        if (multiline) {
+            int commentEnd = line.IndexOf("*/", StringComparison.Ordinal);
+            if (commentEnd != -1) {
+                line = line[commentEnd..];
+                multiline = false;
+            } else {
+                return string.Empty;
+            }
+        }
         int commentStart = line.IndexOf("/*", StringComparison.Ordinal);
         if (commentStart != -1) {
             int commentEnd = line.IndexOf("*/", StringComparison.Ordinal);
-            line = line[..commentStart] + line[commentEnd..];
+            if (commentEnd != -1) {
+                line = line[..commentStart] + line[commentEnd..];
+            } else {
+                multiline = true;
+                return line[..commentStart];
+            }
         }
         commentStart = line.IndexOf("//", StringComparison.Ordinal);
         if (commentStart != -1) {
