@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 
 // https://www.codingame.com/training/medium/source-code-analyser
-int lines = Math.Clamp(int.Parse(Console.ReadLine()!), 1, 200);
+int lineCount = Math.Clamp(int.Parse(Console.ReadLine()!), 1, 200);
 /*
  * Source might contain multiple whitespaces: space, tab (\t), new line (\n) or linefeed (\r).
  * Function names shall be treated case sensitively.
@@ -14,22 +14,26 @@ int lines = Math.Clamp(int.Parse(Console.ReadLine()!), 1, 200);
  */
 
 /*
-/* test with fscanf() and strlen() * /
-fscanf(STDIN, "%s", $s);
-$len = strlen($s); // strlen() gives the length of the string
-if(strlen($s) == $len)
-  echo "$strlen() matching\n";
+// multiple whitespaces test
+  function 
+	lower_rev(string $s): string
+{
+    return	 strtolower(str_rev($s));
+} // lower_rev
+ fscanf(STDIN, "%s", $s);
+echo	
+lower_rev(  $s  ) . "\n";
 
  strlen 1
 fscanf 1
 strlen 1
  */
 var tokenizer = new Tokenizer();
-// ReSharper disable once SuggestVarOrType_BuiltInTypes
-var functions = Enumerable.Range(0, lines)
+var lines = Enumerable.Range(0, lineCount)
         .Select(_ => Debug.ReadLine()!)
-        .SelectMany(tokenizer.FindFunctions)
-        .ToArray();
+        .SelectMany(tokenizer.Filter);
+string source = string.Join(string.Empty, lines);
+string[] functions = [.. tokenizer.FindFunctions(source)];
 Debug.Log();
 if (functions.Length == 0) {
     Console.WriteLine("NONE");
@@ -44,7 +48,7 @@ partial class Tokenizer {
     // todo: complete list
     static readonly HashSet<string> KEYWORDS = ["and", "echo", "if", "for", "foreach"];
 
-    [GeneratedRegex(@"function (\w+)\(")]
+    [GeneratedRegex(@"function\s*(\w+)\(")]
     private static partial Regex FunctionDefinition();
 
     // A function call can be identified by a valid name, immediately followed by an opening paranthesis (
@@ -57,7 +61,6 @@ partial class Tokenizer {
     string? multilineChar;
 
     public IEnumerable<string> FindFunctions(string line) {
-        line = Filter(line);
         // Class names and user-defined functions shall be excluded. If the source contains "function name(" or "new name(", then the "name" shall be omitted from output.
         // todo: filter classes
         foreach (Match match in FunctionDefinition().Matches(line)) {
@@ -75,7 +78,7 @@ partial class Tokenizer {
     }
 
     [SuppressMessage("ReSharper", "InvertIf")]
-    string Filter(string line) {
+    public string Filter(string line) {
         // Anything after single line comments (starting with //) or within multi-line comments (between /* and */ ) shall be omitted.
         // todo: refactor
         if (multilineChar != null) {
