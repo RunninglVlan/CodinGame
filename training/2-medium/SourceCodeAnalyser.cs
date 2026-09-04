@@ -18,15 +18,11 @@ int lines = Math.Clamp(int.Parse(Console.ReadLine()!), 1, 200);
  */
 
 /*
-Test 6: multi-line comment
-7
-// multi-line comment test
+Test 7: within a comment
+3
+// within a comment /* shall not start a comment, and a quote " shall not start a string literal
 fscanf(STDIN, "%s", $s);
-/*
-fscanf() reads from input stream
-strlen() gives the length of the string
-* /
-$len = strlen($s);
+$len = strlen($s); 
 
 fscanf 1
 strlen 1
@@ -64,6 +60,10 @@ partial class Tokenizer {
     string Filter(string line) {
         // Anything after single line comments (starting with //) or within multi-line comments (between /* and */ ) shall be omitted.
         // todo: refactor
+        int commentStart = line.IndexOf("//", StringComparison.Ordinal);
+        if (commentStart != -1) {
+            line = line[..commentStart];
+        }
         if (multiline) {
             int commentEnd = line.IndexOf("*/", StringComparison.Ordinal);
             if (commentEnd != -1) {
@@ -73,7 +73,7 @@ partial class Tokenizer {
                 return string.Empty;
             }
         }
-        int commentStart = line.IndexOf("/*", StringComparison.Ordinal);
+        commentStart = line.IndexOf("/*", StringComparison.Ordinal);
         if (commentStart != -1) {
             int commentEnd = line.IndexOf("*/", StringComparison.Ordinal);
             if (commentEnd != -1) {
@@ -82,10 +82,6 @@ partial class Tokenizer {
                 multiline = true;
                 return line[..commentStart];
             }
-        }
-        commentStart = line.IndexOf("//", StringComparison.Ordinal);
-        if (commentStart != -1) {
-            line = line[..commentStart];
         }
         // Anything within string literals (within pair of single (') or double (") quotes) shall be omitted.
         // todo: support multiple in one line, support ' strings
