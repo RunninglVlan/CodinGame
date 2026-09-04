@@ -33,7 +33,6 @@ partial class Tokenizer {
     string? multilineToken;
 
     public string Filter(string line) {
-        // todo: refactor
         if (multilineToken != null) {
             int index = line.IndexOf(multilineToken, StringComparison.Ordinal);
             if (index != -1) {
@@ -58,6 +57,10 @@ partial class Tokenizer {
                 return line[..commentStart];
             }
         }
+        return FilterStrings(line);
+    }
+
+    string FilterStrings(string line) {
         int singleQuoteStart = line.IndexOf(Tokens.QUOTE_SINGLE, StringComparison.Ordinal);
         int doubleQuoteStart = line.IndexOf(Tokens.QUOTE_DOUBLE, StringComparison.Ordinal);
         while (singleQuoteStart != -1) {
