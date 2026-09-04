@@ -82,24 +82,28 @@ partial class Tokenizer {
         if (commentStart != -1) {
             int commentEnd = line.IndexOf("*/", StringComparison.Ordinal);
             if (commentEnd != -1) {
-                line = line[..commentStart] + line[commentEnd..];
+                line = line[..commentStart] + line[(commentEnd + 1)..];
             } else {
                 multilineChar = "*/";
                 return line[..commentStart];
             }
         }
         // Anything within string literals (within pair of single (') or double (") quotes) shall be omitted.
-        // todo: support multiple in one line
         int stringStart = line.IndexOf('\'');
-        if (stringStart != -1) {
-            int stringEnd = line.LastIndexOf('\'');
-            line = line[..stringStart] + line[stringEnd..];
+        while (stringStart != -1) {
+            int stringEnd = line.IndexOf('\'', stringStart + 1);
+            if (stringEnd == -1) {
+                break;
+            }
+            line = line[..stringStart] + line[(stringEnd + 1)..];
+            stringStart = line.IndexOf('\'');
         }
         stringStart = line.IndexOf('"');
-        if (stringStart != -1) {
-            int stringEnd = line.LastIndexOf('"');
-            if (stringEnd != stringStart) {
-                line = line[..stringStart] + line[stringEnd..];
+        while (stringStart != -1) {
+            int stringEnd = line.IndexOf('"', stringStart + 1);
+            if (stringEnd != -1) {
+                line = line[..stringStart] + line[(stringEnd + 1)..];
+                stringStart = line.IndexOf('"');
             } else {
                 multilineChar = "\"";
                 return line[..stringStart];
