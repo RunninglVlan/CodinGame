@@ -89,8 +89,13 @@ partial class Tokenizer {
             }
         }
         // Anything within string literals (within pair of single (') or double (") quotes) shall be omitted.
-        // todo: support multiple in one line, support ' strings
-        int stringStart = line.IndexOf('"');
+        // todo: support multiple in one line
+        int stringStart = line.IndexOf('\'');
+        if (stringStart != -1) {
+            int stringEnd = line.LastIndexOf('\'');
+            line = line[..stringStart] + line[stringEnd..];
+        }
+        stringStart = line.IndexOf('"');
         if (stringStart != -1) {
             int stringEnd = line.LastIndexOf('"');
             if (stringEnd != stringStart) {
