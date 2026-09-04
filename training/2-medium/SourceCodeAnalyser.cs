@@ -48,10 +48,11 @@ partial class Tokenizer {
             line = line[..commentStart];
         }
         commentStart = line.IndexOf(Tokens.COMMENT_START, StringComparison.Ordinal);
-        if (commentStart != -1) {
+        while (commentStart != -1) {
             int commentEnd = line.IndexOf(Tokens.COMMENT_END, StringComparison.Ordinal);
             if (commentEnd != -1) {
                 line = line[..commentStart] + line[(commentEnd + 1)..];
+                commentStart = line.IndexOf(Tokens.COMMENT_START, StringComparison.Ordinal);
             } else {
                 multilineToken = Tokens.COMMENT_END;
                 return line[..commentStart];
