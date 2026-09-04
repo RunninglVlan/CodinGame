@@ -8,9 +8,6 @@ using System.Text.RegularExpressions;
 int lineCount = Math.Clamp(int.Parse(Console.ReadLine()!), 1, 200);
 /*
  * Source might contain multiple whitespaces: space, tab (\t), new line (\n) or linefeed (\r).
- * Function names shall be treated case sensitively.
- * Output lines shall be sorted by the function names (by ascending ascii values).
- * If no library call encountered, output NONE
  */
 
 /*
@@ -35,9 +32,11 @@ var lines = Enumerable.Range(0, lineCount)
 string source = string.Join(string.Empty, lines);
 string[] functions = [.. tokenizer.FindFunctions(source)];
 Debug.Log();
+// If no library call encountered, output NONE
 if (functions.Length == 0) {
     Console.WriteLine("NONE");
 }
+// Output lines shall be sorted by the function names (by ascending ascii values).
 foreach (var group in functions.GroupBy(it => it).OrderBy(it => it.Key, StringComparer.Ordinal)) {
     Console.WriteLine($"{group.Key} {group.Count()}");
 }
@@ -73,6 +72,7 @@ partial class Tokenizer {
             if (KEYWORDS.Contains(name.ToLower()) || userDefined.Contains(name) || name.StartsWith("$")) {
                 continue;
             }
+            // Function names shall be treated case sensitively.
             yield return name;
         }
     }
