@@ -22,7 +22,9 @@ int Display(int required) {
 
     IEnumerable<int> Next(int current) {
         yield return current + 1;
-        yield return current - 1;
-        yield return current * 2;
+        if (current > 0) {
+            yield return current - 1;
+            yield return current * 2;
+        }
     }
 }
