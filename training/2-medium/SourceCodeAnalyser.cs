@@ -7,11 +7,11 @@ using System.Text.RegularExpressions;
 // https://www.codingame.com/training/medium/source-code-analyser
 int lines = Math.Clamp(int.Parse(Console.ReadLine()!), 1, 200);
 /*
-* Source might contain multiple whitespaces: space, tab (\t), new line (\n) or linefeed (\r).
-* Function names shall be treated case sensitively.
-* If a function name is immediately preceded by a $, it shall be omitted (a PHP-specific rule, call of function with a name stored in a variable).
-* Output lines shall be sorted by the function names (by ascending ascii values).
-* If no library call encountered, output NONE
+ * Source might contain multiple whitespaces: space, tab (\t), new line (\n) or linefeed (\r).
+ * Function names shall be treated case sensitively.
+ * If a function name is immediately preceded by a $, it shall be omitted (a PHP-specific rule, call of function with a name stored in a variable).
+ * Output lines shall be sorted by the function names (by ascending ascii values).
+ * If no library call encountered, output NONE
  */
 
 /*
