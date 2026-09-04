@@ -8,14 +8,14 @@ Console.WriteLine(Display(number));
 return;
 
 int Display(int required) {
-    var queue = new Queue<(int value, int operations)>();
-    queue.Enqueue((0, 0));
-    while (queue.TryDequeue(out var current)) {
-        if (current.value == required) {
-            return current.operations;
+    var queue = new PriorityQueue<int, int>();
+    queue.Enqueue(0, 0);
+    while (queue.TryDequeue(out int current, out int operations)) {
+        if (current == required) {
+            return operations;
         }
-        foreach (int next in Next(current.value)) {
-            queue.Enqueue((next, current.operations + 1));
+        foreach (int next in Next(current)) {
+            queue.Enqueue(next, operations + 1);
         }
     }
     throw new UnreachableException();
