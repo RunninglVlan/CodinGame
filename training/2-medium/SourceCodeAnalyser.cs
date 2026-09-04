@@ -29,11 +29,15 @@ str_rev 1
 strtolower 1
  */
 var tokenizer = new Tokenizer();
+// ReSharper disable once SuggestVarOrType_BuiltInTypes
 var functions = Enumerable.Range(0, lines)
         .Select(_ => Debug.ReadLine()!)
-        .SelectMany(tokenizer.FindFunctions);
-functions = [.. functions];
+        .SelectMany(tokenizer.FindFunctions)
+        .ToArray();
 Debug.Log();
+if (functions.Length == 0) {
+    Console.WriteLine("NONE");
+}
 foreach (var group in functions.GroupBy(it => it).OrderBy(it => it.Key)) {
     Console.WriteLine($"{group.Key} {group.Count()}");
 }
