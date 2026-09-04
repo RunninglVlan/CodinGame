@@ -9,24 +9,20 @@ int lines = Math.Clamp(int.Parse(Console.ReadLine()!), 1, 200);
 /*
  * Source might contain multiple whitespaces: space, tab (\t), new line (\n) or linefeed (\r).
  * Function names shall be treated case sensitively.
- * If a function name is immediately preceded by a $, it shall be omitted (a PHP-specific rule, call of function with a name stored in a variable).
  * Output lines shall be sorted by the function names (by ascending ascii values).
  * If no library call encountered, output NONE
  */
 
 /*
-// user-defined function test
-function lower_rev(string $s): string
-{
-    return strtolower(str_rev($s));
-} // lower_rev
+/* test with fscanf() and strlen() * /
 fscanf(STDIN, "%s", $s);
-echo lower_rev($s) . "\n";
+$len = strlen($s); // strlen() gives the length of the string
+if(strlen($s) == $len)
+  echo "$strlen() matching\n";
 
-scanf 1
-lower_rev 2
-str_rev 1
-strtolower 1
+ strlen 1
+fscanf 1
+strlen 1
  */
 var tokenizer = new Tokenizer();
 // ReSharper disable once SuggestVarOrType_BuiltInTypes
@@ -53,7 +49,8 @@ partial class Tokenizer {
 
     // A function call can be identified by a valid name, immediately followed by an opening paranthesis (
     // Valid function names might contain upper and lower case letters, digits and underscore _.
-    [GeneratedRegex(@"(\w+)\(")]
+    // If a function name is immediately preceded by a $, it shall be omitted (a PHP-specific rule, call of function with a name stored in a variable).
+    [GeneratedRegex(@"(\$?\w+)\(")]
     private static partial Regex FunctionCall();
 
     readonly HashSet<string> userDefined = [];
@@ -69,7 +66,8 @@ partial class Tokenizer {
         }
         foreach (Match match in FunctionCall().Matches(line)) {
             string name = match.Groups[1].Value;
-            if (KEYWORDS.Contains(name.ToLower()) || userDefined.Contains(name)) {
+            // todo: refactor
+            if (KEYWORDS.Contains(name.ToLower()) || userDefined.Contains(name) || name.StartsWith("$")) {
                 continue;
             }
             yield return name;
