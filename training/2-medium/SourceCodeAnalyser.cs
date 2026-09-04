@@ -9,8 +9,6 @@ int lines = Math.Clamp(int.Parse(Console.ReadLine()!), 1, 200);
 /*
 * Source might contain multiple whitespaces: space, tab (\t), new line (\n) or linefeed (\r).
 * Function names shall be treated case sensitively.
-* Following reserved words shall be not treated as function calls and omitted from output:
-"and", "array", "echo", "else", "elseif", "if", "for", "foreach", "function", "or", "return", "while", "new" (regardless of lower, upper or mixed case)
 * If a function name is immediately preceded by a $, it shall be omitted (a PHP-specific rule, call of function with a name stored in a variable).
 * Class names and user-defined functions shall be excluded. If the source contains "function name(" or "new name(", then the "name" shall be omitted from output.
 * Output lines shall be sorted by the function names (by ascending ascii values).
@@ -41,7 +39,10 @@ foreach (var group in functions.GroupBy(it => it).OrderBy(it => it.Key)) {
 }
 
 partial class Tokenizer {
-    static readonly HashSet<string> KEYWORDS = ["if"];
+    /// Following reserved words shall be not treated as function calls and omitted from output:
+    ///"and", "array", "echo", "else", "elseif", "if", "for", "foreach", "function", "or", "return", "while", "new" (regardless of lower, upper or mixed case)
+    // todo: complete list
+    static readonly HashSet<string> KEYWORDS = ["and", "echo", "if", "for", "foreach"];
 
     // A function call can be identified by a valid name, immediately followed by an opening paranthesis (
     // Valid function names might contain upper and lower case letters, digits and underscore _.
@@ -54,7 +55,7 @@ partial class Tokenizer {
         line = Filter(line);
         foreach (Match match in Function().Matches(line)) {
             string name = match.Value[..^1];
-            if (KEYWORDS.Contains(name)) {
+            if (KEYWORDS.Contains(name.ToLower())) {
                 continue;
             }
             yield return name;
