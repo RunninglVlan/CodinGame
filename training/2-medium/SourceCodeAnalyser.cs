@@ -14,13 +14,19 @@ foreach (var group in functions.GroupBy(it => it)) {
 }
 
 static partial class Tokenizer {
+    static readonly HashSet<string> KEYWORDS = ["if"];
+
     [GeneratedRegex(@"\w*\(")]
     private static partial Regex Function();
 
     public static IEnumerable<string> FindFunctions(string line) {
         line = Filter(line);
         foreach (Match match in Function().Matches(line)) {
-            yield return match.Value[..^1];
+            string name = match.Value[..^1];
+            if (KEYWORDS.Contains(name)) {
+                continue;
+            }
+            yield return name;
         }
     }
 
