@@ -59,14 +59,14 @@ partial class Tokenizer {
     readonly HashSet<string> userDefined = [];
     string? multilineChar;
 
-    public IEnumerable<string> FindFunctions(string line) {
+    public IEnumerable<string> FindFunctions(string source) {
         // Class names and user-defined functions shall be excluded. If the source contains "function name(" or "new name(", then the "name" shall be omitted from output.
         // todo: filter classes
-        foreach (Match match in FunctionDefinition().Matches(line)) {
+        foreach (Match match in FunctionDefinition().Matches(source)) {
             string name = match.Groups[1].Value;
             userDefined.Add(name);
         }
-        foreach (Match match in FunctionCall().Matches(line)) {
+        foreach (Match match in FunctionCall().Matches(source)) {
             string name = match.Groups[1].Value;
             // todo: refactor
             if (KEYWORDS.Contains(name.ToLower()) || userDefined.Contains(name) || name.StartsWith("$")) {
