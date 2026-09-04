@@ -38,7 +38,7 @@ Debug.Log();
 if (functions.Length == 0) {
     Console.WriteLine("NONE");
 }
-foreach (var group in functions.GroupBy(it => it).OrderBy(it => it.Key)) {
+foreach (var group in functions.GroupBy(it => it).OrderBy(it => it.Key, StringComparer.Ordinal)) {
     Console.WriteLine($"{group.Key} {group.Count()}");
 }
 
