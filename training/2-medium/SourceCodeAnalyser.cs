@@ -1,8 +1,24 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text.RegularExpressions;
 
 // https://www.codingame.com/training/medium/source-code-analyser
 int lines = Math.Clamp(int.Parse(Console.ReadLine()!), 1, 200);
-for (var i = 0; i < lines; i++) {
-    string line = Console.ReadLine()!;
+var functions = Enumerable.Range(0, lines)
+        .Select(_ => Console.ReadLine()!)
+        .SelectMany(Tokenizer.FindFunctions);
+foreach (var group in functions.GroupBy(it => it)) {
+    Console.WriteLine($"{group.Key} {group.Count()}");
 }
-Console.WriteLine("strlen 1");
+
+static partial class Tokenizer {
+    [GeneratedRegex(@"\w*\(")]
+    private static partial Regex Function();
+
+    public static IEnumerable<string> FindFunctions(string line) {
+        foreach (Match match in Function().Matches(line)) {
+            yield return match.Value[..^1];
+        }
+    }
+}
