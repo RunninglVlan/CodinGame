@@ -7,21 +7,20 @@ int number = Math.Clamp(int.Parse(Console.ReadLine()!), 1, 1_000_000);
 Console.WriteLine(Display(number));
 return;
 
+// BFS
 int Display(int required) {
     var queue = new Queue<(int value, int operations)>();
-    var start = (0, 0);
-    queue.Enqueue(start);
-    HashSet<(int, int)> visited = [start];
+    queue.Enqueue((0, 0));
+    HashSet<int> visited = [];
     while (queue.TryDequeue(out var current)) {
         if (current.value == required) {
             return current.operations;
         }
         foreach (int nextValue in Next(current.value)) {
-            var next = (nextValue, current.operations + 1);
-            if (!visited.Add(next)) {
+            if (!visited.Add(nextValue)) {
                 continue;
             }
-            queue.Enqueue(next);
+            queue.Enqueue((nextValue, current.operations + 1));
         }
     }
     throw new UnreachableException();
