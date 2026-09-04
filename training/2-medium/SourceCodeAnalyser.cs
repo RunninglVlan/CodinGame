@@ -28,8 +28,9 @@ foreach (var group in functions.GroupBy(it => it).OrderBy(it => it.Key, StringCo
 partial class Tokenizer {
     /// Following reserved words shall be not treated as function calls and omitted from output:
     ///"and", "array", "echo", "else", "elseif", "if", "for", "foreach", "function", "or", "return", "while", "new" (regardless of lower, upper or mixed case)
-    // todo: complete list
-    static readonly HashSet<string> KEYWORDS = ["and", "array", "echo", "if", "for", "foreach"];
+    static readonly HashSet<string> KEYWORDS = [
+        "and", "array", "echo", "else", "elseif", "if", "for", "foreach", "function", "or", "return", "while", "new"
+    ];
 
     [GeneratedRegex(@"(function|class)\s*(\w+)\s*({|\()")]
     private static partial Regex Definition();
