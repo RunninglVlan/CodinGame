@@ -18,12 +18,21 @@ int lines = Math.Clamp(int.Parse(Console.ReadLine()!), 1, 200);
  */
 
 /*
-test
+Test 3: simple test with multiple lines, also with _ and numbers in identifiers
+4
+// simple test with multiple lines, also with _ and numbers in identifiers
+fscanf(STDIN, "%s", $s);
+fscanf(STDIN, "%f", $a);
+$r = str_rev($s);$t=atan2($a);
+
+atan2 1
+fscanf 2
+str_rev 1
  */
 var functions = Enumerable.Range(0, lines)
         .Select(_ => Console.ReadLine()!)
         .SelectMany(Tokenizer.FindFunctions);
-foreach (var group in functions.GroupBy(it => it)) {
+foreach (var group in functions.GroupBy(it => it).OrderBy(it => it.Key)) {
     Console.WriteLine($"{group.Key} {group.Count()}");
 }
 
@@ -32,7 +41,6 @@ static partial class Tokenizer {
 
     // A function call can be identified by a valid name, immediately followed by an opening paranthesis (
     // Valid function names might contain upper and lower case letters, digits and underscore _.
-    // todo: support digits
     [GeneratedRegex(@"\w*\(")]
     private static partial Regex Function();
 
