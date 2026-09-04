@@ -37,7 +37,7 @@ partial class Tokenizer {
         if (multilineToken != null) {
             int index = line.IndexOf(multilineToken, StringComparison.Ordinal);
             if (index != -1) {
-                line = line[index..];
+                line = line[(index + 1)..];
                 multilineToken = null;
             } else {
                 return string.Empty;
@@ -58,24 +58,29 @@ partial class Tokenizer {
                 return line[..commentStart];
             }
         }
-        int stringStart = line.IndexOf(Tokens.QUOTE_SINGLE, StringComparison.Ordinal);
-        while (stringStart != -1) {
-            int stringEnd = line.IndexOf(Tokens.QUOTE_SINGLE, stringStart + 1, StringComparison.Ordinal);
-            if (stringEnd == -1) {
-                break;
-            }
-            line = line[..stringStart] + line[(stringEnd + 1)..];
-            stringStart = line.IndexOf(Tokens.QUOTE_SINGLE, StringComparison.Ordinal);
-        }
-        stringStart = line.IndexOf(Tokens.QUOTE_DOUBLE, StringComparison.Ordinal);
-        while (stringStart != -1) {
-            int stringEnd = line.IndexOf(Tokens.QUOTE_DOUBLE, stringStart + 1, StringComparison.Ordinal);
+        int singleQuoteStart = line.IndexOf(Tokens.QUOTE_SINGLE, StringComparison.Ordinal);
+        int doubleQuoteStart = line.IndexOf(Tokens.QUOTE_DOUBLE, StringComparison.Ordinal);
+        while (singleQuoteStart != -1) {
+            int stringEnd = line.IndexOf(Tokens.QUOTE_SINGLE, singleQuoteStart + 1, StringComparison.Ordinal);
             if (stringEnd != -1) {
-                line = line[..stringStart] + line[(stringEnd + 1)..];
-                stringStart = line.IndexOf(Tokens.QUOTE_DOUBLE, StringComparison.Ordinal);
+                line = line[..singleQuoteStart] + line[(stringEnd + 1)..];
+                singleQuoteStart = line.IndexOf(Tokens.QUOTE_SINGLE, StringComparison.Ordinal);
+            } else if (doubleQuoteStart != -1) {
+                break;
+            } else {
+                multilineToken = Tokens.QUOTE_SINGLE;
+                return line[..singleQuoteStart];
+            }
+        }
+        doubleQuoteStart = line.IndexOf(Tokens.QUOTE_DOUBLE, StringComparison.Ordinal);
+        while (doubleQuoteStart != -1) {
+            int stringEnd = line.IndexOf(Tokens.QUOTE_DOUBLE, doubleQuoteStart + 1, StringComparison.Ordinal);
+            if (stringEnd != -1) {
+                line = line[..doubleQuoteStart] + line[(stringEnd + 1)..];
+                doubleQuoteStart = line.IndexOf(Tokens.QUOTE_DOUBLE, StringComparison.Ordinal);
             } else {
                 multilineToken = Tokens.QUOTE_DOUBLE;
-                return line[..stringStart];
+                return line[..doubleQuoteStart];
             }
         }
         return line;
