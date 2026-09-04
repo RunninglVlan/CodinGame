@@ -17,8 +17,22 @@ static partial class Tokenizer {
     private static partial Regex Function();
 
     public static IEnumerable<string> FindFunctions(string line) {
+        line = FilterComments(line);
         foreach (Match match in Function().Matches(line)) {
             yield return match.Value[..^1];
         }
+    }
+
+    static string FilterComments(string line) {
+        int commentStart = line.IndexOf("/*", StringComparison.Ordinal);
+        if (commentStart != -1) {
+            int commentEnd = line.IndexOf("*/", StringComparison.Ordinal);
+            line = line[..commentStart] + line[commentEnd..];
+        }
+        commentStart = line.IndexOf("//", StringComparison.Ordinal);
+        if (commentStart != -1) {
+            line = line[..commentStart];
+        }
+        return line;
     }
 }
