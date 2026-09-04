@@ -65,10 +65,6 @@ partial class Tokenizer {
     string Filter(string line) {
         // Anything after single line comments (starting with //) or within multi-line comments (between /* and */ ) shall be omitted.
         // todo: refactor
-        int commentStart = line.IndexOf("//", StringComparison.Ordinal);
-        if (commentStart != -1) {
-            line = line[..commentStart];
-        }
         if (multilineChar != null) {
             int index = line.IndexOf(multilineChar, StringComparison.Ordinal);
             if (index != -1) {
@@ -77,6 +73,10 @@ partial class Tokenizer {
             } else {
                 return string.Empty;
             }
+        }
+        int commentStart = line.IndexOf("//", StringComparison.Ordinal);
+        if (commentStart != -1) {
+            line = line[..commentStart];
         }
         commentStart = line.IndexOf("/*", StringComparison.Ordinal);
         if (commentStart != -1) {
