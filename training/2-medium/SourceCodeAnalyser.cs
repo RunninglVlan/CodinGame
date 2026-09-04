@@ -45,7 +45,7 @@ partial class Tokenizer {
 
     // A function call can be identified by a valid name, immediately followed by an opening paranthesis (
     // Valid function names might contain upper and lower case letters, digits and underscore _.
-    [GeneratedRegex(@"\w*\(")]
+    [GeneratedRegex(@"\w+\(")]
     private static partial Regex Function();
 
     string? multilineChar;
