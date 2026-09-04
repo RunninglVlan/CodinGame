@@ -8,14 +8,20 @@ Console.WriteLine(Display(number));
 return;
 
 int Display(int required) {
-    var queue = new PriorityQueue<int, int>();
-    queue.Enqueue(0, 0);
-    while (queue.TryDequeue(out int current, out int operations)) {
-        if (current == required) {
-            return operations;
+    var queue = new Queue<(int value, int operations)>();
+    var start = (0, 0);
+    queue.Enqueue(start);
+    HashSet<(int, int)> visited = [start];
+    while (queue.TryDequeue(out var current)) {
+        if (current.value == required) {
+            return current.operations;
         }
-        foreach (int next in Next(current)) {
-            queue.Enqueue(next, operations + 1);
+        foreach (int nextValue in Next(current.value)) {
+            var next = (nextValue, current.operations + 1);
+            if (!visited.Add(next)) {
+                continue;
+            }
+            queue.Enqueue(next);
         }
     }
     throw new UnreachableException();
