@@ -46,15 +46,15 @@ partial class Tokenizer {
 
     // A function call can be identified by a valid name, immediately followed by an opening paranthesis (
     // Valid function names might contain upper and lower case letters, digits and underscore _.
-    [GeneratedRegex(@"\w+\(")]
-    private static partial Regex Function();
+    [GeneratedRegex(@"(\w+)\(")]
+    private static partial Regex FunctionCall();
 
     string? multilineChar;
 
     public IEnumerable<string> FindFunctions(string line) {
         line = Filter(line);
-        foreach (Match match in Function().Matches(line)) {
-            string name = match.Value[..^1];
+        foreach (Match match in FunctionCall().Matches(line)) {
+            string name = match.Groups[1].Value;
             if (KEYWORDS.Contains(name.ToLower())) {
                 continue;
             }
