@@ -28,8 +28,8 @@ strlen 1
 var tokenizer = new Tokenizer();
 var lines = Enumerable.Range(0, lineCount)
         .Select(_ => Debug.ReadLine()!)
-        .SelectMany(tokenizer.Filter);
-string source = string.Join(string.Empty, lines);
+        .Select(tokenizer.Filter);
+string source = string.Join(" ", lines);
 string[] functions = [.. tokenizer.FindFunctions(source)];
 Debug.Log();
 // If no library call encountered, output NONE
@@ -45,28 +45,27 @@ partial class Tokenizer {
     /// Following reserved words shall be not treated as function calls and omitted from output:
     ///"and", "array", "echo", "else", "elseif", "if", "for", "foreach", "function", "or", "return", "while", "new" (regardless of lower, upper or mixed case)
     // todo: complete list
-    static readonly HashSet<string> KEYWORDS = ["and", "echo", "if", "for", "foreach"];
+    static readonly HashSet<string> KEYWORDS = ["and", "array", "echo", "if", "for", "foreach"];
 
-    [GeneratedRegex(@"function\s*(\w+)\(")]
-    private static partial Regex FunctionDefinition();
+    [GeneratedRegex(@"(function|class)\s*(\w+)\s*({|\()")]
+    private static partial Regex Definition();
 
     // A function call can be identified by a valid name, immediately followed by an opening paranthesis (
     // Valid function names might contain upper and lower case letters, digits and underscore _.
     // If a function name is immediately preceded by a $, it shall be omitted (a PHP-specific rule, call of function with a name stored in a variable).
     [GeneratedRegex(@"(\$?\w+)\(")]
-    private static partial Regex FunctionCall();
+    private static partial Regex Function();
 
     readonly HashSet<string> userDefined = [];
     string? multilineChar;
 
     public IEnumerable<string> FindFunctions(string source) {
         // Class names and user-defined functions shall be excluded. If the source contains "function name(" or "new name(", then the "name" shall be omitted from output.
-        // todo: filter classes
-        foreach (Match match in FunctionDefinition().Matches(source)) {
-            string name = match.Groups[1].Value;
+        foreach (Match match in Definition().Matches(source)) {
+            string name = match.Groups[2].Value;
             userDefined.Add(name);
         }
-        foreach (Match match in FunctionCall().Matches(source)) {
+        foreach (Match match in Function().Matches(source)) {
             string name = match.Groups[1].Value;
             // todo: refactor
             if (KEYWORDS.Contains(name.ToLower()) || userDefined.Contains(name) || name.StartsWith("$")) {
