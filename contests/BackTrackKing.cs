@@ -132,12 +132,14 @@ class Game : IGraph<Point> {
         if (foeRegions.Length == 0) {
             return false;
         }
-        var safeToInk = foeRegions.FirstOrDefault(it => it is { Instability: 3, TownConnections.Count: >= 2 });
+        var safeToInk = foeRegions
+                .Where(it => it.Instability == Region.MAX_SAFE_INSTABILITY)
+                .FirstOrDefault(it => it.TownConnections.Count >= 2);
         if (safeToInk != null) {
             region = safeToInk;
             return true;
         }
-        var safeToDisrupt = foeRegions.FirstOrDefault(it => it.Instability < 3);
+        var safeToDisrupt = foeRegions.FirstOrDefault(it => it.Instability < Region.MAX_SAFE_INSTABILITY);
         if (safeToDisrupt == null) {
             return false;
         }
@@ -166,6 +168,8 @@ class Game : IGraph<Point> {
 }
 
 record Region(int Id) {
+    public const int MAX_SAFE_INSTABILITY = 3;
+
     public int? Town { get; set; }
     public Dictionary<Owner, int> Tracks { get; } = [];
     public HashSet<int> TownConnections { get; } = [];
