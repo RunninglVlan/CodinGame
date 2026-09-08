@@ -71,11 +71,11 @@ class Game {
             }
         }
 
-        if (foeTracks.Count == 0) {
-            Console.WriteLine(Actions.Autoplace(towns[0], towns[1]));
-            return;
+        List<string> actions = [Actions.Autoplace(towns[0], towns[1])];
+        if (foeTracks.Count > 0) {
+            actions.Add(Actions.Disrupt(foeTracks.First().RegionId));
         }
-        Console.WriteLine(Actions.Disrupt(foeTracks.First().RegionId));
+        Console.WriteLine(string.Join(';', actions));
     }
 }
 
