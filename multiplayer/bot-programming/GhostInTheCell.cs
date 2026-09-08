@@ -16,11 +16,15 @@ static class GhostInTheCell {
     }
 }
 
-class Game {
-    readonly Pathfinding<Factory> pathfinding = new();
+class Game : IGraph<Factory> {
+    readonly Pathfinding<Factory> pathfinding;
     Factory[] factories = null!;
     readonly List<Bomb> bombs = new();
     int remainingBombs = 2;
+
+    public Game() {
+        pathfinding = new Pathfinding<Factory>(this);
+    }
 
     public void Init() {
         int factoryCount = Math.Clamp(int.Parse(Console.ReadLine()!), 7, 15);
@@ -122,15 +126,18 @@ class Game {
                 .First();
         return new SendBomb(source.factory.Id, target.Id);
     }
+
+    IEnumerable<(Factory, int cost)> IGraph<Factory>.Next(Factory current) {
+        return current.Connections;
+    }
 }
 
-class Factory(int id) : INode<Factory> {
+class Factory(int id) : IEquatable<Factory> {
     public const int PRODUCTION_MAX = 3;
     const int UPGRADE_COST = 10;
 
     public int Id { get; } = id;
     public List<(Factory factory, int distanceInTurns)> Connections { get; } = [];
-    List<(Factory, int)> INode<Factory>.Connections => Connections;
     public Player Player { get; set; }
     public int Cyborgs { get; set; }
     public List<Troop> ApproachingTroops { get; } = new();
@@ -259,6 +266,16 @@ class Factory(int id) : INode<Factory> {
             yield return (target.factory, maxAttackingCyborgs);
         }
     }
+
+    public bool Equals(Factory? other) {
+        return other is not null && Id == other.Id;
+    }
+
+    public override bool Equals(object? other) {
+        return ReferenceEquals(this, other) || other is Factory factory && Equals(factory);
+    }
+
+    public override int GetHashCode() => Id;
 }
 
 [SuppressMessage("ReSharper", "NotAccessedPositionalProperty.Global")]
@@ -303,10 +320,10 @@ readonly struct Message(string value) : IAction {
     public override string ToString() => $"MSG {value}";
 }
 
-class Pathfinding<T> where T : INode<T> {
+class Pathfinding<T>(IGraph<T> graph) where T : IEquatable<T> {
     readonly PriorityQueue<T, int> queue = new();
-    readonly Dictionary<int, T> parents = new();
-    readonly Dictionary<int, int> visited = new();
+    readonly Dictionary<T, T> parents = new();
+    readonly Dictionary<T, int> visited = new();
 
     /// Dijkstra
     public List<T>? Path(T start, T end) {
@@ -314,19 +331,19 @@ class Pathfinding<T> where T : INode<T> {
         parents.Clear();
         visited.Clear();
         queue.Enqueue(start, 0);
-        visited.Add(start.Id, 0);
-        while (queue.TryDequeue(out var current, out int currentDistance)) {
-            if (current.Id == end.Id) {
+        visited.Add(start, 0);
+        while (queue.TryDequeue(out var current, out int currentCost)) {
+            if (current.Equals(end)) {
                 return Reconstruct(start, current);
             }
-            foreach ((var node, int distance) in current.Connections) {
-                int newDistance = currentDistance + distance;
-                if (newDistance >= visited.GetValueOrDefault(node.Id, int.MaxValue)) {
+            foreach ((var node, int cost) in graph.Next(current)) {
+                int newCost = currentCost + cost;
+                if (newCost >= visited.GetValueOrDefault(node, int.MaxValue)) {
                     continue;
                 }
-                queue.Enqueue(node, newDistance);
-                visited[node.Id] = newDistance;
-                parents[node.Id] = current;
+                queue.Enqueue(node, newCost);
+                visited[node] = newCost;
+                parents[node] = current;
             }
         }
         return null;
@@ -335,16 +352,15 @@ class Pathfinding<T> where T : INode<T> {
     List<T> Reconstruct(T start, T end) {
         var path = new List<T>();
         var current = end;
-        while (current.Id != start.Id) {
+        while (!current.Equals(start)) {
             path.Add(current);
-            current = parents[current.Id];
+            current = parents[current];
         }
         path.Reverse();
         return path;
     }
 }
 
-interface INode<T> where T : INode<T> {
-    int Id { get; }
-    List<(T, int distance)> Connections { get; }
+interface IGraph<T> {
+    IEnumerable<(T, int cost)> Next(T current);
 }
