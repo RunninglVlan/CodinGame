@@ -53,26 +53,21 @@ class Game : IGraph<Point> {
         for (var i = 0; i < townCount; i++) {
             string[] inputs = Console.ReadLine()!.Split(' ');
             int townId = int.Parse(inputs[0]);
-            int townX = int.Parse(inputs[1]);
-            int townY = int.Parse(inputs[2]);
-            var point = new Point(townX, townY);
+            var townPoint = new Point(int.Parse(inputs[1]), int.Parse(inputs[2]));
             string desiredConnections = inputs[3];
             HashSet<int> desiredConnectionIds = desiredConnections == NO_CONNECTIONS
                     ? []
                     : [.. desiredConnections.Split(',').Select(int.Parse)];
-            towns[townId] = new Town(point, desiredConnectionIds);
-            cells[point].Region.Towns.Add(townId);
+            towns[townId] = new Town(townPoint, desiredConnectionIds);
+            cells[townPoint].Region.Towns.Add(townId);
         }
     }
 
     public void Loop() {
         ReadState();
         List<string> actions = [Autoplace()];
-        var foeTracks = cells
-                .Where(it => it.Value.TracksOwner == foe && it.Value.Region.Towns.Count == 0)
-                .ToArray();
-        if (foeTracks.Length > 1) {
-            actions.Add(Actions.Disrupt(foeTracks.First().Key));
+        if (TryFindRegionToDisrupt(out var regionPoint)) {
+            actions.Add(Actions.Disrupt(regionPoint));
         }
         Console.WriteLine(string.Join(';', actions));
     }
@@ -120,6 +115,18 @@ class Game : IGraph<Point> {
             }
         }
         return Actions.Autoplace(best.from, best.to);
+    }
+
+    bool TryFindRegionToDisrupt(out Point regionPoint) {
+        regionPoint = default;
+        var foeTracks = cells
+                .Where(it => it.Value.TracksOwner == foe && it.Value.Region.Towns.Count == 0)
+                .ToArray();
+        if (foeTracks.Length == 0) {
+            return false;
+        }
+        regionPoint = foeTracks.First().Key;
+        return true;
     }
 
     [SuppressMessage("ReSharper", "LoopCanBeConvertedToQuery")]
