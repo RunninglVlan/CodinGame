@@ -86,10 +86,8 @@ class Game : IGraph<Point> {
                 cell.TracksOwner = tracksOwner;
                 int tracks = cell.Region.Tracks.GetValueOrDefault(tracksOwner);
                 cell.Region.Tracks[tracksOwner] = tracks + 1;
-                // region inked (destroyed) when this >= 3
-                int instability = int.Parse(inputs[1]);
-                // true if region is destroyed
-                bool inked = inputs[2] != "0";
+                cell.Region.Instability = int.Parse(inputs[1]);
+                cell.Region.Inked = inputs[2] != "0";
                 string partOfActiveConnections = inputs[3];
                 cell.TownConnections.Clear();
                 if (partOfActiveConnections == NO_CONNECTIONS) {
@@ -145,6 +143,9 @@ class Game : IGraph<Point> {
                 continue;
             }
             var cell = cells[point];
+            if (cell.Region.Inked) {
+                continue;
+            }
             if (cell.TracksOwner != Owner.NoTrack) {
                 yield return (point, 0);
                 continue;
@@ -158,6 +159,12 @@ class Game : IGraph<Point> {
 record Region(int Id) {
     public int? Town { get; set; }
     public Dictionary<Owner, int> Tracks { get; } = [];
+
+    /// region inked (destroyed) when this >= 4
+    public int Instability { get; set; }
+
+    /// true if region is destroyed
+    public bool Inked { get; set; }
 
     public virtual bool Equals(Region? other) => Id == other?.Id;
     public override int GetHashCode() => Id;
