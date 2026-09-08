@@ -3,16 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
 
-/// Visual <br/>
-/// https://www.codingame.com/training/hard/the-labyrinth
-static class TheLabyrinth {
-    static void Main() {
-        var game = new Game();
-        while (true) {
-            game.Loop();
-        }
-        // ReSharper disable once FunctionNeverReturns
-    }
+// Visual
+// https://www.codingame.com/training/hard/the-labyrinth
+var game = new Game();
+while (true) {
+    game.Loop();
 }
 
 class Game {
@@ -83,7 +78,7 @@ class Game {
     }
 }
 
-class Grid : IGrid<Cell> {
+class Grid : IGraph<Cell> {
     static Point[] FourDirections { get; } = [
         Point.RIGHT, Point.LEFT, Point.UP, Point.DOWN
     ];
@@ -148,7 +143,7 @@ class Grid : IGrid<Cell> {
         }
     }
 
-    IEnumerable<Cell> IGrid<Cell>.Next(Cell cell) {
+    IEnumerable<Cell> IGraph<Cell>.Next(Cell cell) {
         foreach (var direction in FourDirections) {
             if (!TryGet(cell.point + direction, out var neighbor)) {
                 continue;
@@ -219,53 +214,48 @@ static class Action {
     };
 }
 
-class Pathfinding<T>(IGrid<T> grid) where T : IEquatable<T> {
-    readonly Queue<Node> queue = [];
-    readonly HashSet<T> visited = [];
+class Pathfinding<T>(IGraph<T> graph) where T : IEquatable<T> {
+    readonly Dictionary<T, T> parents = new();
 
     /// BFS to end
     public List<T>? Path(T start, T end) {
-        return Path(start, cell => cell.Equals(end));
+        return Path(start, it => it.Equals(end));
     }
 
     /// BFS to endPredicate
     public List<T>? Path(T start, Predicate<T> endPredicate) {
-        queue.Clear();
-        visited.Clear();
-        var startNode = new Node(start);
-        queue.Enqueue(startNode);
+        Queue<T> queue = [];
+        HashSet<T> visited = [];
+        parents.Clear();
+        queue.Enqueue(start);
         visited.Add(start);
         while (queue.TryDequeue(out var current)) {
-            if (endPredicate(current.cell)) {
-                return Reconstruct(startNode, current);
+            if (endPredicate(current)) {
+                return Reconstruct(start, current);
             }
-            foreach (var next in grid.Next(current.cell)) {
+            foreach (var next in graph.Next(current)) {
                 if (!visited.Add(next)) {
                     continue;
                 }
-                queue.Enqueue(new Node(next) { parent = current });
+                queue.Enqueue(next);
+                parents[next] = current;
             }
         }
         return null;
     }
 
-    static List<T> Reconstruct(Node start, Node end) {
+    List<T> Reconstruct(T start, T end) {
         var path = new List<T>();
         var current = end;
-        while (current != start) {
-            path.Add(current!.cell);
-            current = current.parent;
+        while (!current.Equals(start)) {
+            path.Add(current);
+            current = parents[current];
         }
         path.Reverse();
         return path;
     }
-
-    class Node(T cell) {
-        public readonly T cell = cell;
-        public Node? parent;
-    }
 }
 
-interface IGrid<T> {
+interface IGraph<T> {
     IEnumerable<T> Next(T current);
 }

@@ -38,8 +38,8 @@ record struct GameState(int RouteScore, int TicketScore, int TrainCars, int[] Ca
     }
 }
 
-class Game : IGame<GameState> {
-    readonly Pathfinding<City> pathfinding = new();
+class Game : IGame<GameState>, IGraph<City> {
+    readonly Pathfinding<City> pathfinding;
     readonly BeamSearch<GameState> beamSearch;
 
     /// Resource #1
@@ -55,6 +55,7 @@ class Game : IGame<GameState> {
     readonly Dictionary<int, int> ticketScoreCache = new();
 
     public Game() {
+        pathfinding = new Pathfinding<City>(this);
         beamSearch = new BeamSearch<GameState>(this);
     }
 
@@ -136,6 +137,10 @@ class Game : IGame<GameState> {
         };
         start.TicketScore = TicketScore(start.CompletedRoutes);
         return beamSearch.FindBest(start, routes.Count).Score;
+    }
+
+    IEnumerable<City> IGraph<City>.Next(City current) {
+        return current.Connections;
     }
 
     IEnumerable<GameState> IGame<GameState>.Next(GameState current) {
@@ -282,38 +287,37 @@ record Route(int Id, int Length, int RequiredEngines, Card Color, string CityA, 
     public string ToShort() => $"R({Length} {CityA[..2]}-{CityB[..2]})";
 }
 
-record City(string Name) : INode<City> {
-    public int Id { get; } = Name.GetHashCode();
+record City(string Name) {
     public List<City> Connections { get; } = [];
+
+    public virtual bool Equals(City? other) => Name == other?.Name;
+    public override int GetHashCode() => Name.GetHashCode();
 }
 
-class Pathfinding<T> where T : INode<T> {
+class Pathfinding<T>(IGraph<T> graph) where T : IEquatable<T> {
     /// DFS/Backtracking
-    [SuppressMessage("Performance", "CA1822:Mark members as static")]
     public IEnumerable<List<T>> Paths(T start, T end) {
-        return Paths(start, end, [start], [start.Id]);
+        return Paths(start, end, [start], [start]);
     }
 
-    [SuppressMessage("ReSharper", "ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator")]
-    static IEnumerable<List<T>> Paths(T current, T end, List<T> path, HashSet<int> visited) {
-        if (current.Id == end.Id) {
+    IEnumerable<List<T>> Paths(T current, T end, List<T> path, HashSet<T> visited) {
+        if (current.Equals(end)) {
             yield return [.. path];
             yield break;
         }
-        foreach (var next in current.Connections) {
-            if (visited.Contains(next.Id)) {
+        foreach (var next in graph.Next(current)) {
+            if (visited.Contains(next)) {
                 continue;
             }
-            foreach (var result in Paths(next, end, [.. path, next], [.. visited, next.Id])) {
+            foreach (var result in Paths(next, end, [.. path, next], [.. visited, next])) {
                 yield return result;
             }
         }
     }
 }
 
-interface INode<T> where T : INode<T> {
-    int Id { get; }
-    List<T> Connections { get; }
+interface IGraph<T> {
+    IEnumerable<T> Next(T current);
 }
 
 class BeamSearch<T>(IGame<T> game) where T : IState {

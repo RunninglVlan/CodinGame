@@ -12,7 +12,7 @@ while (true) {
     game.Loop();
 }
 
-class Game : IGrid<Point> {
+class Game : IGraph<Point> {
     const int SIZE = 10;
 
     readonly Pathfinding<Point> pathfinding;
@@ -53,7 +53,7 @@ class Game : IGrid<Point> {
         susMan = Point.From(susCoordinates[1], susCoordinates[0]);
     }
 
-    IEnumerable<Point> IGrid<Point>.Next(Point current) => Screen.Directions4
+    IEnumerable<Point> IGraph<Point>.Next(Point current) => Screen.Directions4
             .Select(it => current + it)
             .Where(it => it.InBounds(SIZE, SIZE) && IsFloor(it))
             .OrderBy(it => Point.ManhattanDistance(it, susMan));
@@ -111,48 +111,43 @@ static class Debug {
     }
 }
 
-class Pathfinding<T>(IGrid<T> grid) where T : IEquatable<T> {
-    readonly Queue<Node> queue = [];
-    readonly HashSet<T> visited = [];
+class Pathfinding<T>(IGraph<T> graph) where T : IEquatable<T> {
+    readonly Dictionary<T, T> parents = new();
 
     /// BFS to end
     public List<T>? Path(T start, T end) {
-        queue.Clear();
-        visited.Clear();
-        var startNode = new Node(start);
-        queue.Enqueue(startNode);
+        Queue<T> queue = [];
+        HashSet<T> visited = [];
+        parents.Clear();
+        queue.Enqueue(start);
         visited.Add(start);
         while (queue.TryDequeue(out var current)) {
-            if (current.cell.Equals(end)) {
-                return Reconstruct(startNode, current);
+            if (current.Equals(end)) {
+                return Reconstruct(start, current);
             }
-            foreach (var next in grid.Next(current.cell)) {
+            foreach (var next in graph.Next(current)) {
                 if (!visited.Add(next)) {
                     continue;
                 }
-                queue.Enqueue(new Node(next) { parent = current });
+                queue.Enqueue(next);
+                parents[next] = current;
             }
         }
         return null;
     }
 
-    static List<T> Reconstruct(Node start, Node end) {
+    List<T> Reconstruct(T start, T end) {
         var path = new List<T>();
         var current = end;
-        while (current != start) {
-            path.Add(current!.cell);
-            current = current.parent;
+        while (!current.Equals(start)) {
+            path.Add(current);
+            current = parents[current];
         }
         path.Reverse();
         return path;
     }
-
-    class Node(T cell) {
-        public readonly T cell = cell;
-        public Node? parent;
-    }
 }
 
-interface IGrid<T> {
+interface IGraph<T> {
     IEnumerable<T> Next(T current);
 }

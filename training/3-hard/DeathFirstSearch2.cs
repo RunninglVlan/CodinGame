@@ -1,25 +1,23 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
-/// Visual <br/>
-/// https://www.codingame.com/training/hard/death-first-search-episode-2
-static class DeathFirstSearch2 {
-    [SuppressMessage("ReSharper", "FunctionNeverReturns")]
-    static void Main() {
-        var game = new Game();
-        game.Init();
-        while (true) {
-            game.Loop();
-        }
-    }
+// Visual
+// https://www.codingame.com/training/hard/death-first-search-episode-2
+var game = new Game();
+game.Init();
+while (true) {
+    game.Loop();
 }
 
-class Game {
+class Game : IGraph<Node> {
     Node[] nodes = null!;
-    readonly HashSet<int> gateways = new();
-    readonly Pathfinding<Node> pathfinding = new();
+    readonly HashSet<int> gateways = [];
+    readonly Pathfinding<Node> pathfinding;
+
+    public Game() {
+        pathfinding = new Pathfinding<Node>(this);
+    }
 
     public void Init() {
         string[] inputs = Console.ReadLine()!.Split(' ');
@@ -102,11 +100,17 @@ class Game {
         }
         return bestPath;
     }
+
+    IEnumerable<Node> IGraph<Node>.Next(Node current) {
+        return current.Connections;
+    }
 }
 
-class Node(int i) : INode<Node> {
-    public int Id { get; } = i;
-    public List<Node> Connections { get; } = new();
+record Node(int Id) {
+    public List<Node> Connections { get; } = [];
+
+    public virtual bool Equals(Node? other) => Id == other?.Id;
+    public override int GetHashCode() => Id;
 }
 
 readonly record struct Link(Node Gateway, Node Node, int GatewayCount) {
@@ -123,34 +127,31 @@ readonly record struct Link(Node Gateway, Node Node, int GatewayCount) {
     public override string ToString() => $"{Gateway.Id} {Node.Id}";
 }
 
-class Pathfinding<T> where T : INode<T> {
-    readonly Queue<T> queue = new();
-    readonly Dictionary<int, T> parents = new();
-    readonly HashSet<int> visited = new();
+class Pathfinding<T>(IGraph<T> graph) where T : IEquatable<T> {
+    readonly Dictionary<T, T> parents = new();
 
     /// BFS to end
     public List<T>? Path(T start, T end) {
-        return Path(start, it => it.Id == end.Id);
+        return Path(start, it => it.Equals(end));
     }
 
     /// BFS to endPredicate
-    [SuppressMessage("ReSharper", "ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator")]
     public List<T>? Path(T start, Predicate<T> endPredicate) {
-        queue.Clear();
+        Queue<T> queue = [];
+        HashSet<T> visited = [];
         parents.Clear();
-        visited.Clear();
         queue.Enqueue(start);
-        visited.Add(start.Id);
+        visited.Add(start);
         while (queue.TryDequeue(out var current)) {
             if (endPredicate(current)) {
                 return Reconstruct(start, current);
             }
-            foreach (var next in current.Connections) {
-                if (!visited.Add(next.Id)) {
+            foreach (var next in graph.Next(current)) {
+                if (!visited.Add(next)) {
                     continue;
                 }
                 queue.Enqueue(next);
-                parents[next.Id] = current;
+                parents[next] = current;
             }
         }
         return null;
@@ -159,16 +160,15 @@ class Pathfinding<T> where T : INode<T> {
     List<T> Reconstruct(T start, T end) {
         var path = new List<T>();
         var current = end;
-        while (current.Id != start.Id) {
+        while (!current.Equals(start)) {
             path.Add(current);
-            current = parents[current.Id];
+            current = parents[current];
         }
         path.Reverse();
         return path;
     }
 }
 
-interface INode<T> where T : INode<T> {
-    int Id { get; }
-    List<T> Connections { get; }
+interface IGraph<T> {
+    IEnumerable<T> Next(T current);
 }
