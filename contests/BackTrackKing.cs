@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
 // Visual
@@ -11,13 +12,25 @@ while (true) {
     game.Loop();
 }
 
-class Game {
+class Game : IGraph<Point> {
     const string NO_CONNECTIONS = "x";
+
+    readonly Pathfinding<Point> pathfinding;
 
     int player, foe;
     int width, height;
     readonly Dictionary<Point, Cell> cells = [];
     readonly Dictionary<int, Town> towns = [];
+
+    readonly Dictionary<CellType, int> paintPoints = new() {
+        { CellType.Plains, 1 },
+        { CellType.River, 2 },
+        { CellType.Mountain, 3 },
+    };
+
+    public Game() {
+        pathfinding = new Pathfinding<Point>(this);
+    }
 
     public void Init() {
         player = Math.Clamp(int.Parse(Console.ReadLine()!), 0, 1);
@@ -40,7 +53,7 @@ class Game {
             int townY = int.Parse(inputs[2]);
             var point = new Point(townX, townY);
             string desiredConnections = inputs[3];
-            int[] desiredConnectionIds = desiredConnections == NO_CONNECTIONS
+            HashSet<int> desiredConnectionIds = desiredConnections == NO_CONNECTIONS
                     ? []
                     : [.. desiredConnections.Split(',').Select(int.Parse)];
             towns[townId] = new Town(point, desiredConnectionIds);
@@ -49,7 +62,7 @@ class Game {
 
     public void Loop() {
         ReadState();
-        List<string> actions = [Actions.Autoplace(towns[0], towns[1])];
+        List<string> actions = [Autoplace()];
         var foeTracks = cells.Values.Where(it => it.TracksOwner == foe).ToArray();
         if (foeTracks.Length > 1) {
             actions.Add(Actions.Disrupt(foeTracks.First().RegionId));
@@ -74,7 +87,47 @@ class Game {
                 // this will be town ids (separated by -) in a list separated by commas
                 // e.g. 0-1,1-2,1-3. "x" otherwise
                 string partOfActiveConnections = inputs[3];
+                cell.TownConnections.Clear();
+                if (partOfActiveConnections == NO_CONNECTIONS) {
+                    continue;
+                }
+                foreach (string pair in partOfActiveConnections.Split(',')) {
+                    foreach (int id in pair.Split('-').Select(int.Parse)) {
+                        cell.TownConnections.Add(id);
+                    }
+                }
             }
+        }
+    }
+
+    string Autoplace() {
+        (int? cost, Town from, Town to) best = (null, default, default);
+        foreach (var town in towns.Values) {
+            var cell = cells[town.Point];
+            foreach (int connection in town.DesiredConnections) {
+                if (cell.TownConnections.Contains(connection)) {
+                    continue;
+                }
+                var targetTown = towns[connection];
+                int? cost = pathfinding.PathCost(town.Point, targetTown.Point);
+                if (cost != null && (best.cost == null || cost < best.cost)) {
+                    best = (cost.Value, town, targetTown);
+                }
+            }
+        }
+        return Actions.Autoplace(best.from, best.to);
+    }
+
+    [SuppressMessage("ReSharper", "LoopCanBeConvertedToQuery")]
+    IEnumerable<(Point, int cost)> IGraph<Point>.Next(Point current) {
+        foreach (var direction in Point.Directions4) {
+            var point = current + direction;
+            if (!point.InBounds(width, height)) {
+                continue;
+            }
+            var cellType = cells[point].Type;
+            int cost = paintPoints[cellType];
+            yield return (point, cost);
         }
     }
 }
@@ -83,6 +136,7 @@ class Cell(int regionId, CellType type) {
     public int RegionId { get; } = regionId;
     public CellType Type { get; } = type;
     public int TracksOwner { get; set; }
+    public HashSet<int> TownConnections { get; } = [];
 }
 
 enum CellType {
@@ -92,7 +146,7 @@ enum CellType {
     PlaceOfInterest
 }
 
-record struct Town(Point Point, int[] DesiredConnections);
+record struct Town(Point Point, HashSet<int> DesiredConnections);
 
 // PLACE_TRACKS x y | MESSAGE text
 static class Actions {
@@ -105,4 +159,48 @@ static class Actions {
     }
 }
 
-readonly record struct Point(int X, int Y);
+readonly record struct Point(int X, int Y) {
+    static readonly Point UP = new(0, 1);
+    static readonly Point DOWN = new(0, -1);
+    static readonly Point LEFT = new(-1, 0);
+    static readonly Point RIGHT = new(1, 0);
+
+    public static Point[] Directions4 { get; } = [RIGHT, LEFT, UP, DOWN];
+
+    public bool InBounds(int width, int height) {
+        return X >= 0 && X < width && Y >= 0 && Y < height;
+    }
+
+    public static Point operator +(Point a, Point b) => new(a.X + b.X, a.Y + b.Y);
+}
+
+class Pathfinding<T>(IGraph<T> graph) where T : IEquatable<T> {
+    readonly PriorityQueue<T, int> queue = new();
+    readonly Dictionary<T, int> visited = new();
+
+    /// Dijkstra
+    public int? PathCost(T start, T end) {
+        queue.Clear();
+        visited.Clear();
+        queue.Enqueue(start, 0);
+        visited.Add(start, 0);
+        while (queue.TryDequeue(out var current, out int currentCost)) {
+            if (current.Equals(end)) {
+                return visited[current];
+            }
+            foreach ((var node, int cost) in graph.Next(current)) {
+                int newCost = currentCost + cost;
+                if (newCost >= visited.GetValueOrDefault(node, int.MaxValue)) {
+                    continue;
+                }
+                queue.Enqueue(node, newCost);
+                visited[node] = newCost;
+            }
+        }
+        return null;
+    }
+}
+
+interface IGraph<T> {
+    IEnumerable<(T, int cost)> Next(T current);
+}
