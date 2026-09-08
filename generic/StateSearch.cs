@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-class Pathfinding<T>(IGame<T> game, int depthMax) where T : IState<T> {
+class StateSearch<T>(IGame<T> game, int depthMax) where T : IState<T> {
     /// DFS/Backtracking
     public (T state, string action)? FindBest(T current, int depth = 0) {
         if (game.HasReachedEnd(current) || depth > depthMax) {

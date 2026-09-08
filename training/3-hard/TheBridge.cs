@@ -18,7 +18,7 @@ static class TheBridge {
 }
 
 class Game : IGame<GameState> {
-    readonly Pathfinding<GameState> pathfinding;
+    readonly StateSearch<GameState> stateSearch;
     Motorbike[] motorbikes = null!;
 
     /// the minimum amount of motorbikes that must survive
@@ -38,7 +38,7 @@ class Game : IGame<GameState> {
     public string Action { get; private set; } = null!;
 
     public Game() {
-        pathfinding = new Pathfinding<GameState>(this, 5);
+        stateSearch = new StateSearch<GameState>(this, 5);
     }
 
     public void Init() {
@@ -63,7 +63,7 @@ class Game : IGame<GameState> {
             motorbike.Y = y;
             motorbike.IsActive = active == Motorbike.IS_ACTIVE;
         }
-        Action = pathfinding.FindBest(new GameState(motorbikes, speed))?.action ?? string.Empty;
+        Action = stateSearch.FindBest(new GameState(motorbikes, speed))?.action ?? string.Empty;
     }
 
     IEnumerable<(GameState, string action)> IGame<GameState>.Next(GameState current) {
@@ -232,7 +232,7 @@ class Motorbike {
     public Motorbike Copy() => new() { X = X, Y = Y, YPrevious = Y, IsActive = IsActive };
 }
 
-class Pathfinding<T>(IGame<T> game, int depthMax) where T : IState<T> {
+class StateSearch<T>(IGame<T> game, int depthMax) where T : IState<T> {
     /// DFS/Backtracking
     public (T state, string action)? FindBest(T current, int depth = 0) {
         if (game.HasReachedEnd(current) || depth > depthMax) {

@@ -18,7 +18,7 @@ static class TheFall2 {
 }
 
 class Game : IGame<GameState> {
-    readonly Pathfinding<GameState> pathfinding;
+    readonly StateSearch<GameState> stateSearch;
     int width, height;
     Dictionary<Point, Room> rooms = null!;
     Point exit;
@@ -27,7 +27,7 @@ class Game : IGame<GameState> {
     public string NextCommand { get; private set; } = null!;
 
     public Game() {
-        pathfinding = new Pathfinding<GameState>(this, 35);
+        stateSearch = new StateSearch<GameState>(this, 35);
     }
 
     public void Init() {
@@ -77,7 +77,7 @@ class Game : IGame<GameState> {
             Commands = [],
             RotatableRooms = rooms.Where(it => it.Value.CanRotate).ToDictionary()
         };
-        var best = pathfinding.FindBest(startState);
+        var best = stateSearch.FindBest(startState);
         if (best == null) {
             throw new ArgumentException($"Couldn't find path from {start} to {exit}");
         }
@@ -336,7 +336,7 @@ record Command(Point Point, string Value) {
     public override string ToString() => $"{Point} {Value}";
 }
 
-class Pathfinding<T>(IGame<T> game, int depthMax) where T : IState<T> {
+class StateSearch<T>(IGame<T> game, int depthMax) where T : IState<T> {
     /// DFS/Backtracking
     public T? FindBest(T current, int depth = 0) {
         if (game.HasReachedEnd(current) || depth > depthMax) {
