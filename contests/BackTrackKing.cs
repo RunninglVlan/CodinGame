@@ -65,8 +65,12 @@ class Game {
             }
         }
 
-        // AUTOPLACE x1 y1 x2 | PLACE_TRACKS x y | DISRUPT regionId | MESSAGE text
-        Console.WriteLine("WAIT");
+        // PLACE_TRACKS x y | DISRUPT regionId | MESSAGE text
+        Console.WriteLine(Autoplace(towns[0], towns[1]));
+    }
+
+    static string Autoplace(Town a, Town b) {
+        return $"AUTOPLACE {a.X} {a.Y} {b.X} {b.Y}";
     }
 }
 
