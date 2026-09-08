@@ -138,7 +138,6 @@ class Game : IGraph<Point> {
         return true;
     }
 
-    [SuppressMessage("ReSharper", "LoopCanBeConvertedToQuery")]
     IEnumerable<(Point, int cost)> IGraph<Point>.Next(Point current) {
         foreach (var direction in Point.Directions4) {
             var point = current + direction;
@@ -146,6 +145,10 @@ class Game : IGraph<Point> {
                 continue;
             }
             var cell = cells[point];
+            if (cell.TracksOwner != Owner.NoTrack) {
+                yield return (point, 0);
+                continue;
+            }
             int cost = paintPoints[cell.Type];
             yield return (point, cost);
         }
