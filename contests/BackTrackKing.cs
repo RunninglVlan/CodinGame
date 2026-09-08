@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 
 // Visual
@@ -49,11 +50,16 @@ class Game {
     public void Loop() {
         playerScore = int.Parse(Console.ReadLine()!);
         foeScore = int.Parse(Console.ReadLine()!);
+        List<Cell> foeTracks = [];
         for (var y = 0; y < height; y++) {
             for (var x = 0; x < width; x++) {
                 string[] inputs = Console.ReadLine()!.Split(' ');
                 int tracksOwner = int.Parse(inputs[0]);
-                cells[x, y].TracksOwner = tracksOwner;
+                var cell = cells[x, y];
+                cell.TracksOwner = tracksOwner;
+                if (tracksOwner == foe) {
+                    foeTracks.Add(cell);
+                }
                 // region inked (destroyed) when this >= 3
                 int instability = int.Parse(inputs[1]);
                 // true if region is destroyed
@@ -65,7 +71,11 @@ class Game {
             }
         }
 
-        Console.WriteLine(Actions.Autoplace(towns[0], towns[1]));
+        if (foeTracks.Count == 0) {
+            Console.WriteLine(Actions.Autoplace(towns[0], towns[1]));
+            return;
+        }
+        Console.WriteLine(Actions.Disrupt(foeTracks.First().RegionId));
     }
 }
 
@@ -86,9 +96,13 @@ record struct Town(int Id, int X, int Y, int[] DesiredConnections) {
     public const string NO_DESIRED_CONNECTIONS = "x";
 }
 
-// PLACE_TRACKS x y | DISRUPT regionId | MESSAGE text
+// PLACE_TRACKS x y | MESSAGE text
 static class Actions {
     public static string Autoplace(Town from, Town to) {
         return $"AUTOPLACE {from.X} {from.Y} {to.X} {to.Y}";
+    }
+
+    public static string Disrupt(int regionId) {
+        return $"DISRUPT {regionId}";
     }
 }
