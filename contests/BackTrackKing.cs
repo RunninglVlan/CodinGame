@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
 // Visual
@@ -66,8 +65,8 @@ class Game : IGraph<Point> {
     public void Loop() {
         ReadState();
         List<string> actions = [Autoplace()];
-        if (TryFindRegionToDisrupt(out int region)) {
-            actions.Add(Actions.Disrupt(region));
+        if (TryFindRegionToDisrupt(out var region)) {
+            actions.Add(Actions.Disrupt(region.Id));
         }
         Console.WriteLine(string.Join(';', actions));
     }
@@ -120,15 +119,14 @@ class Game : IGraph<Point> {
         return Actions.Autoplace(best.from, best.to);
     }
 
-    [SuppressMessage("ReSharper", "SuggestVarOrType_BuiltInTypes")]
-    bool TryFindRegionToDisrupt(out int region) {
-        region = -1;
-        var foeRegions = cells
-                .Where(it => it.Value.TracksOwner == foe && it.Value.Region.Town == null)
-                .GroupBy(it => it.Value.Region)
-                .Where(it => it.Key.Tracks[foe] > it.Key.Tracks.GetValueOrDefault(player))
-                .OrderByDescending(it => it.Key.Tracks[foe] / (float)it.Key.Tracks.Values.Sum())
-                .Select(it => it.Key.Id)
+    bool TryFindRegionToDisrupt(out Region region) {
+        region = null!;
+        var foeRegions = cells.Values
+                .Where(it => it.TracksOwner == foe)
+                .GroupBy(it => it.Region)
+                .Select(it => it.Key)
+                .Where(it => it.Town == null && it.Tracks[foe] > it.Tracks.GetValueOrDefault(player))
+                .OrderByDescending(it => it.Tracks[foe] / (float)it.Tracks.Values.Sum())
                 .ToArray();
         if (foeRegions.Length == 0) {
             return false;
