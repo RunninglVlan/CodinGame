@@ -13,9 +13,8 @@ while (true) {
 
 class Game {
     int player, foe;
-    int playerScore, foeScore;
     int width, height;
-    Cell[,] cells = null!;
+    readonly Dictionary<(int, int), Cell> cells = [];
     Town[] towns = null!;
 
     public void Init() {
@@ -23,13 +22,12 @@ class Game {
         foe = player == 0 ? 1 : 0;
         width = Math.Clamp(int.Parse(Console.ReadLine()!), 21, 30);
         height = Math.Clamp(int.Parse(Console.ReadLine()!), 14, 20);
-        cells = new Cell[width, height];
         for (var y = 0; y < height; y++) {
             for (var x = 0; x < width; x++) {
                 string[] inputs = Console.ReadLine()!.Split(' ');
                 int regionId = int.Parse(inputs[0]);
                 var type = Enum.Parse<CellType>(inputs[1]);
-                cells[x, y] = new Cell(regionId, type);
+                cells[(x, y)] = new Cell(regionId, type);
             }
         }
         int townCount = Math.Clamp(int.Parse(Console.ReadLine()!), 4, 12);
@@ -48,18 +46,24 @@ class Game {
     }
 
     public void Loop() {
-        playerScore = int.Parse(Console.ReadLine()!);
-        foeScore = int.Parse(Console.ReadLine()!);
-        List<Cell> foeTracks = [];
+        ReadState();
+        List<string> actions = [Actions.Autoplace(towns[0], towns[1])];
+        var foeTracks = cells.Values.Where(it => it.TracksOwner == foe).ToArray();
+        if (foeTracks.Length > 1) {
+            actions.Add(Actions.Disrupt(foeTracks.First().RegionId));
+        }
+        Console.WriteLine(string.Join(';', actions));
+    }
+
+    void ReadState() {
+        int playerScore = int.Parse(Console.ReadLine()!);
+        int foeScore = int.Parse(Console.ReadLine()!);
         for (var y = 0; y < height; y++) {
             for (var x = 0; x < width; x++) {
                 string[] inputs = Console.ReadLine()!.Split(' ');
                 int tracksOwner = int.Parse(inputs[0]);
-                var cell = cells[x, y];
+                var cell = cells[(x, y)];
                 cell.TracksOwner = tracksOwner;
-                if (tracksOwner == foe) {
-                    foeTracks.Add(cell);
-                }
                 // region inked (destroyed) when this >= 3
                 int instability = int.Parse(inputs[1]);
                 // true if region is destroyed
@@ -70,18 +74,12 @@ class Game {
                 string partOfActiveConnections = inputs[3];
             }
         }
-
-        List<string> actions = [Actions.Autoplace(towns[0], towns[1])];
-        if (foeTracks.Count > 0) {
-            actions.Add(Actions.Disrupt(foeTracks.First().RegionId));
-        }
-        Console.WriteLine(string.Join(';', actions));
     }
 }
 
 class Cell(int regionId, CellType type) {
-    public int RegionId { get; init; } = regionId;
-    public CellType Type { get; init; } = type;
+    public int RegionId { get; } = regionId;
+    public CellType Type { get; } = type;
     public int TracksOwner { get; set; }
 }
 
