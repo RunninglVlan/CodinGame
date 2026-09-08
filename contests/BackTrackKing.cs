@@ -75,7 +75,7 @@ class Game : IGraph<Point> {
         int playerScore = int.Parse(Console.ReadLine()!);
         int foeScore = int.Parse(Console.ReadLine()!);
         foreach (var region in regions.Values) {
-            region.Tracks.Clear();
+            region.Clear();
         }
         for (var y = 0; y < height; y++) {
             for (var x = 0; x < width; x++) {
@@ -95,6 +95,7 @@ class Game : IGraph<Point> {
                 foreach (string pair in partOfActiveConnections.Split(',')) {
                     foreach (int id in pair.Split('-').Select(int.Parse)) {
                         cell.TownConnections.Add(id);
+                        cell.Region.TownConnections.Add(id);
                     }
                 }
             }
@@ -131,7 +132,16 @@ class Game : IGraph<Point> {
         if (foeRegions.Length == 0) {
             return false;
         }
-        region = foeRegions.First();
+        var safeToInk = foeRegions.FirstOrDefault(it => it is { Instability: 3, TownConnections.Count: >= 2 });
+        if (safeToInk != null) {
+            region = safeToInk;
+            return true;
+        }
+        var safeToDisrupt = foeRegions.FirstOrDefault(it => it.Instability < 3);
+        if (safeToDisrupt == null) {
+            return false;
+        }
+        region = safeToDisrupt;
         return true;
     }
 
@@ -158,12 +168,18 @@ class Game : IGraph<Point> {
 record Region(int Id) {
     public int? Town { get; set; }
     public Dictionary<Owner, int> Tracks { get; } = [];
+    public HashSet<int> TownConnections { get; } = [];
 
     /// region inked (destroyed) when this >= 4
     public int Instability { get; set; }
 
     /// true if region is destroyed
     public bool Inked { get; set; }
+
+    public void Clear() {
+        Tracks.Clear();
+        TownConnections.Clear();
+    }
 
     public virtual bool Equals(Region? other) => Id == other?.Id;
     public override int GetHashCode() => Id;
