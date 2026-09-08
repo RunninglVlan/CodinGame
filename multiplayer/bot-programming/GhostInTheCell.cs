@@ -36,8 +36,8 @@ class Game {
             int distanceInTurns = Math.Clamp(int.Parse(inputs[2]), 1, 20);
             var factory1 = factories[factoryId1];
             var factory2 = factories[factoryId2];
-            factory1.connections.Add((factory2, distanceInTurns));
-            factory2.connections.Add((factory1, distanceInTurns));
+            factory1.Connections.Add((factory2, distanceInTurns));
+            factory2.Connections.Add((factory1, distanceInTurns));
             Console.Error.WriteLine($"Link: {factoryId1} <-> {factoryId2} ({distanceInTurns} turns)");
         }
     }
@@ -107,7 +107,7 @@ class Game {
         var target = factories
                 .Where(it => it.Player == Player.Enemy)
                 .Where(it => it.Production == Factory.PRODUCTION_MAX)
-                .Where(it => it.connections.Any(connection => connection.factory.Player == Player.Me))
+                .Where(it => it.Connections.Any(connection => connection.factory.Player == Player.Me))
                 .Where(it => it.CooldownTurns == 0)
                 .FirstOrDefault(it => bombs.All(bomb => bomb.TargetId != it.Id));
         bombTarget = target!;
@@ -116,7 +116,7 @@ class Game {
 
     SendBomb SendBomb(Factory target) {
         remainingBombs--;
-        var source = target.connections
+        var source = target.Connections
                 .Where(it => it.factory.Player == Player.Me)
                 .OrderBy(it => it.distanceInTurns)
                 .First();
@@ -129,8 +129,8 @@ class Factory(int id) : INode<Factory> {
     const int UPGRADE_COST = 10;
 
     public int Id { get; } = id;
-    public readonly List<(Factory factory, int distanceInTurns)> connections = new();
-    List<(Factory, int)> INode<Factory>.Connections => connections;
+    public List<(Factory factory, int distanceInTurns)> Connections { get; } = [];
+    List<(Factory, int)> INode<Factory>.Connections => Connections;
     public Player Player { get; set; }
     public int Cyborgs { get; set; }
     public List<Troop> ApproachingTroops { get; } = new();
@@ -175,7 +175,7 @@ class Factory(int id) : INode<Factory> {
                 continue;
             }
             var nextFactory = path.First();
-            int distance = connections.First(it => it.factory.Id == nextFactory.Id).distanceInTurns;
+            int distance = Connections.First(it => it.factory.Id == nextFactory.Id).distanceInTurns;
             int neededCyborgs = Math.Max(nextFactory.NeededCyborgs(distance), target.cyborgs);
             int cyborgs = Math.Min(availableCyborgs, neededCyborgs);
             availableCyborgs -= cyborgs;
@@ -194,7 +194,7 @@ class Factory(int id) : INode<Factory> {
         }
 
         bool ShouldPrioritizeCapture() {
-            return connections
+            return Connections
                     .Where(it => it.factory.Player != Player.Me && it.factory.Production > Production)
                     .Where(it => it.distanceInTurns <= it.factory.Production - Production)
                     .Any(it => Cyborgs >= it.factory.NeededCyborgs(it.distanceInTurns));
@@ -232,7 +232,7 @@ class Factory(int id) : INode<Factory> {
 
     IEnumerable<(Factory factory, int cyborgs)> PrioritizedTargets() {
         const int maxAttackingCyborgs = 3;
-        var myFactories = connections.Where(it => it.factory.Player == Player.Me).ToArray();
+        var myFactories = Connections.Where(it => it.factory.Player == Player.Me).ToArray();
         var helpFactoriesIMightLose = myFactories
                 .Where(it => {
                     int simulated = it.factory.SimulateMinCyborgs(it.factory.Cyborgs, it.factory.Production);
@@ -240,7 +240,7 @@ class Factory(int id) : INode<Factory> {
                 })
                 .OrderBy(it => it.distanceInTurns)
                 .ThenByDescending(it => it.factory.Production);
-        var captureOthers = connections
+        var captureOthers = Connections
                 .Where(it => it.factory.Player != Player.Me)
                 .OrderByDescending(it => (it.factory.Production + 0.5f) / it.distanceInTurns)
                 .ThenBy(it => it.distanceInTurns);
@@ -251,7 +251,7 @@ class Factory(int id) : INode<Factory> {
         foreach (var target in helpFactoriesIMightLose.Concat(captureOthers).Concat(helpInUpgrading)) {
             yield return (target.factory, target.factory.NeededCyborgs(target.distanceInTurns));
         }
-        var attackEnemy = connections
+        var attackEnemy = Connections
                 .Where(it => it.factory.Player == Player.Enemy)
                 .OrderBy(it => it.distanceInTurns)
                 .ThenByDescending(it => it.factory.Production);
