@@ -126,7 +126,7 @@ class Game : IGraph<Point> {
         var foeRegions = cells
                 .Where(it => it.Value.TracksOwner == foe && it.Value.Region.Town == null)
                 .GroupBy(it => it.Value.Region)
-                .Where(it => it.Key.Tracks.GetValueOrDefault(foe) > it.Key.Tracks.GetValueOrDefault(player))
+                .Where(it => it.Key.Tracks[foe] > it.Key.Tracks.GetValueOrDefault(player))
                 .Select(it => it.Key.Id)
                 .ToArray();
         if (foeRegions.Length == 0) {
