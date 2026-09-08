@@ -26,7 +26,7 @@ class Game : IGraph<Point> {
     readonly Dictionary<CellType, int> paintPoints = new() {
         { CellType.Plains, 1 },
         { CellType.River, 2 },
-        { CellType.Mountain, 3 },
+        { CellType.Mountain, 3 }
     };
 
     public Game() {
@@ -145,8 +145,8 @@ class Game : IGraph<Point> {
             if (!point.InBounds(width, height)) {
                 continue;
             }
-            var cellType = cells[point].Type;
-            int cost = paintPoints[cellType];
+            var cell = cells[point];
+            int cost = paintPoints[cell.Type];
             yield return (point, cost);
         }
     }

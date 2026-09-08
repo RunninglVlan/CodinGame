@@ -3,17 +3,12 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
-/// Visual <br/>
-/// https://www.codingame.com/multiplayer/bot-programming/ghost-in-the-cell
-static class GhostInTheCell {
-    static void Main() {
-        var game = new Game();
-        game.Init();
-        while (true) {
-            game.Loop();
-        }
-        // ReSharper disable once FunctionNeverReturns
-    }
+// Visual <br/>
+// https://www.codingame.com/multiplayer/bot-programming/ghost-in-the-cell
+var game = new Game();
+game.Init();
+while (true) {
+    game.Loop();
 }
 
 class Game : IGraph<Factory> {
@@ -132,11 +127,10 @@ class Game : IGraph<Factory> {
     }
 }
 
-class Factory(int id) : IEquatable<Factory> {
+record Factory(int Id) {
     public const int PRODUCTION_MAX = 3;
     const int UPGRADE_COST = 10;
 
-    public int Id { get; } = id;
     public List<(Factory factory, int distanceInTurns)> Connections { get; } = [];
     public Player Player { get; set; }
     public int Cyborgs { get; set; }
@@ -267,14 +261,7 @@ class Factory(int id) : IEquatable<Factory> {
         }
     }
 
-    public bool Equals(Factory? other) {
-        return other is not null && Id == other.Id;
-    }
-
-    public override bool Equals(object? other) {
-        return ReferenceEquals(this, other) || other is Factory factory && Equals(factory);
-    }
-
+    public virtual bool Equals(Factory? other) => Id == other?.Id;
     public override int GetHashCode() => Id;
 }
 
