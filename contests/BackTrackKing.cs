@@ -12,10 +12,12 @@ while (true) {
 }
 
 class Game {
+    const string NO_CONNECTIONS = "x";
+
     int player, foe;
     int width, height;
-    readonly Dictionary<(int, int), Cell> cells = [];
-    Town[] towns = null!;
+    readonly Dictionary<Point, Cell> cells = [];
+    readonly Dictionary<int, Town> towns = [];
 
     public void Init() {
         player = Math.Clamp(int.Parse(Console.ReadLine()!), 0, 1);
@@ -27,21 +29,21 @@ class Game {
                 string[] inputs = Console.ReadLine()!.Split(' ');
                 int regionId = int.Parse(inputs[0]);
                 var type = Enum.Parse<CellType>(inputs[1]);
-                cells[(x, y)] = new Cell(regionId, type);
+                cells[new Point(x, y)] = new Cell(regionId, type);
             }
         }
         int townCount = Math.Clamp(int.Parse(Console.ReadLine()!), 4, 12);
-        towns = new Town[townCount];
         for (var i = 0; i < townCount; i++) {
             string[] inputs = Console.ReadLine()!.Split(' ');
             int townId = int.Parse(inputs[0]);
             int townX = int.Parse(inputs[1]);
             int townY = int.Parse(inputs[2]);
+            var point = new Point(townX, townY);
             string desiredConnections = inputs[3];
-            int[] desiredConnectionIds = desiredConnections == Town.NO_DESIRED_CONNECTIONS
+            int[] desiredConnectionIds = desiredConnections == NO_CONNECTIONS
                     ? []
                     : [.. desiredConnections.Split(',').Select(int.Parse)];
-            towns[i] = new Town(townId, townX, townY, desiredConnectionIds);
+            towns[townId] = new Town(point, desiredConnectionIds);
         }
     }
 
@@ -62,7 +64,7 @@ class Game {
             for (var x = 0; x < width; x++) {
                 string[] inputs = Console.ReadLine()!.Split(' ');
                 int tracksOwner = int.Parse(inputs[0]);
-                var cell = cells[(x, y)];
+                var cell = cells[new Point(x, y)];
                 cell.TracksOwner = tracksOwner;
                 // region inked (destroyed) when this >= 3
                 int instability = int.Parse(inputs[1]);
@@ -90,17 +92,17 @@ enum CellType {
     PlaceOfInterest
 }
 
-record struct Town(int Id, int X, int Y, int[] DesiredConnections) {
-    public const string NO_DESIRED_CONNECTIONS = "x";
-}
+record struct Town(Point Point, int[] DesiredConnections);
 
 // PLACE_TRACKS x y | MESSAGE text
 static class Actions {
     public static string Autoplace(Town from, Town to) {
-        return $"AUTOPLACE {from.X} {from.Y} {to.X} {to.Y}";
+        return $"AUTOPLACE {from.Point.X} {from.Point.Y} {to.Point.X} {to.Point.Y}";
     }
 
     public static string Disrupt(int regionId) {
         return $"DISRUPT {regionId}";
     }
 }
+
+readonly record struct Point(int X, int Y);
