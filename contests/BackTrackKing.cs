@@ -63,9 +63,9 @@ class Game : IGraph<Point> {
     public void Loop() {
         ReadState();
         List<string> actions = [Autoplace()];
-        var foeTracks = cells.Values.Where(it => it.TracksOwner == foe).ToArray();
+        var foeTracks = cells.Where(it => it.Value.TracksOwner == foe).ToArray();
         if (foeTracks.Length > 1) {
-            actions.Add(Actions.Disrupt(foeTracks.First().RegionId));
+            actions.Add(Actions.Disrupt(foeTracks.First().Key));
         }
         Console.WriteLine(string.Join(';', actions));
     }
@@ -83,9 +83,6 @@ class Game : IGraph<Point> {
                 int instability = int.Parse(inputs[1]);
                 // true if region is destroyed
                 bool inked = inputs[2] != "0";
-                // if this cell is part of one or more railway connections
-                // this will be town ids (separated by -) in a list separated by commas
-                // e.g. 0-1,1-2,1-3. "x" otherwise
                 string partOfActiveConnections = inputs[3];
                 cell.TownConnections.Clear();
                 if (partOfActiveConnections == NO_CONNECTIONS) {
@@ -132,9 +129,7 @@ class Game : IGraph<Point> {
     }
 }
 
-class Cell(int regionId, CellType type) {
-    public int RegionId { get; } = regionId;
-    public CellType Type { get; } = type;
+record Cell(int RegionId, CellType Type) {
     public int TracksOwner { get; set; }
     public HashSet<int> TownConnections { get; } = [];
 }
@@ -142,8 +137,7 @@ class Cell(int regionId, CellType type) {
 enum CellType {
     Plains,
     River,
-    Mountain,
-    PlaceOfInterest
+    Mountain
 }
 
 record struct Town(Point Point, HashSet<int> DesiredConnections);
@@ -151,11 +145,11 @@ record struct Town(Point Point, HashSet<int> DesiredConnections);
 // PLACE_TRACKS x y | MESSAGE text
 static class Actions {
     public static string Autoplace(Town from, Town to) {
-        return $"AUTOPLACE {from.Point.X} {from.Point.Y} {to.Point.X} {to.Point.Y}";
+        return $"AUTOPLACE {from.Point} {to.Point}";
     }
 
-    public static string Disrupt(int regionId) {
-        return $"DISRUPT {regionId}";
+    public static string Disrupt(Point cellPoint) {
+        return $"DISRUPT {cellPoint}";
     }
 }
 
@@ -172,6 +166,8 @@ readonly record struct Point(int X, int Y) {
     }
 
     public static Point operator +(Point a, Point b) => new(a.X + b.X, a.Y + b.Y);
+
+    public override string ToString() => $"{X} {Y}";
 }
 
 class Pathfinding<T>(IGraph<T> graph) where T : IEquatable<T> {
