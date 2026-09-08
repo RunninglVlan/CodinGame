@@ -65,12 +65,7 @@ class Game {
             }
         }
 
-        // PLACE_TRACKS x y | DISRUPT regionId | MESSAGE text
-        Console.WriteLine(Autoplace(towns[0], towns[1]));
-    }
-
-    static string Autoplace(Town a, Town b) {
-        return $"AUTOPLACE {a.X} {a.Y} {b.X} {b.Y}";
+        Console.WriteLine(Actions.Autoplace(towns[0], towns[1]));
     }
 }
 
@@ -89,4 +84,11 @@ enum CellType {
 
 record struct Town(int Id, int X, int Y, int[] DesiredConnections) {
     public const string NO_DESIRED_CONNECTIONS = "x";
+}
+
+// PLACE_TRACKS x y | DISRUPT regionId | MESSAGE text
+static class Actions {
+    public static string Autoplace(Town from, Town to) {
+        return $"AUTOPLACE {from.X} {from.Y} {to.X} {to.Y}";
+    }
 }
