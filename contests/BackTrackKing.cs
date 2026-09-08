@@ -75,12 +75,17 @@ class Game : IGraph<Point> {
     void ReadState() {
         int playerScore = int.Parse(Console.ReadLine()!);
         int foeScore = int.Parse(Console.ReadLine()!);
+        foreach (var region in regions.Values) {
+            region.Tracks.Clear();
+        }
         for (var y = 0; y < height; y++) {
             for (var x = 0; x < width; x++) {
                 string[] inputs = Console.ReadLine()!.Split(' ');
                 var tracksOwner = Enum.Parse<Owner>(inputs[0]);
                 var cell = cells[new Point(x, y)];
                 cell.TracksOwner = tracksOwner;
+                int tracks = cell.Region.Tracks.GetValueOrDefault(tracksOwner);
+                cell.Region.Tracks[tracksOwner] = tracks + 1;
                 // region inked (destroyed) when this >= 3
                 int instability = int.Parse(inputs[1]);
                 // true if region is destroyed
@@ -117,16 +122,19 @@ class Game : IGraph<Point> {
         return Actions.Autoplace(best.from, best.to);
     }
 
+    [SuppressMessage("ReSharper", "SuggestVarOrType_BuiltInTypes")]
     bool TryFindRegionToDisrupt(out int region) {
         region = -1;
-        var foeTracks = cells
+        var foeRegions = cells
                 .Where(it => it.Value.TracksOwner == foe && it.Value.Region.Town == null)
-                .Select(it => it.Value)
+                .GroupBy(it => it.Value.Region)
+                .Where(it => it.Key.Tracks.GetValueOrDefault(foe) > it.Key.Tracks.GetValueOrDefault(player))
+                .Select(it => it.Key.Id)
                 .ToArray();
-        if (foeTracks.Length == 0) {
+        if (foeRegions.Length == 0) {
             return false;
         }
-        region = foeTracks.First().Region.Id;
+        region = foeRegions.First();
         return true;
     }
 
@@ -146,6 +154,10 @@ class Game : IGraph<Point> {
 
 record Region(int Id) {
     public int? Town { get; set; }
+    public Dictionary<Owner, int> Tracks { get; } = [];
+
+    public virtual bool Equals(Region? other) => Id == other?.Id;
+    public override int GetHashCode() => Id;
 }
 
 record Cell(Region Region, CellType Type) {
