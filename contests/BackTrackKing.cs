@@ -17,7 +17,7 @@ class Game : IGraph<Point> {
 
     readonly Pathfinding<Point> pathfinding;
 
-    int player, foe;
+    Owner player, foe;
     int width, height;
     readonly Dictionary<Point, Cell> cells = [];
     readonly Dictionary<int, Region> regions = [];
@@ -34,8 +34,8 @@ class Game : IGraph<Point> {
     }
 
     public void Init() {
-        player = Math.Clamp(int.Parse(Console.ReadLine()!), 0, 1);
-        foe = player == 0 ? 1 : 0;
+        player = Enum.Parse<Owner>(Console.ReadLine()!);
+        foe = player == Owner.Player0 ? Owner.Player1 : Owner.Player0;
         width = Math.Clamp(int.Parse(Console.ReadLine()!), 21, 30);
         height = Math.Clamp(int.Parse(Console.ReadLine()!), 14, 20);
         for (var y = 0; y < height; y++) {
@@ -43,7 +43,7 @@ class Game : IGraph<Point> {
                 string[] inputs = Console.ReadLine()!.Split(' ');
                 int regionId = int.Parse(inputs[0]);
                 if (!regions.TryGetValue(regionId, out var region)) {
-                    regions[regionId] = region = new Region();
+                    regions[regionId] = region = new Region(regionId);
                 }
                 var type = Enum.Parse<CellType>(inputs[1]);
                 cells[new Point(x, y)] = new Cell(region, type);
@@ -59,15 +59,15 @@ class Game : IGraph<Point> {
                     ? []
                     : [.. desiredConnections.Split(',').Select(int.Parse)];
             towns[townId] = new Town(townPoint, desiredConnectionIds);
-            cells[townPoint].Region.Towns.Add(townId);
+            cells[townPoint].Region.Town = townId;
         }
     }
 
     public void Loop() {
         ReadState();
         List<string> actions = [Autoplace()];
-        if (TryFindRegionToDisrupt(out var regionPoint)) {
-            actions.Add(Actions.Disrupt(regionPoint));
+        if (TryFindRegionToDisrupt(out int region)) {
+            actions.Add(Actions.Disrupt(region));
         }
         Console.WriteLine(string.Join(';', actions));
     }
@@ -78,7 +78,7 @@ class Game : IGraph<Point> {
         for (var y = 0; y < height; y++) {
             for (var x = 0; x < width; x++) {
                 string[] inputs = Console.ReadLine()!.Split(' ');
-                int tracksOwner = int.Parse(inputs[0]);
+                var tracksOwner = Enum.Parse<Owner>(inputs[0]);
                 var cell = cells[new Point(x, y)];
                 cell.TracksOwner = tracksOwner;
                 // region inked (destroyed) when this >= 3
@@ -117,15 +117,16 @@ class Game : IGraph<Point> {
         return Actions.Autoplace(best.from, best.to);
     }
 
-    bool TryFindRegionToDisrupt(out Point regionPoint) {
-        regionPoint = default;
+    bool TryFindRegionToDisrupt(out int region) {
+        region = -1;
         var foeTracks = cells
-                .Where(it => it.Value.TracksOwner == foe && it.Value.Region.Towns.Count == 0)
+                .Where(it => it.Value.TracksOwner == foe && it.Value.Region.Town == null)
+                .Select(it => it.Value)
                 .ToArray();
         if (foeTracks.Length == 0) {
             return false;
         }
-        regionPoint = foeTracks.First().Key;
+        region = foeTracks.First().Region.Id;
         return true;
     }
 
@@ -143,13 +144,20 @@ class Game : IGraph<Point> {
     }
 }
 
-record Region {
-    public List<int> Towns { get; } = [];
+record Region(int Id) {
+    public int? Town { get; set; }
 }
 
 record Cell(Region Region, CellType Type) {
-    public int TracksOwner { get; set; }
+    public Owner TracksOwner { get; set; }
     public HashSet<int> TownConnections { get; } = [];
+}
+
+enum Owner {
+    NoTrack = -1,
+    Player0 = 0,
+    Player1 = 1,
+    Neutral = 2
 }
 
 enum CellType {
@@ -166,8 +174,8 @@ static class Actions {
         return $"AUTOPLACE {from.Point} {to.Point}";
     }
 
-    public static string Disrupt(Point cellPoint) {
-        return $"DISRUPT {cellPoint}";
+    public static string Disrupt(int region) {
+        return $"DISRUPT {region}";
     }
 }
 
