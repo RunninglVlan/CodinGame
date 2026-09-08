@@ -20,6 +20,7 @@ class Game : IGraph<Point> {
     int player, foe;
     int width, height;
     readonly Dictionary<Point, Cell> cells = [];
+    readonly Dictionary<int, Region> regions = [];
     readonly Dictionary<int, Town> towns = [];
 
     readonly Dictionary<CellType, int> paintPoints = new() {
@@ -41,8 +42,11 @@ class Game : IGraph<Point> {
             for (var x = 0; x < width; x++) {
                 string[] inputs = Console.ReadLine()!.Split(' ');
                 int regionId = int.Parse(inputs[0]);
+                if (!regions.TryGetValue(regionId, out var region)) {
+                    regions[regionId] = region = new Region();
+                }
                 var type = Enum.Parse<CellType>(inputs[1]);
-                cells[new Point(x, y)] = new Cell(regionId, type);
+                cells[new Point(x, y)] = new Cell(region, type);
             }
         }
         int townCount = Math.Clamp(int.Parse(Console.ReadLine()!), 4, 12);
@@ -57,13 +61,16 @@ class Game : IGraph<Point> {
                     ? []
                     : [.. desiredConnections.Split(',').Select(int.Parse)];
             towns[townId] = new Town(point, desiredConnectionIds);
+            cells[point].Region.Towns.Add(townId);
         }
     }
 
     public void Loop() {
         ReadState();
         List<string> actions = [Autoplace()];
-        var foeTracks = cells.Where(it => it.Value.TracksOwner == foe).ToArray();
+        var foeTracks = cells
+                .Where(it => it.Value.TracksOwner == foe && it.Value.Region.Towns.Count == 0)
+                .ToArray();
         if (foeTracks.Length > 1) {
             actions.Add(Actions.Disrupt(foeTracks.First().Key));
         }
@@ -129,7 +136,11 @@ class Game : IGraph<Point> {
     }
 }
 
-record Cell(int RegionId, CellType Type) {
+record Region {
+    public List<int> Towns { get; } = [];
+}
+
+record Cell(Region Region, CellType Type) {
     public int TracksOwner { get; set; }
     public HashSet<int> TownConnections { get; } = [];
 }
