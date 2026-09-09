@@ -68,7 +68,10 @@ class Game : IGraph<Point> {
         ReadState();
         HashSet<string> actions = [];
         var paths = FindPaths();
-        PlaceTracks(paths, TURN_POINTS, actions);
+        var completeThisTurn = paths.Where(it => it.Cost <= TURN_POINTS).ToList();
+        int points = TURN_POINTS;
+        PlaceTracks(completeThisTurn, ref points, actions);
+        PlaceTracks(paths, ref points, actions);
         if (TryFindRegionToDisrupt(out var region)) {
             actions.Add(Actions.Disrupt(region.Id));
         }
@@ -129,7 +132,10 @@ class Game : IGraph<Point> {
         return paths;
     }
 
-    static void PlaceTracks(List<PathResult<Point>> paths, int points, HashSet<string> placed) {
+    static void PlaceTracks(List<PathResult<Point>> paths, ref int points, HashSet<string> placed) {
+        if (points == 0) {
+            return;
+        }
         foreach (var path in paths.OrderBy(it => it.Cost).Select(it => it.Path)) {
             foreach ((var point, int cost) in path.Where(it => it.cost > 0).OrderBy(it => it.cost)) {
                 if (points - cost < 0) {
