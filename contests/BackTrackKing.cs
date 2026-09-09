@@ -141,7 +141,7 @@ class Game : IGraph<Point> {
         int lastRegion = -1;
         foreach (var path in paths.OrderBy(it => it.Cost).Select(it => it.Path)) {
             foreach ((var point, int cost) in path.Where(it => it.cost > 0)
-                    .OrderBy(it => it.cost).ThenBy(it => DistanceToTowns(it.point, path))) {
+                    .OrderBy(it => it.cost).ThenByDescending(it => IsNearTown(it.point))) {
                 if (points - cost < 0) {
                     continue;
                 }
@@ -158,12 +158,22 @@ class Game : IGraph<Point> {
                 }
             }
         }
-        return;
+    }
 
-        int DistanceToTowns(Point point, List<(Point point, int cost)> path) {
-            return Math.Min(Point.ManhattanDistance(point, path.First().point),
-                    Point.ManhattanDistance(point, path.Last().point));
+    [SuppressMessage("ReSharper", "LoopCanBeConvertedToQuery")]
+    bool IsNearTown(Point point) {
+        foreach (var direction in Screen.Directions4) {
+            var neighbor = point + direction;
+            if (!neighbor.InBounds(width, height)) {
+                continue;
+            }
+            var cell = cells[neighbor];
+            int? town = cell.Region.Town;
+            if (town.HasValue && towns[town.Value].Point == neighbor) {
+                return true;
+            }
         }
+        return false;
     }
 
     bool TryFindRegionToDisrupt(out Region region) {
@@ -283,10 +293,6 @@ readonly record struct Point(int X, int Y) {
         return X >= 0 && X < width && Y >= 0 && Y < height;
     }
 
-    public static int ManhattanDistance(Point a, Point b) {
-        return Math.Abs(a.X - b.X) + Math.Abs(a.Y - b.Y);
-    }
-
     public static Point operator +(Point a, Point b) => new(a.X + b.X, a.Y + b.Y);
     public static Point operator -(Point a, Point b) => new(a.X - b.X, a.Y - b.Y);
 
@@ -339,7 +345,6 @@ class Pathfinding<T>(IGraph<T> graph) where T : IEquatable<T> {
             path.Add((node, cost));
             node = parent;
         }
-        path.Add((start, 0));
         path.Reverse();
         return path;
     }
