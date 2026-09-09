@@ -106,7 +106,7 @@ class Game : IGraph<Point> {
         }
     }
 
-    IEnumerable<string> PlaceTracks() {
+    HashSet<string> PlaceTracks() {
         List<(List<(Point point, int cost)> path, int cost)> paths = [];
         foreach (var town in towns.Values) {
             var cell = cells[town.Point];
@@ -122,18 +122,19 @@ class Game : IGraph<Point> {
                 paths.Add(path.Value);
             }
         }
+        HashSet<string> placedTracks = [];
         int points = TURN_POINTS;
         foreach (var path in paths.OrderBy(it => it.cost).Select(it => it.path)) {
             foreach ((var point, int cost) in path.Where(it => it.cost > 0).OrderBy(it => it.cost)) {
-                if (points - cost >= 0) {
-                    yield return Actions.PlaceTrack(point);
+                if (points - cost >= 0 && placedTracks.Add(Actions.PlaceTrack(point))) {
                     points -= cost;
                 }
                 if (points == 0) {
-                    yield break;
+                    break;
                 }
             }
         }
+        return placedTracks;
     }
 
     bool TryFindRegionToDisrupt(out Region region) {
