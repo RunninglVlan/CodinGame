@@ -64,9 +64,12 @@ class Game : IGraph<Point> {
 
     public void Loop() {
         ReadState();
-        List<string> actions = [Autoplace()];
+        List<string> actions = [.. PlaceTracks()];
         if (TryFindRegionToDisrupt(out var region)) {
             actions.Add(Actions.Disrupt(region.Id));
+        }
+        if (actions.Count == 0) {
+            actions.Add(Actions.Wait());
         }
         Console.WriteLine(string.Join(';', actions));
     }
@@ -102,8 +105,8 @@ class Game : IGraph<Point> {
         }
     }
 
-    string Autoplace() {
-        (int? cost, Town from, Town to) best = (null, default, default);
+    IEnumerable<string> PlaceTracks() {
+        (List<(Point point, int cost)> path, int? cost) best = (null!, null);
         foreach (var town in towns.Values) {
             var cell = cells[town.Point];
             foreach (int connection in town.DesiredConnections) {
@@ -111,13 +114,25 @@ class Game : IGraph<Point> {
                     continue;
                 }
                 var targetTown = towns[connection];
-                int? cost = pathfinding.PathCost(town.Point, targetTown.Point);
-                if (cost != null && (best.cost == null || cost < best.cost)) {
-                    best = (cost.Value, town, targetTown);
+                var current = pathfinding.Path(town.Point, targetTown.Point);
+                if (current != null && (best.cost == null || current.Value.cost < best.cost)) {
+                    best = current.Value;
                 }
             }
         }
-        return Actions.Autoplace(best.from, best.to);
+        if (best.cost == null) {
+            yield break;
+        }
+        var points = 3;
+        foreach ((var point, int cost) in best.path.Where(it => it.cost > 0).OrderBy(it => it.cost)) {
+            if (points - cost >= 0) {
+                yield return Actions.PlaceTrack(point);
+                points -= cost;
+            }
+            if (points == 0) {
+                yield break;
+            }
+        }
     }
 
     bool TryFindRegionToDisrupt(out Region region) {
@@ -157,7 +172,8 @@ class Game : IGraph<Point> {
             if (cell.Region.Inked) {
                 continue;
             }
-            if (cell.TracksOwner != Owner.NoTrack) {
+            int? town = cell.Region.Town;
+            if (cell.TracksOwner != Owner.NoTrack || town.HasValue && towns[town.Value].Point == point) {
                 yield return (point, 0);
                 continue;
             }
@@ -215,9 +231,15 @@ static class Actions {
         return $"AUTOPLACE {from.Point} {to.Point}";
     }
 
+    public static string PlaceTrack(Point point) {
+        return $"PLACE_TRACKS {point}";
+    }
+
     public static string Disrupt(int region) {
         return $"DISRUPT {region}";
     }
+
+    public static string Wait() => "WAIT";
 }
 
 readonly record struct Point(int X, int Y) {
@@ -239,17 +261,19 @@ readonly record struct Point(int X, int Y) {
 
 class Pathfinding<T>(IGraph<T> graph) where T : IEquatable<T> {
     readonly PriorityQueue<T, int> queue = new();
+    readonly Dictionary<T, (T parent, int cost)> data = new();
     readonly Dictionary<T, int> visited = new();
 
     /// Dijkstra
-    public int? PathCost(T start, T end) {
+    public (List<(T value, int cost)> path, int cost)? Path(T start, T end) {
         queue.Clear();
+        data.Clear();
         visited.Clear();
         queue.Enqueue(start, 0);
         visited.Add(start, 0);
         while (queue.TryDequeue(out var current, out int currentCost)) {
             if (current.Equals(end)) {
-                return visited[current];
+                return (Reconstruct(start, current), visited[current]);
             }
             foreach ((var node, int cost) in graph.Next(current)) {
                 int newCost = currentCost + cost;
@@ -258,9 +282,22 @@ class Pathfinding<T>(IGraph<T> graph) where T : IEquatable<T> {
                 }
                 queue.Enqueue(node, newCost);
                 visited[node] = newCost;
+                data[node] = (current, cost);
             }
         }
         return null;
+    }
+
+    List<(T, int)> Reconstruct(T start, T end) {
+        var path = new List<(T, int)>();
+        (T value, int) current = (end, 0);
+        while (!current.value.Equals(start)) {
+            var previous = data[current.value];
+            path.Add((current.value, previous.cost));
+            current = previous;
+        }
+        path.Reverse();
+        return path;
     }
 }
 
