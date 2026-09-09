@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
 // Visual
@@ -13,6 +14,7 @@ while (true) {
 
 class Game : IGraph<Point> {
     const string NO_CONNECTIONS = "x";
+    const int TURN_POINTS = 3;
 
     readonly Pathfinding<Point> pathfinding;
 
@@ -105,6 +107,7 @@ class Game : IGraph<Point> {
         }
     }
 
+    [SuppressMessage("ReSharper", "ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator")]
     IEnumerable<string> PlaceTracks() {
         (List<(Point point, int cost)> path, int? cost) best = (null!, null);
         foreach (var town in towns.Values) {
@@ -123,7 +126,7 @@ class Game : IGraph<Point> {
         if (best.cost == null) {
             yield break;
         }
-        var points = 3;
+        int points = TURN_POINTS;
         foreach ((var point, int cost) in best.path.Where(it => it.cost > 0).OrderBy(it => it.cost)) {
             if (points - cost >= 0) {
                 yield return Actions.PlaceTrack(point);
@@ -290,11 +293,11 @@ class Pathfinding<T>(IGraph<T> graph) where T : IEquatable<T> {
 
     List<(T, int)> Reconstruct(T start, T end) {
         var path = new List<(T, int)>();
-        (T value, int) current = (end, 0);
-        while (!current.value.Equals(start)) {
-            var previous = data[current.value];
-            path.Add((current.value, previous.cost));
-            current = previous;
+        var node = end;
+        while (!node.Equals(start)) {
+            (var parent, int cost) = data[node];
+            path.Add((node, cost));
+            node = parent;
         }
         path.Reverse();
         return path;

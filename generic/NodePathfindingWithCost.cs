@@ -32,10 +32,10 @@ class Pathfinding<T>(IGraph<T> graph) where T : IEquatable<T> {
 
     List<T> Reconstruct(T start, T end) {
         var path = new List<T>();
-        var current = end;
-        while (!current.Equals(start)) {
-            path.Add(current);
-            current = parents[current];
+        var node = end;
+        while (!node.Equals(start)) {
+            path.Add(node);
+            node = parents[node];
         }
         path.Reverse();
         return path;
