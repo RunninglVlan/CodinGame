@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
 // Visual
@@ -65,7 +66,9 @@ class Game : IGraph<Point> {
 
     public void Loop() {
         ReadState();
-        List<string> actions = [.. PlaceTracks()];
+        HashSet<string> actions = [];
+        var paths = FindPaths();
+        PlaceTracks(paths, TURN_POINTS, actions);
         if (TryFindRegionToDisrupt(out var region)) {
             actions.Add(Actions.Disrupt(region.Id));
         }
@@ -106,8 +109,9 @@ class Game : IGraph<Point> {
         }
     }
 
-    HashSet<string> PlaceTracks() {
-        List<(List<(Point point, int cost)> path, int cost)> paths = [];
+    [SuppressMessage("ReSharper", "ForeachCanBeConvertedToQueryUsingAnotherGetEnumerator")]
+    List<PathResult<Point>> FindPaths() {
+        List<PathResult<Point>> paths = [];
         foreach (var town in towns.Values) {
             var cell = cells[town.Point];
             foreach (int connection in town.DesiredConnections) {
@@ -122,19 +126,23 @@ class Game : IGraph<Point> {
                 paths.Add(path.Value);
             }
         }
-        HashSet<string> placedTracks = [];
-        int points = TURN_POINTS;
-        foreach (var path in paths.OrderBy(it => it.cost).Select(it => it.path)) {
+        return paths;
+    }
+
+    static void PlaceTracks(List<PathResult<Point>> paths, int points, HashSet<string> placed) {
+        foreach (var path in paths.OrderBy(it => it.Cost).Select(it => it.Path)) {
             foreach ((var point, int cost) in path.Where(it => it.cost > 0).OrderBy(it => it.cost)) {
-                if (points - cost >= 0 && placedTracks.Add(Actions.PlaceTrack(point))) {
+                if (points - cost < 0) {
+                    continue;
+                }
+                if (placed.Add(Actions.PlaceTrack(point))) {
                     points -= cost;
                 }
                 if (points == 0) {
-                    break;
+                    return;
                 }
             }
         }
-        return placedTracks;
     }
 
     bool TryFindRegionToDisrupt(out Region region) {
@@ -275,7 +283,7 @@ class Pathfinding<T>(IGraph<T> graph) where T : IEquatable<T> {
     readonly Dictionary<T, int> visited = new();
 
     /// Dijkstra
-    public (List<(T value, int cost)> path, int cost)? Path(T start, T end) {
+    public PathResult<T>? Path(T start, T end) {
         queue.Clear();
         data.Clear();
         visited.Clear();
@@ -283,7 +291,7 @@ class Pathfinding<T>(IGraph<T> graph) where T : IEquatable<T> {
         visited.Add(start, 0);
         while (queue.TryDequeue(out var current, out var priority)) {
             if (current.Equals(end)) {
-                return (Reconstruct(start, current), visited[current]);
+                return new PathResult<T>(Reconstruct(start, current), visited[current]);
             }
             foreach ((var node, int cost) in graph.Next(current)) {
                 int newCost = priority.cost + cost;
@@ -310,6 +318,8 @@ class Pathfinding<T>(IGraph<T> graph) where T : IEquatable<T> {
         return path;
     }
 }
+
+record struct PathResult<T>(List<(T point, int cost)> Path, int Cost);
 
 interface IGraph<T> {
     IEnumerable<(T, int cost)> Next(T current);
