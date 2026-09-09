@@ -71,6 +71,7 @@ class Game : IGraph<Point> {
         var completeThisTurn = paths.Where(it => it.Cost <= TURN_POINTS).ToList();
         int points = TURN_POINTS;
         PlaceTracks(completeThisTurn, ref points, actions);
+        PlaceTracks(paths, ref points, actions, differentRegions: true);
         PlaceTracks(paths, ref points, actions);
         if (TryFindRegionToDisrupt(out var region)) {
             actions.Add(Actions.Disrupt(region.Id));
@@ -132,17 +133,24 @@ class Game : IGraph<Point> {
         return paths;
     }
 
-    static void PlaceTracks(List<PathResult<Point>> paths, ref int points, HashSet<string> placed) {
+    void PlaceTracks(List<PathResult<Point>> paths, ref int points, HashSet<string> placed,
+            bool differentRegions = false) {
         if (points == 0) {
             return;
         }
+        int lastRegion = -1;
         foreach (var path in paths.OrderBy(it => it.Cost).Select(it => it.Path)) {
             foreach ((var point, int cost) in path.Where(it => it.cost > 0).OrderBy(it => it.cost)) {
                 if (points - cost < 0) {
                     continue;
                 }
+                var cell = cells[point];
+                if (differentRegions && cell.Region.Id == lastRegion) {
+                    continue;
+                }
                 if (placed.Add(Actions.PlaceTrack(point))) {
                     points -= cost;
+                    lastRegion = cell.Region.Id;
                 }
                 if (points == 0) {
                     return;
