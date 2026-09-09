@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
 // Visual
@@ -107,9 +106,8 @@ class Game : IGraph<Point> {
         }
     }
 
-    [SuppressMessage("ReSharper", "ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator")]
     IEnumerable<string> PlaceTracks() {
-        (List<(Point point, int cost)> path, int? cost) best = (null!, null);
+        List<(List<(Point point, int cost)> path, int cost)> paths = [];
         foreach (var town in towns.Values) {
             var cell = cells[town.Point];
             foreach (int connection in town.DesiredConnections) {
@@ -117,23 +115,23 @@ class Game : IGraph<Point> {
                     continue;
                 }
                 var targetTown = towns[connection];
-                var current = pathfinding.Path(town.Point, targetTown.Point);
-                if (current != null && (best.cost == null || current.Value.cost < best.cost)) {
-                    best = current.Value;
+                var path = pathfinding.Path(town.Point, targetTown.Point);
+                if (path == null) {
+                    continue;
                 }
+                paths.Add(path.Value);
             }
-        }
-        if (best.cost == null) {
-            yield break;
         }
         int points = TURN_POINTS;
-        foreach ((var point, int cost) in best.path.Where(it => it.cost > 0).OrderBy(it => it.cost)) {
-            if (points - cost >= 0) {
-                yield return Actions.PlaceTrack(point);
-                points -= cost;
-            }
-            if (points == 0) {
-                yield break;
+        foreach (var path in paths.OrderBy(it => it.cost).Select(it => it.path)) {
+            foreach ((var point, int cost) in path.Where(it => it.cost > 0).OrderBy(it => it.cost)) {
+                if (points - cost >= 0) {
+                    yield return Actions.PlaceTrack(point);
+                    points -= cost;
+                }
+                if (points == 0) {
+                    yield break;
+                }
             }
         }
     }
