@@ -166,7 +166,7 @@ class Game : IGraph<Point> {
     }
 
     IEnumerable<(Point, int cost)> IGraph<Point>.Next(Point current) {
-        foreach (var direction in Point.Directions4) {
+        foreach (var direction in Screen.Directions4) {
             var point = current + direction;
             if (!point.InBounds(width, height)) {
                 continue;
@@ -183,6 +183,11 @@ class Game : IGraph<Point> {
             int cost = paintPoints[cell.Type];
             yield return (point, cost);
         }
+    }
+
+    int IGraph<Point>.Tiebreak(Point from, Point to) {
+        var difference = to - from;
+        return Array.IndexOf(Screen.Directions4, difference);
     }
 }
 
@@ -246,24 +251,27 @@ static class Actions {
 }
 
 readonly record struct Point(int X, int Y) {
-    static readonly Point UP = new(0, 1);
-    static readonly Point DOWN = new(0, -1);
-    static readonly Point LEFT = new(-1, 0);
-    static readonly Point RIGHT = new(1, 0);
-
-    public static Point[] Directions4 { get; } = [RIGHT, LEFT, UP, DOWN];
-
     public bool InBounds(int width, int height) {
         return X >= 0 && X < width && Y >= 0 && Y < height;
     }
 
     public static Point operator +(Point a, Point b) => new(a.X + b.X, a.Y + b.Y);
+    public static Point operator -(Point a, Point b) => new(a.X - b.X, a.Y - b.Y);
 
     public override string ToString() => $"{X} {Y}";
 }
 
+static class Screen {
+    static readonly Point UP = new(0, -1);
+    static readonly Point DOWN = new(0, 1);
+    static readonly Point LEFT = new(-1, 0);
+    static readonly Point RIGHT = new(1, 0);
+
+    public static Point[] Directions4 { get; } = [UP, RIGHT, DOWN, LEFT];
+}
+
 class Pathfinding<T>(IGraph<T> graph) where T : IEquatable<T> {
-    readonly PriorityQueue<T, int> queue = new();
+    readonly PriorityQueue<T, (int cost, int tiebreak)> queue = new();
     readonly Dictionary<T, (T parent, int cost)> data = new();
     readonly Dictionary<T, int> visited = new();
 
@@ -272,18 +280,18 @@ class Pathfinding<T>(IGraph<T> graph) where T : IEquatable<T> {
         queue.Clear();
         data.Clear();
         visited.Clear();
-        queue.Enqueue(start, 0);
+        queue.Enqueue(start, (0, 0));
         visited.Add(start, 0);
-        while (queue.TryDequeue(out var current, out int currentCost)) {
+        while (queue.TryDequeue(out var current, out var priority)) {
             if (current.Equals(end)) {
                 return (Reconstruct(start, current), visited[current]);
             }
             foreach ((var node, int cost) in graph.Next(current)) {
-                int newCost = currentCost + cost;
+                int newCost = priority.cost + cost;
                 if (newCost >= visited.GetValueOrDefault(node, int.MaxValue)) {
                     continue;
                 }
-                queue.Enqueue(node, newCost);
+                queue.Enqueue(node, (newCost, graph.Tiebreak(current, node)));
                 visited[node] = newCost;
                 data[node] = (current, cost);
             }
@@ -306,4 +314,5 @@ class Pathfinding<T>(IGraph<T> graph) where T : IEquatable<T> {
 
 interface IGraph<T> {
     IEnumerable<(T, int cost)> Next(T current);
+    int Tiebreak(T from, T to);
 }
