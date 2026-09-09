@@ -77,8 +77,8 @@ class Game : IGraph<Point> {
     }
 
     void ReadState() {
-        int playerScore = int.Parse(Console.ReadLine()!);
-        int foeScore = int.Parse(Console.ReadLine()!);
+        int _ = int.Parse(Console.ReadLine()!); // playerScore
+        int __ = int.Parse(Console.ReadLine()!); // foeScore
         foreach (var region in regions.Values) {
             region.Clear();
         }
