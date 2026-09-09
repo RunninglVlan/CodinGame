@@ -140,8 +140,7 @@ class Game : IGraph<Point> {
         }
         int lastRegion = -1;
         foreach (var path in paths.OrderBy(it => it.Cost).Select(it => it.Path)) {
-            foreach ((var point, int cost) in path.Where(it => it.cost > 0)
-                    .OrderBy(it => it.cost).ThenByDescending(it => IsNearTown(it.point))) {
+            foreach ((var point, int cost) in path.Where(it => it.cost > 0).OrderBy(it => it.cost)) {
                 if (points - cost < 0) {
                     continue;
                 }
@@ -158,22 +157,6 @@ class Game : IGraph<Point> {
                 }
             }
         }
-    }
-
-    [SuppressMessage("ReSharper", "LoopCanBeConvertedToQuery")]
-    bool IsNearTown(Point point) {
-        foreach (var direction in Screen.Directions4) {
-            var neighbor = point + direction;
-            if (!neighbor.InBounds(width, height)) {
-                continue;
-            }
-            var cell = cells[neighbor];
-            int? town = cell.Region.Town;
-            if (town.HasValue && towns[town.Value].Point == neighbor) {
-                return true;
-            }
-        }
-        return false;
     }
 
     bool TryFindRegionToDisrupt(out Region region) {
