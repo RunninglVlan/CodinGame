@@ -1,76 +1,91 @@
-﻿using System.Diagnostics;
-
-const string testCase = """
-                        2
-                        Test 4
-                        1023
-                        12
-                        Test 5
-                        35641
-                        22
-                        """;
-Console.SetIn(new StringReader(testCase));
-
-// https://www.codingame.com/training/easy/button-mash
-int tests = int.Parse(Console.ReadLine()!);
-for (var _ = 0; _ < tests; _++) {
-    Debug.ReadLine();
-    int number = Math.Clamp(int.Parse(Debug.ReadLine()!), 1, 1_000_000);
-    int expected = int.Parse(Console.ReadLine()!);
-    {
-        var stopwatch = Stopwatch.StartNew();
-        int actual;
-        try {
-            actual = await Task.Run(() => Display(number)).WaitAsync(TimeSpan.FromSeconds(1));
-        } catch (TimeoutException) {
-            Debug.Log($"Timed out: {stopwatch.ElapsedMilliseconds}");
-            continue;
-        }
-        Console.WriteLine(expected == actual ? $"✅ {actual}" : $"❌ found {actual}, but expected {expected}");
-        Debug.Log($"Elapsed: {stopwatch.ElapsedMilliseconds}");
-        Debug.Log();
-    }
-    {
-    }
-}
+﻿var grid = new Grid(10, 10);
+grid.Get(new Coord(7, 6)).townId = 2;
+var neighbors = GetAllNeighboursOfRailBlock(new Coord(7, 6));
+Console.Error.WriteLine(string.Join(", ", neighbors));
 return;
 
-int Display(int required) {
-    var queue = new PriorityQueue<int, int>();
-    queue.Enqueue(0, 0);
-    while (queue.TryDequeue(out int current, out int operations)) {
-        if (current == required) {
-            return operations;
+List<Coord> GetAllNeighboursOfRailBlock(Coord cursor) {
+    var neighs = new List<Coord>();
+    var fifo = new Queue<Coord>();
+    new PriorityQueue<int, int>();
+    fifo.Enqueue(cursor);
+    var visited = new HashSet<Coord> { cursor };
+    while (fifo.TryDequeue(out var current)) {
+        bool usableTrack = grid.Get(current).IsTrackOrTown();
+        if (!usableTrack) {
+            neighs.Add(current);
+            continue; // not part of rail block
         }
-        foreach (int next in Next(current)) {
-            queue.Enqueue(next, operations + 1);
+        foreach (var n in grid.GetNeighbours(current)) {
+            if (visited.Add(n)) {
+                fifo.Enqueue(n);
+            }
         }
     }
-    throw new UnreachableException();
+    return neighs;
+}
 
-    IEnumerable<int> Next(int current) {
-        yield return current + 1;
-        if (current > 0) {
-            yield return current - 1;
-            yield return current * 2;
+class Grid {
+    static readonly Coord[] ADJACENCY = [Coord.NORTH, Coord.EAST, Coord.SOUTH, Coord.WEST];
+
+    public Dictionary<Coord, Tile> cells;
+
+    public Grid(int width, int height) {
+        cells = [];
+        for (int y = 0; y < height; ++y) {
+            for (int x = 0; x < width; ++x) {
+                Coord coord = new Coord(x, y);
+                Tile cell = new Tile(coord);
+                cells.Add(coord, cell);
+            }
         }
+    }
+
+    List<Coord> GetNeighbours(Coord pos, Coord[] adjacency) {
+        List<Coord> neighs = [];
+        foreach (Coord delta in adjacency) {
+            var n = new Coord(pos.X + delta.X, pos.Y + delta.Y);
+            if (Get(n) != Tile.NO_TILE) {
+                neighs.Add(n);
+            }
+        }
+        return neighs;
+    }
+
+    public List<Coord> GetNeighbours(Coord pos) {
+        return GetNeighbours(pos, ADJACENCY);
+    }
+
+    public Tile Get(Coord current) {
+        return cells.GetValueOrDefault(new Coord(current.X, current.Y), Tile.NO_TILE);
     }
 }
 
-static class Debug {
-    const int TAB_LENGTH = 1;
+record Tile(Coord Coord, int Type = -1) {
+    public int track = TRACK_NONE;
+    public int townId = TOWN_NONE;
+    public static readonly Tile NO_TILE = new(new Coord(-1, -1));
 
-    /// Reads line from Console and also writes it to Console.Error
-    public static string? ReadLine() {
-        string? line = Console.ReadLine();
-        Console.Error.WriteLine(line);
-        return line;
+    public static int TRACK_NONE = -1;
+    public static int TRACK_NEUTRAL = 2;
+    public static int TOWN_NONE = -1;
+
+    public bool IsTown() {
+        return townId != TOWN_NONE;
     }
 
-    public static void Log(object? line = null, int tab = 0, ConsoleColor? color = null) {
-        Console.ForegroundColor = color ?? ConsoleColor.Red;
-        var padding = new string(' ', tab * TAB_LENGTH);
-        Console.Error.WriteLine($"{padding}{line}");
-        Console.ResetColor();
+    public bool IsTrackOrTown() {
+        return IsTown() || IsTrack();
     }
+
+    public bool IsTrack() {
+        return track != TRACK_NONE;
+    }
+}
+
+record struct Coord(int X, int Y) {
+    public static readonly Coord NORTH = new(0, -1);
+    public static readonly Coord SOUTH = new(0, 1);
+    public static readonly Coord WEST = new(-1, 0);
+    public static readonly Coord EAST = new(1, 0);
 }
