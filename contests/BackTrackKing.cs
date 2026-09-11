@@ -207,8 +207,13 @@ class Game : IGraph<Point> {
     }
 
     int IGraph<Point>.Tiebreak(Point from, Point to) {
+        var regionFrom = cells[from].Region;
+        var regionTo = cells[to].Region;
+        if (regionTo.IsSafe && !regionFrom.IsSafe) {
+            return 0;
+        }
         var difference = to - from;
-        return Array.IndexOf(Screen.Directions4, difference);
+        return Array.IndexOf(Screen.Directions4, difference) + 1;
     }
 }
 
@@ -216,6 +221,7 @@ record Region(int Id) {
     public const int MAX_SAFE_INSTABILITY = 3;
 
     public int? Town { get; set; }
+    public bool IsSafe => Town.HasValue;
     public Dictionary<Owner, int> Tracks { get; } = [];
     public HashSet<int> TownConnections { get; } = [];
 
