@@ -68,7 +68,7 @@ class Game : IGraph<Point> {
         ReadState();
         HashSet<string> actions = [];
         var paths = FindPaths();
-        var completeThisTurn = paths.Where(it => it.Cost <= TURN_POINTS).ToList();
+        var completeThisTurn = paths.Where(it => it.Cost <= TURN_POINTS).OrderByDescending(PlayerTracks).ToList();
         int points = TURN_POINTS;
         PlaceTracks(completeThisTurn, ref points, actions, "trying to complete tracks this turn");
         PlaceTracks(paths, ref points, actions, "trying to build tracks on different regions", differentRegions: true);
@@ -155,7 +155,7 @@ class Game : IGraph<Point> {
         }
         Debug.Log(log);
         int lastRegion = -1;
-        foreach (var path in paths.OrderByDescending(PlayerTracks).Select(it => it.Path)) {
+        foreach (var path in paths.OrderBy(it => it.Cost).Select(it => it.Path)) {
             foreach ((var point, int cost) in path.Where(it => it.cost > 0).OrderBy(it => it.cost)) {
                 if (points - cost < 0) {
                     continue;
