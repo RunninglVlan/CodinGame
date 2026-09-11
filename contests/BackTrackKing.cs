@@ -68,7 +68,7 @@ class Game : IGraph<Point> {
         ReadState();
         HashSet<string> actions = [];
         var paths = FindPaths();
-        var completeThisTurn = paths.Where(it => it.Cost <= TURN_POINTS).ToList();
+        var completeThisTurn = paths.Where(it => it.Cost <= TURN_POINTS).OrderByDescending(PlayerTracks).ToList();
         int points = TURN_POINTS;
         PlaceTracks(completeThisTurn, ref points, actions, "trying to complete tracks this turn");
         PlaceTracks(paths, ref points, actions, "trying to build tracks on different regions", differentRegions: true);
@@ -131,6 +131,21 @@ class Game : IGraph<Point> {
             }
         }
         return paths;
+    }
+
+    int PlayerTracks(PathResult<Point> path) {
+        var count = 0;
+        foreach ((var point, int cost) in path.Path) {
+            if (cost > 0) {
+                count++;
+                continue;
+            }
+            var cell = cells[point];
+            if (cell.TracksOwner == player) {
+                count++;
+            }
+        }
+        return count;
     }
 
     void PlaceTracks(List<PathResult<Point>> paths, ref int points, HashSet<string> placed,
