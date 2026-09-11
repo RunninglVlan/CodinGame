@@ -254,7 +254,7 @@ enum CellType {
 
 record struct Town(Point Point, HashSet<int> DesiredConnections);
 
-// PLACE_TRACKS x y | MESSAGE text
+// MESSAGE text
 static class Actions {
     public static string Autoplace(Town from, Town to) {
         return $"AUTOPLACE {from.Point} {to.Point}";
