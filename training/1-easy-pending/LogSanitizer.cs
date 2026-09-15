@@ -18,11 +18,11 @@ static partial class Solution {
     private static partial Regex TokenValue();
 
     public static string Sanitize(string line) {
-        line = CardNumber().Replace(line, "[CARD_REDACTED]");
         line = TokenValue().Replace(line, it => {
             var tokenGroup = it.Groups[1];
             return tokenGroup.Captures.Count > 1 ? it.Value : $"{tokenGroup}[TOKEN_REDACTED]";
         });
+        line = CardNumber().Replace(line, "[CARD_REDACTED]");
         return line;
     }
 }
