@@ -10,9 +10,8 @@ for (var _ = 0; _ < lines; _++) {
 
 static partial class Solution {
     const string TOKEN_CHAR = @"a-zA-Z\d";
-    const string CARD_NUMBER = @"\d{4}-\d{4}-\d{4}-\d{4}";
 
-    [GeneratedRegex($"(?<![{TOKEN_CHAR}]){CARD_NUMBER}(?![{TOKEN_CHAR}])")]
+    [GeneratedRegex(@"(?<!\d-)\b\d{4}-\d{4}-\d{4}-\d{4}\b(?!-\d)")]
     private static partial Regex CardNumber();
 
     [GeneratedRegex($"(?<=[^{TOKEN_CHAR}]token=)[{TOKEN_CHAR}]+")]
