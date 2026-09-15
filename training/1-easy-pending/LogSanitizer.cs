@@ -12,12 +12,12 @@ static partial class Solution {
     [GeneratedRegex(@"\d{4}-\d{4}-\d{4}-\d{4}")]
     private static partial Regex CardNumber();
 
-    [GeneratedRegex(@"token=[a-zA-Z\d]+")]
+    [GeneratedRegex(@"(?<=token=)[a-zA-Z\d]+")]
     private static partial Regex TokenValue();
 
     public static string Sanitize(string line) {
         line = CardNumber().Replace(line, "[CARD_REDACTED]");
-        line = TokenValue().Replace(line, "token=[TOKEN_REDACTED]");
+        line = TokenValue().Replace(line, "[TOKEN_REDACTED]");
         return line;
     }
 }
