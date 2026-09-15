@@ -1,36 +1,62 @@
 ﻿using System;
+using System.Collections.Generic;
 
 // https://www.codingame.com/contribute/view/78658089fc5f6fedf11c055682408582f2eb
 int companyCount = Math.Clamp(int.Parse(Console.ReadLine()!), 1, 10);
-var companies = new Company[companyCount];
+Dictionary<string, Company> companies = [];
 for (var i = 0; i < companyCount; i++) {
     string[] input = Console.ReadLine()!.Split(':');
     string name = input[0];
     int protectionLevel = Math.Clamp(int.Parse(input[1]), 1, 10);
-    companies[i] = new Company(name, protectionLevel);
+    companies[name] = new Company(name, protectionLevel);
 }
-int attackCount = Math.Clamp(int.Parse(Console.ReadLine()!), 1, 100);
-var attacks = new Attack[attackCount];
-for (var i = 0; i < attackCount; i++) {
+int attacks = Math.Clamp(int.Parse(Console.ReadLine()!), 1, 100);
+for (var _ = 0; _ < attacks; _++) {
     string[] input = Console.ReadLine()!.Split(':');
-    string company = input[0];
+    var company = companies[input[0]];
     string stage = input[1];
     int strength = Math.Clamp(int.Parse(input[2]), 1, 20_000);
-    attacks[i] = new Attack(company, stage, strength);
+    company.Attack(stage, strength);
 }
-foreach (var company in companies) {
+foreach (var company in companies.Values) {
     Console.WriteLine(company);
 }
 
-record struct Company(string Name, int ProtectionLevel) {
-    public string Status { get; set; } = CompanyStatus.BLOCKED;
+record Company(string Name, int ProtectionLevel) {
+    string? Status { get; set; }
+
+    public void Attack(string stage, int strength) {
+        if (Status == CompanyStatus.BLOCKED) {
+            return;
+        }
+        Status = stage switch {
+            AttackStage.PORT_SCANNING => ProtectionLevel >= 7 && strength < 10_000
+                    ? CompanyStatus.BLOCKED
+                    : CompanyStatus.HACKED,
+            AttackStage.BRUTE_FORCE => ProtectionLevel >= 7
+                    || ProtectionLevel is 5 or 6 && strength < 5_000
+                    || strength < 500
+                            ? CompanyStatus.BLOCKED
+                            : CompanyStatus.HACKED,
+            AttackStage.MALWARE_INSTALLATION => ProtectionLevel >= 7
+                    || ProtectionLevel is 5 or 6 && strength < 3_000
+                    || strength < 1_000
+                            ? CompanyStatus.BLOCKED
+                            : CompanyStatus.HACKED,
+            _ => Status
+        };
+    }
 
     public override string ToString() => $"{Name}:{Status}";
 }
 
-record struct Attack(string Company, string Stage, int Strength);
-
 static class CompanyStatus {
     public const string BLOCKED = "Blocked";
     public const string HACKED = "Hacked";
+}
+
+static class AttackStage {
+    public const string PORT_SCANNING = "ps";
+    public const string BRUTE_FORCE = "bf";
+    public const string MALWARE_INSTALLATION = "mi";
 }
