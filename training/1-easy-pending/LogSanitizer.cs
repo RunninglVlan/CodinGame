@@ -9,7 +9,7 @@ for (var _ = 0; _ < lines; _++) {
 }
 
 static partial class Solution {
-    [GeneratedRegex(@"(?<!\w)\d{4}-\d{4}-\d{4}-\d{4}(?!\w)")]
+    [GeneratedRegex(@"(?<![a-zA-Z\d])\d{4}-\d{4}-\d{4}-\d{4}(?![a-zA-Z\d])")]
     private static partial Regex CardNumber();
 
     [GeneratedRegex(@"(?<=[^a-zA-Z\d]token=)[a-zA-Z\d]+")]
