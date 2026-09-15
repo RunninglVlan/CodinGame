@@ -9,10 +9,13 @@ for (var _ = 0; _ < lines; _++) {
 }
 
 static partial class Solution {
-    [GeneratedRegex(@"(?<![a-zA-Z\d])\d{4}-\d{4}-\d{4}-\d{4}(?![a-zA-Z\d])")]
+    const string TOKEN_CHAR = @"a-zA-Z\d";
+    const string CARD_NUMBER = @"\d{4}-\d{4}-\d{4}-\d{4}";
+
+    [GeneratedRegex($"(?<![{TOKEN_CHAR}]){CARD_NUMBER}(?![{TOKEN_CHAR}])")]
     private static partial Regex CardNumber();
 
-    [GeneratedRegex(@"(?<=[^a-zA-Z\d]token=)[a-zA-Z\d]+")]
+    [GeneratedRegex($"(?<=[^{TOKEN_CHAR}]token=)[{TOKEN_CHAR}]+")]
     private static partial Regex TokenValue();
 
     public static string Sanitize(string line) {
