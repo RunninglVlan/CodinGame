@@ -12,7 +12,7 @@ static partial class Solution {
     [GeneratedRegex(@"(?<!\w)\d{4}-\d{4}-\d{4}-\d{4}(?!\w)")]
     private static partial Regex CardNumber();
 
-    [GeneratedRegex(@"(?<=token=)[a-zA-Z\d]+")]
+    [GeneratedRegex(@"(?<=[^a-zA-Z\d]token=)[a-zA-Z\d]+")]
     private static partial Regex TokenValue();
 
     public static string Sanitize(string line) {
