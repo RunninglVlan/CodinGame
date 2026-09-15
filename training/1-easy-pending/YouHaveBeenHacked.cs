@@ -19,11 +19,7 @@ for (var _ = 0; _ < attackCount; _++) {
     string stageName = input[1];
     int strength = Math.Clamp(int.Parse(input[2]), 1, 20_000);
     if (!attacks.TryGetValue(company, out var stages)) {
-        attacks[company] = stages = [
-            new AttackStage(AttackStage.PORT_SCANNING),
-            new AttackStage(AttackStage.BRUTE_FORCE),
-            new AttackStage(AttackStage.MALWARE_INSTALLATION)
-        ];
+        attacks[company] = stages = AttackStage.All;
     }
     stages.First(it => it.Name == stageName).Strength += strength;
 }
@@ -66,6 +62,8 @@ record AttackStage(string Name) {
     public const string PORT_SCANNING = "ps";
     public const string BRUTE_FORCE = "bf";
     public const string MALWARE_INSTALLATION = "mi";
+
+    public static AttackStage[] All => [new(PORT_SCANNING), new(BRUTE_FORCE), new(MALWARE_INSTALLATION)];
 
     public int Strength { get; set; }
 }
