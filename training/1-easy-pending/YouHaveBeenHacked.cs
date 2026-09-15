@@ -19,9 +19,18 @@ for (var i = 0; i < attackCount; i++) {
     attacks[i] = new Attack(company, stage, strength);
 }
 foreach (var company in companies) {
-    Console.WriteLine("answer:string(50)");
+    Console.WriteLine(company);
 }
 
-record struct Company(string Name, int ProtectionLevel);
+record struct Company(string Name, int ProtectionLevel) {
+    public string Status { get; set; } = CompanyStatus.BLOCKED;
+
+    public override string ToString() => $"{Name}:{Status}";
+}
 
 record struct Attack(string Company, string Stage, int Strength);
+
+static class CompanyStatus {
+    public const string BLOCKED = "Blocked";
+    public const string HACKED = "Hacked";
+}
