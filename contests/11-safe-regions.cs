@@ -76,9 +76,9 @@ class Game : IGraph<Point> {
         var paths = FindPaths();
         var completeThisTurn = paths.Where(it => it.Cost <= TURN_POINTS).ToList();
         int points = TURN_POINTS;
-        PlaceTracks(completeThisTurn, ref points, actions);
-        PlaceTracks(paths, ref points, actions, differentRegions: true);
-        PlaceTracks(paths, ref points, actions);
+        PlaceTracks(completeThisTurn, ref points, actions, "trying to complete tracks this turn");
+        PlaceTracks(paths, ref points, actions, "trying to build tracks on different regions", differentRegions: true);
+        PlaceTracks(paths, ref points, actions, "trying to build remaining tracks");
         if (TryFindRegionToDisrupt(out var region)) {
             actions.Add(Actions.Disrupt(region.Id));
         }
@@ -140,10 +140,11 @@ class Game : IGraph<Point> {
     }
 
     void PlaceTracks(List<PathResult<Point>> paths, ref int points, HashSet<string> placed,
-            bool differentRegions = false) {
+            string log, bool differentRegions = false) {
         if (points == 0) {
             return;
         }
+        Debug.Log(log);
         int lastRegion = -1;
         foreach (var path in paths.OrderBy(it => it.Cost).Select(it => it.Path)) {
             foreach ((var point, int cost) in path.Where(it => it.cost > 0).OrderBy(it => it.cost)) {
@@ -155,6 +156,7 @@ class Game : IGraph<Point> {
                     continue;
                 }
                 if (placed.Add(Actions.PlaceTrack(point))) {
+                    Debug.Log($"placed track at {point}, cost: {cost}", 1);
                     points -= cost;
                     lastRegion = cell.Region.Id;
                 }
@@ -173,21 +175,25 @@ class Game : IGraph<Point> {
                 .Select(it => it.Key)
                 .Where(it => it.Town == null && it.Tracks[foe] > it.Tracks.GetValueOrDefault(player))
                 .OrderByDescending(it => it.Tracks[foe] / (float)it.Tracks.Values.Sum())
-                .ToArray();
-        if (foeRegions.Length == 0) {
+                .ToList();
+        if (foeRegions.Count == 0) {
             return false;
         }
         var safeToInk = foeRegions
                 .Where(it => it.Instability == Region.MAX_SAFE_INSTABILITY)
                 .FirstOrDefault(it => it.TownConnections.Count >= 2);
         if (safeToInk != null) {
+            Debug.Log($"destroying region connecting 2 or more towns: {safeToInk}");
             region = safeToInk;
             return true;
         }
         var safeToDisrupt = foeRegions.FirstOrDefault(it => it.Instability < Region.MAX_SAFE_INSTABILITY);
         if (safeToDisrupt == null) {
+            Debug.Log("found regions to disrupt, but nothing connecting 2 or more towns");
+            foeRegions.ForEach(it => Debug.Log(it, 1));
             return false;
         }
+        Debug.Log($"found safe to disrupt region: {safeToDisrupt}");
         region = safeToDisrupt;
         return true;
     }
@@ -234,7 +240,7 @@ record Region(int Id) {
     /// region inked (destroyed) when this >= 4
     public int Instability { get; set; }
 
-    /// true if region is destroyed
+    /// true if the region is destroyed
     public bool Inked { get; set; }
 
     public void Clear() {
@@ -244,6 +250,14 @@ record Region(int Id) {
 
     public virtual bool Equals(Region? other) => Id == other?.Id;
     public override int GetHashCode() => Id;
+
+    public override string ToString() {
+        return $"""
+                {Id}
+                  instability: {Instability}, connected towns: {string.Join(", ", TownConnections)}
+                  tracks: {string.Join(", ", Tracks.Select(it => (it.Key, it.Value)))}
+                """;
+    }
 }
 
 record Cell(Region Region, CellType Type) {
@@ -355,7 +369,7 @@ interface IGraph<T> {
 static class Debug {
     const int TAB_LENGTH = 2;
 
-    /// Reads line from Console and also writes it to Console.Error
+    /// Reads the line from Console and also writes it to Console.Error
     public static string? ReadLine() {
         string? line = Console.ReadLine();
         Console.Error.WriteLine(line);
