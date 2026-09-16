@@ -263,7 +263,7 @@ record Region(int Id) {
 }
 
 record Cell(Region Region, CellType Type) {
-    public Owner TracksOwner { get; set; }
+    public Owner TracksOwner { get; set; } = Owner.NoTrack;
     public HashSet<int> TownConnections { get; } = [];
 }
 
