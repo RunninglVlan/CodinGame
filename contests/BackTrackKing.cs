@@ -104,13 +104,11 @@ class Game : IGraph<Point> {
                 cell.Region.Instability = int.Parse(inputs[1]);
                 cell.Region.Inked = inputs[2] != "0";
                 string partOfActiveConnections = inputs[3];
-                cell.TownConnections.Clear();
                 if (partOfActiveConnections == NO_CONNECTIONS) {
                     continue;
                 }
                 foreach (string pair in partOfActiveConnections.Split(',')) {
                     foreach (int id in pair.Split('-').Select(int.Parse)) {
-                        cell.TownConnections.Add(id);
                         cell.Region.TownConnections.Add(id);
                     }
                 }
@@ -319,7 +317,6 @@ record Region(int Id) {
 
 record Cell(Region Region, CellType Type) {
     public Owner TracksOwner { get; set; } = Owner.NoTrack;
-    public HashSet<int> TownConnections { get; } = [];
 }
 
 enum Owner {
