@@ -68,7 +68,7 @@ class Game : IGraph<Point> {
         ReadState();
         HashSet<string> actions = [];
         var paths = FindPaths();
-        var completeThisTurn = paths.Where(it => it.Cost <= TURN_POINTS).ToList();
+        var completeThisTurn = paths.Where(it => it.cost <= TURN_POINTS).ToList();
         int points = TURN_POINTS;
         PlaceTracks(completeThisTurn, ref points, actions, "trying to complete tracks this turn");
         PlaceTracks(paths, ref points, actions, "trying to build tracks on different regions", differentRegions: true);
@@ -114,8 +114,8 @@ class Game : IGraph<Point> {
     }
 
     [SuppressMessage("ReSharper", "ForeachCanBeConvertedToQueryUsingAnotherGetEnumerator")]
-    List<PathResult<Point>> FindPaths() {
-        List<PathResult<Point>> paths = [];
+    List<(List<Point>, int cost)> FindPaths() {
+        List<(List<Point>, int cost)> paths = [];
         foreach (var town in towns.Values) {
             var cell = cells[town.Point];
             foreach (int connection in town.DesiredConnections) {
@@ -133,15 +133,19 @@ class Game : IGraph<Point> {
         return paths;
     }
 
-    void PlaceTracks(List<PathResult<Point>> paths, ref int points, HashSet<string> placed,
+    void PlaceTracks(List<(List<Point> path, int cost)> paths, ref int points, HashSet<string> placed,
             string log, bool differentRegions = false) {
         if (points == 0) {
             return;
         }
         Debug.Log(log);
         int lastRegion = -1;
-        foreach (var path in paths.OrderBy(it => it.Cost).Select(it => it.Path)) {
-            foreach ((var point, int cost) in path.Where(it => it.cost > 0).OrderBy(it => it.cost)) {
+        foreach (var path in paths.OrderBy(it => it.cost).Select(it => it.path)) {
+            var pointsWithCosts = path
+                    .Select(it => (it, cost: Cost(it)))
+                    .Where(it => it.cost > 0)
+                    .OrderBy(it => it.cost);
+            foreach ((var point, int cost) in pointsWithCosts) {
                 if (points - cost < 0) {
                     continue;
                 }
@@ -192,6 +196,7 @@ class Game : IGraph<Point> {
         return true;
     }
 
+    [SuppressMessage("ReSharper", "LoopCanBeConvertedToQuery")]
     IEnumerable<(Point, int cost)> IGraph<Point>.Next(Point current) {
         foreach (var direction in Screen.Directions4) {
             var point = current + direction;
@@ -202,14 +207,17 @@ class Game : IGraph<Point> {
             if (cell.Region.Inked) {
                 continue;
             }
-            int? town = cell.Region.Town;
-            if (cell.TracksOwner != Owner.NoTrack || town.HasValue && towns[town.Value].Point == point) {
-                yield return (point, 0);
-                continue;
-            }
-            int cost = paintPoints[cell.Type];
-            yield return (point, cost);
+            yield return (point, Cost(point));
         }
+    }
+
+    int Cost(Point point) {
+        var cell = cells[point];
+        int? town = cell.Region.Town;
+        if (cell.TracksOwner != Owner.NoTrack || town.HasValue && towns[town.Value].Point == point) {
+            return 0;
+        }
+        return paintPoints[cell.Type];
     }
 
     int IGraph<Point>.Heuristic(Point start, Point end) {
@@ -324,7 +332,7 @@ class Pathfinding<T>(IGraph<T> graph) where T : IEquatable<T> {
     readonly PriorityQueue<Node, int> queue = new();
 
     /// A*
-    public PathResult<T>? Path(T start, T end) {
+    public (List<T>, int cost)? Path(T start, T end) {
         nodes.Clear();
         queue.Clear();
         var startNode = new Node(start) {
@@ -341,7 +349,7 @@ class Pathfinding<T>(IGraph<T> graph) where T : IEquatable<T> {
             current.isOpen = false;
             current.isClosed = true;
             if (current.value.Equals(end)) {
-                return new PathResult<T>(Reconstruct(startNode, current), current.gCost);
+                return (Reconstruct(startNode, current), current.gCost);
             }
             foreach ((var node, int cost) in graph.Next(current.value)) {
                 if (!nodes.TryGetValue(node, out var neighbor)) {
@@ -364,11 +372,11 @@ class Pathfinding<T>(IGraph<T> graph) where T : IEquatable<T> {
         return null;
     }
 
-    static List<(T, int)> Reconstruct(Node start, Node end) {
-        var path = new List<(T, int)>();
+    static List<T> Reconstruct(Node start, Node end) {
+        var path = new List<T>();
         var node = end;
         while (!node!.Equals(start)) {
-            path.Add((node.value, node.gCost));
+            path.Add(node.value);
             node = node.parent;
         }
         path.Reverse();
@@ -388,8 +396,6 @@ class Pathfinding<T>(IGraph<T> graph) where T : IEquatable<T> {
         public int Priority => FCost * 1000 + hCost;
     }
 }
-
-record struct PathResult<T>(List<(T point, int cost)> Path, int Cost);
 
 interface IGraph<T> {
     IEnumerable<(T, int cost)> Next(T current);
