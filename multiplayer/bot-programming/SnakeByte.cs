@@ -501,7 +501,10 @@ class Pathfinding<T>(IGraph<T> graph) where T : IEquatable<T> {
     public (List<T>, int cost)? Path(T start, T end) {
         nodes.Clear();
         queue.Clear();
-        var startNode = new Node(start) { hCost = graph.Heuristic(start, end) };
+        var startNode = new Node(start) {
+            gCost = 0,
+            hCost = graph.Heuristic(start, end)
+        };
         nodes.Add(start, startNode);
         queue.Enqueue(startNode, startNode.Priority);
         while (queue.TryDequeue(out var current, out _)) {
@@ -550,7 +553,7 @@ class Pathfinding<T>(IGraph<T> graph) where T : IEquatable<T> {
         public readonly T value = value;
 
         /// Cost from the start
-        public int gCost;
+        public int gCost = int.MaxValue;
 
         /// Cost to the end
         public int hCost;
