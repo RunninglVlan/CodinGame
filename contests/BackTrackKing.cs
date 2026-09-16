@@ -331,7 +331,7 @@ class Pathfinding<T>(IGraph<T> graph) where T : IEquatable<T> {
                 if (newCost >= visited.GetValueOrDefault(next, int.MaxValue)) {
                     continue;
                 }
-                queue.Enqueue(next, (newCost, graph.Tiebreak(current, next)));
+                queue.Enqueue(next, (newCost, priority.tiebreak + graph.Tiebreak(current, next)));
                 visited[next] = newCost;
                 parents[next] = current;
             }
