@@ -284,18 +284,9 @@ record struct Town(Point Point, HashSet<int> DesiredConnections);
 
 // MESSAGE text
 static class Actions {
-    public static string Autoplace(Town from, Town to) {
-        return $"AUTOPLACE {from.Point} {to.Point}";
-    }
-
-    public static string PlaceTrack(Point point) {
-        return $"PLACE_TRACKS {point}";
-    }
-
-    public static string Disrupt(int region) {
-        return $"DISRUPT {region}";
-    }
-
+    public static string Autoplace(Town from, Town to) => $"AUTOPLACE {from.Point} {to.Point}";
+    public static string PlaceTrack(Point point) => $"PLACE_TRACKS {point}";
+    public static string Disrupt(int region) => $"DISRUPT {region}";
     public static string Wait() => "WAIT";
 }
 
