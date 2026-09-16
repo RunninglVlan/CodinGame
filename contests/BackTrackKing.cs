@@ -138,7 +138,7 @@ class Game : IGraph<Point> {
                     continue;
                 }
                 path.Update();
-                if (path is { IsCompleted: true, Instability: > 0 }) {
+                if (path is { IsCompleted: true, Instability: > 0 } || path.Instability > Region.MAX_SAFE_INSTABILITY) {
                     Debug.Log($"rebuilding path from {town.Point} to {path.Value.Last().cell} as it's unstable");
                     var newPath = pathfinding.Path(town.Point, path.Value.Last().cell);
                     if (newPath == null) {
