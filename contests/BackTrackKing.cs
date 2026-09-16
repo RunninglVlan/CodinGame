@@ -204,7 +204,7 @@ class Game : IGraph<Point> {
                 continue;
             }
             var cell = cells[point];
-            if (cell.Region.Inked) {
+            if (cell.Region.Instability > 0) {
                 continue;
             }
             yield return (point, Cost(point));
