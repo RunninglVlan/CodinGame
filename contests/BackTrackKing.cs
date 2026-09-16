@@ -329,16 +329,13 @@ static class Screen {
 
 class Pathfinding<T>(IGraph<T> graph) where T : IEquatable<T> {
     readonly Dictionary<T, Node> nodes = new();
-    readonly PriorityQueue<Node, int> queue = new();
+    readonly PriorityQueue<Node, (int, int)> queue = new();
 
     /// A*
     public (List<T>, int cost)? Path(T start, T end) {
         nodes.Clear();
         queue.Clear();
-        var startNode = new Node(start) {
-            gCost = 0,
-            hCost = graph.Heuristic(start, end)
-        };
+        var startNode = new Node(start) { hCost = graph.Heuristic(start, end) };
         nodes.Add(start, startNode);
         queue.Enqueue(startNode, startNode.Priority);
         while (queue.TryDequeue(out var current, out _)) {
@@ -364,6 +361,7 @@ class Pathfinding<T>(IGraph<T> graph) where T : IEquatable<T> {
                 }
                 next.gCost = gCost;
                 next.hCost = graph.Heuristic(value, end);
+                next.tiebreak = graph.Tiebreak(current.value, value);
                 next.parent = current;
                 queue.Enqueue(next, next.Priority);
                 next.isOpen = true;
@@ -387,18 +385,17 @@ class Pathfinding<T>(IGraph<T> graph) where T : IEquatable<T> {
         public readonly T value = value;
 
         /// Cost from the start
-        public int gCost = int.MaxValue;
+        public int gCost;
 
         /// Cost to the end
-        public int hCost = int.MaxValue;
+        public int hCost;
 
+        public int tiebreak;
         public Node? parent;
         public bool isOpen;
         public bool isClosed;
         int FCost => gCost + hCost;
-
-        /// Order by FCost, then hCost
-        public int Priority => FCost * 1000 + hCost;
+        public (int, int) Priority => (FCost, tiebreak);
     }
 }
 
