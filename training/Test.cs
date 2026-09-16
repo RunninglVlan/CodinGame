@@ -1,309 +1,361 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 
 const string testCase = """
-                        1
-                        21
-                        14
+                        0
+                        23
+                        15
                         0 0
                         0 0
                         0 0
-                        1 2
-                        1 2
-                        1 0
-                        1 2
-                        2 2
-                        2 2
-                        2 2
-                        3 1
-                        3 0
-                        4 0
-                        4 0
-                        4 0
-                        5 0
-                        5 0
-                        5 0
-                        6 0
-                        6 0
-                        6 0
                         0 0
-                        0 2
-                        0 2
-                        1 2
-                        1 2
+                        1 1
                         1 0
                         1 0
                         2 0
-                        2 2
-                        2 2
-                        3 1
-                        3 1
+                        2 0
+                        2 0
+                        2 0
                         3 0
-                        4 1
-                        4 1
-                        5 1
-                        5 1
+                        3 0
+                        4 0
+                        4 0
+                        4 2
                         5 0
-                        6 0
+                        5 2
+                        5 2
+                        5 2
+                        6 2
                         6 0
                         6 0
                         0 0
-                        7 0
+                        0 0
                         0 2
-                        8 2
-                        1 2
-                        8 2
+                        1 0
+                        1 1
+                        1 0
+                        1 0
+                        2 0
                         2 0
                         2 0
                         2 0
                         3 0
-                        3 0
-                        3 1
-                        4 1
-                        4 1
-                        4 0
+                        3 2
+                        4 2
+                        4 2
+                        4 2
+                        5 2
                         12 0
-                        12 1
                         5 0
-                        13 0
+                        5 2
+                        6 2
                         6 0
                         6 0
                         7 0
-                        7 0
-                        7 0
-                        8 2
+                        0 2
+                        7 2
+                        7 2
+                        1 1
                         8 0
-                        8 2
+                        1 0
+                        2 0
                         9 0
                         9 0
                         10 0
-                        10 0
-                        10 0
-                        10 0
-                        11 2
-                        11 0
-                        11 0
+                        3 0
+                        3 0
+                        3 2
+                        3 1
+                        4 1
+                        4 1
                         12 0
+                        5 0
+                        12 0
+                        13 2
+                        6 2
+                        13 0
+                        7 0
+                        7 2
+                        7 2
+                        8 0
+                        8 1
+                        8 0
+                        8 0
+                        9 0
+                        9 0
+                        9 0
+                        10 0
+                        10 0
+                        11 1
+                        11 1
+                        11 1
+                        11 0
+                        11 1
+                        12 1
                         12 1
                         12 1
                         13 0
-                        13 1
-                        13 1
+                        13 0
+                        13 0
+                        7 0
                         14 0
-                        7 0
-                        7 0
-                        8 0
-                        8 0
-                        9 0
-                        9 0
-                        9 0
-                        9 0
+                        15 2
+                        15 1
+                        8 1
+                        8 1
+                        8 1
+                        9 1
+                        9 1
+                        9 1
                         10 0
-                        10 0
+                        17 1
+                        17 1
                         11 0
-                        11 2
-                        18 2
                         18 0
+                        11 0
+                        11 0
                         12 0
                         12 0
-                        12 1
                         20 1
-                        13 1
+                        20 1
+                        13 0
                         13 0
                         14 0
                         14 0
-                        14 0
                         15 0
-                        15 0
-                        15 0
-                        15 0
+                        15 2
+                        15 2
+                        15 2
                         16 0
                         16 0
-                        17 0
-                        17 0
-                        11 2
-                        11 2
+                        16 0
+                        16 1
+                        10 0
+                        17 1
+                        18 2
+                        18 0
                         18 2
                         19 0
                         19 0
                         19 0
                         19 0
                         20 0
-                        20 0
-                        20 0
+                        20 1
+                        20 1
+                        20 1
                         14 0
                         14 0
                         21 0
-                        15 0
-                        15 0
-                        15 0
-                        16 0
-                        16 0
-                        16 0
-                        16 2
-                        17 0
-                        17 0
-                        11 2
-                        18 0
-                        19 0
-                        26 0
-                        19 0
-                        19 0
-                        19 0
-                        20 0
-                        20 0
-                        14 0
                         21 0
-                        21 0
-                        22 0
-                        22 0
-                        22 0
-                        22 0
+                        15 2
+                        22 2
                         16 0
-                        23 0
-                        17 2
-                        17 2
+                        16 0
+                        16 0
+                        16 1
+                        10 0
+                        17 1
                         17 2
                         18 2
-                        18 0
-                        18 0
-                        26 0
-                        26 0
+                        18 2
+                        25 2
+                        19 0
+                        19 0
                         26 0
                         26 0
                         27 0
                         20 0
+                        27 0
                         14 0
                         21 0
                         21 0
+                        22 0
+                        22 2
+                        22 2
+                        22 0
+                        22 0
+                        23 0
+                        23 1
+                        24 0
+                        24 1
+                        17 0
+                        25 0
+                        25 2
+                        25 0
+                        19 0
+                        26 0
+                        26 0
+                        26 0
+                        27 0
+                        27 0
+                        27 0
                         21 0
-                        22 0
-                        22 0
-                        22 0
-                        23 0
-                        23 0
-                        24 1
-                        24 1
-                        24 2
-                        25 0
-                        25 0
-                        18 0
-                        25 0
-                        26 0
-                        26 0
-                        34 0
-                        27 0
-                        27 0
-                        28 0
-                        28 0
+                        21 0
                         21 0
                         29 0
                         29 0
                         22 0
-                        30 0
+                        23 0
+                        23 0
+                        23 0
                         30 1
-                        23 1
-                        23 1
-                        24 2
+                        24 1
+                        24 1
+                        24 0
                         24 0
                         25 0
                         25 0
                         25 0
-                        25 0
+                        26 0
                         33 0
+                        26 0
+                        27 0
                         34 0
                         34 0
-                        27 0
-                        27 0
                         28 0
                         28 0
                         29 0
                         29 0
                         29 0
                         29 0
+                        23 0
+                        23 0
                         30 0
-                        30 1
-                        30 2
-                        23 2
+                        30 0
                         31 0
                         31 0
-                        32 0
-                        32 0
-                        32 0
-                        32 0
-                        33 0
-                        33 0
-                        34 0
-                        34 0
-                        27 0
-                        28 2
-                        28 2
-                        28 2
-                        28 2
-                        29 0
-                        29 0
-                        36 0
-                        30 1
-                        30 2
-                        31 2
                         31 0
-                        38 0
-                        38 0
+                        32 0
+                        32 0
                         32 0
                         32 2
+                        32 0
                         33 0
-                        33 0
-                        33 0
+                        33 2
                         34 0
+                        34 2
                         34 0
-                        27 0
-                        35 0
-                        35 2
-                        35 0
-                        35 0
+                        28 0
+                        28 0
+                        28 0
                         36 0
-                        36 1
-                        36 1
-                        37 1
-                        37 2
-                        31 2
-                        38 2
-                        38 0
-                        38 0
-                        39 2
-                        39 2
+                        36 0
+                        36 2
+                        36 0
+                        30 0
+                        30 0
+                        30 0
+                        31 0
+                        31 0
+                        31 0
                         39 0
+                        32 0
+                        32 2
+                        32 2
                         40 0
-                        40 0
-                        41 0
-                        41 0
-                        41 0
+                        33 0
+                        33 2
+                        34 2
+                        41 2
+                        34 2
                         35 0
                         35 0
-                        35 0
-                        35 0
+                        28 0
                         36 0
-                        36 1
-                        36 0
+                        36 2
+                        37 2
                         37 0
-                        37 2
-                        37 2
-                        38 2
+                        37 0
+                        37 0
+                        37 0
+                        38 0
                         38 0
                         39 0
+                        39 0
+                        39 0
                         39 2
-                        39 2
+                        40 2
+                        40 2
                         40 0
-                        40 0
-                        40 0
+                        33 2
                         41 0
                         41 0
+                        48 0
+                        35 0
+                        35 0
+                        42 0
+                        43 0
+                        43 2
+                        37 2
+                        37 0
+                        37 0
+                        44 0
+                        38 0
+                        38 0
+                        45 0
+                        39 0
+                        39 0
+                        46 0
+                        40 0
+                        40 2
+                        40 2
+                        47 0
                         41 0
-                        5
-                        0 12 1 3
-                        1 3 4 x
-                        2 7 6 0,1
-                        3 17 7 1,2,4
-                        4 3 10 0,1,2 
+                        41 0
+                        48 0
+                        48 0
+                        35 0
+                        42 0
+                        42 0
+                        43 0
+                        43 2
+                        43 0
+                        43 0
+                        44 0
+                        44 0
+                        44 0
+                        45 0
+                        45 0
+                        45 0
+                        46 0
+                        46 0
+                        46 0
+                        47 0
+                        47 0
+                        47 0
+                        41 0
+                        41 0
+                        48 0
+                        48 0
+                        42 0
+                        42 0
+                        42 0
+                        42 0
+                        42 0
+                        43 0
+                        43 0
+                        44 0
+                        44 0
+                        44 0
+                        45 0
+                        45 0
+                        45 0
+                        46 0
+                        46 0
+                        46 0
+                        46 0
+                        47 0
+                        47 0
+                        47 0
+                        41 0
+                        48 0
+                        48 0
+                        6
+                        0 1 1 3,4
+                        1 10 6 5
+                        2 21 6 1,5
+                        3 6 7 1,2
+                        4 20 9 1,3
+                        5 13 12 0,3,4
                         """;
 Console.SetIn(new StringReader(testCase));
 // Visual
@@ -366,16 +418,23 @@ class Game : IGraph<Point> {
     }
 
     public void Test() {
-        var town = towns[2];
+        var town = towns[3];
         var targetTown = towns[1];
-        foreach (var valueTuple in pathfinding.Path(town.Point, targetTown.Point).Value.path) {
-            Console.Error.WriteLine(valueTuple);
+        Debug.Log($"from {town.Point} to {targetTown.Point}");
+        foreach (var valueTuple in pathfinding.Path(town.Point, targetTown.Point).Value.Item1) {
+            Debug.Log(valueTuple, 1);
         }
     }
 
     public void Loop() {
         ReadState();
-        List<string> actions = [.. PlaceTracks()];
+        HashSet<string> actions = [];
+        var paths = FindPaths();
+        var completeThisTurn = paths.Where(it => it.cost <= TURN_POINTS).ToList();
+        int points = TURN_POINTS;
+        PlaceTracks(completeThisTurn, ref points, actions, "trying to complete tracks this turn");
+        PlaceTracks(paths, ref points, actions, "trying to build tracks on different regions", differentRegions: true);
+        PlaceTracks(paths, ref points, actions, "trying to build remaining tracks");
         if (TryFindRegionToDisrupt(out var region)) {
             actions.Add(Actions.Disrupt(region.Id));
         }
@@ -386,8 +445,8 @@ class Game : IGraph<Point> {
     }
 
     void ReadState() {
-        int playerScore = int.Parse(Console.ReadLine()!);
-        int foeScore = int.Parse(Console.ReadLine()!);
+        int _ = int.Parse(Console.ReadLine()!); // playerScore
+        int __ = int.Parse(Console.ReadLine()!); // foeScore
         foreach (var region in regions.Values) {
             region.Clear();
         }
@@ -416,13 +475,9 @@ class Game : IGraph<Point> {
         }
     }
 
-    [SuppressMessage("ReSharper", "ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator")]
-    IEnumerable<string> PlaceTracks() {
-        // todo: replace with maximum place tracks (1-3)
-        // todo: so if i can finish connection right now, do it
-        // todo: otherwise place single tracks at the start/end of different paths
-        // todo: let's start with just "implementation" of autoplace
-        (List<(Point point, int cost)> path, int? cost) best = (null!, null);
+    [SuppressMessage("ReSharper", "ForeachCanBeConvertedToQueryUsingAnotherGetEnumerator")]
+    List<(List<Point>, int cost)> FindPaths() {
+        List<(List<Point>, int cost)> paths = [];
         foreach (var town in towns.Values) {
             var cell = cells[town.Point];
             foreach (int connection in town.DesiredConnections) {
@@ -430,35 +485,44 @@ class Game : IGraph<Point> {
                     continue;
                 }
                 var targetTown = towns[connection];
-                var current = pathfinding.Path(town.Point, targetTown.Point);
-                if (current != null && (best.cost == null || current.Value.cost < best.cost)) {
-                    (var path, int cost) = current.Value;
-                    best = ([.. path.Prepend((town.Point, 0))], cost);
+                var path = pathfinding.Path(town.Point, targetTown.Point);
+                if (path == null) {
+                    continue;
                 }
+                paths.Add(path.Value);
             }
         }
-        if (best.cost == null) {
-            yield break;
+        return paths;
+    }
+
+    void PlaceTracks(List<(List<Point> path, int cost)> paths, ref int points, HashSet<string> placed,
+            string log, bool differentRegions = false) {
+        if (points == 0) {
+            return;
         }
-        // i need to maximize tracks, because i get points for any track
-        // i don't get more points if i spent more on it
-        // so if i have 3 that cost 1, i need to place them
-        // otherwise use 2 and 1
-        // otherwise 3
-        Console.Error.WriteLine($"path from {best.path.First().point} to {best.path.Last().point}");
-        foreach ((var point, int cost) in best.path) {
-            Console.Error.WriteLine($"  {point}: {cost}");
-        }
-        yield return Actions.Autoplace(best.path.First().point, best.path.Last().point);
-        yield break;
-        int points = TURN_POINTS;
-        foreach ((var point, int cost) in best.path.Where(it => it.cost > 0).OrderBy(it => it.cost)) {
-            if (points - cost >= 0) {
-                yield return Actions.PlaceTrack(point);
-                points -= cost;
-            }
-            if (points == 0) {
-                yield break;
+        Debug.Log(log);
+        int lastRegion = -1;
+        foreach (var path in paths.OrderBy(it => it.cost).Select(it => it.path)) {
+            var pointsWithCosts = path
+                    .Select(it => (it, cost: Cost(it)))
+                    .Where(it => it.cost > 0)
+                    .OrderBy(it => it.cost);
+            foreach ((var point, int cost) in pointsWithCosts) {
+                if (points - cost < 0) {
+                    continue;
+                }
+                var cell = cells[point];
+                if (differentRegions && cell.Region.Id == lastRegion) {
+                    continue;
+                }
+                if (placed.Add(Actions.PlaceTrack(point))) {
+                    Debug.Log($"placed track at {point}, cost: {cost}", 1);
+                    points -= cost;
+                    lastRegion = cell.Region.Id;
+                }
+                if (points == 0) {
+                    return;
+                }
             }
         }
     }
@@ -471,25 +535,30 @@ class Game : IGraph<Point> {
                 .Select(it => it.Key)
                 .Where(it => it.Town == null && it.Tracks[foe] > it.Tracks.GetValueOrDefault(player))
                 .OrderByDescending(it => it.Tracks[foe] / (float)it.Tracks.Values.Sum())
-                .ToArray();
-        if (foeRegions.Length == 0) {
+                .ToList();
+        if (foeRegions.Count == 0) {
             return false;
         }
         var safeToInk = foeRegions
                 .Where(it => it.Instability == Region.MAX_SAFE_INSTABILITY)
                 .FirstOrDefault(it => it.TownConnections.Count >= 2);
         if (safeToInk != null) {
+            Debug.Log($"destroying region connecting 2 or more towns: {safeToInk}");
             region = safeToInk;
             return true;
         }
         var safeToDisrupt = foeRegions.FirstOrDefault(it => it.Instability < Region.MAX_SAFE_INSTABILITY);
         if (safeToDisrupt == null) {
+            Debug.Log("found regions to disrupt, but nothing connecting 2 or more towns");
+            foeRegions.ForEach(it => Debug.Log(it, 1));
             return false;
         }
+        Debug.Log($"found safe to disrupt region: {safeToDisrupt}");
         region = safeToDisrupt;
         return true;
     }
 
+    [SuppressMessage("ReSharper", "LoopCanBeConvertedToQuery")]
     IEnumerable<(Point, int cost)> IGraph<Point>.Next(Point current) {
         foreach (var direction in Screen.Directions4) {
             var point = current + direction;
@@ -497,22 +566,30 @@ class Game : IGraph<Point> {
                 continue;
             }
             var cell = cells[point];
-            if (cell.Region.Inked) {
+            if (cell.Region.Instability > 0) {
                 continue;
             }
-            int? town = cell.Region.Town;
-            if (cell.TracksOwner != Owner.NoTrack || town.HasValue && towns[town.Value].Point == point) {
-                yield return (point, 0);
-                continue;
-            }
-            int cost = paintPoints[cell.Type];
-            yield return (point, cost);
+            yield return (point, Cost(point));
         }
     }
 
+    int Cost(Point point) {
+        var cell = cells[point];
+        int? town = cell.Region.Town;
+        if (cell.TracksOwner != Owner.NoTrack || town.HasValue && towns[town.Value].Point == point) {
+            return 0;
+        }
+        return paintPoints[cell.Type];
+    }
+
     int IGraph<Point>.Tiebreak(Point from, Point to) {
+        var regionFrom = cells[from].Region;
+        var regionTo = cells[to].Region;
+        if (regionTo.IsSafe && !regionFrom.IsSafe) {
+            return 0;
+        }
         var difference = to - from;
-        return Array.IndexOf(Screen.Directions4, difference);
+        return Array.IndexOf(Screen.Directions4, difference) + 1;
     }
 }
 
@@ -520,13 +597,14 @@ record Region(int Id) {
     public const int MAX_SAFE_INSTABILITY = 3;
 
     public int? Town { get; set; }
+    public bool IsSafe => Town.HasValue;
     public Dictionary<Owner, int> Tracks { get; } = [];
     public HashSet<int> TownConnections { get; } = [];
 
     /// region inked (destroyed) when this >= 4
     public int Instability { get; set; }
 
-    /// true if region is destroyed
+    /// true if the region is destroyed
     public bool Inked { get; set; }
 
     public void Clear() {
@@ -536,6 +614,14 @@ record Region(int Id) {
 
     public virtual bool Equals(Region? other) => Id == other?.Id;
     public override int GetHashCode() => Id;
+
+    public override string ToString() {
+        return $"""
+                {Id}
+                  instability: {Instability}, connected towns: {string.Join(", ", TownConnections)}
+                  tracks: {string.Join(", ", Tracks.Select(it => (it.Key, it.Value)))}
+                """;
+    }
 }
 
 record Cell(Region Region, CellType Type) {
@@ -558,21 +644,12 @@ enum CellType {
 
 record struct Town(Point Point, HashSet<int> DesiredConnections);
 
-// PLACE_TRACKS x y | MESSAGE text
 static class Actions {
-    public static string Autoplace(Point from, Point to) {
-        return $"AUTOPLACE {from} {to}";
-    }
-
-    public static string PlaceTrack(Point point) {
-        return $"PLACE_TRACKS {point}";
-    }
-
-    public static string Disrupt(int region) {
-        return $"DISRUPT {region}";
-    }
-
+    public static string Autoplace(Town from, Town to) => $"AUTOPLACE {from.Point} {to.Point}";
+    public static string PlaceTrack(Point point) => $"PLACE_TRACKS {point}";
+    public static string Disrupt(int region) => $"DISRUPT {region}";
     public static string Wait() => "WAIT";
+    public static string Message(string text) => $"MESSAGE {text}";
 }
 
 readonly record struct Point(int X, int Y) {
@@ -597,43 +674,42 @@ static class Screen {
 
 class Pathfinding<T>(IGraph<T> graph) where T : IEquatable<T> {
     readonly PriorityQueue<T, (int cost, int tiebreak)> queue = new();
-    readonly Dictionary<T, (T parent, int cost)> data = new();
+    readonly Dictionary<T, T> parents = new();
     readonly Dictionary<T, int> visited = new();
 
     /// Dijkstra
-    public (List<(T value, int cost)> path, int cost)? Path(T start, T end) {
+    public (List<T>, int cost)? Path(T start, T end) {
         queue.Clear();
-        data.Clear();
+        parents.Clear();
         visited.Clear();
         queue.Enqueue(start, (0, 0));
-        Console.Error.WriteLine($"Enqueue {start}, {(0, 0)}");
+        Debug.Log($"Enqueue {start}, {(0, 0)}");
         visited.Add(start, 0);
         while (queue.TryDequeue(out var current, out var priority)) {
-            Console.Error.WriteLine($"  Dequeue {current}");
+            Debug.Log($"  Dequeue {current}, current path: {string.Join(", ", Reconstruct(start, current))}");
             if (current.Equals(end)) {
                 return (Reconstruct(start, current), visited[current]);
             }
-            foreach ((var node, int cost) in graph.Next(current)) {
+            foreach ((var next, int cost) in graph.Next(current)) {
                 int newCost = priority.cost + cost;
-                if (newCost >= visited.GetValueOrDefault(node, int.MaxValue)) {
+                if (newCost >= visited.GetValueOrDefault(next, int.MaxValue)) {
                     continue;
                 }
-                queue.Enqueue(node, (newCost, graph.Tiebreak(current, node)));
-                Console.Error.WriteLine($"Enqueue {node}, {(newCost, graph.Tiebreak(current, node))}");
-                visited[node] = newCost;
-                data[node] = (current, cost);
+                queue.Enqueue(next, (newCost, priority.tiebreak + graph.Tiebreak(current, next)));
+                Console.Error.WriteLine($"Enqueue {next}, {(newCost, graph.Tiebreak(current, next))}");
+                visited[next] = newCost;
+                parents[next] = current;
             }
         }
         return null;
     }
 
-    List<(T, int)> Reconstruct(T start, T end) {
-        var path = new List<(T, int)>();
+    List<T> Reconstruct(T start, T end) {
+        var path = new List<T>();
         var node = end;
         while (!node.Equals(start)) {
-            (var parent, int cost) = data[node];
-            path.Add((node, cost));
-            node = parent;
+            path.Add(node);
+            node = parents[node];
         }
         path.Reverse();
         return path;
@@ -643,4 +719,23 @@ class Pathfinding<T>(IGraph<T> graph) where T : IEquatable<T> {
 interface IGraph<T> {
     IEnumerable<(T, int cost)> Next(T current);
     int Tiebreak(T from, T to);
+}
+
+static class Debug {
+    const int TAB_LENGTH = 2;
+
+    /// Reads the line from Console and also writes it to Console.Error
+    public static string? ReadLine() {
+        string? line = Console.ReadLine();
+        Console.Error.WriteLine(line);
+        return line;
+    }
+
+    public static void Log(object? line = null, int tab = 0, ConsoleColor? color = null) {
+        // return;
+        Console.ForegroundColor = color ?? ConsoleColor.Red;
+        var padding = new string(' ', tab * TAB_LENGTH);
+        Console.Error.WriteLine($"{padding}{line}");
+        Console.ResetColor();
+    }
 }
