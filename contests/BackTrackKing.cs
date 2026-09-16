@@ -212,6 +212,10 @@ class Game : IGraph<Point> {
         }
     }
 
+    int IGraph<Point>.Heuristic(Point start, Point end) {
+        return Point.ManhattanDistance(start, end);
+    }
+
     int IGraph<Point>.Tiebreak(Point from, Point to) {
         var regionFrom = cells[from].Region;
         var regionTo = cells[to].Region;
@@ -296,6 +300,10 @@ readonly record struct Point(int X, int Y) {
         return X >= 0 && X < width && Y >= 0 && Y < height;
     }
 
+    public static int ManhattanDistance(Point a, Point b) {
+        return Math.Abs(a.X - b.X) + Math.Abs(a.Y - b.Y);
+    }
+
     public static Point operator +(Point a, Point b) => new(a.X + b.X, a.Y + b.Y);
     public static Point operator -(Point a, Point b) => new(a.X - b.X, a.Y - b.Y);
 
@@ -353,10 +361,81 @@ class Pathfinding<T>(IGraph<T> graph) where T : IEquatable<T> {
     }
 }
 
+class APathfinding<T>(IGraph<T> graph) where T : IEquatable<T> {
+    readonly Dictionary<T, Node> nodes = new();
+    readonly PriorityQueue<Node, int> queue = new();
+
+    /// A*
+    public (List<T>, int cost)? Path(T start, T end) {
+        nodes.Clear();
+        queue.Clear();
+        var startNode = new Node(start) {
+            gCost = 0,
+            hCost = graph.Heuristic(start, end)
+        };
+        nodes.Add(start, startNode);
+        queue.Enqueue(startNode, startNode.Priority);
+        while (queue.TryDequeue(out var current, out _)) {
+            // ignore stale nodes
+            if (current.isClosed) {
+                continue;
+            }
+            current.isOpen = false;
+            current.isClosed = true;
+            if (current.value.Equals(end)) {
+                return (Reconstruct(startNode, current), current.gCost);
+            }
+            foreach ((var node, int cost) in graph.Next(current.value)) {
+                if (!nodes.TryGetValue(node, out var neighbor)) {
+                    nodes.Add(node, neighbor = new Node(node));
+                }
+                if (neighbor.isClosed) {
+                    continue;
+                }
+                int gCost = current.gCost + cost;
+                if (gCost >= neighbor.gCost && neighbor.isOpen) {
+                    continue;
+                }
+                neighbor.gCost = gCost;
+                neighbor.hCost = graph.Heuristic(node, end);
+                neighbor.parent = current;
+                queue.Enqueue(neighbor, neighbor.Priority);
+                neighbor.isOpen = true;
+            }
+        }
+        return null;
+    }
+
+    static List<T> Reconstruct(Node start, Node end) {
+        var path = new List<T>();
+        var current = end;
+        while (current != start) {
+            path.Add(current!.value);
+            current = current.parent;
+        }
+        path.Reverse();
+        return path;
+    }
+
+    class Node(T value) {
+        public readonly T value = value;
+        public int gCost = int.MaxValue;
+        public int hCost = int.MaxValue;
+        public Node? parent;
+        public bool isOpen;
+        public bool isClosed;
+        int FCost => gCost + hCost;
+
+        /// Order by FCost, then hCost
+        public int Priority => FCost * 1000 + hCost;
+    }
+}
+
 record struct PathResult<T>(List<(T point, int cost)> Path, int Cost);
 
 interface IGraph<T> {
     IEnumerable<(T, int cost)> Next(T current);
+    int Heuristic(T start, T end);
     int Tiebreak(T from, T to);
 }
 
