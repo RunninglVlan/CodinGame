@@ -145,7 +145,7 @@ class Game : IGraph<Point> {
                         town.Paths[i] = null;
                         continue;
                     }
-                    town.Paths[i] = path = Path.From(newPath);
+                    town.Paths[i] = path = Path.From(newPath, path);
                 }
                 paths.Add(path);
             }
@@ -160,7 +160,7 @@ class Game : IGraph<Point> {
         }
         Debug.Log(log);
         int lastRegion = -1;
-        foreach (var path in paths.OrderBy(it => it.Cost)) {
+        foreach (var path in paths.OrderByDescending(it => it.OldInstability).ThenBy(it => it.Cost)) {
             foreach ((var point, int cost) in path.Value.Where(it => it.cost > 0).OrderBy(it => it.cost)) {
                 if (points - cost < 0) {
                     continue;
@@ -247,15 +247,16 @@ class Game : IGraph<Point> {
     }
 }
 
-record Path(List<(Point cell, int cost)> Value) {
+record Path(List<(Point cell, int cost)> Value, List<(Point, int)>? Old = null) {
     public int Cost => Value.Sum(it => it.cost);
     public bool IsCompleted => Cost == 0;
     public int Instability { get; private set; }
+    public int OldInstability { get; private set; }
     public static Func<Point, int> GetCost { private get; set; } = null!;
     public static Func<Point, Region> GetRegion { private get; set; } = null!;
 
-    public static Path From(List<Point> value) {
-        var path = new Path([.. value.Select(it => (it, 0))]);
+    public static Path From(List<Point> value, Path? old = null) {
+        var path = new Path([.. value.Select(it => (it, 0))], old?.Value);
         path.Update();
         return path;
     }
@@ -265,6 +266,12 @@ record Path(List<(Point cell, int cost)> Value) {
             (var cell, int _) = Value[i];
             Value[i] = (cell, GetCost(cell));
             Instability = Math.Max(Instability, GetRegion(cell).Instability);
+        }
+        if (Old == null) {
+            return;
+        }
+        foreach ((var cell, int _) in Old) {
+            OldInstability = Math.Max(OldInstability, GetRegion(cell).Instability);
         }
     }
 }
