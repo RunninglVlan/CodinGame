@@ -238,7 +238,7 @@ record Region(int Id) {
     /// region inked (destroyed) when this >= 4
     public int Instability { get; set; }
 
-    /// true if region is destroyed
+    /// true if the region is destroyed
     public bool Inked { get; set; }
 
     public void Clear() {
@@ -442,7 +442,7 @@ interface IGraph<T> {
 static class Debug {
     const int TAB_LENGTH = 2;
 
-    /// Reads line from Console and also writes it to Console.Error
+    /// Reads the line from Console and also writes it to Console.Error
     public static string? ReadLine() {
         string? line = Console.ReadLine();
         Console.Error.WriteLine(line);

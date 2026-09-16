@@ -3,7 +3,7 @@
 static class Debug {
     const int TAB_LENGTH = 2;
 
-    /// Reads line from Console and also writes it to Console.Error
+    /// Reads the line from Console and also writes it to Console.Error
     public static string? ReadLine() {
         string? line = Console.ReadLine();
         Console.Error.WriteLine(line);
