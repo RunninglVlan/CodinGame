@@ -35,6 +35,8 @@ class Game : IGraph<Point> {
 
     public Game() {
         pathfinding = new Pathfinding<Point>(this);
+        Path.GetCost = Cost;
+        Path.GetRegion = point => cells[point].Region;
     }
 
     public void Init() {
@@ -122,7 +124,7 @@ class Game : IGraph<Point> {
                     .Select(it => towns[it])
                     .Select(targetTown => pathfinding.Path(town.Point, targetTown.Point))
                     .OfType<List<Point>>()) {
-                town.Paths.Add(Path.From(path, Cost));
+                town.Paths.Add(Path.From(path));
             }
         }
         builtPaths = true;
@@ -135,15 +137,15 @@ class Game : IGraph<Point> {
                 if (town.Paths[i] is not { } path) {
                     continue;
                 }
-                path.Update(Cost, it => cells[it].Region);
-                if (path is { IsCompleted: true, IsUnstable: true }) {
+                path.Update();
+                if (path is { IsCompleted: true, Instability: > 0 }) {
                     Debug.Log($"rebuilding path from {town.Point} to {path.Value.Last().cell} as it's unstable");
                     var newPath = pathfinding.Path(town.Point, path.Value.Last().cell);
                     if (newPath == null) {
                         town.Paths[i] = null;
                         continue;
                     }
-                    town.Paths[i] = path = Path.From(newPath, Cost);
+                    town.Paths[i] = path = Path.From(newPath);
                 }
                 paths.Add(path);
             }
@@ -245,22 +247,24 @@ class Game : IGraph<Point> {
     }
 }
 
-record struct Path(List<(Point cell, int cost)> Value) {
+record Path(List<(Point cell, int cost)> Value) {
     public int Cost => Value.Sum(it => it.cost);
     public bool IsCompleted => Cost == 0;
-    public bool IsUnstable { get; private set; }
+    public int Instability { get; private set; }
+    public static Func<Point, int> GetCost { private get; set; } = null!;
+    public static Func<Point, Region> GetRegion { private get; set; } = null!;
 
-    public static Path From(List<Point> path, Func<Point, int> cost) {
-        return new([.. path.Select(it => (it, cost: cost(it)))]);
+    public static Path From(List<Point> value) {
+        var path = new Path([.. value.Select(it => (it, 0))]);
+        path.Update();
+        return path;
     }
 
-    public void Update(Func<Point, int> cost, Func<Point, Region> region) {
+    public void Update() {
         for (var i = 0; i < Value.Count; i++) {
             (var cell, int _) = Value[i];
-            Value[i] = (cell, cost: cost(cell));
-            if (!IsUnstable && region(cell).Instability > 0) {
-                IsUnstable = true;
-            }
+            Value[i] = (cell, GetCost(cell));
+            Instability = Math.Max(Instability, GetRegion(cell).Instability);
         }
     }
 }

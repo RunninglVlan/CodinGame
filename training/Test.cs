@@ -421,7 +421,7 @@ class Game : IGraph<Point> {
         var town = towns[3];
         var targetTown = towns[1];
         Debug.Log($"from {town.Point} to {targetTown.Point}");
-        foreach (var valueTuple in pathfinding.Path(town.Point, targetTown.Point).Value.Item1) {
+        foreach (var valueTuple in pathfinding.Path(town.Point, targetTown.Point)!.Value.Item1) {
             Debug.Log(valueTuple, 1);
         }
     }
