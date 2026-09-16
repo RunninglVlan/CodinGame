@@ -138,7 +138,7 @@ class Game : IGraph<Point> {
                     continue;
                 }
                 path.Update();
-                if (path is { IsCompleted: true, Instability: > 0 } || path.Instability > Region.MAX_SAFE_INSTABILITY) {
+                if (NeedToRebuild(path)) {
                     Debug.Log($"rebuilding path from {town.Point} to {path.Value.Last().cell} as it's unstable");
                     var newPath = pathfinding.Path(town.Point, path.Value.Last().cell);
                     if (newPath == null) {
@@ -151,6 +151,16 @@ class Game : IGraph<Point> {
             }
         }
         return paths;
+
+        bool NeedToRebuild(Path path) {
+            if (path.Instability == 0) {
+                return false;
+            }
+            if (path.IsCompleted || path.Instability > Region.MAX_SAFE_INSTABILITY) {
+                return true;
+            }
+            return path.Cost > (Region.MAX_SAFE_INSTABILITY + 1 - path.Instability) * TURN_POINTS;
+        }
     }
 
     void PlaceTracks(List<Path> paths, ref int points, HashSet<string> placed,
