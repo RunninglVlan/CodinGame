@@ -351,22 +351,22 @@ class Pathfinding<T>(IGraph<T> graph) where T : IEquatable<T> {
             if (current.value.Equals(end)) {
                 return (Reconstruct(startNode, current), current.gCost);
             }
-            foreach ((var node, int cost) in graph.Next(current.value)) {
-                if (!nodes.TryGetValue(node, out var neighbor)) {
-                    nodes.Add(node, neighbor = new Node(node));
+            foreach ((var value, int cost) in graph.Next(current.value)) {
+                if (!nodes.TryGetValue(value, out var next)) {
+                    nodes.Add(value, next = new Node(value));
                 }
-                if (neighbor.isClosed) {
+                if (next.isClosed) {
                     continue;
                 }
                 int gCost = current.gCost + cost;
-                if (gCost >= neighbor.gCost && neighbor.isOpen) {
+                if (gCost >= next.gCost && next.isOpen) {
                     continue;
                 }
-                neighbor.gCost = gCost;
-                neighbor.hCost = graph.Heuristic(node, end);
-                neighbor.parent = current;
-                queue.Enqueue(neighbor, neighbor.Priority);
-                neighbor.isOpen = true;
+                next.gCost = gCost;
+                next.hCost = graph.Heuristic(value, end);
+                next.parent = current;
+                queue.Enqueue(next, next.Priority);
+                next.isOpen = true;
             }
         }
         return null;
@@ -385,8 +385,13 @@ class Pathfinding<T>(IGraph<T> graph) where T : IEquatable<T> {
 
     class Node(T value) {
         public readonly T value = value;
+
+        /// Cost from the start
         public int gCost = int.MaxValue;
+
+        /// Cost to the end
         public int hCost = int.MaxValue;
+
         public Node? parent;
         public bool isOpen;
         public bool isClosed;
