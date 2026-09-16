@@ -220,10 +220,6 @@ class Game : IGraph<Point> {
         return paintPoints[cell.Type];
     }
 
-    int IGraph<Point>.Heuristic(Point start, Point end) {
-        return Point.ManhattanDistance(start, end);
-    }
-
     int IGraph<Point>.Tiebreak(Point from, Point to) {
         var regionFrom = cells[from].Region;
         var regionTo = cells[to].Region;
@@ -308,10 +304,6 @@ readonly record struct Point(int X, int Y) {
         return X >= 0 && X < width && Y >= 0 && Y < height;
     }
 
-    public static int ManhattanDistance(Point a, Point b) {
-        return Math.Abs(a.X - b.X) + Math.Abs(a.Y - b.Y);
-    }
-
     public static Point operator +(Point a, Point b) => new(a.X + b.X, a.Y + b.Y);
     public static Point operator -(Point a, Point b) => new(a.X - b.X, a.Y - b.Y);
 
@@ -328,80 +320,48 @@ static class Screen {
 }
 
 class Pathfinding<T>(IGraph<T> graph) where T : IEquatable<T> {
-    readonly Dictionary<T, Node> nodes = new();
-    readonly PriorityQueue<Node, (int, int)> queue = new();
+    readonly PriorityQueue<T, (int cost, int tiebreak)> queue = new();
+    readonly Dictionary<T, T> parents = new();
+    readonly Dictionary<T, int> visited = new();
 
-    /// A*
+    /// Dijkstra
     public (List<T>, int cost)? Path(T start, T end) {
-        nodes.Clear();
         queue.Clear();
-        var startNode = new Node(start) { hCost = graph.Heuristic(start, end) };
-        nodes.Add(start, startNode);
-        queue.Enqueue(startNode, startNode.Priority);
-        while (queue.TryDequeue(out var current, out _)) {
-            // ignore stale nodes
-            if (current.isClosed) {
-                continue;
+        parents.Clear();
+        visited.Clear();
+        queue.Enqueue(start, (0, 0));
+        visited.Add(start, 0);
+        while (queue.TryDequeue(out var current, out var priority)) {
+            if (current.Equals(end)) {
+                return (Reconstruct(start, current), visited[current]);
             }
-            current.isOpen = false;
-            current.isClosed = true;
-            if (current.value.Equals(end)) {
-                return (Reconstruct(startNode, current), current.gCost);
-            }
-            foreach ((var value, int cost) in graph.Next(current.value)) {
-                if (!nodes.TryGetValue(value, out var next)) {
-                    nodes.Add(value, next = new Node(value));
-                }
-                if (next.isClosed) {
+            foreach ((var node, int cost) in graph.Next(current)) {
+                int newCost = priority.cost + cost;
+                if (newCost >= visited.GetValueOrDefault(node, int.MaxValue)) {
                     continue;
                 }
-                int gCost = current.gCost + cost;
-                if (gCost >= next.gCost && next.isOpen) {
-                    continue;
-                }
-                next.gCost = gCost;
-                next.hCost = graph.Heuristic(value, end);
-                next.tiebreak = graph.Tiebreak(current.value, value);
-                next.parent = current;
-                queue.Enqueue(next, next.Priority);
-                next.isOpen = true;
+                queue.Enqueue(node, (newCost, graph.Tiebreak(current, node)));
+                visited[node] = newCost;
+                parents[node] = current;
             }
         }
         return null;
     }
 
-    static List<T> Reconstruct(Node start, Node end) {
+    List<T> Reconstruct(T start, T end) {
         var path = new List<T>();
         var node = end;
-        while (!node!.Equals(start)) {
-            path.Add(node.value);
-            node = node.parent;
+        while (!node.Equals(start)) {
+            path.Add(node);
+            node = parents[node];
         }
         path.Reverse();
         return path;
-    }
-
-    class Node(T value) {
-        public readonly T value = value;
-
-        /// Cost from the start
-        public int gCost;
-
-        /// Cost to the end
-        public int hCost;
-
-        public int tiebreak;
-        public Node? parent;
-        public bool isOpen;
-        public bool isClosed;
-        int FCost => gCost + hCost;
-        public (int, int) Priority => (FCost, tiebreak);
     }
 }
 
 interface IGraph<T> {
     IEnumerable<(T, int cost)> Next(T current);
-    int Heuristic(T start, T end);
     int Tiebreak(T from, T to);
 }
 
