@@ -43,7 +43,7 @@ class Game {
     }
 }
 
-public class Grid {
+class Grid : IGraph<Point> {
     int width;
     int height;
 
@@ -149,11 +149,11 @@ public class Grid {
     bool IsOutside(int x, int y) => x < 0 || x >= width || y < 0 || y >= height;
 
     [SuppressMessage("ReSharper", "LoopCanBeConvertedToQuery")]
-    public IEnumerable<(Cell, int)> Next(Point point, Point end) {
+    IEnumerable<(Point, int cost)> IGraph<Point>.Next(Point current, Point end) {
         foreach (var direction in FourDirections) {
-            var cell = Get(point + direction);
+            var cell = Get(current + direction);
             if (cell.IsEmpty || cell.type == CellType.Power && cell.point == end) {
-                yield return (cell, NewGCost(cell));
+                yield return (cell.point, NewGCost(cell));
             }
         }
     }
@@ -210,15 +210,19 @@ public class Grid {
         }
         return result.ToString();
     }
+
+    int IGraph<Point>.Heuristic(Point start, Point end) {
+        return Point.ManhattanDistance(start, end);
+    }
 }
 
-public class Cell(int x, int y) {
+class Cell(int x, int y) {
     public Point point = new(x, y);
     public CellType type;
     public bool IsEmpty => type is CellType.Empty or CellType.EmptySide;
 }
 
-public enum CellType {
+enum CellType {
     Platform,
     Empty,
     EmptySide,
@@ -233,7 +237,7 @@ public enum CellType {
 }
 
 class Bots(Grid grid) {
-    readonly Pathfinding pathfinding = new(grid);
+    readonly Pathfinding<Point> pathfinding = new(grid);
 
     /// Performance optimization
     const int TARGETS_PER_SNAKE = 10;
@@ -304,12 +308,9 @@ class Bots(Grid grid) {
 
         var possibleTargets = filteredTargets
             .Select(it => {
-                if (it.snake.IsIgnored(it.target)) {
+                if (it.snake.IsIgnored(it.target)
+                        || pathfinding.Path(it.snake.Head, it.target) is not var (path, cost)) {
                     return (it.id, it.target, cost: int.MaxValue);
-                }
-                (var path, int cost) = pathfinding.Path(it.snake.Head, it.target);
-                if (path == null) {
-                    return (it.id, it.target, cost);
                 }
                 var step = path.First();
                 if (ValidateNextTurn(it.snake, step)) {
@@ -388,8 +389,7 @@ class Bots(Grid grid) {
     }
 
     string MoveToTarget(Point source, Point target, int markCount = 0) {
-        var (path, _) = pathfinding.Path(source, target);
-        if (path == null) {
+        if (pathfinding.Path(source, target) is not var (path, _)) {
             return MoveToEmpty(source);
         }
         var step = path.First();
@@ -493,18 +493,15 @@ static class Action {
     };
 }
 
-public class Pathfinding(Grid grid) {
-    readonly Dictionary<Point, Node> nodes = new();
-    readonly PriorityQueue<Node, int> queue = new();
+class Pathfinding<T>(IGraph<T> graph) where T : IEquatable<T> {
+    readonly Dictionary<T, Node> nodes = new();
+    readonly PriorityQueue<Node, (int, int)> queue = new();
 
     /// A*
-    public (List<Point>?, int cost) Path(Point start, Point end) {
+    public (List<T>, int cost)? Path(T start, T end) {
         nodes.Clear();
         queue.Clear();
-        var startNode = new Node(start) {
-            gCost = 0,
-            hCost = Point.ManhattanDistance(start, end)
-        };
+        var startNode = new Node(start) { hCost = graph.Heuristic(start, end) };
         nodes.Add(start, startNode);
         queue.Enqueue(startNode, startNode.Priority);
         while (queue.TryDequeue(out var current, out _)) {
@@ -514,59 +511,59 @@ public class Pathfinding(Grid grid) {
             }
             current.isOpen = false;
             current.isClosed = true;
-            if (current.point == end) {
+            if (current.value.Equals(end)) {
                 return (Reconstruct(startNode, current), current.gCost);
             }
-
-            foreach ((var cell, int cellGCost) in grid.Next(current.point, end)) {
-                if (!nodes.TryGetValue(cell.point, out var neighbor)) {
-                    neighbor = new Node(cell.point);
-                    nodes.Add(cell.point, neighbor);
+            foreach ((var value, int cost) in graph.Next(current.value, end)) {
+                if (!nodes.TryGetValue(value, out var next)) {
+                    nodes.Add(value, next = new Node(value));
                 }
-                if (neighbor.isClosed) {
+                if (next.isClosed) {
                     continue;
                 }
-                int gCost = current.gCost + cellGCost;
-                if (gCost >= neighbor.gCost && neighbor.isOpen) {
+                int gCost = current.gCost + cost;
+                if (gCost >= next.gCost && next.isOpen) {
                     continue;
                 }
-                neighbor.gCost = gCost;
-                neighbor.hCost = Point.ManhattanDistance(cell.point, end);
-                neighbor.parent = current;
-                queue.Enqueue(neighbor, neighbor.Priority);
-                neighbor.isOpen = true;
+                next.gCost = gCost;
+                next.hCost = graph.Heuristic(value, end);
+                next.parent = current;
+                queue.Enqueue(next, next.Priority);
+                next.isOpen = true;
             }
         }
-        return (null, int.MaxValue);
+        return null;
     }
 
-    static List<Point> Reconstruct(Node start, Node end) {
-        var path = new List<Point>();
-        var current = end;
-        while (current != start) {
-            path.Add(current!.point);
-            current = current.parent;
+    static List<T> Reconstruct(Node start, Node end) {
+        var path = new List<T>();
+        var node = end;
+        while (!node!.Equals(start)) {
+            path.Add(node.value);
+            node = node.parent;
         }
         path.Reverse();
         return path;
     }
 
-    class Node(Point point) {
-        public readonly Point point = point;
+    class Node(T value) {
+        public readonly T value = value;
 
-        /// Distance from start
-        public int gCost = int.MaxValue;
+        /// Cost from the start
+        public int gCost;
 
-        /// Distance to end
-        public int hCost = int.MaxValue;
+        /// Cost to the end
+        public int hCost;
 
         public Node? parent;
         public bool isOpen;
         public bool isClosed;
-
         int FCost => gCost + hCost;
-
-        /// Order by FCost, then hCost
-        public int Priority => FCost * 1000 + hCost;
+        public (int, int) Priority => (FCost, hCost);
     }
+}
+
+interface IGraph<T> {
+    IEnumerable<(T, int cost)> Next(T current, T end);
+    int Heuristic(T start, T end);
 }
