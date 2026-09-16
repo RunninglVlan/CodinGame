@@ -282,12 +282,12 @@ enum CellType {
 
 record struct Town(Point Point, HashSet<int> DesiredConnections);
 
-// MESSAGE text
 static class Actions {
     public static string Autoplace(Town from, Town to) => $"AUTOPLACE {from.Point} {to.Point}";
     public static string PlaceTrack(Point point) => $"PLACE_TRACKS {point}";
     public static string Disrupt(int region) => $"DISRUPT {region}";
     public static string Wait() => "WAIT";
+    public static string Message(string text) => $"MESSAGE {text}";
 }
 
 readonly record struct Point(int X, int Y) {
