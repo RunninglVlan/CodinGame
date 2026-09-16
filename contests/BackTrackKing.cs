@@ -320,53 +320,11 @@ static class Screen {
 }
 
 class Pathfinding<T>(IGraph<T> graph) where T : IEquatable<T> {
-    readonly PriorityQueue<T, (int cost, int tiebreak)> queue = new();
-    readonly Dictionary<T, (T parent, int cost)> data = new();
-    readonly Dictionary<T, int> visited = new();
-
-    /// Dijkstra
-    public PathResult<T>? Path(T start, T end) {
-        queue.Clear();
-        data.Clear();
-        visited.Clear();
-        queue.Enqueue(start, (0, 0));
-        visited.Add(start, 0);
-        while (queue.TryDequeue(out var current, out var priority)) {
-            if (current.Equals(end)) {
-                return new PathResult<T>(Reconstruct(start, current), visited[current]);
-            }
-            foreach ((var node, int cost) in graph.Next(current)) {
-                int newCost = priority.cost + cost;
-                if (newCost >= visited.GetValueOrDefault(node, int.MaxValue)) {
-                    continue;
-                }
-                queue.Enqueue(node, (newCost, graph.Tiebreak(current, node)));
-                visited[node] = newCost;
-                data[node] = (current, cost);
-            }
-        }
-        return null;
-    }
-
-    List<(T, int)> Reconstruct(T start, T end) {
-        var path = new List<(T, int)>();
-        var node = end;
-        while (!node.Equals(start)) {
-            (var parent, int cost) = data[node];
-            path.Add((node, cost));
-            node = parent;
-        }
-        path.Reverse();
-        return path;
-    }
-}
-
-class APathfinding<T>(IGraph<T> graph) where T : IEquatable<T> {
     readonly Dictionary<T, Node> nodes = new();
     readonly PriorityQueue<Node, int> queue = new();
 
     /// A*
-    public (List<T>, int cost)? Path(T start, T end) {
+    public PathResult<T>? Path(T start, T end) {
         nodes.Clear();
         queue.Clear();
         var startNode = new Node(start) {
@@ -383,7 +341,7 @@ class APathfinding<T>(IGraph<T> graph) where T : IEquatable<T> {
             current.isOpen = false;
             current.isClosed = true;
             if (current.value.Equals(end)) {
-                return (Reconstruct(startNode, current), current.gCost);
+                return new PathResult<T>(Reconstruct(startNode, current), current.gCost);
             }
             foreach ((var node, int cost) in graph.Next(current.value)) {
                 if (!nodes.TryGetValue(node, out var neighbor)) {
@@ -406,12 +364,12 @@ class APathfinding<T>(IGraph<T> graph) where T : IEquatable<T> {
         return null;
     }
 
-    static List<T> Reconstruct(Node start, Node end) {
-        var path = new List<T>();
-        var current = end;
-        while (current != start) {
-            path.Add(current!.value);
-            current = current.parent;
+    static List<(T, int)> Reconstruct(Node start, Node end) {
+        var path = new List<(T, int)>();
+        var node = end;
+        while (!node!.Equals(start)) {
+            path.Add((node.value, node.gCost));
+            node = node.parent;
         }
         path.Reverse();
         return path;
