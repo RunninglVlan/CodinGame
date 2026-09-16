@@ -8,6 +8,7 @@ using System.Linq;
 // https://www.codingame.com/contests/summer-challenge-2026-back-track-king
 var game = new Game();
 game.Init();
+game.FindPaths();
 while (true) {
     game.Loop();
 }
@@ -29,6 +30,8 @@ class Game : IGraph<Point> {
         { CellType.River, 2 },
         { CellType.Mountain, 3 }
     };
+
+    bool builtPaths;
 
     public Game() {
         pathfinding = new Pathfinding<Point>(this);
@@ -67,8 +70,8 @@ class Game : IGraph<Point> {
     public void Loop() {
         ReadState();
         HashSet<string> actions = [];
-        var paths = FindPaths();
-        var completeThisTurn = paths.Where(it => it.cost <= TURN_POINTS).ToList();
+        var paths = GetPaths();
+        var completeThisTurn = paths.Where(it => it is { IsCompleted: false, Cost: <= TURN_POINTS }).ToList();
         int points = TURN_POINTS;
         PlaceTracks(completeThisTurn, ref points, actions, "trying to complete tracks this turn");
         PlaceTracks(paths, ref points, actions, "trying to build tracks on different regions", differentRegions: true);
@@ -113,39 +116,50 @@ class Game : IGraph<Point> {
         }
     }
 
-    [SuppressMessage("ReSharper", "ForeachCanBeConvertedToQueryUsingAnotherGetEnumerator")]
-    List<(List<Point>, int cost)> FindPaths() {
-        List<(List<Point>, int cost)> paths = [];
+    public void FindPaths() {
         foreach (var town in towns.Values) {
-            var cell = cells[town.Point];
-            foreach (int connection in town.DesiredConnections) {
-                if (cell.TownConnections.Contains(connection)) {
+            foreach (var path in town.DesiredConnections
+                    .Select(it => towns[it])
+                    .Select(targetTown => pathfinding.Path(town.Point, targetTown.Point))
+                    .OfType<List<Point>>()) {
+                town.Paths.Add(Path.From(path, Cost));
+            }
+        }
+        builtPaths = true;
+    }
+
+    List<Path> GetPaths() {
+        List<Path> paths = [];
+        foreach (var town in towns.Values) {
+            for (var i = 0; i < town.Paths.Count; i++) {
+                if (town.Paths[i] is not { } path) {
                     continue;
                 }
-                var targetTown = towns[connection];
-                var path = pathfinding.Path(town.Point, targetTown.Point);
-                if (path == null) {
-                    continue;
+                path.Update(Cost, it => cells[it].Region);
+                if (path is { IsCompleted: true, IsUnstable: true }) {
+                    Debug.Log($"rebuilding path from {town.Point} to {path.Value.Last().cell} as it's unstable");
+                    var newPath = pathfinding.Path(town.Point, path.Value.Last().cell);
+                    if (newPath == null) {
+                        town.Paths[i] = null;
+                        continue;
+                    }
+                    town.Paths[i] = path = Path.From(newPath, Cost);
                 }
-                paths.Add(path.Value);
+                paths.Add(path);
             }
         }
         return paths;
     }
 
-    void PlaceTracks(List<(List<Point> path, int cost)> paths, ref int points, HashSet<string> placed,
+    void PlaceTracks(List<Path> paths, ref int points, HashSet<string> placed,
             string log, bool differentRegions = false) {
         if (points == 0) {
             return;
         }
         Debug.Log(log);
         int lastRegion = -1;
-        foreach (var path in paths.OrderBy(it => it.cost).Select(it => it.path)) {
-            var pointsWithCosts = path
-                    .Select(it => (it, cost: Cost(it)))
-                    .Where(it => it.cost > 0)
-                    .OrderBy(it => it.cost);
-            foreach ((var point, int cost) in pointsWithCosts) {
+        foreach (var path in paths.OrderBy(it => it.Cost)) {
+            foreach ((var point, int cost) in path.Value.Where(it => it.cost > 0).OrderBy(it => it.cost)) {
                 if (points - cost < 0) {
                     continue;
                 }
@@ -204,7 +218,7 @@ class Game : IGraph<Point> {
                 continue;
             }
             var cell = cells[point];
-            if (cell.Region.Instability > 0) {
+            if (builtPaths && cell.Region.Instability > 0 || cell.Region.Inked) {
                 continue;
             }
             yield return (point, Cost(point));
@@ -228,6 +242,26 @@ class Game : IGraph<Point> {
         }
         var difference = to - from;
         return Array.IndexOf(Screen.Directions4, difference) + 1;
+    }
+}
+
+record struct Path(List<(Point cell, int cost)> Value) {
+    public int Cost => Value.Sum(it => it.cost);
+    public bool IsCompleted => Cost == 0;
+    public bool IsUnstable { get; private set; }
+
+    public static Path From(List<Point> path, Func<Point, int> cost) {
+        return new([.. path.Select(it => (it, cost: cost(it)))]);
+    }
+
+    public void Update(Func<Point, int> cost, Func<Point, Region> region) {
+        for (var i = 0; i < Value.Count; i++) {
+            (var cell, int _) = Value[i];
+            Value[i] = (cell, cost: cost(cell));
+            if (!IsUnstable && region(cell).Instability > 0) {
+                IsUnstable = true;
+            }
+        }
     }
 }
 
@@ -280,7 +314,9 @@ enum CellType {
     Mountain
 }
 
-record struct Town(Point Point, HashSet<int> DesiredConnections);
+record Town(Point Point, HashSet<int> DesiredConnections) {
+    public List<Path?> Paths { get; } = [];
+}
 
 static class Actions {
     public static string Autoplace(Town from, Town to) => $"AUTOPLACE {from.Point} {to.Point}";
@@ -316,7 +352,7 @@ class Pathfinding<T>(IGraph<T> graph) where T : IEquatable<T> {
     readonly Dictionary<T, int> visited = new();
 
     /// Dijkstra
-    public (List<T>, int cost)? Path(T start, T end) {
+    public List<T>? Path(T start, T end) {
         queue.Clear();
         parents.Clear();
         visited.Clear();
@@ -324,7 +360,7 @@ class Pathfinding<T>(IGraph<T> graph) where T : IEquatable<T> {
         visited.Add(start, 0);
         while (queue.TryDequeue(out var current, out var priority)) {
             if (current.Equals(end)) {
-                return (Reconstruct(start, current), visited[current]);
+                return Reconstruct(start, current);
             }
             foreach ((var next, int cost) in graph.Next(current)) {
                 int newCost = priority.cost + cost;
