@@ -17,14 +17,14 @@ class Pathfinding<T>(IGraph<T> graph) where T : IEquatable<T> {
             if (current.Equals(end)) {
                 return Reconstruct(start, current);
             }
-            foreach ((var node, int cost) in graph.Next(current)) {
+            foreach ((var next, int cost) in graph.Next(current)) {
                 int newCost = currentCost + cost;
-                if (newCost >= visited.GetValueOrDefault(node, int.MaxValue)) {
+                if (newCost >= visited.GetValueOrDefault(next, int.MaxValue)) {
                     continue;
                 }
-                queue.Enqueue(node, newCost);
-                visited[node] = newCost;
-                parents[node] = current;
+                queue.Enqueue(next, newCost);
+                visited[next] = newCost;
+                parents[next] = current;
             }
         }
         return null;

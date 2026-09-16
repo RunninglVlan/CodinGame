@@ -326,14 +326,14 @@ class Pathfinding<T>(IGraph<T> graph) where T : IEquatable<T> {
             if (current.Equals(end)) {
                 return (Reconstruct(start, current), visited[current]);
             }
-            foreach ((var node, int cost) in graph.Next(current)) {
+            foreach ((var next, int cost) in graph.Next(current)) {
                 int newCost = priority.cost + cost;
-                if (newCost >= visited.GetValueOrDefault(node, int.MaxValue)) {
+                if (newCost >= visited.GetValueOrDefault(next, int.MaxValue)) {
                     continue;
                 }
-                queue.Enqueue(node, (newCost, graph.Tiebreak(current, node)));
-                visited[node] = newCost;
-                parents[node] = current;
+                queue.Enqueue(next, (newCost, graph.Tiebreak(current, next)));
+                visited[next] = newCost;
+                parents[next] = current;
             }
         }
         return null;
