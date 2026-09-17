@@ -155,7 +155,7 @@ class Game : IGraph<Point> {
                     var newPath = pathfinding.Path(town.Point, path.Value.Last().cell);
                     Debug.Log($"refreshed path from {town.Point} to {path.Value.Last().cell} as it's unstable or was completed, Cost: {path.Cost}");
                     foreach (var valueTuple in path.Value) {
-                        Debug.Log(valueTuple, 1);
+                        // Debug.Log(valueTuple, 1);
                     }
                     if (newPath == null) {
                         town.Paths[i] = null;
@@ -181,7 +181,7 @@ class Game : IGraph<Point> {
 
     void PlaceTracks(List<Path> paths, ref int points, HashSet<string> placed,
             string log, bool differentRegions = false) {
-        if (points == 0) {
+        if (points == 0 || paths.Count == 0) {
             return;
         }
         Debug.Log(log);
@@ -471,7 +471,7 @@ static class Debug {
     }
 
     public static void Log(object? line = null, int tab = 0, ConsoleColor? color = null) {
-        return;
+        // return;
         Console.ForegroundColor = color ?? ConsoleColor.Red;
         var padding = new string(' ', tab * TAB_LENGTH);
         Console.Error.WriteLine($"{padding}{line}");
