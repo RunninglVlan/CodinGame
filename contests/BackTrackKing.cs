@@ -108,12 +108,11 @@ class Game : IGraph<Point> {
         }
         for (var y = 0; y < height; y++) {
             for (var x = 0; x < width; x++) {
-                string[] inputs = Console.ReadLine()!.Split(' ');
+                string[] inputs = Console.ReadLine()!.Split(' '); // inputs[2] != "0" means region is inked/destroyed
                 var tracksOwner = Enum.Parse<Owner>(inputs[0]);
                 var cell = cells[new Point(x, y)];
                 cell.SetTrackOwner(tracksOwner);
                 cell.Region.Instability = int.Parse(inputs[1]);
-                cell.Region.Inked = inputs[2] != "0";
                 string partOfActiveConnections = inputs[3];
                 if (partOfActiveConnections == NO_CONNECTIONS) {
                     continue;
@@ -343,9 +342,6 @@ record Region(int Id) {
 
     /// region inked (destroyed) when this >= 4
     public int Instability { get; set; }
-
-    /// true if the region is destroyed
-    public bool Inked { get; set; }
 
     public void Clear() {
         Tracks.Clear();
