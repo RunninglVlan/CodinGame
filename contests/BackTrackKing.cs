@@ -38,11 +38,12 @@ class Game : IGraph<Point> {
     public Game() {
         pathfinding = new Pathfinding<Point>(this);
         Path.GetCost = Cost;
-        Path.GetRegion = point => cells[point].Region;
+        Path.GetCell = point => cells[point];
     }
 
     public void Init() {
         player = Enum.Parse<Owner>(Console.ReadLine()!);
+        Path.Player = player;
         foe = player == Owner.Player0 ? Owner.Player1 : Owner.Player0;
         width = Math.Clamp(int.Parse(Console.ReadLine()!), 21, 30);
         height = Math.Clamp(int.Parse(Console.ReadLine()!), 14, 20);
@@ -131,7 +132,7 @@ class Game : IGraph<Point> {
                     .OfType<List<Point>>()) {
                 town.Paths.Add(Path.From(path));
                 var lastPath = town.Paths.Last()!;
-                Debug.Log($"found path from {town.Point} to {lastPath.Value.Last().cell}, Cost: {lastPath.Cost}");
+                Debug.Log($"found path from {town.Point} to {lastPath.Value.Last().point}, Cost: {lastPath.Cost}");
                 foreach (var valueTuple in lastPath.Value) {
                     Debug.Log(valueTuple, 1);
                 }
@@ -149,14 +150,14 @@ class Game : IGraph<Point> {
                 bool wasCompleted = path.IsCompleted;
                 path.Update();
                 bool needToRefreshUnstable = path.NeedToRefreshUnstable();
-                var targetRegion = cells[path.Value.Last().cell].Region;
+                var targetRegion = cells[path.Value.Last().point].Region;
                 bool connected = !wasCompleted && targetRegion.TownConnections.Contains(id);
                 if (needToRefreshUnstable || connected) {
                     town.Paths[i] = path = RefreshPath(town.Point, path, !needToRefreshUnstable && connected);
                     if (path == null) {
                         continue;
                     }
-                    Debug.Log($"refreshed path from {town.Point} to {path.Value.Last().cell} as it's unstable or was connected, Cost: {path.Cost}");
+                    Debug.Log($"refreshed path from {town.Point} to {path.Value.Last().point} as it's unstable or was connected, Cost: {path.Cost}");
                     foreach (var valueTuple in path.Value) {
                         Debug.Log(valueTuple, 1);
                     }
@@ -168,24 +169,20 @@ class Game : IGraph<Point> {
     }
 
     Path? RefreshPath(Point town, Path currentPath, bool justConnected) {
-        var newPath = pathfinding.Path(town, currentPath.Value.Last().cell);
+        var newPath = pathfinding.Path(town, currentPath.Value.Last().point);
         if (newPath == null) {
             return null;
         }
         if (justConnected) {
             findShortest = true;
-            var shortestPath = pathfinding.Path(town, currentPath.Value.Last().cell);
-            if (shortestPath != null && Gain(shortestPath) > Gain(newPath)) {
+            var shortestPath = pathfinding.Path(town, currentPath.Value.Last().point);
+            if (shortestPath != null && Path.Gain(shortestPath) > Path.Gain(newPath)) {
                 newPath = shortestPath;
             }
         }
         findShortest = false;
         var oldPath = justConnected ? currentPath.Old : currentPath.Value;
         return Path.From(newPath, oldPath);
-
-        int Gain(List<Point> path) {
-            return path.Count(it => cells[it].TracksOwner == player || cells[it].TracksOwner == Owner.NoTrack);
-        }
     }
 
     void PlaceTracks(List<Path> paths, ref int points, HashSet<string> placed,
@@ -197,10 +194,10 @@ class Game : IGraph<Point> {
         int lastRegion = -1;
         Debug.Log("all paths", 1);
         foreach (var path in paths) {
-            Debug.Log($"from {path.Value.First().cell} to {path.Value.Last().cell}, Cost: {path.Cost}, OldInstability: {path.OldInstability}", 2);
+            Debug.Log($"from {path.Value.First().point} to {path.Value.Last().point}, Cost: {path.Cost}, OldInstability: {path.OldInstability}", 2);
         }
         foreach (var path in paths.OrderBy(it => it.Cost)) {
-            Debug.Log($"processing path from {path.Value.First().cell} to {path.Value.Last().cell}", 1);
+            Debug.Log($"processing path from {path.Value.First().point} to {path.Value.Last().point}", 1);
             foreach ((var point, int cost) in path.Value.Where(it => it.cost > 0).OrderBy(it => it.cost)) {
                 if (points - cost < 0) {
                     continue;
@@ -211,7 +208,7 @@ class Game : IGraph<Point> {
                 }
                 if (placed.Add(Actions.PlaceTrack(point))) {
                     cell.SetTrackOwner(player);
-                    Debug.Log($"placed track at {point}, cost: {cost} from {path.Value.First().cell} to {path.Value.Last().cell}", 2);
+                    Debug.Log($"placed track at {point}, cost: {cost} from {path.Value.First().point} to {path.Value.Last().point}", 2);
                     points -= cost;
                     lastRegion = cell.Region.Id;
                     message.Append($"PT - {point}: {cost}, ");
@@ -285,13 +282,15 @@ class Game : IGraph<Point> {
     }
 }
 
-record Path(List<(Point cell, int cost)> Value, List<(Point, int)>? Old = null) {
+record Path(List<(Point point, int cost)> Value, List<(Point, int)>? Old = null) {
     public int Cost => Value.Sum(it => it.cost);
     public bool IsCompleted => Cost == 0;
     int Instability { get; set; }
     public int OldInstability { get; private set; }
+
+    public static Owner Player { private get; set; }
     public static Func<Point, int> GetCost { private get; set; } = null!;
-    public static Func<Point, Region> GetRegion { private get; set; } = null!;
+    public static Func<Point, Cell> GetCell { private get; set; } = null!;
 
     public static Path From(List<Point> value, List<(Point, int)>? old = null) {
         var path = new Path([.. value.Select(it => (it, 0))], old);
@@ -301,15 +300,15 @@ record Path(List<(Point cell, int cost)> Value, List<(Point, int)>? Old = null) 
 
     public void Update() {
         for (var i = 0; i < Value.Count; i++) {
-            (var cell, int _) = Value[i];
-            Value[i] = (cell, GetCost(cell));
-            Instability = Math.Max(Instability, GetRegion(cell).Instability);
+            (var point, int _) = Value[i];
+            Value[i] = (point, GetCost(point));
+            Instability = Math.Max(Instability, GetCell(point).Region.Instability);
         }
         if (Old == null) {
             return;
         }
-        foreach ((var cell, int _) in Old) {
-            OldInstability = Math.Max(OldInstability, GetRegion(cell).Instability);
+        foreach ((var point, int _) in Old) {
+            OldInstability = Math.Max(OldInstability, GetCell(point).Region.Instability);
         }
     }
 
@@ -321,6 +320,12 @@ record Path(List<(Point cell, int cost)> Value, List<(Point, int)>? Old = null) 
             return true;
         }
         return Cost > (Region.MAX_SAFE_INSTABILITY + 1 - Instability) * Game.TURN_POINTS;
+    }
+
+    public static int Gain(List<Point> value) => value.Count(CanGivePoints);
+
+    static bool CanGivePoints(Point it) {
+        return GetCell(it).TracksOwner == Player || GetCell(it).TracksOwner == Owner.NoTrack;
     }
 }
 
