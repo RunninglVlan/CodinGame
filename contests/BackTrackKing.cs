@@ -163,7 +163,8 @@ class Game : IGraph<Point> {
                         town.Paths[i] = null;
                         continue;
                     }
-                    town.Paths[i] = path = Path.From(newPath, path);
+                    var oldPath = !needToRefreshUnstable && wasCompleted ? path.Old : path.Value;
+                    town.Paths[i] = path = Path.From(newPath, oldPath);
                 }
                 paths.Add(path);
             }
@@ -279,8 +280,8 @@ record Path(List<(Point cell, int cost)> Value, List<(Point, int)>? Old = null) 
     public static Func<Point, int> GetCost { private get; set; } = null!;
     public static Func<Point, Region> GetRegion { private get; set; } = null!;
 
-    public static Path From(List<Point> value, Path? old = null) {
-        var path = new Path([.. value.Select(it => (it, 0))], old?.Value);
+    public static Path From(List<Point> value, List<(Point, int)>? old = null) {
+        var path = new Path([.. value.Select(it => (it, 0))], old);
         path.Update();
         return path;
     }
@@ -473,7 +474,7 @@ static class Debug {
     }
 
     public static void Log(object? line = null, int tab = 0, ConsoleColor? color = null) {
-        // return;
+        return;
         Console.ForegroundColor = color ?? ConsoleColor.Red;
         var padding = new string(' ', tab * TAB_LENGTH);
         Console.Error.WriteLine($"{padding}{line}");
