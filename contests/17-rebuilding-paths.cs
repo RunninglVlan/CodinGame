@@ -5,7 +5,7 @@ Finding paths on init, rebuilding on unstable regions
 Just updating existing paths each turn
 Prioritizing new paths where old paths are about to be inked
 
-3f3e47d3
+8f2dd289
  */
 using System;
 using System.Collections.Generic;

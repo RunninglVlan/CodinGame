@@ -2,6 +2,7 @@
 feat: rank 337/477->337/498 (↑2.98%)
 
 Prioritizing safe regions - regions with towns cannot be inked
+
 9f7d9b35
  */
 using System;
