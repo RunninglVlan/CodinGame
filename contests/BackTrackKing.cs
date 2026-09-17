@@ -16,7 +16,7 @@ while (true) {
 
 class Game : IGraph<Point> {
     const string NO_CONNECTIONS = "x";
-    const int TURN_POINTS = 3;
+    public const int TURN_POINTS = 3;
 
     readonly Pathfinding<Point> pathfinding;
 
@@ -150,12 +150,14 @@ class Game : IGraph<Point> {
                     continue;
                 }
                 path.Update();
+                bool needToRefreshUnstable = path.NeedToRefreshUnstable();
                 var targetRegion = cells[path.Value.Last().cell].Region;
-                if (NeedToRefreshUnstable(path) || !path.IsCompleted && targetRegion.TownConnections.Contains(id)) {
+                bool wasCompleted = !path.IsCompleted && targetRegion.TownConnections.Contains(id);
+                if (needToRefreshUnstable || wasCompleted) {
                     var newPath = pathfinding.Path(town.Point, path.Value.Last().cell);
                     Debug.Log($"refreshed path from {town.Point} to {path.Value.Last().cell} as it's unstable or was completed, Cost: {path.Cost}");
                     foreach (var valueTuple in path.Value) {
-                        // Debug.Log(valueTuple, 1);
+                        Debug.Log(valueTuple, 1);
                     }
                     if (newPath == null) {
                         town.Paths[i] = null;
@@ -167,16 +169,6 @@ class Game : IGraph<Point> {
             }
         }
         return paths;
-
-        bool NeedToRefreshUnstable(Path path) {
-            if (path.Instability == 0) {
-                return false;
-            }
-            if (path.IsCompleted || path.Instability > Region.MAX_SAFE_INSTABILITY) {
-                return true;
-            }
-            return path.Cost > (Region.MAX_SAFE_INSTABILITY + 1 - path.Instability) * TURN_POINTS;
-        }
     }
 
     void PlaceTracks(List<Path> paths, ref int points, HashSet<string> placed,
@@ -282,7 +274,7 @@ class Game : IGraph<Point> {
 record Path(List<(Point cell, int cost)> Value, List<(Point, int)>? Old = null) {
     public int Cost => Value.Sum(it => it.cost);
     public bool IsCompleted => Cost == 0;
-    public int Instability { get; private set; }
+    int Instability { get; set; }
     public int OldInstability { get; private set; }
     public static Func<Point, int> GetCost { private get; set; } = null!;
     public static Func<Point, Region> GetRegion { private get; set; } = null!;
@@ -305,6 +297,16 @@ record Path(List<(Point cell, int cost)> Value, List<(Point, int)>? Old = null) 
         foreach ((var cell, int _) in Old) {
             OldInstability = Math.Max(OldInstability, GetRegion(cell).Instability);
         }
+    }
+
+    public bool NeedToRefreshUnstable() {
+        if (Instability == 0) {
+            return false;
+        }
+        if (IsCompleted || Instability > Region.MAX_SAFE_INSTABILITY) {
+            return true;
+        }
+        return Cost > (Region.MAX_SAFE_INSTABILITY + 1 - Instability) * Game.TURN_POINTS;
     }
 }
 
