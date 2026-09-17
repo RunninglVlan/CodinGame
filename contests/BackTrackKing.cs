@@ -32,7 +32,7 @@ class Game : IGraph<Point> {
         { CellType.Mountain, 3 }
     };
 
-    bool builtPaths;
+    bool initPaths;
     readonly StringBuilder message = new();
 
     public Game() {
@@ -137,7 +137,7 @@ class Game : IGraph<Point> {
                 }
             }
         }
-        builtPaths = true;
+        initPaths = true;
     }
 
     List<Path> GetPaths() {
@@ -244,7 +244,7 @@ class Game : IGraph<Point> {
                 continue;
             }
             var cell = cells[point];
-            if (builtPaths && cell.Region.Instability > 0 || cell.Region.Inked) {
+            if (initPaths && cell.Region.Instability > 0 || cell.Region.Inked) {
                 continue;
             }
             yield return (point, Cost(point));
