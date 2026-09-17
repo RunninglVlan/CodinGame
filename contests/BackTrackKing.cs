@@ -144,15 +144,16 @@ class Game : IGraph<Point> {
 
     List<Path> GetPaths() {
         List<Path> paths = [];
-        foreach (var town in towns.Values) {
+        foreach ((int id, var town) in towns) {
             for (var i = 0; i < town.Paths.Count; i++) {
                 if (town.Paths[i] is not { } path) {
                     continue;
                 }
                 path.Update();
-                if (NeedToRebuild(path)) {
+                var targetRegion = cells[path.Value.Last().cell].Region;
+                if (NeedToRefreshUnstable(path) || !path.IsCompleted && targetRegion.TownConnections.Contains(id)) {
                     var newPath = pathfinding.Path(town.Point, path.Value.Last().cell);
-                    Debug.Log($"rebuilt path from {town.Point} to {path.Value.Last().cell} as it's unstable, Cost: {path.Cost}");
+                    Debug.Log($"refreshed path from {town.Point} to {path.Value.Last().cell} as it's unstable or was completed, Cost: {path.Cost}");
                     foreach (var valueTuple in path.Value) {
                         Debug.Log(valueTuple, 1);
                     }
@@ -167,7 +168,7 @@ class Game : IGraph<Point> {
         }
         return paths;
 
-        bool NeedToRebuild(Path path) {
+        bool NeedToRefreshUnstable(Path path) {
             if (path.Instability == 0) {
                 return false;
             }
@@ -470,7 +471,7 @@ static class Debug {
     }
 
     public static void Log(object? line = null, int tab = 0, ConsoleColor? color = null) {
-        // return;
+        return;
         Console.ForegroundColor = color ?? ConsoleColor.Red;
         var padding = new string(' ', tab * TAB_LENGTH);
         Console.Error.WriteLine($"{padding}{line}");
