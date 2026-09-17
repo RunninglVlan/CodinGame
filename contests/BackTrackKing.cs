@@ -132,6 +132,11 @@ class Game : IGraph<Point> {
                     .Select(targetTown => pathfinding.Path(town.Point, targetTown.Point))
                     .OfType<List<Point>>()) {
                 town.Paths.Add(Path.From(path));
+                var lastPath = town.Paths.Last()!;
+                Debug.Log($"found path from {town.Point} to {lastPath.Value.Last().cell}, Cost: {lastPath.Cost}");
+                foreach (var valueTuple in lastPath.Value) {
+                    Debug.Log(valueTuple, 1);
+                }
             }
         }
         builtPaths = true;
@@ -146,8 +151,11 @@ class Game : IGraph<Point> {
                 }
                 path.Update();
                 if (NeedToRebuild(path)) {
-                    Debug.Log($"rebuilding path from {town.Point} to {path.Value.Last().cell} as it's unstable");
                     var newPath = pathfinding.Path(town.Point, path.Value.Last().cell);
+                    Debug.Log($"rebuilt path from {town.Point} to {path.Value.Last().cell} as it's unstable, Cost: {path.Cost}");
+                    foreach (var valueTuple in path.Value) {
+                        Debug.Log(valueTuple, 1);
+                    }
                     if (newPath == null) {
                         town.Paths[i] = null;
                         continue;
@@ -177,7 +185,12 @@ class Game : IGraph<Point> {
         }
         Debug.Log(log);
         int lastRegion = -1;
+        Debug.Log("all paths", 1);
+        foreach (var path in paths) {
+            Debug.Log($"from {path.Value.First().cell} to {path.Value.Last().cell}, Cost: {path.Cost}, OldInstability: {path.OldInstability}", 2);
+        }
         foreach (var path in paths.OrderBy(it => it.Cost)) {
+            Debug.Log($"processing path from {path.Value.First().cell} to {path.Value.Last().cell}", 1);
             foreach ((var point, int cost) in path.Value.Where(it => it.cost > 0).OrderBy(it => it.cost)) {
                 if (points - cost < 0) {
                     continue;
@@ -187,7 +200,7 @@ class Game : IGraph<Point> {
                     continue;
                 }
                 if (placed.Add(Actions.PlaceTrack(point))) {
-                    Debug.Log($"placed track at {point}, cost: {cost}", 1);
+                    Debug.Log($"placed track at {point}, cost: {cost} from {path.Value.First().cell} to {path.Value.Last().cell}", 2);
                     points -= cost;
                     lastRegion = cell.Region.Id;
                     message.Append($"PT - {point}: {cost}, ");
@@ -359,6 +372,10 @@ readonly record struct Point(int X, int Y) {
         return X >= 0 && X < width && Y >= 0 && Y < height;
     }
 
+    public static int ManhattanDistance(Point a, Point b) {
+        return Math.Abs(a.X - b.X) + Math.Abs(a.Y - b.Y);
+    }
+
     public static Point operator +(Point a, Point b) => new(a.X + b.X, a.Y + b.Y);
     public static Point operator -(Point a, Point b) => new(a.X - b.X, a.Y - b.Y);
 
@@ -378,6 +395,7 @@ class Pathfinding<T>(IGraph<T> graph) where T : IEquatable<T> {
     readonly PriorityQueue<T, (int cost, int tiebreak)> queue = new();
     readonly Dictionary<T, T> parents = new();
     readonly Dictionary<T, int> visited = new();
+    readonly StringBuilder log = new();
 
     /// Dijkstra
     public List<T>? Path(T start, T end) {
@@ -385,9 +403,29 @@ class Pathfinding<T>(IGraph<T> graph) where T : IEquatable<T> {
         parents.Clear();
         visited.Clear();
         queue.Enqueue(start, (0, 0));
+        log.Clear();
+        log.AppendLine($"Put {start}, {(0, 0)}");
         visited.Add(start, 0);
+        var closest = 0;
+        var endPoint = new Point();
+        if (start is Point startPoint && end is Point point) {
+            endPoint = point;
+            closest = Point.ManhattanDistance(startPoint, endPoint);
+        }
         while (queue.TryDequeue(out var current, out var priority)) {
+            log.Append($"  Pop {current}");
+            if (current is Point currentPoint) {
+                int distance = Point.ManhattanDistance(currentPoint, endPoint);
+                if (distance < closest) {
+                    closest = distance;
+                    log.Append($": {string.Join(", ", Reconstruct(start, current))}");
+                }
+            }
+            log.AppendLine();
             if (current.Equals(end)) {
+                if (start.Equals(new Point(7, 6)) && end.Equals(new Point(14, 10))) {
+                    Debug.Log(log);
+                }
                 return Reconstruct(start, current);
             }
             foreach ((var next, int cost) in graph.Next(current)) {
@@ -396,6 +434,7 @@ class Pathfinding<T>(IGraph<T> graph) where T : IEquatable<T> {
                     continue;
                 }
                 queue.Enqueue(next, (newCost, priority.tiebreak + graph.Tiebreak(current, next)));
+                log.AppendLine($"Put {next}, {(newCost, priority.tiebreak + graph.Tiebreak(current, next))}");
                 visited[next] = newCost;
                 parents[next] = current;
             }
@@ -431,7 +470,7 @@ static class Debug {
     }
 
     public static void Log(object? line = null, int tab = 0, ConsoleColor? color = null) {
-        return;
+        // return;
         Console.ForegroundColor = color ?? ConsoleColor.Red;
         var padding = new string(' ', tab * TAB_LENGTH);
         Console.Error.WriteLine($"{padding}{line}");
