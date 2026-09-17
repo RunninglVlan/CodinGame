@@ -159,7 +159,7 @@ class Game : IGraph<Point> {
                     if (path == null) {
                         continue;
                     }
-                    Debug.Log($"refreshed path from {town.Point} to {path.Value.Last().point} as it's unstable or was connected, Cost: {path.Cost}");
+                    Debug.Log($"refreshed path from {town.Point} to {path.Value.Last().point} as {(needToRefreshUnstable ? "it's unstable" : "it was connected")}, Cost: {path.Cost}");
                     foreach (var valueTuple in path.Value) {
                         Debug.Log(valueTuple, 1);
                     }
