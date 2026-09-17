@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Text;
 
 // Visual
 // Connect towns with your train tracks and disrupt the opponent's
@@ -32,6 +33,7 @@ class Game : IGraph<Point> {
     };
 
     bool builtPaths;
+    readonly StringBuilder message = new();
 
     public Game() {
         pathfinding = new Pathfinding<Point>(this);
@@ -71,6 +73,7 @@ class Game : IGraph<Point> {
 
     public void Loop() {
         ReadState();
+        message.Clear();
         HashSet<string> actions = [];
         var paths = GetPaths();
         var completeThisTurn = paths.Where(it => it is { IsCompleted: false, Cost: <= TURN_POINTS }).ToList();
@@ -80,6 +83,10 @@ class Game : IGraph<Point> {
         PlaceTracks(paths, ref points, actions, "trying to build remaining tracks");
         if (TryFindRegionToDisrupt(out var region)) {
             actions.Add(Actions.Disrupt(region.Id));
+            message.Append($"DR - {region.Id}");
+        }
+        if (message.Length > 0) {
+            actions.Add(Actions.Message(message.ToString()));
         }
         if (actions.Count == 0) {
             actions.Add(Actions.Wait());
@@ -181,6 +188,7 @@ class Game : IGraph<Point> {
                     Debug.Log($"placed track at {point}, cost: {cost}", 1);
                     points -= cost;
                     lastRegion = cell.Region.Id;
+                    message.Append($"PT - {point}: {cost}, ");
                 }
                 if (points == 0) {
                     return;
