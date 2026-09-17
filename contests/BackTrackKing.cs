@@ -108,7 +108,7 @@ class Game : IGraph<Point> {
                 var tracksOwner = Enum.Parse<Owner>(inputs[0]);
                 var cell = cells[new Point(x, y)];
                 cell.SetTrackOwner(tracksOwner);
-                cell.Region.Instability = (int.Parse(inputs[1]), cell.Region.Instability.value);
+                cell.Region.Instability = int.Parse(inputs[1]);
                 cell.Region.Inked = inputs[2] != "0";
                 string partOfActiveConnections = inputs[3];
                 if (partOfActiveConnections == NO_CONNECTIONS) {
@@ -236,14 +236,14 @@ class Game : IGraph<Point> {
             return false;
         }
         var safeToInk = foeRegions
-                .Where(it => it.Instability.value == Region.MAX_SAFE_INSTABILITY)
+                .Where(it => it.Instability == Region.MAX_SAFE_INSTABILITY)
                 .FirstOrDefault(it => it.TownConnections.Count >= 2);
         if (safeToInk != null) {
             Debug.Log($"destroying region connecting 2 or more towns: {safeToInk}");
             region = safeToInk;
             return true;
         }
-        var safeToDisrupt = foeRegions.FirstOrDefault(it => it.Instability.value < Region.MAX_SAFE_INSTABILITY);
+        var safeToDisrupt = foeRegions.FirstOrDefault(it => it.Instability < Region.MAX_SAFE_INSTABILITY);
         if (safeToDisrupt == null) {
             Debug.Log("found regions to disrupt, but nothing connecting 2 or more towns");
             foeRegions.ForEach(it => Debug.Log(it, 1));
@@ -258,11 +258,7 @@ class Game : IGraph<Point> {
     IEnumerable<(Point, int cost)> IGraph<Point>.Next(Point current) {
         foreach (var direction in Screen.Directions4) {
             var point = current + direction;
-            if (!point.InBounds(width, height)) {
-                continue;
-            }
-            var region = cells[point].Region;
-            if (region.MoreUnstable || region.Inked) {
+            if (!point.InBounds(width, height) || cells[point].Region.Instability > 0) {
                 continue;
             }
             yield return (point, Cost(point));
@@ -307,13 +303,13 @@ record Path(List<(Point cell, int cost)> Value, List<(Point, int)>? Old = null) 
         for (var i = 0; i < Value.Count; i++) {
             (var cell, int _) = Value[i];
             Value[i] = (cell, GetCost(cell));
-            Instability = Math.Max(Instability, GetRegion(cell).Instability.value);
+            Instability = Math.Max(Instability, GetRegion(cell).Instability);
         }
         if (Old == null) {
             return;
         }
         foreach ((var cell, int _) in Old) {
-            OldInstability = Math.Max(OldInstability, GetRegion(cell).Instability.value);
+            OldInstability = Math.Max(OldInstability, GetRegion(cell).Instability);
         }
     }
 
@@ -337,9 +333,7 @@ record Region(int Id) {
     public HashSet<int> TownConnections { get; } = [];
 
     /// region inked (destroyed) when this >= 4
-    public (int value, int old) Instability { get; set; }
-
-    public bool MoreUnstable => Instability.value > Instability.old;
+    public int Instability { get; set; }
 
     /// true if the region is destroyed
     public bool Inked { get; set; }
