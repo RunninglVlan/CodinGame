@@ -75,9 +75,9 @@ class Game : IGraph<Point> {
         ReadState();
         message.Clear();
         HashSet<string> actions = [];
+        int points = TURN_POINTS;
         var paths = GetPaths();
         var completeThisTurn = paths.Where(it => it is { IsCompleted: false, Cost: <= TURN_POINTS }).ToList();
-        int points = TURN_POINTS;
         PlaceTracks(completeThisTurn, ref points, actions, "trying to complete tracks this turn");
         PlaceTracks(paths, ref points, actions, "trying to build tracks on different regions", differentRegions: true);
         PlaceTracks(paths, ref points, actions, "trying to build remaining tracks");
