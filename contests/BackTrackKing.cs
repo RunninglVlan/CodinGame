@@ -166,12 +166,12 @@ class Game : IGraph<Point> {
                         }
                     }
                     findShortest = false;
+                    var oldPath = justConnected ? path.Old : path.Value;
+                    town.Paths[i] = path = Path.From(newPath, oldPath);
                     Debug.Log($"refreshed path from {town.Point} to {path.Value.Last().cell} as it's unstable or was connected, Cost: {path.Cost}");
                     foreach (var valueTuple in path.Value) {
                         Debug.Log(valueTuple, 1);
                     }
-                    var oldPath = justConnected ? path.Old : path.Value;
-                    town.Paths[i] = path = Path.From(newPath, oldPath);
                 }
                 paths.Add(path);
             }
