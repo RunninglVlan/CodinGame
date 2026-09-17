@@ -152,22 +152,10 @@ class Game : IGraph<Point> {
                 var targetRegion = cells[path.Value.Last().cell].Region;
                 bool connected = !wasCompleted && targetRegion.TownConnections.Contains(id);
                 if (needToRefreshUnstable || connected) {
-                    var newPath = pathfinding.Path(town.Point, path.Value.Last().cell);
-                    if (newPath == null) {
-                        town.Paths[i] = null;
+                    town.Paths[i] = path = RefreshPath(town.Point, path, !needToRefreshUnstable && connected);
+                    if (path == null) {
                         continue;
                     }
-                    bool justConnected = !needToRefreshUnstable && connected;
-                    if (justConnected) {
-                        findShortest = true;
-                        var shortestPath = pathfinding.Path(town.Point, path.Value.Last().cell);
-                        if (shortestPath != null && Gain(shortestPath) > Gain(newPath)) {
-                            newPath = shortestPath;
-                        }
-                    }
-                    findShortest = false;
-                    var oldPath = justConnected ? path.Old : path.Value;
-                    town.Paths[i] = path = Path.From(newPath, oldPath);
                     Debug.Log($"refreshed path from {town.Point} to {path.Value.Last().cell} as it's unstable or was connected, Cost: {path.Cost}");
                     foreach (var valueTuple in path.Value) {
                         Debug.Log(valueTuple, 1);
@@ -179,8 +167,25 @@ class Game : IGraph<Point> {
         return paths;
     }
 
-    int Gain(List<Point> path) {
-        return path.Count(it => cells[it].TracksOwner == player || cells[it].TracksOwner == Owner.NoTrack);
+    Path? RefreshPath(Point town, Path currentPath, bool justConnected) {
+        var newPath = pathfinding.Path(town, currentPath.Value.Last().cell);
+        if (newPath == null) {
+            return null;
+        }
+        if (justConnected) {
+            findShortest = true;
+            var shortestPath = pathfinding.Path(town, currentPath.Value.Last().cell);
+            if (shortestPath != null && Gain(shortestPath) > Gain(newPath)) {
+                newPath = shortestPath;
+            }
+        }
+        findShortest = false;
+        var oldPath = justConnected ? currentPath.Old : currentPath.Value;
+        return Path.From(newPath, oldPath);
+
+        int Gain(List<Point> path) {
+            return path.Count(it => cells[it].TracksOwner == player || cells[it].TracksOwner == Owner.NoTrack);
+        }
     }
 
     void PlaceTracks(List<Path> paths, ref int points, HashSet<string> placed,
