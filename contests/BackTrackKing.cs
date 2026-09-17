@@ -270,11 +270,9 @@ class Game : IGraph<Point> {
     int IGraph<Point>.Tiebreak(Point from, Point to) {
         var regionFrom = cells[from].Region;
         var regionTo = cells[to].Region;
-        if (regionTo.IsSafe && !regionFrom.IsSafe) {
-            return 0;
-        }
+        int safe = regionTo.IsSafe && !regionFrom.IsSafe ? 0 : 1;
         var difference = to - from;
-        return Array.IndexOf(Screen.Directions4, difference) + 1;
+        return Array.IndexOf(Screen.Directions4, difference) * 10 + safe;
     }
 }
 
@@ -424,7 +422,7 @@ class Pathfinding<T>(IGraph<T> graph) where T : IEquatable<T> {
             log.AppendLine();
             if (current.Equals(end)) {
                 if (start.Equals(new Point(7, 6)) && end.Equals(new Point(14, 10))) {
-                    Debug.Log(log);
+                    // Debug.Log(log);
                 }
                 return Reconstruct(start, current);
             }
@@ -470,7 +468,7 @@ static class Debug {
     }
 
     public static void Log(object? line = null, int tab = 0, ConsoleColor? color = null) {
-        // return;
+        return;
         Console.ForegroundColor = color ?? ConsoleColor.Red;
         var padding = new string(' ', tab * TAB_LENGTH);
         Console.Error.WriteLine($"{padding}{line}");
