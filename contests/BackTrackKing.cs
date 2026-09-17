@@ -79,6 +79,8 @@ class Game : IGraph<Point> {
         var paths = GetPaths();
         var completeThisTurn = paths.Where(it => it is { IsCompleted: false, Cost: <= TURN_POINTS }).ToList();
         PlaceTracks(completeThisTurn, ref points, actions, "trying to complete tracks this turn");
+        var pathsInDanger = paths.Where(it => it.OldInstability == Region.MAX_SAFE_INSTABILITY).ToList();
+        PlaceTracks(pathsInDanger, ref points, actions, "trying to save paths in danger");
         PlaceTracks(paths, ref points, actions, "trying to build tracks on different regions", differentRegions: true);
         PlaceTracks(paths, ref points, actions, "trying to build remaining tracks");
         if (TryFindRegionToDisrupt(out var region)) {
@@ -175,7 +177,7 @@ class Game : IGraph<Point> {
         }
         Debug.Log(log);
         int lastRegion = -1;
-        foreach (var path in paths.OrderByDescending(it => it.OldInstability).ThenBy(it => it.Cost)) {
+        foreach (var path in paths.OrderBy(it => it.Cost)) {
             foreach ((var point, int cost) in path.Value.Where(it => it.cost > 0).OrderBy(it => it.cost)) {
                 if (points - cost < 0) {
                     continue;
@@ -429,6 +431,7 @@ static class Debug {
     }
 
     public static void Log(object? line = null, int tab = 0, ConsoleColor? color = null) {
+        return;
         Console.ForegroundColor = color ?? ConsoleColor.Red;
         var padding = new string(' ', tab * TAB_LENGTH);
         Console.Error.WriteLine($"{padding}{line}");
