@@ -32,7 +32,6 @@ class Game : IGraph<Point> {
         { CellType.Mountain, 3 }
     };
 
-    bool initPaths;
     readonly StringBuilder message = new();
 
     public Game() {
@@ -137,7 +136,6 @@ class Game : IGraph<Point> {
                 }
             }
         }
-        initPaths = true;
     }
 
     List<Path> GetPaths() {
@@ -150,10 +148,10 @@ class Game : IGraph<Point> {
                 path.Update();
                 bool needToRefreshUnstable = path.NeedToRefreshUnstable();
                 var targetRegion = cells[path.Value.Last().cell].Region;
-                bool wasCompleted = !path.IsCompleted && targetRegion.TownConnections.Contains(id);
-                if (needToRefreshUnstable || wasCompleted) {
+                bool connected = !path.IsCompleted && targetRegion.TownConnections.Contains(id);
+                if (needToRefreshUnstable || connected) {
                     var newPath = pathfinding.Path(town.Point, path.Value.Last().cell);
-                    Debug.Log($"refreshed path from {town.Point} to {path.Value.Last().cell} as it's unstable or was completed, Cost: {path.Cost}");
+                    Debug.Log($"refreshed path from {town.Point} to {path.Value.Last().cell} as it's unstable or was connected, Cost: {path.Cost}");
                     foreach (var valueTuple in path.Value) {
                         Debug.Log(valueTuple, 1);
                     }
@@ -161,7 +159,7 @@ class Game : IGraph<Point> {
                         town.Paths[i] = null;
                         continue;
                     }
-                    var oldPath = !needToRefreshUnstable && wasCompleted ? path.Old : path.Value;
+                    var oldPath = !needToRefreshUnstable && connected ? path.Old : path.Value;
                     town.Paths[i] = path = Path.From(newPath, oldPath);
                 }
                 paths.Add(path);
@@ -240,11 +238,7 @@ class Game : IGraph<Point> {
     IEnumerable<(Point, int cost)> IGraph<Point>.Next(Point current) {
         foreach (var direction in Screen.Directions4) {
             var point = current + direction;
-            if (!point.InBounds(width, height)) {
-                continue;
-            }
-            var cell = cells[point];
-            if (initPaths && cell.Region.Instability > 0 || cell.Region.Inked) {
+            if (!point.InBounds(width, height) || cells[point].Region.Instability > 0) {
                 continue;
             }
             yield return (point, Cost(point));
