@@ -33,6 +33,7 @@ class Game : IGraph<Point> {
     };
 
     readonly StringBuilder message = new();
+    bool findShortest;
 
     public Game() {
         pathfinding = new Pathfinding<Point>(this);
@@ -145,27 +146,41 @@ class Game : IGraph<Point> {
                 if (town.Paths[i] is not { } path) {
                     continue;
                 }
+                bool wasCompleted = path.IsCompleted;
                 path.Update();
                 bool needToRefreshUnstable = path.NeedToRefreshUnstable();
                 var targetRegion = cells[path.Value.Last().cell].Region;
-                bool connected = !path.IsCompleted && targetRegion.TownConnections.Contains(id);
+                bool connected = !wasCompleted && targetRegion.TownConnections.Contains(id);
                 if (needToRefreshUnstable || connected) {
                     var newPath = pathfinding.Path(town.Point, path.Value.Last().cell);
-                    Debug.Log($"refreshed path from {town.Point} to {path.Value.Last().cell} as it's unstable or was connected, Cost: {path.Cost}");
-                    foreach (var valueTuple in path.Value) {
-                        Debug.Log(valueTuple, 1);
-                    }
                     if (newPath == null) {
                         town.Paths[i] = null;
                         continue;
                     }
-                    var oldPath = !needToRefreshUnstable && connected ? path.Old : path.Value;
+                    bool justConnected = !needToRefreshUnstable && connected;
+                    if (justConnected) {
+                        findShortest = true;
+                        var shortestPath = pathfinding.Path(town.Point, path.Value.Last().cell);
+                        if (shortestPath != null && Gain(shortestPath) > Gain(newPath)) {
+                            newPath = shortestPath;
+                        }
+                    }
+                    findShortest = false;
+                    Debug.Log($"refreshed path from {town.Point} to {path.Value.Last().cell} as it's unstable or was connected, Cost: {path.Cost}");
+                    foreach (var valueTuple in path.Value) {
+                        Debug.Log(valueTuple, 1);
+                    }
+                    var oldPath = justConnected ? path.Old : path.Value;
                     town.Paths[i] = path = Path.From(newPath, oldPath);
                 }
                 paths.Add(path);
             }
         }
         return paths;
+    }
+
+    int Gain(List<Point> path) {
+        return path.Count(it => cells[it].TracksOwner == player || cells[it].TracksOwner == Owner.NoTrack);
     }
 
     void PlaceTracks(List<Path> paths, ref int points, HashSet<string> placed,
@@ -248,7 +263,7 @@ class Game : IGraph<Point> {
     int Cost(Point point) {
         var cell = cells[point];
         int? town = cell.Region.Town;
-        if (cell.TracksOwner != Owner.NoTrack || town.HasValue && towns[town.Value].Point == point) {
+        if (!findShortest && cell.TracksOwner != Owner.NoTrack || town.HasValue && towns[town.Value].Point == point) {
             return 0;
         }
         return paintPoints[cell.Type];
@@ -257,7 +272,7 @@ class Game : IGraph<Point> {
     int IGraph<Point>.Tiebreak(Point from, Point to) {
         var regionFrom = cells[from].Region;
         var regionTo = cells[to].Region;
-        if (regionTo.IsSafe && !regionFrom.IsSafe) {
+        if (!findShortest && regionTo.IsSafe && !regionFrom.IsSafe) {
             return 0;
         }
         var difference = to - from;
