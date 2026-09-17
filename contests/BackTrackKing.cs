@@ -107,9 +107,7 @@ class Game : IGraph<Point> {
                 string[] inputs = Console.ReadLine()!.Split(' ');
                 var tracksOwner = Enum.Parse<Owner>(inputs[0]);
                 var cell = cells[new Point(x, y)];
-                cell.TracksOwner = tracksOwner;
-                int tracks = cell.Region.Tracks.GetValueOrDefault(tracksOwner);
-                cell.Region.Tracks[tracksOwner] = tracks + 1;
+                cell.SetTrackOwner(tracksOwner);
                 cell.Region.Instability = int.Parse(inputs[1]);
                 cell.Region.Inked = inputs[2] != "0";
                 string partOfActiveConnections = inputs[3];
@@ -194,6 +192,7 @@ class Game : IGraph<Point> {
                     continue;
                 }
                 if (placed.Add(Actions.PlaceTrack(point))) {
+                    cell.SetTrackOwner(player);
                     Debug.Log($"placed track at {point}, cost: {cost} from {path.Value.First().cell} to {path.Value.Last().cell}", 2);
                     points -= cost;
                     lastRegion = cell.Region.Id;
@@ -343,7 +342,13 @@ record Region(int Id) {
 }
 
 record Cell(Region Region, CellType Type) {
-    public Owner TracksOwner { get; set; } = Owner.NoTrack;
+    public Owner TracksOwner { get; private set; } = Owner.NoTrack;
+
+    public void SetTrackOwner(Owner owner) {
+        TracksOwner = owner;
+        int tracks = Region.Tracks.GetValueOrDefault(owner);
+        Region.Tracks[owner] = tracks + 1;
+    }
 }
 
 enum Owner {
