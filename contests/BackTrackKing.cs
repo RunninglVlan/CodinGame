@@ -77,8 +77,11 @@ class Game : IGraph<Point> {
         message.Clear();
         HashSet<string> actions = [];
         int points = TURN_POINTS;
-        var paths = GetPaths();
-        var completeThisTurn = paths.Where(it => it is { IsCompleted: false, Cost: <= TURN_POINTS }).ToList();
+        var paths = GetPaths().OrderBy(it => it.Cost).ToList();
+        var completeThisTurn = paths
+                .Where(it => it is { IsCompleted: false, Cost: <= TURN_POINTS })
+                .OrderByDescending(it => it.Gain())
+                .ToList();
         PlaceTracks(completeThisTurn, ref points, actions, "trying to complete tracks this turn");
         var pathsInDanger = paths.Where(it => it.OldInstability == Region.MAX_SAFE_INSTABILITY).ToList();
         PlaceTracks(pathsInDanger, ref points, actions, "trying to save paths in danger");
@@ -196,7 +199,7 @@ class Game : IGraph<Point> {
         foreach (var path in paths) {
             Debug.Log($"from {path.Value.First().point} to {path.Value.Last().point}, Cost: {path.Cost}, OldInstability: {path.OldInstability}", 2);
         }
-        foreach (var path in paths.OrderBy(it => it.Cost)) {
+        foreach (var path in paths) {
             Debug.Log($"processing path from {path.Value.First().point} to {path.Value.Last().point}", 1);
             foreach ((var point, int cost) in path.Value.Where(it => it.cost > 0).OrderBy(it => it.cost)) {
                 if (points - cost < 0) {
@@ -323,6 +326,7 @@ record Path(List<(Point point, int cost)> Value, List<(Point, int)>? Old = null)
     }
 
     public static int Gain(List<Point> value) => value.Count(CanGivePoints);
+    public int Gain() => Value.Count(it => CanGivePoints(it.point));
 
     static bool CanGivePoints(Point it) {
         return GetCell(it).TracksOwner == Player || GetCell(it).TracksOwner == Owner.NoTrack;
