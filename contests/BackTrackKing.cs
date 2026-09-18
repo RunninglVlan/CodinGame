@@ -160,7 +160,7 @@ class Game : IGraph<Point> {
                     }
                     Debug.Log($"refreshed path from {town.Point} to {path.Value.Last().point} as {(needToRefreshUnstable ? "it's unstable" : "it was connected")}, Cost: {path.Cost}");
                     foreach (var valueTuple in path.Value) {
-                        Debug.Log(valueTuple, 1);
+                        // Debug.Log(valueTuple, 1);
                     }
                 }
                 paths.Add(path);
@@ -195,7 +195,7 @@ class Game : IGraph<Point> {
         int lastRegion = -1;
         Debug.Log("all paths", 1);
         foreach (var path in paths) {
-            Debug.Log($"from {path.Value.First().point} to {path.Value.Last().point}, Cost: {path.Cost}, OldInstability: {path.OldInstability}", 2);
+            Debug.Log($"from {path.Value.First().point} to {path.Value.Last().point}, Cost: {path.Cost}, Gain: {path.Gain()}, OldInstability: {path.OldInstability}", 2);
         }
         foreach (var path in paths) {
             Debug.Log($"processing path from {path.Value.First().point} to {path.Value.Last().point}", 1);
