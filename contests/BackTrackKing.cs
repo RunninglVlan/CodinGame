@@ -126,14 +126,16 @@ class Game : IGraph<Point> {
     }
 
     public void FindPaths() {
-        foreach (var town in towns.Values) {
-            foreach (var path in town.DesiredConnections
-                    .Select(it => towns[it])
-                    .Select(targetTown => pathfinding.Path(town.Point, targetTown.Point))
-                    .OfType<List<Point>>()) {
+        foreach ((int id, var town) in towns) {
+            foreach (int targetId in town.DesiredConnections) {
+                var targetTown = towns[targetId];
+                var path = pathfinding.Path(town.Point, targetTown.Point);
+                if (path == null) {
+                    continue;
+                }
                 town.Paths.Add(Path.From(path));
                 var lastPath = town.Paths.Last()!;
-                Debug.Log($"found path from {town.Point} to {lastPath.Value.Last().point}, Cost: {lastPath.Cost}");
+                Debug.Log($"found path from {id} to {targetId}, Cost: {lastPath.Cost}");
                 foreach (var valueTuple in lastPath.Value) {
                     Debug.Log(valueTuple, 1);
                 }
@@ -157,7 +159,7 @@ class Game : IGraph<Point> {
                     if (path == null) {
                         continue;
                     }
-                    Debug.Log($"refreshed path from {town.Point} to {path.Value.Last().point} as {(needToRefreshUnstable ? "it's unstable" : "it was connected")}, Cost: {path.Cost}");
+                    Debug.Log($"refreshed path from {id} to {path.Value.Last().point} as {(needToRefreshUnstable ? "it's unstable" : "it was connected")}, Cost: {path.Cost}");
                     foreach (var valueTuple in path.Value) {
                         // Debug.Log(valueTuple, 1);
                     }
@@ -195,6 +197,11 @@ class Game : IGraph<Point> {
         Debug.Log("all paths", 1);
         foreach (var path in paths) {
             Debug.Log(path, 2);
+            if (false && path.Value.First().point == new Point(11, 2) && path.Value.Last().point == new Point(15, 5)) {
+                foreach (var valueTuple in path.Value) {
+                    Debug.Log($"{valueTuple}: owner: {cells[valueTuple.point].TracksOwner}", 3);
+                }
+            }
         }
         foreach (var path in paths) {
             Debug.Log($"processing path {path.Route()}", 1);
@@ -517,7 +524,7 @@ static class Debug {
     }
 
     public static void Log(object? line = null, int tab = 0, ConsoleColor? color = null) {
-        return;
+        // return;
         Console.ForegroundColor = color ?? ConsoleColor.Red;
         var padding = new string(' ', tab * TAB_LENGTH);
         Console.Error.WriteLine($"{padding}{line}");
