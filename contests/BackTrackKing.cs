@@ -79,14 +79,14 @@ class Game : IGraph<Point> {
         int points = TURN_POINTS;
         var paths = GetPaths().OrderBy(it => it.Cost).ToList();
         var completeThisTurn = paths
-                .Where(it => it is { IsCompleted: false, Cost: <= TURN_POINTS })
+                .Where(it => it is { IsCompleted: false, Cost.value: <= TURN_POINTS })
                 .OrderByDescending(it => it.Gain())
                 .ToList();
         PlaceTracks(completeThisTurn, ref points, actions, "trying to complete tracks this turn");
-        var pathsInDanger = paths
-                .Where(it => it.Instability.old == Region.MAX_SAFE_INSTABILITY && it.Gain() > it.Cost)
+        var activePathsInDanger = paths
+                .Where(it => it.Cost.old == 0 && it.Instability.old == Region.MAX_SAFE_INSTABILITY)
                 .ToList();
-        PlaceTracks(pathsInDanger, ref points, actions, "trying to save paths in danger");
+        PlaceTracks(activePathsInDanger, ref points, actions, "trying to save paths in danger");
         PlaceTracks(paths, ref points, actions, "trying to build tracks on different regions", differentRegions: true);
         PlaceTracks(paths, ref points, actions, "trying to build remaining tracks");
         if (TryFindRegionToDisrupt(out var region)) {
@@ -286,8 +286,8 @@ class Game : IGraph<Point> {
 }
 
 record Path(List<(Point point, int cost)> Value, List<(Point, int)>? Old = null) {
-    public int Cost => Value.Sum(it => it.cost);
-    public bool IsCompleted => Cost == 0;
+    public (int value, int old) Cost { get; private set; }
+    public bool IsCompleted => Cost.value == 0;
     public (int value, int old) Instability { get; private set; }
 
     public static Owner Player { private get; set; }
@@ -301,17 +301,27 @@ record Path(List<(Point point, int cost)> Value, List<(Point, int)>? Old = null)
     }
 
     public void Update() {
+        var totalCost = 0;
         for (var i = 0; i < Value.Count; i++) {
             (var point, int _) = Value[i];
-            Value[i] = (point, GetCost(point));
+            int cost = GetCost(point);
+            Value[i] = (point, cost);
+            totalCost += cost;
             Instability = Instability with { value = Math.Max(Instability.value, GetCell(point).Region.Instability) };
         }
+        Cost = Cost with { value = totalCost };
         if (Old == null) {
             return;
         }
-        foreach ((var point, int _) in Old) {
+        totalCost = 0;
+        for (var i = 0; i < Old.Count; i++) {
+            (var point, int _) = Old[i];
+            int cost = GetCost(point);
+            Old[i] = (point, cost);
+            totalCost += cost;
             Instability = Instability with { old = Math.Max(Instability.old, GetCell(point).Region.Instability) };
         }
+        Cost = Cost with { old = totalCost };
     }
 
     public bool NeedToRefreshUnstable() {
@@ -321,7 +331,7 @@ record Path(List<(Point point, int cost)> Value, List<(Point, int)>? Old = null)
         if (IsCompleted || Instability.value > Region.MAX_SAFE_INSTABILITY) {
             return true;
         }
-        return Cost > (Region.MAX_SAFE_INSTABILITY + 1 - Instability.value) * Game.TURN_POINTS;
+        return Cost.value > (Region.MAX_SAFE_INSTABILITY + 1 - Instability.value) * Game.TURN_POINTS;
     }
 
     public static int Gain(List<Point> value) => value.Count(CanGivePoints);
