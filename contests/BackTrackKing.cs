@@ -194,10 +194,10 @@ class Game : IGraph<Point> {
         int lastRegion = -1;
         Debug.Log("all paths", 1);
         foreach (var path in paths) {
-            Debug.Log($"from {path.Value.First().point} to {path.Value.Last().point}, Cost: {path.CostRatio}, Gain: {path.Gain()}, OldInstability: {path.Instability.old}", 2);
+            Debug.Log(path, 2);
         }
         foreach (var path in paths) {
-            Debug.Log($"processing path from {path.Value.First().point} to {path.Value.Last().point}", 1);
+            Debug.Log($"processing path {path.Route()}", 1);
             foreach ((var point, int cost) in path.Value.Where(it => it.cost > 0).OrderBy(it => it.cost)) {
                 if (points - cost < 0) {
                     continue;
@@ -208,7 +208,7 @@ class Game : IGraph<Point> {
                 }
                 if (placed.Add(Actions.PlaceTrack(point))) {
                     cell.SetTrackOwner(player);
-                    Debug.Log($"placed track at {point}, cost: {cost} from {path.Value.First().point} to {path.Value.Last().point}", 2);
+                    Debug.Log($"placed track at {point}, cost: {cost} {path.Route()}", 2);
                     points -= cost;
                     lastRegion = cell.Region.Id;
                     message.Append($"PT - {point}: {cost}, ");
@@ -337,6 +337,12 @@ record Path(List<(Point point, int cost)> Value, List<(Point, int)>? Old = null)
 
     static bool CanGivePoints(Point it) {
         return GetCell(it).TracksOwner == Player || GetCell(it).TracksOwner == Owner.NoTrack;
+    }
+
+    public string Route() => $"from {Value.First().point} to {Value.Last().point}";
+
+    public override string ToString() {
+        return $"{Route()}, Cost: {CostRatio}, Gain: {Gain()}, OldInstability: {Instability.old}";
     }
 }
 
