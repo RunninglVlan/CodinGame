@@ -77,11 +77,8 @@ class Game : IGraph<Point> {
         message.Clear();
         HashSet<string> actions = [];
         int points = TURN_POINTS;
-        var paths = GetPaths().OrderBy(it => it.Cost).ToList();
-        var completeThisTurn = paths
-                .Where(it => it is { IsCompleted: false, Cost.value: <= TURN_POINTS })
-                .OrderByDescending(it => it.Gain())
-                .ToList();
+        var paths = GetPaths().OrderBy(it => it.CostRatio + 1 - it.Gain()).ToList();
+        var completeThisTurn = paths.Where(it => it is { IsCompleted: false, Cost.value: <= TURN_POINTS }).ToList();
         PlaceTracks(completeThisTurn, ref points, actions, "trying to complete tracks this turn");
         var activePathsInDanger = paths
                 .Where(it => it.Cost.old == 0 && it.Instability.old == Region.MAX_SAFE_INSTABILITY)
@@ -136,7 +133,7 @@ class Game : IGraph<Point> {
                     .OfType<List<Point>>()) {
                 town.Paths.Add(Path.From(path));
                 var lastPath = town.Paths.Last()!;
-                Debug.Log($"found path from {town.Point} to {lastPath.Value.Last().point}, Cost: {lastPath.Cost}");
+                Debug.Log($"found path from {town.Point} to {lastPath.Value.Last().point}, Cost: {lastPath.CostRatio}");
                 foreach (var valueTuple in lastPath.Value) {
                     Debug.Log(valueTuple, 1);
                 }
@@ -160,7 +157,7 @@ class Game : IGraph<Point> {
                     if (path == null) {
                         continue;
                     }
-                    Debug.Log($"refreshed path from {town.Point} to {path.Value.Last().point} as {(needToRefreshUnstable ? "it's unstable" : "it was connected")}, Cost: {path.Cost}");
+                    Debug.Log($"refreshed path from {town.Point} to {path.Value.Last().point} as {(needToRefreshUnstable ? "it's unstable" : "it was connected")}, Cost: {path.CostRatio}");
                     foreach (var valueTuple in path.Value) {
                         // Debug.Log(valueTuple, 1);
                     }
@@ -197,7 +194,7 @@ class Game : IGraph<Point> {
         int lastRegion = -1;
         Debug.Log("all paths", 1);
         foreach (var path in paths) {
-            Debug.Log($"from {path.Value.First().point} to {path.Value.Last().point}, Cost: {path.Cost}, Gain: {path.Gain()}, OldInstability: {path.Instability.old}", 2);
+            Debug.Log($"from {path.Value.First().point} to {path.Value.Last().point}, Cost: {path.CostRatio}, Gain: {path.Gain()}, OldInstability: {path.Instability.old}", 2);
         }
         foreach (var path in paths) {
             Debug.Log($"processing path from {path.Value.First().point} to {path.Value.Last().point}", 1);
@@ -287,6 +284,7 @@ class Game : IGraph<Point> {
 
 record Path(List<(Point point, int cost)> Value, List<(Point, int)>? Old = null) {
     public (int value, int old) Cost { get; private set; }
+    public float CostRatio => Cost.value / (float)Value.Count;
     public bool IsCompleted => Cost.value == 0;
     public (int value, int old) Instability { get; private set; }
 
@@ -334,8 +332,8 @@ record Path(List<(Point point, int cost)> Value, List<(Point, int)>? Old = null)
         return Cost.value > (Region.MAX_SAFE_INSTABILITY + 1 - Instability.value) * Game.TURN_POINTS;
     }
 
-    public static int Gain(List<Point> value) => value.Count(CanGivePoints);
-    public int Gain() => Value.Count(it => CanGivePoints(it.point));
+    public static float Gain(List<Point> value) => value.Count(CanGivePoints) / (float)value.Count;
+    public float Gain() => Value.Count(it => CanGivePoints(it.point)) / (float)Value.Count;
 
     static bool CanGivePoints(Point it) {
         return GetCell(it).TracksOwner == Player || GetCell(it).TracksOwner == Owner.NoTrack;
