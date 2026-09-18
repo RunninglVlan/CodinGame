@@ -83,7 +83,9 @@ class Game : IGraph<Point> {
                 .OrderByDescending(it => it.Gain())
                 .ToList();
         PlaceTracks(completeThisTurn, ref points, actions, "trying to complete tracks this turn");
-        var pathsInDanger = paths.Where(it => it.OldInstability == Region.MAX_SAFE_INSTABILITY).ToList();
+        var pathsInDanger = paths
+                .Where(it => it.OldInstability == Region.MAX_SAFE_INSTABILITY && it.Gain() > it.Cost)
+                .ToList();
         PlaceTracks(pathsInDanger, ref points, actions, "trying to save paths in danger");
         PlaceTracks(paths, ref points, actions, "trying to build tracks on different regions", differentRegions: true);
         PlaceTracks(paths, ref points, actions, "trying to build remaining tracks");
