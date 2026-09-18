@@ -84,7 +84,7 @@ class Game : IGraph<Point> {
                 .ToList();
         PlaceTracks(completeThisTurn, ref points, actions, "trying to complete tracks this turn");
         var pathsInDanger = paths
-                .Where(it => it.OldInstability == Region.MAX_SAFE_INSTABILITY && it.Gain() > it.Cost)
+                .Where(it => it.Instability.old == Region.MAX_SAFE_INSTABILITY && it.Gain() > it.Cost)
                 .ToList();
         PlaceTracks(pathsInDanger, ref points, actions, "trying to save paths in danger");
         PlaceTracks(paths, ref points, actions, "trying to build tracks on different regions", differentRegions: true);
@@ -197,7 +197,7 @@ class Game : IGraph<Point> {
         int lastRegion = -1;
         Debug.Log("all paths", 1);
         foreach (var path in paths) {
-            Debug.Log($"from {path.Value.First().point} to {path.Value.Last().point}, Cost: {path.Cost}, Gain: {path.Gain()}, OldInstability: {path.OldInstability}", 2);
+            Debug.Log($"from {path.Value.First().point} to {path.Value.Last().point}, Cost: {path.Cost}, Gain: {path.Gain()}, OldInstability: {path.Instability.old}", 2);
         }
         foreach (var path in paths) {
             Debug.Log($"processing path from {path.Value.First().point} to {path.Value.Last().point}", 1);
@@ -288,8 +288,7 @@ class Game : IGraph<Point> {
 record Path(List<(Point point, int cost)> Value, List<(Point, int)>? Old = null) {
     public int Cost => Value.Sum(it => it.cost);
     public bool IsCompleted => Cost == 0;
-    int Instability { get; set; }
-    public int OldInstability { get; private set; }
+    public (int value, int old) Instability { get; private set; }
 
     public static Owner Player { private get; set; }
     public static Func<Point, int> GetCost { private get; set; } = null!;
@@ -305,24 +304,24 @@ record Path(List<(Point point, int cost)> Value, List<(Point, int)>? Old = null)
         for (var i = 0; i < Value.Count; i++) {
             (var point, int _) = Value[i];
             Value[i] = (point, GetCost(point));
-            Instability = Math.Max(Instability, GetCell(point).Region.Instability);
+            Instability = Instability with { value = Math.Max(Instability.value, GetCell(point).Region.Instability) };
         }
         if (Old == null) {
             return;
         }
         foreach ((var point, int _) in Old) {
-            OldInstability = Math.Max(OldInstability, GetCell(point).Region.Instability);
+            Instability = Instability with { old = Math.Max(Instability.old, GetCell(point).Region.Instability) };
         }
     }
 
     public bool NeedToRefreshUnstable() {
-        if (Instability == 0) {
+        if (Instability.value == 0) {
             return false;
         }
-        if (IsCompleted || Instability > Region.MAX_SAFE_INSTABILITY) {
+        if (IsCompleted || Instability.value > Region.MAX_SAFE_INSTABILITY) {
             return true;
         }
-        return Cost > (Region.MAX_SAFE_INSTABILITY + 1 - Instability) * Game.TURN_POINTS;
+        return Cost > (Region.MAX_SAFE_INSTABILITY + 1 - Instability.value) * Game.TURN_POINTS;
     }
 
     public static int Gain(List<Point> value) => value.Count(CanGivePoints);
