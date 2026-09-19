@@ -4,49 +4,60 @@ using System.Linq;
 
 // https://www.codingame.com/training/easy/organic-compounds
 int compoundLines = Math.Clamp(int.Parse(Console.ReadLine()!), 1, 20);
-Dictionary<Point, Element> compound = [];
+var compound = new Compound();
 for (var y = 0; y < compoundLines; y++) {
     string compoundLine = Console.ReadLine()!;
-    for (var x = 0; x < compoundLine.Length; x += Element.LENGTH) {
-        string elementChars = compoundLine.Substring(x, Element.LENGTH);
-        var element = elementChars.First() switch {
-            'C' => new Element(int.Parse(elementChars[2..3]), ElementType.Unit),
-            _ => new Element(int.Parse(elementChars[1..2]), ElementType.Bond)
-        };
-        compound[new Point(x / Element.LENGTH, y)] = element;
+    for (var x = 0; x < compoundLine.Length; x += Part.LENGTH) {
+        string part = compoundLine.Substring(x, Part.LENGTH);
+        var point = new Point(x / Part.LENGTH, y);
+        compound.AddPart(point, part.First() switch {
+            'C' => new Part(int.Parse(part[2..3]), PartType.Unit),
+            _ => new Part(int.Parse(part[1..2]), PartType.Bond)
+        });
     }
 }
-foreach (var (point, element) in compound) {
-    if (element.Type != ElementType.Unit) {
-        continue;
-    }
-    var bonds = Bonds(point);
-    if (bonds.Sum(bond => bond.Count) != Element.MAX_BONDS - element.Count) {
-        Console.WriteLine("INVALID");
-        return;
-    }
-}
-Console.WriteLine("VALID");
-return;
+Console.WriteLine(compound.IsValid() ? "VALID" : "INVALID");
 
-IEnumerable<Element> Bonds(Point point) {
-    foreach (var direction in Point.Directions4) {
-        if (!compound.TryGetValue(point + direction, out var neighbor)) {
-            continue;
+class Compound {
+    const int MAX_BONDS = 4;
+
+    readonly Dictionary<Point, Part> parts = [];
+
+    public void AddPart(Point point, Part part) {
+        parts.Add(point, part);
+    }
+
+    public bool IsValid() {
+        foreach (var (point, part) in parts) {
+            if (part.Type != PartType.Unit) {
+                continue;
+            }
+            var bonds = Bonds(point);
+            if (bonds.Sum(bond => bond.Count) != MAX_BONDS - part.Count) {
+                return false;
+            }
         }
-        if (neighbor.Type != ElementType.Bond) {
-            continue;
+        return true;
+    }
+
+    IEnumerable<Part> Bonds(Point point) {
+        foreach (var direction in Point.Directions4) {
+            if (!parts.TryGetValue(point + direction, out var neighbor)) {
+                continue;
+            }
+            if (neighbor.Type != PartType.Bond) {
+                continue;
+            }
+            yield return neighbor;
         }
-        yield return neighbor;
     }
 }
 
-record struct Element(int Count, ElementType Type) {
+record struct Part(int Count, PartType Type) {
     public const int LENGTH = 3;
-    public const int MAX_BONDS = 4;
 }
 
-enum ElementType {
+enum PartType {
     Unit,
     Bond
 }
