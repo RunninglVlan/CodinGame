@@ -36,18 +36,17 @@ List<Compound> ParseCompounds(string side) {
 record Equation(List<Compound> LeftCompounds, List<Compound> RightCompounds) {
     [SuppressMessage("ReSharper", "ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator")]
     public void Balance() {
-        var unbalancedElements = UnbalancedElements();
-        while (UnbalancedElements().Count > 0) {
+        for (var unbalanced = UnbalancedElements(); unbalanced.Count > 0; unbalanced = UnbalancedElements()) {
             foreach (var compound in LeftCompounds) {
-                if (compound.Elements.Count == unbalancedElements.Count
-                        && compound.Elements.All(it => unbalancedElements.Contains(it.Symbol))) {
+                if (compound.Elements.Count == unbalanced.Count
+                        && compound.Elements.All(it => unbalanced.Contains(it.Symbol))) {
                     continue;
                 }
                 compound.Coefficient++;
             }
             foreach (var compound in RightCompounds) {
-                if (compound.Elements.Count == unbalancedElements.Count
-                        && compound.Elements.All(it => unbalancedElements.Contains(it.Symbol))) {
+                if (compound.Elements.Count == unbalanced.Count
+                        && compound.Elements.All(it => unbalanced.Contains(it.Symbol))) {
                     continue;
                 }
                 compound.Coefficient++;
