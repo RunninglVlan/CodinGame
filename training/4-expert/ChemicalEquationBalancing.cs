@@ -14,20 +14,22 @@ List<Compound> ParseCompounds(string side) {
     List<Compound> compounds = [];
     foreach (string compoundChars in side.Split(Separators.COMPOUND)) {
         var compound = new Compound();
-        char? symbol = null;
+        var symbol = string.Empty;
         var count = string.Empty;
         foreach (char c in compoundChars) {
-            if (symbol == null) {
-                symbol = c;
+            if (string.IsNullOrEmpty(symbol)) {
+                symbol += c;
             } else if (char.IsDigit(c)) {
                 count += c;
+            } else if (char.IsLower(c)) {
+                symbol += c;
             } else {
-                compound.AddElement(symbol.Value, count);
-                symbol = c;
+                compound.AddElement(symbol, count);
+                symbol = $"{c}";
                 count = string.Empty;
             }
         }
-        compound.AddElement(symbol!.Value, count);
+        compound.AddElement(symbol, count);
         compounds.Add(compound);
     }
     return compounds;
@@ -54,11 +56,11 @@ record Equation(List<Compound> LeftCompounds, List<Compound> RightCompounds) {
         }
     }
 
-    HashSet<char> UnbalancedElements() {
+    HashSet<string> UnbalancedElements() {
         var leftElements = Elements(LeftCompounds);
         var rightElements = Elements(RightCompounds);
-        HashSet<char> unbalancedElements = [];
-        foreach ((char symbol, int leftCount) in leftElements) {
+        HashSet<string> unbalancedElements = [];
+        foreach ((string symbol, int leftCount) in leftElements) {
             if (leftCount == rightElements[symbol]) {
                 continue;
             }
@@ -66,7 +68,7 @@ record Equation(List<Compound> LeftCompounds, List<Compound> RightCompounds) {
         }
         return unbalancedElements;
 
-        Dictionary<char, int> Elements(List<Compound> compounds) {
+        Dictionary<string, int> Elements(List<Compound> compounds) {
             return compounds
                     .SelectMany(compound => {
                         return compound.Elements.Select(it => (it.Symbol, count: compound.Coefficient * it.Count));
@@ -87,7 +89,7 @@ class Compound {
     public int Coefficient { get; set; } = 1;
     public List<Element> Elements { get; } = [];
 
-    public void AddElement(char symbol, string count) {
+    public void AddElement(string symbol, string count) {
         Elements.Add(new Element(symbol, count != string.Empty ? int.Parse(count) : 1));
     }
 
@@ -100,9 +102,9 @@ class Compound {
     }
 }
 
-readonly record struct Element(char Symbol, int Count) {
+readonly record struct Element(string Symbol, int Count) {
     public override string ToString() {
-        var result = $"{Symbol}";
+        string result = Symbol;
         if (Count > 1) {
             result += Count;
         }
