@@ -36,37 +36,45 @@ List<Compound> ParseCompounds(string side) {
 record Equation(List<Compound> LeftCompounds, List<Compound> RightCompounds) {
     [SuppressMessage("ReSharper", "ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator")]
     public void Balance() {
+        var unbalancedElements = UnbalancedElements();
+        while (UnbalancedElements().Count > 0) {
+            foreach (var compound in LeftCompounds) {
+                if (compound.Elements.Count == unbalancedElements.Count
+                        && compound.Elements.All(it => unbalancedElements.Contains(it.Symbol))) {
+                    continue;
+                }
+                compound.Coefficient++;
+            }
+            foreach (var compound in RightCompounds) {
+                if (compound.Elements.Count == unbalancedElements.Count
+                        && compound.Elements.All(it => unbalancedElements.Contains(it.Symbol))) {
+                    continue;
+                }
+                compound.Coefficient++;
+            }
+        }
+    }
+
+    HashSet<char> UnbalancedElements() {
         var leftElements = Elements(LeftCompounds);
         var rightElements = Elements(RightCompounds);
-        var unbalancedSymbol = '\0';
-        var leftHasMore = false;
+        HashSet<char> unbalancedElements = [];
         foreach ((char symbol, int leftCount) in leftElements) {
             if (leftCount == rightElements[symbol]) {
                 continue;
             }
-            unbalancedSymbol = symbol;
-            leftHasMore = leftCount > rightElements[symbol];
-            Console.Error.WriteLine($"unbalanced element: {symbol}{leftCount} -> {symbol}{rightElements[symbol]}");
+            unbalancedElements.Add(symbol);
         }
-        foreach (var compound in LeftCompounds) {
-            if (compound.Elements.Any(it => it.Symbol == unbalancedSymbol) && leftHasMore) {
-                continue;
-            }
-            compound.Coefficient++;
-        }
-        foreach (var compound in RightCompounds) {
-            if (compound.Elements.Any(it => it.Symbol == unbalancedSymbol) && !leftHasMore) {
-                continue;
-            }
-            compound.Coefficient++;
-        }
-    }
+        return unbalancedElements;
 
-    static Dictionary<char, int> Elements(List<Compound> compounds) {
-        return compounds
-                .SelectMany(it => it.Elements)
-                .GroupBy(it => it.Symbol)
-                .ToDictionary(it => it.Key, it => it.Sum(element => element.Count));
+        Dictionary<char, int> Elements(List<Compound> compounds) {
+            return compounds
+                    .SelectMany(compound => {
+                        return compound.Elements.Select(it => (it.Symbol, count: compound.Coefficient * it.Count));
+                    })
+                    .GroupBy(it => it.Symbol)
+                    .ToDictionary(it => it.Key, it => it.Sum(element => element.count));
+        }
     }
 
     public override string ToString() {
