@@ -9,8 +9,12 @@ for (var y = 0; y < compoundLines; y++) {
     string compoundLine = Console.ReadLine()!;
     for (var x = 0; x < compoundLine.Length; x += Part.LENGTH) {
         string part = compoundLine.Substring(x, Part.LENGTH);
+        char firstChar = part.First();
+        if (firstChar == ' ') {
+            continue;
+        }
         var point = new Point(x / Part.LENGTH, y);
-        compound.AddPart(point, part.First() switch {
+        compound.AddPart(point, firstChar switch {
             'C' => new Part(int.Parse(part.Substring(Part.UNIT_INDEX, 1)), PartType.Unit),
             _ => new Part(int.Parse(part.Substring(Part.BOND_INDEX, 1)), PartType.Bond)
         });
