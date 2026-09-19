@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
 // https://www.codingame.com/training/expert/chemical-equation-balancing
 string[] unbalanced = Console.ReadLine()!.Split(Separators.SIDE);
 var equation = new Equation(ParseCompounds(unbalanced.First()), ParseCompounds(unbalanced.Last()));
+equation.Balance();
 Console.WriteLine(equation);
 return;
 
@@ -32,6 +34,41 @@ List<Compound> ParseCompounds(string side) {
 }
 
 record Equation(List<Compound> LeftCompounds, List<Compound> RightCompounds) {
+    [SuppressMessage("ReSharper", "ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator")]
+    public void Balance() {
+        var leftElements = Elements(LeftCompounds);
+        var rightElements = Elements(RightCompounds);
+        var unbalancedSymbol = '\0';
+        var leftHasMore = false;
+        foreach ((char symbol, int leftCount) in leftElements) {
+            if (leftCount == rightElements[symbol]) {
+                continue;
+            }
+            unbalancedSymbol = symbol;
+            leftHasMore = leftCount > rightElements[symbol];
+            Console.Error.WriteLine($"unbalanced element: {symbol}{leftCount} -> {symbol}{rightElements[symbol]}");
+        }
+        foreach (var compound in LeftCompounds) {
+            if (compound.Elements.Any(it => it.Symbol == unbalancedSymbol) && leftHasMore) {
+                continue;
+            }
+            compound.Coefficient++;
+        }
+        foreach (var compound in RightCompounds) {
+            if (compound.Elements.Any(it => it.Symbol == unbalancedSymbol) && !leftHasMore) {
+                continue;
+            }
+            compound.Coefficient++;
+        }
+    }
+
+    static Dictionary<char, int> Elements(List<Compound> compounds) {
+        return compounds
+                .SelectMany(it => it.Elements)
+                .GroupBy(it => it.Symbol)
+                .ToDictionary(it => it.Key, it => it.Sum(element => element.Count));
+    }
+
     public override string ToString() {
         return string.Join(Separators.COMPOUND, LeftCompounds)
                 + Separators.SIDE
@@ -40,14 +77,19 @@ record Equation(List<Compound> LeftCompounds, List<Compound> RightCompounds) {
 }
 
 class Compound {
-    List<Element> Elements { get; } = [];
+    public int Coefficient { get; set; } = 1;
+    public List<Element> Elements { get; } = [];
 
     public void AddElement(char symbol, string count) {
         Elements.Add(new Element(symbol, count != string.Empty ? int.Parse(count) : 1));
     }
 
     public override string ToString() {
-        return string.Join(null, Elements);
+        string result = string.Join(null, Elements);
+        if (Coefficient > 1) {
+            result = Coefficient + result;
+        }
+        return result;
     }
 }
 
