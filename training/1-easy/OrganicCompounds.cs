@@ -11,8 +11,8 @@ for (var y = 0; y < compoundLines; y++) {
         string part = compoundLine.Substring(x, Part.LENGTH);
         var point = new Point(x / Part.LENGTH, y);
         compound.AddPart(point, part.First() switch {
-            'C' => new Part(int.Parse(part[2..3]), PartType.Unit),
-            _ => new Part(int.Parse(part[1..2]), PartType.Bond)
+            'C' => new Part(int.Parse(part.Substring(Part.UNIT_INDEX, 1)), PartType.Unit),
+            _ => new Part(int.Parse(part.Substring(Part.BOND_INDEX, 1)), PartType.Bond)
         });
     }
 }
@@ -55,6 +55,8 @@ class Compound {
 
 record struct Part(int Count, PartType Type) {
     public const int LENGTH = 3;
+    public const int BOND_INDEX = 1;
+    public const int UNIT_INDEX = 2;
 }
 
 enum PartType {
