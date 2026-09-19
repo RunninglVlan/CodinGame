@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
-// https://www.codingame.com/contribute/view/78658089fc5f6fedf11c055682408582f2eb
+// https://www.codingame.com/training/easy/you-have-been-hacked
 int companyCount = Math.Clamp(int.Parse(Console.ReadLine()!), 1, 10);
 var companies = new Company[companyCount];
 for (var i = 0; i < companyCount; i++) {
