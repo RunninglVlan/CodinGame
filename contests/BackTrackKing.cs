@@ -16,7 +16,9 @@ while (true) {
 }
 
 class GameState : IState {
-    public int Score { get; set; }
+    public int Score => PlayerScore * 100_000 + heuristic;
+    public int PlayerScore { get; set; }
+    int heuristic;
     public Dictionary<Point, Cell> Cells { get; init; } = null!;
     public List<Path> Paths { get; init; } = null!;
     public List<HashSet<string>> Actions { get; init; } = null!;
@@ -37,15 +39,16 @@ class GameState : IState {
         }
     }
 
-    [SuppressMessage("ReSharper", "ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator")]
-    public void ScorePoints(Owner player) {
+    public void UpdateScore(Owner player) {
+        heuristic = 0;
         foreach (var path in Paths) {
             if (!path.IsCompleted) {
+                heuristic += (int)(path.Gain(it => Cells[it]) / (float)(path.GainTurns + 1) * 100);
                 continue;
             }
             foreach ((var point, int _) in path.Value) {
                 if (Cells[point].TracksOwner == player) {
-                    Score++;
+                    PlayerScore++;
                 }
             }
         }
@@ -192,7 +195,7 @@ class Game : IGraph<Point>, IGame<GameState> {
             }
         }
         return new GameState {
-            Score = playerScore,
+            PlayerScore = playerScore,
             Cells = cells,
             Paths = GetPaths(),
             Actions = []
@@ -380,7 +383,7 @@ class Game : IGraph<Point>, IGame<GameState> {
             foreach (var (point, _) in path.Value.Where(it => it.cost != 0)) {
                 next.PlaceTrack(point, player);
             }
-            next.ScorePoints(player);
+            next.UpdateScore(player);
             yield return next;
         }
     }
@@ -406,7 +409,7 @@ class Game : IGraph<Point>, IGame<GameState> {
                 if (budget != 0) {
                     continue;
                 }
-                next.ScorePoints(player);
+                next.UpdateScore(player);
                 yield return next;
                 if (++nextCount == nextPerPoints) {
                     break;
@@ -428,7 +431,7 @@ class Game : IGraph<Point>, IGame<GameState> {
                 budget -= cost;
                 next.PlaceTrack(point, player);
                 if (points >= 2 || budget == 0) {
-                    next.ScorePoints(player);
+                    next.UpdateScore(player);
                     yield return next;
                     if (++nextCount == nextPerPoints) {
                         break;
@@ -438,7 +441,7 @@ class Game : IGraph<Point>, IGame<GameState> {
                 }
             }
             if (points == 1 && budget < 2) {
-                next.ScorePoints(player);
+                next.UpdateScore(player);
                 yield return next;
             }
         }
@@ -518,11 +521,12 @@ record Path(List<(Point point, int cost)> Value, List<(Point, int)>? Old = null)
         return Cost.value > (Region.MAX_SAFE_INSTABILITY + 1 - Instability.value) * Game.TURN_POINTS;
     }
 
-    public static int Gain(List<Point> value) => value.Count(CanGivePoints);
-    public int Gain() => Value.Count(it => CanGivePoints(it.point));
+    public static int Gain(List<Point> value) => value.Count(it => CanGivePoints(it));
+    public int Gain(Func<Point, Cell>? getCell = null) => Value.Count(it => CanGivePoints(it.point, getCell));
 
-    static bool CanGivePoints(Point it) {
-        return GetCell(it).TracksOwner == Player || GetCell(it).TracksOwner == Owner.NoTrack;
+    static bool CanGivePoints(Point it, Func<Point, Cell>? getCell = null) {
+        getCell ??= GetCell;
+        return getCell(it).TracksOwner == Player || getCell(it).TracksOwner == Owner.NoTrack;
     }
 
     public string Route() => $"from {Value.First().point} to {Value.Last().point}";
