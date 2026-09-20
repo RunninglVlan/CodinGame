@@ -362,55 +362,57 @@ class Game : IGraph<Point>, IGame<GameState> {
         return Array.IndexOf(Screen.Directions4, difference) + 1;
     }
 
-    [SuppressMessage("ReSharper", "InvertIf")]
     IEnumerable<GameState> IGame<GameState>.Next(GameState current) {
-        const int nextPerPoints = 5;
-        int budget;
-        GameState next;
-        NextTurn();
-        foreach (var path in current.Paths.Where(it => it is { IsCompleted: false, Cost.value: <= TURN_POINTS })) {
-            foreach ((var point, int cost) in path.Value) {
-                if (cost == 0) {
-                    continue;
-                }
+        foreach (var next in CompletedPathStates(current)) {
+            yield return next;
+        }
+        foreach (var next in PointTrackStates(current)) {
+            yield return next;
+        }
+    }
+
+    IEnumerable<GameState> CompletedPathStates(GameState state) {
+        foreach (var path in state.Paths.Where(it => it is { IsCompleted: false, Cost.value: <= TURN_POINTS })) {
+            var next = state.Clone();
+            foreach (var (point, _) in path.Value.Where(it => it.cost != 0)) {
                 next.PlaceTrack(point, player);
             }
             next.ScorePoints(player);
             yield return next;
-            NextTurn();
         }
+    }
+
+    [SuppressMessage("ReSharper", "InvertIf")]
+    IEnumerable<GameState> PointTrackStates(GameState state) {
+        const int nextPerPoints = 5;
         for (var points = 1; points <= 3; points++) {
+            int budget = TURN_POINTS;
+            var next = state.Clone();
             var nextCount = 0;
-            foreach ((var point, int cost) in NextTracks(current, points)) {
-                next.PlaceTrack(point, player);
+            foreach ((var point, int cost) in PointTracks(state, points)) {
                 budget -= cost;
-                if (points == 1 && budget == 0 || points >= 2) {
+                next.PlaceTrack(point, player);
+                if (points >= 2 || budget == 0) {
                     next.ScorePoints(player);
                     yield return next;
-                    NextTurn();
                     if (++nextCount == nextPerPoints) {
                         break;
                     }
+                    budget = TURN_POINTS;
+                    next = state.Clone();
                 }
             }
             if (points == 1 && budget < 2) {
                 next.ScorePoints(player);
                 yield return next;
-                NextTurn();
             }
-        }
-        yield break;
-
-        void NextTurn() {
-            budget = TURN_POINTS;
-            next = current.Clone();
         }
     }
 
-    static IEnumerable<(Point point, int cost)> NextTracks(GameState state, int points) {
+    static IEnumerable<(Point point, int cost)> PointTracks(GameState state, int points) {
         foreach (var path in state.Paths.OrderBy(it => it.GainTurns).ThenByDescending(it => it.Gain())) {
-            foreach ((var point, int cost) in path.Value) {
-                if (cost == 0 || cost != points) {
+            foreach ((var point, int cost) in path.Value.Where(it => it.cost != 0)) {
+                if (cost != points) {
                     continue;
                 }
                 yield return (point, cost);
