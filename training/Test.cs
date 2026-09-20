@@ -1,319 +1,407 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 
 const string testCase = """
                         0
-                        23
-                        15
+                        29
+                        19
                         0 0
                         0 0
                         0 0
                         0 0
-                        1 1
                         1 0
-                        1 0
-                        2 0
-                        2 0
-                        2 0
-                        2 0
-                        3 0
-                        3 0
-                        4 0
-                        4 0
-                        4 2
-                        5 0
-                        5 2
-                        5 2
-                        5 2
-                        6 2
-                        6 0
-                        6 0
-                        0 0
-                        0 0
-                        0 2
-                        1 0
-                        1 1
                         1 0
                         1 0
                         2 0
                         2 0
+                        2 1
                         2 0
                         2 0
                         3 0
                         3 2
+                        3 2
                         4 2
-                        4 2
-                        4 2
-                        5 2
-                        12 0
+                        4 0
+                        4 0
                         5 0
-                        5 2
+                        5 0
                         6 2
                         6 0
                         6 0
+                        6 2
+                        7 2
                         7 0
+                        7 0
+                        7 0
+                        7 0
+                        0 0
+                        0 0
+                        0 0
                         0 2
-                        7 2
-                        7 2
-                        1 1
-                        8 0
+                        1 0
+                        1 0
                         1 0
                         2 0
-                        9 0
-                        9 0
+                        2 0
+                        2 1
+                        3 0
+                        2 0
+                        3 0
+                        3 0
+                        4 0
+                        4 2
+                        4 0
+                        4 0
+                        5 0
+                        5 2
+                        5 2
+                        5 0
+                        6 0
+                        6 0
+                        6 2
+                        6 2
+                        7 0
+                        7 0
+                        15 0
+                        0 0
+                        0 0
+                        0 0
+                        0 2
+                        1 0
+                        1 0
+                        1 0
                         10 0
-                        3 0
-                        3 0
-                        3 2
+                        10 0
+                        10 1
                         3 1
-                        4 1
-                        4 1
+                        3 1
+                        3 1
+                        3 0
+                        4 0
+                        12 2
+                        12 0
                         12 0
                         5 0
-                        12 0
-                        13 2
+                        5 0
+                        5 0
+                        5 0
+                        14 0
+                        6 0
                         6 2
-                        13 0
+                        15 0
+                        15 0
                         7 0
-                        7 2
-                        7 2
+                        15 0
+                        0 0
+                        8 2
+                        8 2
+                        8 2
                         8 0
-                        8 1
-                        8 0
-                        8 0
-                        9 0
                         9 0
                         9 0
                         10 0
                         10 0
-                        11 1
-                        11 1
-                        11 1
-                        11 0
-                        11 1
-                        12 1
-                        12 1
-                        12 1
-                        13 0
-                        13 0
-                        13 0
-                        7 0
-                        14 0
-                        15 2
-                        15 1
-                        8 1
-                        8 1
-                        8 1
-                        9 1
-                        9 1
-                        9 1
                         10 0
-                        17 1
-                        17 1
-                        11 0
-                        18 0
                         11 0
                         11 0
+                        11 1
+                        11 1
+                        4 0
                         12 0
                         12 0
-                        20 1
-                        20 1
+                        12 0
+                        5 0
                         13 0
                         13 0
-                        14 0
+                        13 0
+                        14 2
+                        14 2
+                        14 2
                         14 0
                         15 0
-                        15 2
-                        15 2
+                        15 0
                         15 2
                         16 0
                         16 0
-                        16 0
-                        16 1
-                        10 0
+                        8 0
+                        8 0
+                        8 0
                         17 1
-                        18 2
-                        18 0
-                        18 2
-                        19 0
-                        19 0
-                        19 0
-                        19 0
-                        20 0
-                        20 1
-                        20 1
-                        20 1
-                        14 0
-                        14 0
-                        21 0
-                        21 0
-                        15 2
-                        22 2
-                        16 0
-                        16 0
-                        16 0
-                        16 1
+                        9 1
+                        9 1
+                        10 1
                         10 0
-                        17 1
-                        17 2
-                        18 2
-                        18 2
-                        25 2
-                        19 0
-                        19 0
-                        26 0
-                        26 0
-                        27 0
+                        11 0
+                        11 0
+                        11 0
+                        11 1
+                        4 0
                         20 0
-                        27 0
+                        12 0
+                        12 0
+                        13 0
+                        13 0
+                        13 0
                         14 0
-                        21 0
-                        21 0
+                        14 0
+                        14 0
+                        14 0
                         22 0
-                        22 2
-                        22 2
-                        22 0
-                        22 0
+                        15 0
                         23 0
-                        23 1
-                        24 0
-                        24 1
+                        15 2
+                        16 0
+                        16 0
+                        8 0
                         17 0
-                        25 0
-                        25 2
-                        25 0
+                        17 0
+                        17 1
+                        9 0
+                        9 0
+                        18 1
+                        18 0
+                        18 0
                         19 0
-                        26 0
-                        26 0
-                        26 0
-                        27 0
-                        27 0
-                        27 0
+                        19 0
+                        19 1
+                        19 0
+                        20 0
+                        20 0
+                        12 0
                         21 0
                         21 0
                         21 0
-                        29 0
-                        29 0
+                        21 0
+                        22 0
+                        22 0
+                        22 0
                         22 0
                         23 0
                         23 0
+                        23 2
+                        16 0
+                        16 0
+                        16 2
+                        17 0
+                        17 1
+                        17 1
+                        9 0
+                        18 0
+                        18 1
+                        18 1
+                        18 1
+                        18 0
+                        19 0
+                        19 1
+                        20 0
+                        20 0
+                        20 2
+                        20 2
+                        21 0
+                        21 0
+                        21 0
+                        22 0
+                        22 0
+                        22 0
+                        22 0
+                        22 0
                         23 0
-                        30 1
-                        24 1
-                        24 1
+                        23 2
+                        23 2
                         24 0
                         24 0
+                        16 2
+                        16 1
+                        25 1
                         25 0
-                        25 0
-                        25 0
+                        9 2
+                        9 0
                         26 0
+                        26 0
+                        18 1
+                        27 1
+                        27 1
+                        19 1
+                        19 0
+                        19 0
+                        20 2
+                        20 0
+                        28 0
+                        28 0
+                        21 0
+                        21 0
+                        30 0
+                        30 0
+                        31 0
+                        31 0
+                        31 0
+                        31 0
+                        31 2
+                        24 0
+                        24 2
+                        24 2
+                        25 1
+                        25 0
+                        25 2
+                        9 2
                         33 0
                         26 0
+                        26 0
+                        26 0
+                        26 1
                         27 0
-                        34 0
-                        34 0
+                        27 1
+                        28 1
                         28 0
                         28 0
+                        28 2
+                        28 2
+                        29 2
                         29 0
                         29 0
-                        29 0
-                        29 0
-                        23 0
-                        23 0
+                        30 0
+                        30 0
                         30 0
                         30 0
                         31 0
                         31 0
                         31 0
+                        24 0
+                        24 2
                         32 0
-                        32 0
-                        32 0
-                        32 2
-                        32 0
-                        33 0
+                        25 2
+                        25 2
+                        25 2
                         33 2
-                        34 0
-                        34 2
-                        34 0
+                        33 0
+                        26 0
+                        26 1
+                        26 1
+                        27 1
+                        27 0
+                        27 0
+                        27 1
                         28 0
-                        28 0
-                        28 0
-                        36 0
                         36 0
                         36 2
-                        36 0
+                        29 2
+                        29 0
+                        29 0
+                        29 0
+                        29 2
+                        30 2
                         30 0
                         30 0
-                        30 0
-                        31 0
-                        31 0
                         31 0
                         39 0
-                        32 0
+                        39 0
+                        24 0
                         32 2
                         32 2
+                        32 2
+                        25 2
+                        33 2
+                        33 2
+                        34 1
+                        34 1
+                        34 1
+                        34 0
+                        34 0
+                        35 0
+                        27 0
+                        36 1
+                        28 0
+                        36 0
+                        36 0
+                        29 0
+                        37 0
+                        38 0
+                        38 2
+                        38 2
+                        38 0
+                        38 0
+                        38 0
+                        39 0
+                        39 0
+                        39 0
+                        24 0
                         40 0
+                        32 0
+                        32 0
                         33 0
-                        33 2
-                        34 2
-                        41 2
-                        34 2
+                        33 0
+                        33 0
+                        34 1
+                        34 0
+                        42 0
+                        42 0
+                        34 0
                         35 0
                         35 0
-                        28 0
+                        36 1
                         36 0
-                        36 2
-                        37 2
+                        36 0
                         37 0
                         37 0
                         37 0
                         37 0
                         38 0
+                        46 2
+                        46 0
+                        46 0
                         38 0
+                        47 2
                         39 0
                         39 0
-                        39 0
+                        40 0
+                        40 0
+                        32 0
+                        32 0
+                        33 0
+                        41 0
+                        41 0
+                        42 1
+                        34 1
+                        42 0
+                        43 0
+                        43 0
+                        35 0
+                        35 0
+                        35 1
+                        35 0
+                        44 0
+                        37 0
+                        37 0
+                        37 0
+                        45 0
+                        45 0
+                        45 0
+                        46 0
+                        46 0
+                        38 0
+                        47 2
                         39 2
-                        40 2
-                        40 2
+                        39 2
                         40 0
-                        33 2
-                        41 0
-                        41 0
-                        48 0
-                        35 0
-                        35 0
-                        42 0
-                        43 0
-                        43 2
-                        37 2
-                        37 0
-                        37 0
-                        44 0
-                        38 0
-                        38 0
-                        45 0
-                        39 0
-                        39 0
-                        46 0
                         40 0
-                        40 2
-                        40 2
-                        47 0
+                        40 0
                         41 0
                         41 0
-                        48 0
-                        48 0
+                        41 0
+                        42 0
+                        42 0
+                        42 1
+                        42 0
+                        43 0
+                        43 0
+                        43 0
                         35 0
-                        42 0
-                        42 0
-                        43 0
-                        43 2
-                        43 0
-                        43 0
+                        44 1
                         44 0
                         44 0
-                        44 0
+                        45 0
+                        45 0
                         45 0
                         45 0
                         45 0
@@ -323,40 +411,164 @@ const string testCase = """
                         47 0
                         47 0
                         47 0
+                        47 2
+                        48 2
+                        48 0
+                        40 0
+                        40 0
+                        41 0
+                        41 1
+                        50 1
+                        50 1
+                        50 1
+                        50 0
+                        50 0
+                        51 0
+                        43 1
+                        43 1
+                        44 1
+                        44 2
+                        44 0
+                        52 0
+                        53 0
+                        53 0
+                        53 0
+                        54 0
+                        54 0
+                        54 0
+                        54 0
+                        55 0
+                        55 0
+                        55 0
+                        47 2
+                        48 2
+                        48 0
+                        48 0
                         41 0
                         41 0
-                        48 0
-                        48 0
-                        42 0
-                        42 0
-                        42 0
-                        42 0
-                        42 0
-                        43 0
-                        43 0
-                        44 0
-                        44 0
-                        44 0
-                        45 0
-                        45 0
-                        45 0
-                        46 0
-                        46 0
-                        46 0
-                        46 0
+                        49 1
+                        49 0
+                        50 0
+                        50 2
+                        50 0
+                        51 1
+                        51 1
+                        51 1
+                        51 0
+                        58 2
+                        52 2
+                        52 2
+                        52 0
+                        53 0
+                        53 0
+                        59 0
+                        54 0
+                        54 0
+                        54 0
+                        55 0
+                        55 0
+                        55 0
+                        55 0
                         47 0
-                        47 0
-                        47 0
-                        41 0
+                        48 2
                         48 0
-                        48 0
-                        6
-                        0 1 1 3,4
-                        1 10 6 5
-                        2 21 6 1,5
-                        3 6 7 1,2
-                        4 20 9 1,3
-                        5 13 12 0,3,4
+                        56 0
+                        56 0
+                        56 0
+                        49 1
+                        49 0
+                        49 0
+                        57 2
+                        57 1
+                        57 1
+                        51 0
+                        51 2
+                        58 0
+                        58 0
+                        52 0
+                        58 0
+                        52 0
+                        52 0
+                        53 0
+                        59 0
+                        59 0
+                        54 0
+                        54 0
+                        54 0
+                        60 0
+                        60 0
+                        55 0
+                        55 0
+                        48 2
+                        56 2
+                        56 0
+                        56 1
+                        49 1
+                        49 1
+                        49 2
+                        57 0
+                        57 2
+                        57 1
+                        57 2
+                        57 2
+                        51 2
+                        58 2
+                        58 0
+                        58 0
+                        58 0
+                        52 0
+                        52 0
+                        59 0
+                        59 0
+                        59 0
+                        59 0
+                        54 0
+                        60 0
+                        60 0
+                        60 0
+                        60 0
+                        60 0
+                        48 2
+                        56 0
+                        56 0
+                        56 1
+                        49 0
+                        49 2
+                        49 2
+                        57 2
+                        57 2
+                        57 1
+                        51 0
+                        51 0
+                        51 2
+                        58 0
+                        58 0
+                        58 0
+                        52 0
+                        52 0
+                        59 0
+                        59 0
+                        59 0
+                        59 0
+                        59 0
+                        54 0
+                        60 0
+                        60 0
+                        60 0
+                        60 0
+                        60 0
+                        11
+                        0 12 1 6
+                        1 4 4 5,7,8
+                        2 25 3 0,1,3,4
+                        3 10 5 0,1,5,8,10
+                        4 27 5 0,1,3
+                        5 15 9 2,4
+                        6 24 9 2,3,4
+                        7 18 11 2,4,5,8
+                        8 6 13 4,9
+                        9 1 16 0,1,5,6,7,10
+                        10 23 14 1,2,4,6,7,8
                         """;
 Console.SetIn(new StringReader(testCase));
 // Visual
@@ -365,12 +577,80 @@ Console.SetIn(new StringReader(testCase));
 var game = new Game();
 game.Init();
 game.FindPaths();
+game.Loop();
 
-class Game : IGraph<Point> {
+class GameState : IState {
+    public int Score => PlayerScore * 100_000 + heuristic;
+    public int PlayerScore { get; set; }
+    int heuristic;
+    public Dictionary<Point, Cell> Cells { get; init; } = null!;
+    public List<Path> Paths { get; init; } = null!;
+    public List<HashSet<string>> Actions { get; init; } = null!;
+
+    public GameState Clone() {
+        return new GameState {
+            Cells = Cells.ToDictionary(it => it.Key, it => it.Value with { }),
+            Paths = [.. Paths.Select(it => it with { Value = [.. it.Value] })],
+            Actions = [.. Actions, []]
+        };
+    }
+
+    public void PlaceTrack(Point point, Owner player) {
+        Actions.Last().Add(GameActions.PlaceTrack(point));
+        Cells[point].SetTrackOwner(player);
+        foreach (var path in Paths) {
+            path.TryPlaceTrack(point);
+        }
+    }
+
+    public void UpdateScore(Owner player) {
+        heuristic = 0;
+        foreach (var path in Paths) {
+            if (!path.IsCompleted) {
+                heuristic += (int)(path.Gain(it => Cells[it]) / (float)(path.GainTurns + 1) * 100);
+                continue;
+            }
+            foreach ((var point, int _) in path.Value) {
+                if (Cells[point].TracksOwner == player) {
+                    PlayerScore++;
+                }
+            }
+        }
+    }
+
+    public bool Equals(IState? other) {
+        if (other is not GameState that) {
+            return false;
+        }
+        if (ReferenceEquals(this, that)) {
+            return true;
+        }
+        foreach (var (point, cell) in Cells) {
+            if (cell.TracksOwner != that.Cells[point].TracksOwner) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public override bool Equals(object? other) => Equals(other as IState);
+
+    [SuppressMessage("ReSharper", "ForeachCanBeConvertedToQueryUsingAnotherGetEnumerator")]
+    public override int GetHashCode() {
+        var cellsHash = 0;
+        foreach (var cell in Cells.Values) {
+            cellsHash ^= cell.TracksOwner.GetHashCode();
+        }
+        return cellsHash;
+    }
+}
+
+class Game : IGraph<Point>, IGame<GameState> {
     const string NO_CONNECTIONS = "x";
-    const int TURN_POINTS = 3;
+    public const int TURN_POINTS = 3;
 
     readonly Pathfinding<Point> pathfinding;
+    readonly BeamSearch<GameState> beamSearch;
 
     Owner player, foe;
     int width, height;
@@ -384,17 +664,19 @@ class Game : IGraph<Point> {
         { CellType.Mountain, 3 }
     };
 
-    bool builtPaths;
     readonly StringBuilder message = new();
+    bool findShortest;
 
     public Game() {
         pathfinding = new Pathfinding<Point>(this);
+        beamSearch = new BeamSearch<GameState>(this);
         Path.GetCost = Cost;
-        Path.GetRegion = point => cells[point].Region;
+        Path.GetCell = point => cells[point];
     }
 
     public void Init() {
         player = Enum.Parse<Owner>(Console.ReadLine()!);
+        Path.Player = player;
         foe = player == Owner.Player0 ? Owner.Player1 : Owner.Player0;
         width = Math.Clamp(int.Parse(Console.ReadLine()!), 21, 30);
         height = Math.Clamp(int.Parse(Console.ReadLine()!), 14, 20);
@@ -424,117 +706,148 @@ class Game : IGraph<Point> {
     }
 
     public void Loop() {
-        ReadState();
+        var startState = ReadState();
         message.Clear();
-        HashSet<string> actions = [];
-        int points = TURN_POINTS;
-        var paths = GetPaths();
-        var completeThisTurn = paths.Where(it => it is { IsCompleted: false, Cost: <= TURN_POINTS }).ToList();
-        PlaceTracks(completeThisTurn, ref points, actions, "trying to complete tracks this turn");
-        var pathsInDanger = paths.Where(it => it.OldInstability == Region.MAX_SAFE_INSTABILITY).ToList();
-        PlaceTracks(pathsInDanger, ref points, actions, "trying to save paths in danger");
-        PlaceTracks(paths, ref points, actions, "trying to build tracks on different regions", differentRegions: true);
-        PlaceTracks(paths, ref points, actions, "trying to build remaining tracks");
+        var actions = beamSearch.FindBest(startState, 4, 4)?.Actions.First() ?? [];
+        if (false) {
+            int points = TURN_POINTS;
+            var paths = GetPaths().OrderBy(it => it.GainTurns).ThenByDescending(it => it.Gain()).ToList();
+            var completeThisTurn = paths.Where(it => it is { IsCompleted: false, Cost.value: <= TURN_POINTS }).ToList();
+            PlaceTracks(completeThisTurn, ref points, actions, "trying to complete tracks this turn");
+            var activePathsInDanger = paths
+                    .Where(it => it.Cost.old == 0 && it.Instability.old == Region.MAX_SAFE_INSTABILITY)
+                    .ToList();
+            PlaceTracks(activePathsInDanger, ref points, actions, "trying to save paths in danger");
+            PlaceTracks(paths, ref points, actions, "trying to build tracks on different regions", differentRegions: true);
+            PlaceTracks(paths, ref points, actions, "trying to build remaining tracks");
+        }
         if (TryFindRegionToDisrupt(out var region)) {
-            actions.Add(Actions.Disrupt(region.Id));
+            actions.Add(GameActions.Disrupt(region.Id));
             message.Append($"DR - {region.Id}");
         }
         if (message.Length > 0) {
-            actions.Add(Actions.Message(message.ToString()));
+            actions.Add(GameActions.Message(message.ToString()));
         }
         if (actions.Count == 0) {
-            actions.Add(Actions.Wait());
+            actions.Add(GameActions.Wait());
         }
         Console.WriteLine(string.Join(';', actions));
     }
 
-    void ReadState() {
-        int _ = int.Parse(Console.ReadLine()!); // playerScore
-        int __ = int.Parse(Console.ReadLine()!); // foeScore
+    GameState ReadState() {
+        var playerScore = 0;
+        var __ = 0; // foeScore
         foreach (var region in regions.Values) {
-            region.Clear();
+            region.InitTurn();
         }
-        for (var y = 0; y < height; y++) {
-            for (var x = 0; x < width; x++) {
-                string[] inputs = Console.ReadLine()!.Split(' ');
-                var tracksOwner = Enum.Parse<Owner>(inputs[0]);
-                var cell = cells[new Point(x, y)];
-                cell.TracksOwner = tracksOwner;
-                int tracks = cell.Region.Tracks.GetValueOrDefault(tracksOwner);
-                cell.Region.Tracks[tracksOwner] = tracks + 1;
-                cell.Region.Instability = int.Parse(inputs[1]);
-                cell.Region.Inked = inputs[2] != "0";
-                string partOfActiveConnections = inputs[3];
-                if (partOfActiveConnections == NO_CONNECTIONS) {
-                    continue;
-                }
-                foreach (string pair in partOfActiveConnections.Split(',')) {
-                    foreach (int id in pair.Split('-').Select(int.Parse)) {
-                        cell.Region.TownConnections.Add(id);
+        if (false) {
+            for (var y = 0; y < height; y++) {
+                for (var x = 0; x < width; x++) {
+                    string[] inputs = Console.ReadLine()!.Split(' '); // inputs[2] != "0" means region is inked/destroyed
+                    var tracksOwner = Enum.Parse<Owner>(inputs[0]);
+                    var cell = cells[new Point(x, y)];
+                    cell.SetTrackOwner(tracksOwner);
+                    cell.Region.Instability = int.Parse(inputs[1]);
+                    string partOfActiveConnections = inputs[3];
+                    if (partOfActiveConnections == NO_CONNECTIONS) {
+                        continue;
+                    }
+                    foreach (string pair in partOfActiveConnections.Split(',')) {
+                        foreach (int id in pair.Split('-').Select(int.Parse)) {
+                            cell.Region.TownConnections.value.Add(id);
+                        }
                     }
                 }
             }
         }
+        return new GameState {
+            PlayerScore = 0,
+            Cells = cells,
+            Paths = GetPaths(),
+            Actions = []
+        };
     }
 
     public void FindPaths() {
-        foreach (var town in towns.Values) {
-            foreach (var path in town.DesiredConnections
-                    .Select(it => towns[it])
-                    .Select(targetTown => pathfinding.Path(town.Point, targetTown.Point))
-                    .OfType<List<Point>>()) {
+        foreach ((int id, var town) in towns) {
+            foreach (int targetId in town.DesiredConnections) {
+                var targetTown = towns[targetId];
+                var path = pathfinding.Path(town.Point, targetTown.Point);
+                if (path == null) {
+                    continue;
+                }
                 town.Paths.Add(Path.From(path));
+                var lastPath = town.Paths.Last()!;
+                // Debug.Log($"found path from {id} to {targetId}, Cost: {lastPath.Cost}");
+                foreach (var valueTuple in lastPath.Value) {
+                    // Debug.Log(valueTuple, 1);
+                }
             }
         }
-        builtPaths = true;
     }
 
     List<Path> GetPaths() {
         List<Path> paths = [];
-        foreach (var town in towns.Values) {
+        foreach ((int id, var town) in towns) {
             for (var i = 0; i < town.Paths.Count; i++) {
                 if (town.Paths[i] is not { } path) {
                     continue;
                 }
                 path.Update();
-                if (NeedToRebuild(path)) {
-                    Debug.Log($"rebuilding path from {town.Point} to {path.Value.Last().cell} as it's unstable");
-                    var newPath = pathfinding.Path(town.Point, path.Value.Last().cell);
-                    if (newPath == null) {
-                        town.Paths[i] = null;
+                bool needToRefreshUnstable = path.NeedToRefreshUnstable();
+                var targetRegion = cells[path.Value.Last().point].Region;
+                bool connected = targetRegion.BecameConnected(id);
+                if (needToRefreshUnstable || connected) {
+                    town.Paths[i] = path = RefreshPath(town.Point, path, !needToRefreshUnstable && connected);
+                    if (path == null) {
                         continue;
                     }
-                    town.Paths[i] = path = Path.From(newPath, path);
+                    // Debug.Log($"refreshed path from {id} to {path.Value.Last().point} as {(needToRefreshUnstable ? "it's unstable" : "it was connected")}, Cost: {path.Cost}");
+                    foreach (var valueTuple in path.Value) {
+                        // Debug.Log(valueTuple, 1);
+                    }
                 }
                 paths.Add(path);
             }
         }
         return paths;
+    }
 
-        bool NeedToRebuild(Path path) {
-            if (path.Instability == 0) {
-                return false;
-            }
-            if (path.IsCompleted || path.Instability > Region.MAX_SAFE_INSTABILITY) {
-                return true;
-            }
-            return path.Cost > (Region.MAX_SAFE_INSTABILITY + 1 - path.Instability) * TURN_POINTS;
+    Path? RefreshPath(Point town, Path currentPath, bool justConnected) {
+        var newPath = pathfinding.Path(town, currentPath.Value.Last().point);
+        if (newPath == null) {
+            return null;
         }
+        if (justConnected) {
+            findShortest = true;
+            var shortestPath = pathfinding.Path(town, currentPath.Value.Last().point);
+            if (shortestPath != null && Path.Gain(shortestPath) > Path.Gain(newPath)) {
+                newPath = shortestPath;
+            }
+        }
+        findShortest = false;
+        var oldPath = justConnected ? currentPath.Old : currentPath.Value;
+        return Path.From(newPath, oldPath);
     }
 
     void PlaceTracks(List<Path> paths, ref int points, HashSet<string> placed,
             string log, bool differentRegions = false) {
-        if (points == 0) {
+        if (points == 0 || paths.Count == 0) {
             return;
         }
         Debug.Log(log);
         int lastRegion = -1;
         Debug.Log("all paths", 1);
         foreach (var path in paths) {
-            Debug.Log($"from {path.Value.First().cell} to {path.Value.Last().cell}, Cost: {path.Cost}, OldInstability: {path.OldInstability}", 2);
+            Debug.Log(path, 2);
+            if (false && path.Value.First().point == new Point(11, 2) && path.Value.Last().point == new Point(15, 5)) {
+                foreach (var valueTuple in path.Value) {
+                    Debug.Log($"{valueTuple}: owner: {cells[valueTuple.point].TracksOwner}", 3);
+                }
+            }
         }
-        foreach (var path in paths.OrderBy(it => it.Cost)) {
-            Debug.Log($"processing path from {path.Value.First().cell} to {path.Value.Last().cell}", 1);
+        foreach (var path in paths) {
+            Debug.Log($"processing path {path.Route()}", 1);
             foreach ((var point, int cost) in path.Value.Where(it => it.cost > 0).OrderBy(it => it.cost)) {
                 if (points - cost < 0) {
                     continue;
@@ -543,11 +856,9 @@ class Game : IGraph<Point> {
                 if (differentRegions && cell.Region.Id == lastRegion) {
                     continue;
                 }
-                if (placed.Add(Actions.PlaceTrack(point))) {
-                    Debug.Log($"placed track at {point}, cost: {cost} from", 2);
-                    foreach (var valueTuple in path.Value) {
-                        Debug.Log(valueTuple, 3);
-                    }
+                if (placed.Add(GameActions.PlaceTrack(point))) {
+                    cell.SetTrackOwner(player);
+                    Debug.Log($"placed track at {point}, cost: {cost} {path.Route()}", 2);
                     points -= cost;
                     lastRegion = cell.Region.Id;
                     message.Append($"PT - {point}: {cost}, ");
@@ -573,7 +884,7 @@ class Game : IGraph<Point> {
         }
         var safeToInk = foeRegions
                 .Where(it => it.Instability == Region.MAX_SAFE_INSTABILITY)
-                .FirstOrDefault(it => it.TownConnections.Count >= 2);
+                .FirstOrDefault(it => it.TownConnections.value.Count >= 2);
         if (safeToInk != null) {
             Debug.Log($"destroying region connecting 2 or more towns: {safeToInk}");
             region = safeToInk;
@@ -594,11 +905,7 @@ class Game : IGraph<Point> {
     IEnumerable<(Point, int cost)> IGraph<Point>.Next(Point current) {
         foreach (var direction in Screen.Directions4) {
             var point = current + direction;
-            if (!point.InBounds(width, height)) {
-                continue;
-            }
-            var cell = cells[point];
-            if (builtPaths && cell.Region.Instability > 0 || cell.Region.Inked) {
+            if (!point.InBounds(width, height) || cells[point].Region.Instability > 0) {
                 continue;
             }
             yield return (point, Cost(point));
@@ -608,7 +915,7 @@ class Game : IGraph<Point> {
     int Cost(Point point) {
         var cell = cells[point];
         int? town = cell.Region.Town;
-        if (cell.TracksOwner != Owner.NoTrack || town.HasValue && towns[town.Value].Point == point) {
+        if (!findShortest && cell.TracksOwner != Owner.NoTrack || town.HasValue && towns[town.Value].Point == point) {
             return 0;
         }
         return paintPoints[cell.Type];
@@ -617,40 +924,181 @@ class Game : IGraph<Point> {
     int IGraph<Point>.Tiebreak(Point from, Point to) {
         var regionFrom = cells[from].Region;
         var regionTo = cells[to].Region;
-        if (regionTo.IsSafe && !regionFrom.IsSafe) {
+        if (!findShortest && regionTo.IsSafe && !regionFrom.IsSafe) {
             return 0;
         }
         var difference = to - from;
         return Array.IndexOf(Screen.Directions4, difference) + 1;
     }
+
+    IEnumerable<GameState> IGame<GameState>.Next(GameState current) {
+        foreach (var next in CompletedPathStates(current)) {
+            yield return next;
+        }
+        foreach (var next in RegionTrackStates(current)) {
+            yield return next;
+        }
+        foreach (var next in PointTrackStates(current)) {
+            yield return next;
+        }
+    }
+
+    IEnumerable<GameState> CompletedPathStates(GameState state) {
+        foreach (var path in state.Paths.Where(it => it is { IsCompleted: false, Cost.value: <= TURN_POINTS })) {
+            var next = state.Clone();
+            foreach (var (point, _) in path.Value.Where(it => it.cost != 0)) {
+                next.PlaceTrack(point, player);
+            }
+            next.UpdateScore(player);
+            yield return next;
+        }
+    }
+
+    IEnumerable<GameState> RegionTrackStates(GameState state) {
+        const int nextPerPoints = 10;
+        int lastRegion = -1;
+        int budget = TURN_POINTS;
+        var next = state.Clone();
+        var nextCount = 0;
+        foreach (var path in state.Paths.OrderBy(it => it.GainTurns).ThenByDescending(it => it.Gain())) {
+            foreach ((var point, int cost) in path.Value.Where(it => it.cost != 0)) {
+                if (budget - cost < 0) {
+                    continue;
+                }
+                var cell = cells[point];
+                if (cell.Region.Id == lastRegion) {
+                    continue;
+                }
+                lastRegion = cell.Region.Id;
+                budget -= cost;
+                next.PlaceTrack(point, player);
+                if (budget != 0) {
+                    continue;
+                }
+                next.UpdateScore(player);
+                yield return next;
+                if (++nextCount == nextPerPoints) {
+                    break;
+                }
+                budget = TURN_POINTS;
+                next = state.Clone();
+            }
+        }
+    }
+
+    [SuppressMessage("ReSharper", "InvertIf")]
+    IEnumerable<GameState> PointTrackStates(GameState state) {
+        const int nextPerPoints = 5;
+        for (var points = 1; points <= 3; points++) {
+            int budget = TURN_POINTS;
+            var next = state.Clone();
+            var nextCount = 0;
+            foreach ((var point, int cost) in PointTracks(state, points)) {
+                budget -= cost;
+                next.PlaceTrack(point, player);
+                if (points >= 2 || budget == 0) {
+                    next.UpdateScore(player);
+                    yield return next;
+                    if (++nextCount == nextPerPoints) {
+                        break;
+                    }
+                    budget = TURN_POINTS;
+                    next = state.Clone();
+                }
+            }
+            if (points == 1 && budget < 2) {
+                next.UpdateScore(player);
+                yield return next;
+            }
+        }
+    }
+
+    static IEnumerable<(Point point, int cost)> PointTracks(GameState state, int points) {
+        foreach (var path in state.Paths.OrderBy(it => it.GainTurns).ThenByDescending(it => it.Gain())) {
+            foreach ((var point, int cost) in path.Value.Where(it => it.cost != 0)) {
+                if (cost != points) {
+                    continue;
+                }
+                yield return (point, cost);
+            }
+        }
+    }
 }
 
-record Path(List<(Point cell, int cost)> Value, List<(Point, int)>? Old = null) {
-    public int Cost => Value.Sum(it => it.cost);
-    public bool IsCompleted => Cost == 0;
-    public int Instability { get; private set; }
-    public int OldInstability { get; private set; }
-    public static Func<Point, int> GetCost { private get; set; } = null!;
-    public static Func<Point, Region> GetRegion { private get; set; } = null!;
+record Path(List<(Point point, int cost)> Value, List<(Point, int)>? Old = null) {
+    public (int value, int old) Cost { get; private set; }
+    public int GainTurns => Cost.value / Game.TURN_POINTS;
+    public bool IsCompleted => Cost.value == 0;
+    public (int value, int old) Instability { get; private set; }
 
-    public static Path From(List<Point> value, Path? old = null) {
-        var path = new Path([.. value.Select(it => (it, 0))], old?.Value);
+    public static Owner Player { private get; set; }
+    public static Func<Point, int> GetCost { private get; set; } = null!;
+    public static Func<Point, Cell> GetCell { private get; set; } = null!;
+
+    public static Path From(List<Point> value, List<(Point, int)>? old = null) {
+        var path = new Path([.. value.Select(it => (it, 0))], old);
         path.Update();
         return path;
     }
 
     public void Update() {
+        var totalCost = 0;
         for (var i = 0; i < Value.Count; i++) {
-            (var cell, int _) = Value[i];
-            Value[i] = (cell, GetCost(cell));
-            Instability = Math.Max(Instability, GetRegion(cell).Instability);
+            (var point, int _) = Value[i];
+            int cost = GetCost(point);
+            Value[i] = (point, cost);
+            totalCost += cost;
+            Instability = Instability with { value = Math.Max(Instability.value, GetCell(point).Region.Instability) };
         }
+        Cost = Cost with { value = totalCost };
         if (Old == null) {
             return;
         }
-        foreach ((var cell, int _) in Old) {
-            OldInstability = Math.Max(OldInstability, GetRegion(cell).Instability);
+        totalCost = 0;
+        for (var i = 0; i < Old.Count; i++) {
+            (var point, int _) = Old[i];
+            int cost = GetCost(point);
+            Old[i] = (point, cost);
+            totalCost += cost;
+            Instability = Instability with { old = Math.Max(Instability.old, GetCell(point).Region.Instability) };
         }
+        Cost = Cost with { old = totalCost };
+    }
+
+    public void TryPlaceTrack(Point point) {
+        for (var i = 0; i < Value.Count; i++) {
+            (var pathPoint, int cost) = Value[i];
+            if (pathPoint != point) {
+                continue;
+            }
+            Value[i] = (pathPoint, 0);
+            Cost = Cost with { value = Cost.value - cost };
+            break;
+        }
+    }
+
+    public bool NeedToRefreshUnstable() {
+        if (Instability.value == 0) {
+            return false;
+        }
+        if (IsCompleted || Instability.value > Region.MAX_SAFE_INSTABILITY) {
+            return true;
+        }
+        return Cost.value > (Region.MAX_SAFE_INSTABILITY + 1 - Instability.value) * Game.TURN_POINTS;
+    }
+
+    public static int Gain(List<Point> value) => value.Count(it => CanGivePoints(it));
+    public int Gain(Func<Point, Cell>? getCell = null) => Value.Count(it => CanGivePoints(it.point, getCell));
+
+    static bool CanGivePoints(Point it, Func<Point, Cell>? getCell = null) {
+        getCell ??= GetCell;
+        return getCell(it).TracksOwner == Player || getCell(it).TracksOwner == Owner.NoTrack;
+    }
+
+    public string Route() => $"from {Value.First().point} to {Value.Last().point}";
+
+    public override string ToString() {
+        return $"{Route()}, Cost: {Cost}, Gain: {Gain()} in turns: {GainTurns}, OldInstability: {Instability.old}";
     }
 }
 
@@ -660,17 +1108,19 @@ record Region(int Id) {
     public int? Town { get; set; }
     public bool IsSafe => Town.HasValue;
     public Dictionary<Owner, int> Tracks { get; } = [];
-    public HashSet<int> TownConnections { get; } = [];
+    public (HashSet<int> value, HashSet<int> old) TownConnections { get; private set; } = ([], null!);
 
     /// region inked (destroyed) when this >= 4
     public int Instability { get; set; }
 
-    /// true if the region is destroyed
-    public bool Inked { get; set; }
-
-    public void Clear() {
+    public void InitTurn() {
         Tracks.Clear();
-        TownConnections.Clear();
+        TownConnections = TownConnections with { old = [.. TownConnections.value] };
+        TownConnections.value.Clear();
+    }
+
+    public bool BecameConnected(int id) {
+        return !TownConnections.old.Contains(id) && TownConnections.value.Contains(id);
     }
 
     public virtual bool Equals(Region? other) => Id == other?.Id;
@@ -679,14 +1129,20 @@ record Region(int Id) {
     public override string ToString() {
         return $"""
                 {Id}
-                  instability: {Instability}, connected towns: {string.Join(", ", TownConnections)}
+                  instability: {Instability}, connected towns: {string.Join(", ", TownConnections.value)}
                   tracks: {string.Join(", ", Tracks.Select(it => (it.Key, it.Value)))}
                 """;
     }
 }
 
 record Cell(Region Region, CellType Type) {
-    public Owner TracksOwner { get; set; } = Owner.NoTrack;
+    public Owner TracksOwner { get; private set; } = Owner.NoTrack;
+
+    public void SetTrackOwner(Owner owner) {
+        TracksOwner = owner;
+        int tracks = Region.Tracks.GetValueOrDefault(owner);
+        Region.Tracks[owner] = tracks + 1;
+    }
 }
 
 enum Owner {
@@ -706,7 +1162,7 @@ record Town(Point Point, HashSet<int> DesiredConnections) {
     public List<Path?> Paths { get; } = [];
 }
 
-static class Actions {
+static class GameActions {
     public static string Autoplace(Town from, Town to) => $"AUTOPLACE {from.Point} {to.Point}";
     public static string PlaceTrack(Point point) => $"PLACE_TRACKS {point}";
     public static string Disrupt(int region) => $"DISRUPT {region}";
@@ -717,6 +1173,10 @@ static class Actions {
 readonly record struct Point(int X, int Y) {
     public bool InBounds(int width, int height) {
         return X >= 0 && X < width && Y >= 0 && Y < height;
+    }
+
+    public static int ManhattanDistance(Point a, Point b) {
+        return Math.Abs(a.X - b.X) + Math.Abs(a.Y - b.Y);
     }
 
     public static Point operator +(Point a, Point b) => new(a.X + b.X, a.Y + b.Y);
@@ -734,10 +1194,59 @@ static class Screen {
     public static Point[] Directions4 { get; } = [UP, RIGHT, DOWN, LEFT];
 }
 
+class BeamSearch<T>(IGame<T> game) where T : class, IState {
+    readonly HashSet<T> visited = [];
+
+    [SuppressMessage("ReSharper", "ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator")]
+    public T? FindBest(T start, int levels, int beamWidth = 10) {
+        T? best = null;
+        var currentLevel = new List<T> { start };
+        for (var level = 0; level < levels; level++) {
+            var nextLevel = new List<T>();
+            visited.Clear();
+            foreach (var current in currentLevel) {
+                var stopwatch = Stopwatch.StartNew();
+                nextLevel.AddRange(game.Next(current));
+                Debug.Log($"Next took {stopwatch.Elapsed.TotalMilliseconds}ms", level);
+            }
+            Debug.Log($"Next states: {nextLevel.Count}", level);
+            currentLevel.Clear();
+            // by score descending
+            nextLevel.Sort((a, b) => b.Score.CompareTo(a.Score));
+            foreach (var state in nextLevel) {
+                if (!visited.Add(state)) {
+                    continue;
+                }
+                if (currentLevel.Count >= beamWidth) {
+                    break;
+                }
+                currentLevel.Add(state);
+            }
+            if (currentLevel.Count == 0) {
+                break;
+            }
+            var bestCurrent = currentLevel.First();
+            if (best == null || bestCurrent.Score > best.Score) {
+                best = bestCurrent;
+            }
+        }
+        return best;
+    }
+}
+
+interface IGame<TState> {
+    IEnumerable<TState> Next(TState current);
+}
+
+interface IState : IEquatable<IState> {
+    int Score { get; }
+}
+
 class Pathfinding<T>(IGraph<T> graph) where T : IEquatable<T> {
     readonly PriorityQueue<T, (int cost, int tiebreak)> queue = new();
     readonly Dictionary<T, T> parents = new();
     readonly Dictionary<T, int> visited = new();
+    readonly StringBuilder log = new();
 
     /// Dijkstra
     public List<T>? Path(T start, T end) {
@@ -745,11 +1254,29 @@ class Pathfinding<T>(IGraph<T> graph) where T : IEquatable<T> {
         parents.Clear();
         visited.Clear();
         queue.Enqueue(start, (0, 0));
-        Debug.Log($"Enqueue {start}, {(0, 0)}");
+        log.Clear();
+        log.AppendLine($"Put {start}, {(0, 0)}");
         visited.Add(start, 0);
+        var closest = 0;
+        var endPoint = new Point();
+        if (start is Point startPoint && end is Point point) {
+            endPoint = point;
+            closest = Point.ManhattanDistance(startPoint, endPoint);
+        }
         while (queue.TryDequeue(out var current, out var priority)) {
-            Debug.Log($"Dequeue {current}, current path: {string.Join(", ", Reconstruct(start, current))}", 1);
+            log.Append($"  Pop {current}");
+            if (current is Point currentPoint) {
+                int distance = Point.ManhattanDistance(currentPoint, endPoint);
+                if (distance < closest) {
+                    closest = distance;
+                    log.Append($": {string.Join(", ", Reconstruct(start, current))}");
+                }
+            }
+            log.AppendLine();
             if (current.Equals(end)) {
+                if (start.Equals(new Point(7, 6)) && end.Equals(new Point(14, 10))) {
+                    Debug.Log(log);
+                }
                 return Reconstruct(start, current);
             }
             foreach ((var next, int cost) in graph.Next(current)) {
@@ -758,7 +1285,7 @@ class Pathfinding<T>(IGraph<T> graph) where T : IEquatable<T> {
                     continue;
                 }
                 queue.Enqueue(next, (newCost, priority.tiebreak + graph.Tiebreak(current, next)));
-                Debug.Log($"Enqueue {next}, {(newCost, graph.Tiebreak(current, next))}");
+                log.AppendLine($"Put {next}, {(newCost, priority.tiebreak + graph.Tiebreak(current, next))}");
                 visited[next] = newCost;
                 parents[next] = current;
             }
