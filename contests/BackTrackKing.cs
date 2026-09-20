@@ -366,25 +366,27 @@ class Game : IGraph<Point>, IGame<GameState> {
     IEnumerable<GameState> IGame<GameState>.Next(GameState current) {
         const int nextPerPoints = 5;
         int budget;
-        GameState? next = null;
+        GameState next;
         NextTurn();
         foreach (var path in current.Paths.Where(it => it is { IsCompleted: false, Cost.value: <= TURN_POINTS })) {
             foreach ((var point, int cost) in path.Value) {
                 if (cost == 0) {
                     continue;
                 }
-                next!.PlaceTrack(point, player);
+                next.PlaceTrack(point, player);
             }
-            yield return next!;
+            next.ScorePoints(player);
+            yield return next;
             NextTurn();
         }
         for (var points = 1; points <= 3; points++) {
             var nextCount = 0;
             foreach ((var point, int cost) in NextTracks(current, points)) {
-                next!.PlaceTrack(point, player);
+                next.PlaceTrack(point, player);
                 budget -= cost;
                 if (points == 1 && budget == 0 || points >= 2) {
-                    yield return next!;
+                    next.ScorePoints(player);
+                    yield return next;
                     NextTurn();
                     if (++nextCount == nextPerPoints) {
                         break;
@@ -392,7 +394,8 @@ class Game : IGraph<Point>, IGame<GameState> {
                 }
             }
             if (points == 1 && budget < 2) {
-                yield return next!;
+                next.ScorePoints(player);
+                yield return next;
                 NextTurn();
             }
         }
@@ -400,7 +403,6 @@ class Game : IGraph<Point>, IGame<GameState> {
 
         void NextTurn() {
             budget = TURN_POINTS;
-            next?.ScorePoints(player);
             next = current.Clone();
         }
     }
