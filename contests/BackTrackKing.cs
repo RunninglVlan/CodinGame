@@ -14,11 +14,75 @@ while (true) {
     game.Loop();
 }
 
-class Game : IGraph<Point> {
+class GameState : IState {
+    public int Score { get; set; }
+    public Dictionary<Point, Cell> Cells { get; init; } = null!;
+    public List<Path> Paths { get; init; } = null!;
+    public List<HashSet<string>> Actions { get; init; } = null!;
+
+    public GameState Clone() {
+        return new GameState {
+            Cells = Cells.ToDictionary(it => it.Key, it => it.Value with { }),
+            Paths = [.. Paths.Select(it => it with { Value = [.. it.Value] })],
+            Actions = [.. Actions, []]
+        };
+    }
+
+    public void PlaceTrack(Point point, Owner player) {
+        Actions.Last().Add(GameActions.PlaceTrack(point));
+        Cells[point].SetTrackOwner(player);
+        foreach (var path in Paths) {
+            path.TryPlaceTrack(point);
+        }
+    }
+
+    [SuppressMessage("ReSharper", "ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator")]
+    public void ScorePoints(Owner player) {
+        foreach (var path in Paths) {
+            if (!path.IsCompleted) {
+                continue;
+            }
+            foreach ((var point, int _) in path.Value) {
+                if (Cells[point].TracksOwner == player) {
+                    Score++;
+                }
+            }
+        }
+    }
+
+    public bool Equals(IState? other) {
+        if (other is not GameState that) {
+            return false;
+        }
+        if (ReferenceEquals(this, that)) {
+            return true;
+        }
+        foreach (var (point, cell) in Cells) {
+            if (cell.TracksOwner != that.Cells[point].TracksOwner) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public override bool Equals(object? other) => Equals(other as IState);
+
+    [SuppressMessage("ReSharper", "ForeachCanBeConvertedToQueryUsingAnotherGetEnumerator")]
+    public override int GetHashCode() {
+        var cellsHash = 0;
+        foreach (var cell in Cells.Values) {
+            cellsHash ^= cell.TracksOwner.GetHashCode();
+        }
+        return cellsHash;
+    }
+}
+
+class Game : IGraph<Point>, IGame<GameState> {
     const string NO_CONNECTIONS = "x";
     public const int TURN_POINTS = 3;
 
     readonly Pathfinding<Point> pathfinding;
+    readonly BeamSearch<GameState> beamSearch;
 
     Owner player, foe;
     int width, height;
@@ -37,6 +101,7 @@ class Game : IGraph<Point> {
 
     public Game() {
         pathfinding = new Pathfinding<Point>(this);
+        beamSearch = new BeamSearch<GameState>(this);
         Path.GetCost = Cost;
         Path.GetCell = point => cells[point];
     }
@@ -73,19 +138,21 @@ class Game : IGraph<Point> {
     }
 
     public void Loop() {
-        ReadState();
+        var startState = ReadState();
         message.Clear();
-        HashSet<string> actions = [];
-        int points = TURN_POINTS;
-        var paths = GetPaths().OrderBy(it => it.GainTurns).ThenByDescending(it => it.Gain()).ToList();
-        var completeThisTurn = paths.Where(it => it is { IsCompleted: false, Cost.value: <= TURN_POINTS }).ToList();
-        PlaceTracks(completeThisTurn, ref points, actions, "trying to complete tracks this turn");
-        var activePathsInDanger = paths
-                .Where(it => it.Cost.old == 0 && it.Instability.old == Region.MAX_SAFE_INSTABILITY)
-                .ToList();
-        PlaceTracks(activePathsInDanger, ref points, actions, "trying to save paths in danger");
-        PlaceTracks(paths, ref points, actions, "trying to build tracks on different regions", differentRegions: true);
-        PlaceTracks(paths, ref points, actions, "trying to build remaining tracks");
+        var actions = beamSearch.FindBest(startState, 4, 4)?.Actions.First() ?? [];
+        if (false) {
+            int points = TURN_POINTS;
+            var paths = GetPaths().OrderBy(it => it.GainTurns).ThenByDescending(it => it.Gain()).ToList();
+            var completeThisTurn = paths.Where(it => it is { IsCompleted: false, Cost.value: <= TURN_POINTS }).ToList();
+            PlaceTracks(completeThisTurn, ref points, actions, "trying to complete tracks this turn");
+            var activePathsInDanger = paths
+                    .Where(it => it.Cost.old == 0 && it.Instability.old == Region.MAX_SAFE_INSTABILITY)
+                    .ToList();
+            PlaceTracks(activePathsInDanger, ref points, actions, "trying to save paths in danger");
+            PlaceTracks(paths, ref points, actions, "trying to build tracks on different regions", differentRegions: true);
+            PlaceTracks(paths, ref points, actions, "trying to build remaining tracks");
+        }
         if (TryFindRegionToDisrupt(out var region)) {
             actions.Add(GameActions.Disrupt(region.Id));
             message.Append($"DR - {region.Id}");
@@ -99,8 +166,8 @@ class Game : IGraph<Point> {
         Console.WriteLine(string.Join(';', actions));
     }
 
-    void ReadState() {
-        int _ = int.Parse(Console.ReadLine()!); // playerScore
+    GameState ReadState() {
+        int playerScore = int.Parse(Console.ReadLine()!);
         int __ = int.Parse(Console.ReadLine()!); // foeScore
         foreach (var region in regions.Values) {
             region.InitTurn();
@@ -123,6 +190,12 @@ class Game : IGraph<Point> {
                 }
             }
         }
+        return new GameState {
+            Score = playerScore,
+            Cells = cells,
+            Paths = GetPaths(),
+            Actions = []
+        };
     }
 
     public void FindPaths() {
@@ -287,6 +360,39 @@ class Game : IGraph<Point> {
         var difference = to - from;
         return Array.IndexOf(Screen.Directions4, difference) + 1;
     }
+
+    [SuppressMessage("ReSharper", "InvertIf")]
+    IEnumerable<GameState> IGame<GameState>.Next(GameState current) {
+        int budget;
+        GameState? next = null;
+        NextTurn();
+        for (var points = 1; points <= 3; points++) {
+            foreach (var path in current.Paths) {
+                foreach ((var point, int cost) in path.Value) {
+                    if (cost == 0 || cost != points) {
+                        continue;
+                    }
+                    next!.PlaceTrack(point, player);
+                    budget -= cost;
+                    if (points == 1 && budget == 0 || points >= 2) {
+                        yield return next!;
+                        NextTurn();
+                    }
+                }
+            }
+            if (points == 1 && budget < 2) {
+                yield return next!;
+                NextTurn();
+            }
+        }
+        yield break;
+
+        void NextTurn() {
+            budget = TURN_POINTS;
+            next?.ScorePoints(player);
+            next = current.Clone();
+        }
+    }
 }
 
 record Path(List<(Point point, int cost)> Value, List<(Point, int)>? Old = null) {
@@ -327,6 +433,17 @@ record Path(List<(Point point, int cost)> Value, List<(Point, int)>? Old = null)
             Instability = Instability with { old = Math.Max(Instability.old, GetCell(point).Region.Instability) };
         }
         Cost = Cost with { old = totalCost };
+    }
+
+    public void TryPlaceTrack(Point point) {
+        for (var i = 0; i < Value.Count; i++) {
+            (var pathPoint, int cost) = Value[i];
+            if (pathPoint != point) {
+                continue;
+            }
+            Value[i] = (pathPoint, 0);
+            Cost = Cost with { value = Cost.value - cost };
+        }
     }
 
     public bool NeedToRefreshUnstable() {
@@ -443,6 +560,51 @@ static class Screen {
     static readonly Point RIGHT = new(1, 0);
 
     public static Point[] Directions4 { get; } = [UP, RIGHT, DOWN, LEFT];
+}
+
+class BeamSearch<T>(IGame<T> game) where T : class, IState {
+    readonly HashSet<T> visited = [];
+
+    [SuppressMessage("ReSharper", "ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator")]
+    public T? FindBest(T start, int levels, int beamWidth = 10) {
+        T? best = null;
+        var currentLevel = new List<T> { start };
+        for (var level = 0; level < levels; level++) {
+            var nextLevel = new List<T>();
+            visited.Clear();
+            foreach (var current in currentLevel) {
+                nextLevel.AddRange(game.Next(current));
+            }
+            currentLevel.Clear();
+            // by score descending
+            nextLevel.Sort((a, b) => b.Score.CompareTo(a.Score));
+            foreach (var state in nextLevel) {
+                if (!visited.Add(state)) {
+                    continue;
+                }
+                if (currentLevel.Count >= beamWidth) {
+                    break;
+                }
+                currentLevel.Add(state);
+            }
+            if (currentLevel.Count == 0) {
+                break;
+            }
+            var bestCurrent = currentLevel.First();
+            if (best == null || bestCurrent.Score > best.Score) {
+                best = bestCurrent;
+            }
+        }
+        return best;
+    }
+}
+
+interface IGame<TState> {
+    IEnumerable<TState> Next(TState current);
+}
+
+interface IState : IEquatable<IState> {
+    int Score { get; }
 }
 
 class Pathfinding<T>(IGraph<T> graph) where T : IEquatable<T> {
