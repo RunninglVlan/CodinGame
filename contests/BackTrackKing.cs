@@ -135,9 +135,9 @@ class Game : IGraph<Point> {
                 }
                 town.Paths.Add(Path.From(path));
                 var lastPath = town.Paths.Last()!;
-                Debug.Log($"found path from {id} to {targetId}, Cost: {lastPath.Cost}");
+                // Debug.Log($"found path from {id} to {targetId}, Cost: {lastPath.Cost}");
                 foreach (var valueTuple in lastPath.Value) {
-                    Debug.Log(valueTuple, 1);
+                    // Debug.Log(valueTuple, 1);
                 }
             }
         }
@@ -159,7 +159,7 @@ class Game : IGraph<Point> {
                     if (path == null) {
                         continue;
                     }
-                    Debug.Log($"refreshed path from {id} to {path.Value.Last().point} as {(needToRefreshUnstable ? "it's unstable" : "it was connected")}, Cost: {path.Cost}");
+                    // Debug.Log($"refreshed path from {id} to {path.Value.Last().point} as {(needToRefreshUnstable ? "it's unstable" : "it was connected")}, Cost: {path.Cost}");
                     foreach (var valueTuple in path.Value) {
                         // Debug.Log(valueTuple, 1);
                     }
