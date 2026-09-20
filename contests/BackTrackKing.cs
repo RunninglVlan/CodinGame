@@ -368,6 +368,16 @@ class Game : IGraph<Point>, IGame<GameState> {
         int budget;
         GameState? next = null;
         NextTurn();
+        foreach (var path in current.Paths.Where(it => it is { IsCompleted: false, Cost.value: <= TURN_POINTS })) {
+            foreach ((var point, int cost) in path.Value) {
+                if (cost == 0) {
+                    continue;
+                }
+                next!.PlaceTrack(point, player);
+            }
+            yield return next!;
+            NextTurn();
+        }
         for (var points = 1; points <= 3; points++) {
             var nextCount = 0;
             foreach ((var point, int cost) in NextTracks(current, points)) {
