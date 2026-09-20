@@ -144,8 +144,10 @@ class Game : IGraph<Point>, IGame<GameState> {
     public void Loop() {
         var startState = ReadState();
         message.Clear();
-        var actions = beamSearch.FindBest(startState, 4, 4)?.Actions.First() ?? [];
-        if (false) {
+        var actions = new HashSet<string>();
+        if (true) {
+            actions = beamSearch.FindBest(startState, 4, 4)?.Actions.First() ?? [];
+        } else {
             int points = TURN_POINTS;
             var paths = GetPaths().OrderBy(it => it.GainTurns).ThenByDescending(it => it.GainPoints).ToList();
             var completeThisTurn = paths.Where(it => it is { IsCompleted: false, Cost.value: <= TURN_POINTS }).ToList();
