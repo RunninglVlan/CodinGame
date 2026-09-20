@@ -87,14 +87,14 @@ class Game : IGraph<Point> {
         PlaceTracks(paths, ref points, actions, "trying to build tracks on different regions", differentRegions: true);
         PlaceTracks(paths, ref points, actions, "trying to build remaining tracks");
         if (TryFindRegionToDisrupt(out var region)) {
-            actions.Add(Actions.Disrupt(region.Id));
+            actions.Add(GameActions.Disrupt(region.Id));
             message.Append($"DR - {region.Id}");
         }
         if (message.Length > 0) {
-            actions.Add(Actions.Message(message.ToString()));
+            actions.Add(GameActions.Message(message.ToString()));
         }
         if (actions.Count == 0) {
-            actions.Add(Actions.Wait());
+            actions.Add(GameActions.Wait());
         }
         Console.WriteLine(string.Join(';', actions));
     }
@@ -213,7 +213,7 @@ class Game : IGraph<Point> {
                 if (differentRegions && cell.Region.Id == lastRegion) {
                     continue;
                 }
-                if (placed.Add(Actions.PlaceTrack(point))) {
+                if (placed.Add(GameActions.PlaceTrack(point))) {
                     cell.SetTrackOwner(player);
                     Debug.Log($"placed track at {point}, cost: {cost} {path.Route()}", 2);
                     points -= cost;
@@ -413,7 +413,7 @@ record Town(Point Point, HashSet<int> DesiredConnections) {
     public List<Path?> Paths { get; } = [];
 }
 
-static class Actions {
+static class GameActions {
     public static string Autoplace(Town from, Town to) => $"AUTOPLACE {from.Point} {to.Point}";
     public static string PlaceTrack(Point point) => $"PLACE_TRACKS {point}";
     public static string Disrupt(int region) => $"DISRUPT {region}";
