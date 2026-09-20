@@ -504,6 +504,7 @@ record Path(List<(Point point, int cost)> Value, List<(Point, int)>? Old = null)
             }
             Value[i] = (pathPoint, 0);
             Cost = Cost with { value = Cost.value - cost };
+            break;
         }
     }
 
