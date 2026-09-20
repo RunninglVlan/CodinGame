@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
@@ -573,8 +574,11 @@ class BeamSearch<T>(IGame<T> game) where T : class, IState {
             var nextLevel = new List<T>();
             visited.Clear();
             foreach (var current in currentLevel) {
+                var stopwatch = Stopwatch.StartNew();
                 nextLevel.AddRange(game.Next(current));
+                Debug.Log($"Next took {stopwatch.Elapsed.TotalMilliseconds}ms", level);
             }
+            Debug.Log($"Next states: {nextLevel.Count}", level);
             currentLevel.Clear();
             // by score descending
             nextLevel.Sort((a, b) => b.Score.CompareTo(a.Score));
