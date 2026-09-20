@@ -366,6 +366,9 @@ class Game : IGraph<Point>, IGame<GameState> {
         foreach (var next in CompletedPathStates(current)) {
             yield return next;
         }
+        foreach (var next in RegionTrackStates(current)) {
+            yield return next;
+        }
         foreach (var next in PointTrackStates(current)) {
             yield return next;
         }
@@ -379,6 +382,38 @@ class Game : IGraph<Point>, IGame<GameState> {
             }
             next.ScorePoints(player);
             yield return next;
+        }
+    }
+
+    IEnumerable<GameState> RegionTrackStates(GameState state) {
+        const int nextPerPoints = 10;
+        int lastRegion = -1;
+        int budget = TURN_POINTS;
+        var next = state.Clone();
+        var nextCount = 0;
+        foreach (var path in state.Paths.OrderBy(it => it.GainTurns).ThenByDescending(it => it.Gain())) {
+            foreach ((var point, int cost) in path.Value.Where(it => it.cost != 0)) {
+                if (budget - cost < 0) {
+                    continue;
+                }
+                var cell = cells[point];
+                if (cell.Region.Id == lastRegion) {
+                    continue;
+                }
+                lastRegion = cell.Region.Id;
+                budget -= cost;
+                next.PlaceTrack(point, player);
+                if (budget != 0) {
+                    continue;
+                }
+                next.ScorePoints(player);
+                yield return next;
+                if (++nextCount == nextPerPoints) {
+                    break;
+                }
+                budget = TURN_POINTS;
+                next = state.Clone();
+            }
         }
     }
 
