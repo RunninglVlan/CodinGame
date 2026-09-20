@@ -364,20 +364,20 @@ class Game : IGraph<Point>, IGame<GameState> {
 
     [SuppressMessage("ReSharper", "InvertIf")]
     IEnumerable<GameState> IGame<GameState>.Next(GameState current) {
+        const int nextPerPoints = 5;
         int budget;
         GameState? next = null;
         NextTurn();
         for (var points = 1; points <= 3; points++) {
-            foreach (var path in current.Paths) {
-                foreach ((var point, int cost) in path.Value) {
-                    if (cost == 0 || cost != points) {
-                        continue;
-                    }
-                    next!.PlaceTrack(point, player);
-                    budget -= cost;
-                    if (points == 1 && budget == 0 || points >= 2) {
-                        yield return next!;
-                        NextTurn();
+            var nextCount = 0;
+            foreach ((var point, int cost) in NextTracks(current, points)) {
+                next!.PlaceTrack(point, player);
+                budget -= cost;
+                if (points == 1 && budget == 0 || points >= 2) {
+                    yield return next!;
+                    NextTurn();
+                    if (++nextCount == nextPerPoints) {
+                        break;
                     }
                 }
             }
@@ -392,6 +392,17 @@ class Game : IGraph<Point>, IGame<GameState> {
             budget = TURN_POINTS;
             next?.ScorePoints(player);
             next = current.Clone();
+        }
+    }
+
+    static IEnumerable<(Point point, int cost)> NextTracks(GameState state, int points) {
+        foreach (var path in state.Paths.OrderBy(it => it.GainTurns).ThenByDescending(it => it.Gain())) {
+            foreach ((var point, int cost) in path.Value) {
+                if (cost == 0 || cost != points) {
+                    continue;
+                }
+                yield return (point, cost);
+            }
         }
     }
 }
