@@ -43,7 +43,7 @@ class GameState : IState {
         heuristic = 0;
         foreach (var path in Paths) {
             if (!path.IsCompleted) {
-                heuristic += (int)(path.Gain(it => Cells[it]) / (float)(path.GainTurns + 1) * 100);
+                heuristic += (int)(path.GainPoints / (float)(path.GainTurns + 1) * 100);
                 continue;
             }
             foreach ((var point, int _) in path.Value) {
@@ -147,7 +147,7 @@ class Game : IGraph<Point>, IGame<GameState> {
         var actions = beamSearch.FindBest(startState, 4, 4)?.Actions.First() ?? [];
         if (false) {
             int points = TURN_POINTS;
-            var paths = GetPaths().OrderBy(it => it.GainTurns).ThenByDescending(it => it.Gain()).ToList();
+            var paths = GetPaths().OrderBy(it => it.GainTurns).ThenByDescending(it => it.GainPoints).ToList();
             var completeThisTurn = paths.Where(it => it is { IsCompleted: false, Cost.value: <= TURN_POINTS }).ToList();
             PlaceTracks(completeThisTurn, ref points, actions, "trying to complete tracks this turn");
             var activePathsInDanger = paths
@@ -394,7 +394,7 @@ class Game : IGraph<Point>, IGame<GameState> {
         int budget = TURN_POINTS;
         var next = state.Clone();
         var nextCount = 0;
-        foreach (var path in state.Paths.OrderBy(it => it.GainTurns).ThenByDescending(it => it.Gain())) {
+        foreach (var path in state.Paths.OrderBy(it => it.GainTurns).ThenByDescending(it => it.GainPoints)) {
             foreach ((var point, int cost) in path.Value.Where(it => it.cost != 0)) {
                 if (budget - cost < 0) {
                     continue;
@@ -448,7 +448,7 @@ class Game : IGraph<Point>, IGame<GameState> {
     }
 
     static IEnumerable<(Point point, int cost)> PointTracks(GameState state, int points) {
-        foreach (var path in state.Paths.OrderBy(it => it.GainTurns).ThenByDescending(it => it.Gain())) {
+        foreach (var path in state.Paths.OrderBy(it => it.GainTurns).ThenByDescending(it => it.GainPoints)) {
             foreach ((var point, int cost) in path.Value.Where(it => it.cost != 0)) {
                 if (cost != points) {
                     continue;
@@ -462,6 +462,7 @@ class Game : IGraph<Point>, IGame<GameState> {
 record Path(List<(Point point, int cost)> Value, List<(Point, int)>? Old = null) {
     public (int value, int old) Cost { get; private set; }
     public int GainTurns => Cost.value / Game.TURN_POINTS;
+    public int GainPoints { get; private set; }
     public bool IsCompleted => Cost.value == 0;
     public (int value, int old) Instability { get; private set; }
 
@@ -477,11 +478,13 @@ record Path(List<(Point point, int cost)> Value, List<(Point, int)>? Old = null)
 
     public void Update() {
         var totalCost = 0;
+        GainPoints = 0;
         for (var i = 0; i < Value.Count; i++) {
             (var point, int _) = Value[i];
             int cost = GetCost(point);
             Value[i] = (point, cost);
             totalCost += cost;
+            GainPoints += CanGivePoints(GetCell(point)) ? 1 : 0;
             Instability = Instability with { value = Math.Max(Instability.value, GetCell(point).Region.Instability) };
         }
         Cost = Cost with { value = totalCost };
@@ -507,6 +510,7 @@ record Path(List<(Point point, int cost)> Value, List<(Point, int)>? Old = null)
             }
             Value[i] = (pathPoint, 0);
             Cost = Cost with { value = Cost.value - cost };
+            GainPoints++;
             break;
         }
     }
@@ -521,18 +525,16 @@ record Path(List<(Point point, int cost)> Value, List<(Point, int)>? Old = null)
         return Cost.value > (Region.MAX_SAFE_INSTABILITY + 1 - Instability.value) * Game.TURN_POINTS;
     }
 
-    public static int Gain(List<Point> value) => value.Count(it => CanGivePoints(it));
-    public int Gain(Func<Point, Cell>? getCell = null) => Value.Count(it => CanGivePoints(it.point, getCell));
+    public static int Gain(List<Point> value) => value.Select(it => GetCell(it)).Count(CanGivePoints);
 
-    static bool CanGivePoints(Point it, Func<Point, Cell>? getCell = null) {
-        getCell ??= GetCell;
-        return getCell(it).TracksOwner == Player || getCell(it).TracksOwner == Owner.NoTrack;
+    static bool CanGivePoints(Cell cell) {
+        return cell.TracksOwner == Player || cell.TracksOwner == Owner.NoTrack;
     }
 
     public string Route() => $"from {Value.First().point} to {Value.Last().point}";
 
     public override string ToString() {
-        return $"{Route()}, Cost: {Cost}, Gain: {Gain()} in turns: {GainTurns}, OldInstability: {Instability.old}";
+        return $"{Route()}, Cost: {Cost}, Gain: {GainPoints} in turns: {GainTurns}, OldInstability: {Instability.old}";
     }
 }
 
