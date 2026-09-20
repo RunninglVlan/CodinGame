@@ -102,6 +102,7 @@ class Game : IGraph<Point>, IGame<GameState> {
 
     readonly StringBuilder message = new();
     bool findShortest;
+    readonly Dictionary<Point, int> pointFrequencies = [];
 
     public Game() {
         pathfinding = new Pathfinding<Point>(this);
@@ -145,11 +146,12 @@ class Game : IGraph<Point>, IGame<GameState> {
         var startState = ReadState();
         message.Clear();
         var actions = new HashSet<string>();
-        if (true) {
+        if (false) {
             actions = beamSearch.FindBest(startState, 4, 4)?.Actions.First() ?? [];
         } else {
             int points = TURN_POINTS;
             var paths = GetPaths().OrderBy(it => it.GainTurns).ThenByDescending(it => it.GainPoints).ToList();
+            UpdateFrequencies(paths);
             var completeThisTurn = paths.Where(it => it is { IsCompleted: false, Cost.value: <= TURN_POINTS }).ToList();
             PlaceTracks(completeThisTurn, ref points, actions, "trying to complete tracks this turn");
             var activePathsInDanger = paths
@@ -222,6 +224,19 @@ class Game : IGraph<Point>, IGame<GameState> {
         }
     }
 
+    void UpdateFrequencies(List<Path> paths) {
+        pointFrequencies.Clear();
+        foreach (var path in paths) {
+            foreach ((var point, int cost) in path.Value) {
+                if (cost == 0) {
+                    continue;
+                }
+                int count = pointFrequencies.GetValueOrDefault(point);
+                pointFrequencies[point] = count + 1;
+            }
+        }
+    }
+
     List<Path> GetPaths() {
         List<Path> paths = [];
         foreach ((int id, var town) in towns) {
@@ -284,7 +299,11 @@ class Game : IGraph<Point>, IGame<GameState> {
         }
         foreach (var path in paths) {
             Debug.Log($"processing path {path.Route()}", 1);
-            foreach ((var point, int cost) in path.Value.Where(it => it.cost > 0).OrderBy(it => it.cost)) {
+            var pathCells = path.Value
+                    .Where(it => it.cost > 0)
+                    .OrderBy(it => it.cost)
+                    .ThenByDescending(it => pointFrequencies[it.point]);
+            foreach ((var point, int cost) in pathCells) {
                 if (points - cost < 0) {
                     continue;
                 }
