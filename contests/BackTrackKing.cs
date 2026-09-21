@@ -5,6 +5,38 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
 
+// todo: improve non-state search solution, keep state search, but hide it with regions
+// todo: use pointFrequencies in disrupt logic
+// todo: use pointFrequencies in path sorting too
+// todo: make pathfinding prefer safe regions with towns, like for example to safely go through region to reach target
+// todo: add regions to state
+/*
+// field
+public Dictionary<int, Region> Regions { get; init; } = null!;
+// clone
+foreach ((int id, var region) in Regions) {
+    regions[id] = region with { };
+}
+foreach (var (point, cell) in Cells) {
+    cells[point] = cell with { Region = regions[cell.Region.Id] };
+}
+// equals
+foreach ((int id, var region) in Regions) {
+    if (region.Instability != that.Regions[id].Instability) {
+        return false;
+    }
+}
+// hash
+var regionsHash = 0;
+foreach ((int id, var region) in Regions) {
+    regionsHash ^= HashCode.Combine(id, region.Instability);
+}
+return HashCode.Combine(cellsHash, regionsHash);
+ */
+// todo: add disruption to beam search
+// todo: simulate opponent actions - try just using my non-beam search actions
+// todo: remove bot versions after at least reaching gold
+
 // Visual
 // Connect towns with your train tracks and disrupt the opponent's
 // https://www.codingame.com/contests/summer-challenge-2026-back-track-king
