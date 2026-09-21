@@ -5,6 +5,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
 
+// todo: prioritize tracks on safe town regions
 // todo: improve non-state search solution, keep state search, but hide it with regions
 // todo: use pointFrequencies in disrupt logic
 // todo: use pointFrequencies in path sorting too
