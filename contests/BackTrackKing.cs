@@ -683,12 +683,12 @@ static class Screen {
     public static Point[] Directions4 { get; } = [UP, RIGHT, DOWN, LEFT];
 }
 
-class BeamSearch<T>(IGame<T> game) where T : class, IState {
+class BeamSearch<T>(IGame<T> game) where T : IState {
     readonly HashSet<T> visited = [];
 
     [SuppressMessage("ReSharper", "ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator")]
     public T? FindBest(T start, int levels, int beamWidth = 10) {
-        T? best = null;
+        T? best = default;
         var currentLevel = new List<T> { start };
         for (var level = 0; level < levels; level++) {
             var nextLevel = new List<T>();
