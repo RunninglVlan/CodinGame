@@ -7,8 +7,8 @@ class BeamSearch<T>(IGame<T> game) where T : IState {
     readonly HashSet<T> visited = [];
 
     [SuppressMessage("ReSharper", "ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator")]
-    public T FindBest(T start, int levels, int beamWidth = 10) {
-        var best = start;
+    public T? FindBest(T start, int levels, int beamWidth = 10) {
+        T? best = default;
         var currentLevel = new List<T> { start };
         for (var level = 0; level < levels; level++) {
             var nextLevel = new List<T>();
@@ -32,10 +32,9 @@ class BeamSearch<T>(IGame<T> game) where T : IState {
                 break;
             }
             var bestCurrent = currentLevel.First();
-            if (best.Score >= bestCurrent.Score) {
-                continue;
+            if (best == null || bestCurrent.Score > best.Score) {
+                best = bestCurrent;
             }
-            best = bestCurrent;
         }
         return best;
     }
