@@ -182,7 +182,7 @@ class Game : IGraph<Point>, IGame<GameState> {
             actions = beamSearch.FindBest(startState, 4, 4)?.Actions.First() ?? [];
         } else {
             int points = TURN_POINTS;
-            var paths = GetPaths().OrderBy(it => it.GainTurns).ThenByDescending(it => it.GainPoints).ToList();
+            var paths = GetPaths().OrderBy(it => it.Cost).ToList();
             UpdateFrequencies(paths);
             var completeThisTurn = paths.Where(it => it is { IsCompleted: false, Cost.value: <= TURN_POINTS }).ToList();
             PlaceTracks(completeThisTurn, ref points, actions, "trying to complete tracks this turn");
@@ -210,7 +210,7 @@ class Game : IGraph<Point>, IGame<GameState> {
         int playerScore = int.Parse(Console.ReadLine()!);
         int __ = int.Parse(Console.ReadLine()!); // foeScore
         foreach (var region in regions.Values) {
-            region.InitTurn();
+            region.Clear();
         }
         for (var y = 0; y < height; y++) {
             for (var x = 0; x < width; x++) {
@@ -225,7 +225,7 @@ class Game : IGraph<Point>, IGame<GameState> {
                 }
                 foreach (string pair in partOfActiveConnections.Split(',')) {
                     foreach (int id in pair.Split('-').Select(int.Parse)) {
-                        cell.Region.TownConnections.value.Add(id);
+                        cell.Region.TownConnections.Add(id);
                     }
                 }
             }
@@ -276,10 +276,11 @@ class Game : IGraph<Point>, IGame<GameState> {
                 if (town.Paths[i] is not { } path) {
                     continue;
                 }
+                bool wasCompleted = path.IsCompleted;
                 path.Update();
                 bool needToRefreshUnstable = path.NeedToRefreshUnstable();
                 var targetRegion = cells[path.Value.Last().point].Region;
-                bool connected = targetRegion.BecameConnected(id);
+                bool connected = !wasCompleted && targetRegion.TownConnections.Contains(id);
                 if (needToRefreshUnstable || connected) {
                     town.Paths[i] = path = RefreshPath(town.Point, path, !needToRefreshUnstable && connected);
                     if (path == null) {
@@ -371,7 +372,7 @@ class Game : IGraph<Point>, IGame<GameState> {
         }
         var safeToInk = foeRegions
                 .Where(it => it.Instability == Region.MAX_SAFE_INSTABILITY)
-                .FirstOrDefault(it => it.TownConnections.value.Count >= 2);
+                .FirstOrDefault(it => it.TownConnections.Count >= 2);
         if (safeToInk != null) {
             Debug.Log($"destroying region connecting 2 or more towns: {safeToInk}");
             region = safeToInk;
@@ -597,19 +598,14 @@ record Region(int Id) {
     public int? Town { get; set; }
     public bool IsSafe => Town.HasValue;
     public Dictionary<Owner, int> Tracks { get; } = [];
-    public (HashSet<int> value, HashSet<int> old) TownConnections { get; private set; } = ([], null!);
+    public HashSet<int> TownConnections { get; } = [];
 
     /// region inked (destroyed) when this >= 4
     public int Instability { get; set; }
 
-    public void InitTurn() {
+    public void Clear() {
         Tracks.Clear();
-        TownConnections = TownConnections with { old = [.. TownConnections.value] };
-        TownConnections.value.Clear();
-    }
-
-    public bool BecameConnected(int id) {
-        return !TownConnections.old.Contains(id) && TownConnections.value.Contains(id);
+        TownConnections.Clear();
     }
 
     public virtual bool Equals(Region? other) => Id == other?.Id;
@@ -618,7 +614,7 @@ record Region(int Id) {
     public override string ToString() {
         return $"""
                 {Id}
-                  instability: {Instability}, connected towns: {string.Join(", ", TownConnections.value)}
+                  instability: {Instability}, connected towns: {string.Join(", ", TownConnections)}
                   tracks: {string.Join(", ", Tracks.Select(it => (it.Key, it.Value)))}
                 """;
     }
@@ -810,7 +806,7 @@ static class Debug {
     }
 
     public static void Log(object? line = null, int tab = 0, ConsoleColor? color = null) {
-        // return;
+        return;
         Console.ForegroundColor = color ?? ConsoleColor.Red;
         var padding = new string(' ', tab * TAB_LENGTH);
         Console.Error.WriteLine($"{padding}{line}");
