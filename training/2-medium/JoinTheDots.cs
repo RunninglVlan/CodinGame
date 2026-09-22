@@ -39,29 +39,30 @@ class Board(int width, int height) {
             var next = dots[i + 1];
             if (current.Y == next.Y) {
                 for (int x = Math.Min(current.X, next.X) + 1; x < Math.Max(current.X, next.X); x++) {
-                    lines[current with { X = x }] = '-';
+                    lines[current with { X = x }] = Line.ROW;
                 }
             } else if (current.X == next.X) {
                 for (int y = Math.Min(current.Y, next.Y) + 1; y < Math.Max(current.Y, next.Y); y++) {
-                    lines[current with { Y = y }] = '|';
-                }
-            } else if (next.X < current.X && next.Y > current.Y || next.X > current.X && next.Y < current.Y) {
-                var direction = Screen.DOWN + Screen.LEFT;
-                bool currentIsAbove = current.Y < next.Y;
-                var start = currentIsAbove ? current : next;
-                var end = currentIsAbove ? next : current;
-                for (var linePoint = start + direction; linePoint != end; linePoint += direction) {
-                    lines[linePoint] = '/';
+                    lines[current with { Y = y }] = Line.COLUMN;
                 }
             } else {
-                var direction = Screen.DOWN + Screen.RIGHT;
-                bool currentIsAbove = current.Y < next.Y;
-                var start = currentIsAbove ? current : next;
-                var end = currentIsAbove ? next : current;
-                for (var linePoint = start + direction; linePoint != end; linePoint += direction) {
-                    lines[linePoint] = '\\';
-                }
+                JoinDiagonally(current, next);
             }
+        }
+    }
+
+    void JoinDiagonally(Point current, Point next) {
+        var direction = Screen.DOWN + Screen.RIGHT;
+        char line = Line.DIAGONAL_BACKWARD;
+        if (next.X < current.X && next.Y > current.Y || next.X > current.X && next.Y < current.Y) {
+            direction = Screen.DOWN + Screen.LEFT;
+            line = Line.DIAGONAL_FORWARD;
+        }
+        bool currentIsAbove = current.Y < next.Y;
+        var start = currentIsAbove ? current : next;
+        var end = currentIsAbove ? next : current;
+        for (var linePoint = start + direction; linePoint != end; linePoint += direction) {
+            lines[linePoint] = line;
         }
     }
 
@@ -70,14 +71,21 @@ class Board(int width, int height) {
             var row = string.Empty;
             for (var x = 0; x < width; x++) {
                 var point = new Point(x, y);
-                char c = lines.TryGetValue(point, out char lineChar)
-                        ? lineChar
+                char c = lines.TryGetValue(point, out char line)
+                        ? line
                         : dots.ContainsValue(point) ? 'o' : ' ';
                 row += c;
             }
             Console.WriteLine(row.TrimEnd());
         }
     }
+}
+
+static class Line {
+    public const char ROW = '-';
+    public const char COLUMN = '|';
+    public const char DIAGONAL_FORWARD = '/';
+    public const char DIAGONAL_BACKWARD = '\\';
 }
 
 readonly record struct Point(int X, int Y) {
