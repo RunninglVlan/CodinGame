@@ -36,63 +36,73 @@ List<Compound> ParseCompounds(string side) {
 }
 
 record Equation(List<Compound> LeftCompounds, List<Compound> RightCompounds) {
+    /*
+ H2 + O2 ->  H2-O
+  unbalanced: [O, (s2, m1)], where s is single and m is multiple
+2H2 + O2 -> 2H2-O <- balanced
+- here we increase O on the right, then update left side accordingly
+step by step
+1.  H2 + O2 -> 2H2-O: balance O on the right
+  unbalanced: [H, (s2, m4)]
+2. 2H2 + O2 -> 2H2-O: balance H on the left -> balanced
+
+ C-O2 +  H2-O -> C6-H12-O6 +  O2
+  unbalanced: [C, (m1, m6)], [H, (m2, m12)], [O, (m2+m1, m6+s2)]
+6C-O2 + 6H2-O -> C6-H12-O6 + 6O2 <- balanced
+1. 6C-O2 +  H2-O -> C6-H12-O6 +  O2: balance C on the left
+  unbalanced: [[H, (m2, m12)], [O, (m12+m1, m6+s2)]
+2. 6C-O2 + 6H2-O -> C6-H12-O6 +  O2: balance H on the left
+  unbalanced: [[O, (m12+m6, m6+s2)]: i need to increase 2O on the right
+3. 6C-O2 + 6H2-O -> C6-H12-O6 + 6O2: balance O on the right -> balanced
+
+ Na-O-H + H2-C-O3 -> Na2-C-O3 +  H2-O
+  unbalanced: [Na, (m1, m2)], [H, (m1+m2, m2)]
+  balanced: 2Na-O-H + H2-C-O3 -> Na2-C-O3 + 2H2-O
+let's try to increase Na on the left
+1. 2Na-O-H + H2-C-O3 -> Na2-C-O3 +  H2-O
+  unbalanced: [O, (m2+m3, m3+m1)], [H, (m2+m2, m2)]
+  Na-O-H were increased on the left, so they need to increase on the right too
+2. 2Na-O-H + H2-C-O3 -> Na2-C-O3 + 2H2-O: balance O on the right -> balanced
+     */
     [SuppressMessage("ReSharper", "ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator")]
     public void Balance() {
-        Dictionary<string, (int left, int right)>? lastUnbalanced = null;
         for (var unbalanced = UnbalancedElements(); unbalanced.Count > 0; unbalanced = UnbalancedElements()) {
-            if (lastUnbalanced == null) {
-                Debug.Log($"Unbalanced: {string.Join(", ", unbalanced)}", 1);
-            } else if (unbalanced.Count == lastUnbalanced.Count) {
-                var allMatch = true;
-                foreach ((string symbol, (int left, int right)) in unbalanced) {
-                    if (!lastUnbalanced.TryGetValue(symbol, out var value)
-                            || left != value.left && right != value.right) {
-                        allMatch = false;
-                    }
-                }
-                if (allMatch) {
-                    Debug.Log("Couldn't balance", 1);
-                    return;
-                }
+            Debug.Log($"unbalanced: {string.Join(", ", unbalanced.ToDictionary(it => it, it => (Count(LeftCompounds, it), Count(RightCompounds, it))))}", 1);
+            if (unbalanced.Count != 1) {
+                throw new NotImplementedException($"unexpected unbalanced element count ({unbalanced.Count}): {string.Join(", ", unbalanced)}");
             }
-            foreach (var compound in LeftCompounds) {
-                if (compound.Elements.Count == unbalanced.Count
-                        && compound.Elements.All(it => unbalanced.ContainsKey(it.Symbol))) {
-                    continue;
-                }
-                compound.Coefficient++;
+            string element = unbalanced.First();
+            int leftCount = Count(LeftCompounds, element);
+            int rightCount = Count(RightCompounds, element);
+            var sideCompounds = leftCount < rightCount ? LeftCompounds : RightCompounds;
+            var compounds = Compounds(sideCompounds, element).ToList();
+            if (compounds.Count != 1) {
+                throw new NotImplementedException($"unexpected unbalanced compound count ({compounds.Count}): {string.Join(", ", compounds)}");
             }
-            foreach (var compound in RightCompounds) {
-                if (compound.Elements.Count == unbalanced.Count
-                        && compound.Elements.All(it => unbalanced.ContainsKey(it.Symbol))) {
-                    continue;
-                }
-                compound.Coefficient++;
+            var compound = compounds.First();
+            int max = Math.Max(leftCount, rightCount);
+            int min = Math.Min(leftCount, rightCount);
+            if (max % min != 0) {
+                throw new NotImplementedException($"unexpected element counts: left: {leftCount}, right: {rightCount}");
             }
-            lastUnbalanced = unbalanced;
+            compound.Coefficient = max / min;
         }
     }
 
-    Dictionary<string, (int left, int right)> UnbalancedElements() {
-        var leftElements = Elements(LeftCompounds);
-        var rightElements = Elements(RightCompounds);
-        Dictionary<string, (int, int)> unbalancedElements = [];
-        foreach ((string symbol, int leftCount) in leftElements) {
-            if (leftCount == rightElements[symbol]) {
-                continue;
-            }
-            unbalancedElements.Add(symbol, (leftCount, rightElements[symbol]));
-        }
-        return unbalancedElements;
+    HashSet<string> UnbalancedElements() {
+        var elements = LeftCompounds
+                .SelectMany(it => it.Elements.Select(element => element.Symbol))
+                .Where(it => Count(LeftCompounds, it) != Count(RightCompounds, it));
+        return [.. elements];
+    }
 
-        Dictionary<string, int> Elements(List<Compound> compounds) {
-            return compounds
-                    .SelectMany(compound => {
-                        return compound.Elements.Select(it => (it.Symbol, count: compound.Coefficient * it.Count));
-                    })
-                    .GroupBy(it => it.Symbol)
-                    .ToDictionary(it => it.Key, it => it.Sum(element => element.count));
-        }
+    static int Count(List<Compound> compounds, string symbol) {
+        return Compounds(compounds, symbol)
+                .Sum(it => it.Coefficient * it.Elements.First(element => element.Symbol == symbol).Count);
+    }
+
+    static IEnumerable<Compound> Compounds(List<Compound> compounds, string symbol) {
+        return compounds.Where(it => it.Elements.Any(element => element.Symbol == symbol));
     }
 
     public override string ToString() {
