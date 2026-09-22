@@ -67,17 +67,19 @@ let's try to increase Na on the left
         for (var unbalanced = UnbalancedElements(); unbalanced.Count > 0; unbalanced = UnbalancedElements()) {
             Debug.Log(this);
             Debug.Log($"unbalanced: {string.Join(", ", unbalanced)}", 1);
-            var element = unbalanced.OrderBy(it => Math.Min(it.Value.left, it.Value.right)).First();
-            var sideCompounds = element.Value.left < element.Value.right ? LeftCompounds : RightCompounds;
-            var compounds = Compounds(sideCompounds, element.Key).ToList();
+            (string element, (int leftCount, int rightCount)) = unbalanced
+                    .OrderBy(it => Math.Min(it.Value.left, it.Value.right))
+                    .First();
+            var sideCompounds = leftCount < rightCount ? LeftCompounds : RightCompounds;
+            var compounds = ElementCompounds(sideCompounds, element).ToList();
             var compound = compounds.OrderBy(it => it.Elements.Count).First();
-            int max = Math.Max(element.Value.left, element.Value.right);
-            int min = Math.Min(element.Value.left, element.Value.right);
+            int max = Math.Max(leftCount, rightCount);
+            int min = Math.Min(leftCount, rightCount);
             if (compounds.Count > 1) {
                 if (compound.Elements.Count > 1) {
                     throw new NotImplementedException($"unexpected unbalanced compound count ({compounds.Count}): {string.Join(", ", compounds)}");
                 }
-                int notSingleCount = compounds.First(it => it.Elements.Count != 1).ElementCount(element.Key);
+                int notSingleCount = compounds.First(it => it.Elements.Count != 1).ElementCount(element);
                 max -= notSingleCount;
                 min -= notSingleCount;
             }
@@ -92,16 +94,20 @@ let's try to increase Na on the left
         return LeftCompounds
                 .SelectMany(it => it.Elements.Select(element => element.Symbol))
                 .Distinct()
-                .Select(symbol => (symbol, left: Count(LeftCompounds, symbol), right: Count(RightCompounds, symbol)))
+                .Select(symbol => (
+                        symbol,
+                        left: ElementCount(LeftCompounds, symbol),
+                        right: ElementCount(RightCompounds, symbol))
+                )
                 .Where(it => it.left != it.right)
                 .ToDictionary(it => it.symbol, it => (it.left, it.right));
     }
 
-    static int Count(List<Compound> compounds, string symbol) {
-        return Compounds(compounds, symbol).Sum(it => it.ElementCount(symbol));
+    static int ElementCount(List<Compound> compounds, string symbol) {
+        return ElementCompounds(compounds, symbol).Sum(it => it.ElementCount(symbol));
     }
 
-    static IEnumerable<Compound> Compounds(List<Compound> compounds, string symbol) {
+    static IEnumerable<Compound> ElementCompounds(List<Compound> compounds, string symbol) {
         return compounds.Where(it => it.Elements.Any(element => element.Symbol == symbol));
     }
 
