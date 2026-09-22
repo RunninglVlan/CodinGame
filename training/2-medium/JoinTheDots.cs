@@ -54,7 +54,13 @@ class Board(int width, int height) {
                     lines[linePoint] = '/';
                 }
             } else {
-                Console.Error.WriteLine($"Unexpected: {current}->{next}");
+                var direction = Screen.DOWN + Screen.RIGHT;
+                bool currentIsAbove = current.Y < next.Y;
+                var start = currentIsAbove ? current : next;
+                var end = currentIsAbove ? next : current;
+                for (var linePoint = start + direction; linePoint != end; linePoint += direction) {
+                    lines[linePoint] = '\\';
+                }
             }
         }
     }
