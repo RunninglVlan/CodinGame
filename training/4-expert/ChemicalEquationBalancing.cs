@@ -76,9 +76,7 @@ let's try to increase Na on the left
                 if (compound.Elements.Count > 1) {
                     throw new NotImplementedException($"unexpected unbalanced compound count ({compounds.Count}): {string.Join(", ", compounds)}");
                 }
-                var notSingle = compounds.First(it => it.Elements.Count != 1);
-                int notSingleCount = notSingle.Coefficient
-                        * notSingle.Elements.First(it => it.Symbol == element.Key).Count;
+                int notSingleCount = compounds.First(it => it.Elements.Count != 1).ElementCount(element.Key);
                 max -= notSingleCount;
                 min -= notSingleCount;
             }
@@ -99,8 +97,7 @@ let's try to increase Na on the left
     }
 
     static int Count(List<Compound> compounds, string symbol) {
-        return Compounds(compounds, symbol)
-                .Sum(it => it.Coefficient * it.Elements.First(element => element.Symbol == symbol).Count);
+        return Compounds(compounds, symbol).Sum(it => it.ElementCount(symbol));
     }
 
     static IEnumerable<Compound> Compounds(List<Compound> compounds, string symbol) {
@@ -121,6 +118,8 @@ class Compound {
     public void AddElement(string symbol, string count) {
         Elements.Add(new Element(symbol, count != string.Empty ? int.Parse(count) : 1));
     }
+
+    public int ElementCount(string symbol) => Coefficient * Elements.First(it => it.Symbol == symbol).Count;
 
     public override string ToString() {
         string result = string.Join(null, Elements);
