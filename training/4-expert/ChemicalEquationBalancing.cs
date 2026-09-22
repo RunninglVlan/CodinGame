@@ -4,7 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
 // https://www.codingame.com/training/expert/chemical-equation-balancing
-string[] unbalanced = Console.ReadLine()!.Split(Separators.SIDE);
+string[] unbalanced = Debug.ReadLine()!.Split(Separators.SIDE);
 var equation = new Equation(ParseCompounds(unbalanced.First()), ParseCompounds(unbalanced.Last()));
 equation.Balance();
 Console.WriteLine(equation);
@@ -38,33 +38,50 @@ List<Compound> ParseCompounds(string side) {
 record Equation(List<Compound> LeftCompounds, List<Compound> RightCompounds) {
     [SuppressMessage("ReSharper", "ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator")]
     public void Balance() {
+        Dictionary<string, (int left, int right)>? lastUnbalanced = null;
         for (var unbalanced = UnbalancedElements(); unbalanced.Count > 0; unbalanced = UnbalancedElements()) {
+            if (lastUnbalanced == null) {
+                Debug.Log($"Unbalanced: {string.Join(", ", unbalanced)}", 1);
+            } else if (unbalanced.Count == lastUnbalanced.Count) {
+                var allMatch = true;
+                foreach ((string symbol, (int left, int right)) in unbalanced) {
+                    if (!lastUnbalanced.TryGetValue(symbol, out var value)
+                            || left != value.left && right != value.right) {
+                        allMatch = false;
+                    }
+                }
+                if (allMatch) {
+                    Debug.Log("Couldn't balance", 1);
+                    return;
+                }
+            }
             foreach (var compound in LeftCompounds) {
                 if (compound.Elements.Count == unbalanced.Count
-                        && compound.Elements.All(it => unbalanced.Contains(it.Symbol))) {
+                        && compound.Elements.All(it => unbalanced.ContainsKey(it.Symbol))) {
                     continue;
                 }
                 compound.Coefficient++;
             }
             foreach (var compound in RightCompounds) {
                 if (compound.Elements.Count == unbalanced.Count
-                        && compound.Elements.All(it => unbalanced.Contains(it.Symbol))) {
+                        && compound.Elements.All(it => unbalanced.ContainsKey(it.Symbol))) {
                     continue;
                 }
                 compound.Coefficient++;
             }
+            lastUnbalanced = unbalanced;
         }
     }
 
-    HashSet<string> UnbalancedElements() {
+    Dictionary<string, (int left, int right)> UnbalancedElements() {
         var leftElements = Elements(LeftCompounds);
         var rightElements = Elements(RightCompounds);
-        HashSet<string> unbalancedElements = [];
+        Dictionary<string, (int, int)> unbalancedElements = [];
         foreach ((string symbol, int leftCount) in leftElements) {
             if (leftCount == rightElements[symbol]) {
                 continue;
             }
-            unbalancedElements.Add(symbol);
+            unbalancedElements.Add(symbol, (leftCount, rightElements[symbol]));
         }
         return unbalancedElements;
 
@@ -115,4 +132,22 @@ readonly record struct Element(string Symbol, int Count) {
 static class Separators {
     public const string SIDE = " -> ";
     public const string COMPOUND = " + ";
+}
+
+static class Debug {
+    const int TAB_LENGTH = 2;
+
+    /// Reads the line from Console and also writes it to Console.Error
+    public static string? ReadLine() {
+        string? line = Console.ReadLine();
+        Console.Error.WriteLine(line);
+        return line;
+    }
+
+    public static void Log(object? line = null, int tab = 0, ConsoleColor? color = null) {
+        Console.ForegroundColor = color ?? ConsoleColor.Red;
+        var padding = new string(' ', tab * TAB_LENGTH);
+        Console.Error.WriteLine($"{padding}{line}");
+        Console.ResetColor();
+    }
 }
