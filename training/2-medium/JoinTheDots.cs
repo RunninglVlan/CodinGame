@@ -45,9 +45,12 @@ class Board(int width, int height) {
                 for (int y = Math.Min(current.Y, next.Y) + 1; y < Math.Max(current.Y, next.Y); y++) {
                     lines[current with { Y = y }] = '|';
                 }
-            } else if (next.X < current.X && next.Y > current.Y) {
+            } else if (next.X < current.X && next.Y > current.Y || next.X > current.X && next.Y < current.Y) {
                 var direction = Screen.DOWN + Screen.LEFT;
-                for (var linePoint = current + direction; linePoint != next; linePoint += direction) {
+                bool currentIsAbove = current.Y < next.Y;
+                var start = currentIsAbove ? current : next;
+                var end = currentIsAbove ? next : current;
+                for (var linePoint = start + direction; linePoint != end; linePoint += direction) {
                     lines[linePoint] = '/';
                 }
             } else {
