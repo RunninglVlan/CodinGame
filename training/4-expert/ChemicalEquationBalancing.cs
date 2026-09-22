@@ -66,20 +66,24 @@ let's try to increase Na on the left
     public void Balance() {
         for (var unbalanced = UnbalancedElements(); unbalanced.Count > 0; unbalanced = UnbalancedElements()) {
             Debug.Log($"unbalanced: {string.Join(", ", unbalanced)}", 1);
-            if (unbalanced.Count != 1) {
-                throw new NotImplementedException($"unexpected unbalanced element count ({unbalanced.Count}): {string.Join(", ", unbalanced)}");
-            }
-            var element = unbalanced.First();
+            var element = unbalanced.OrderBy(it => Math.Min(it.Value.left, it.Value.right)).First();
             var sideCompounds = element.Value.left < element.Value.right ? LeftCompounds : RightCompounds;
             var compounds = Compounds(sideCompounds, element.Key).ToList();
-            if (compounds.Count != 1) {
-                throw new NotImplementedException($"unexpected unbalanced compound count ({compounds.Count}): {string.Join(", ", compounds)}");
-            }
-            var compound = compounds.First();
+            var compound = compounds.OrderBy(it => it.Elements.Count).First();
             int max = Math.Max(element.Value.left, element.Value.right);
             int min = Math.Min(element.Value.left, element.Value.right);
+            if (compounds.Count > 1) {
+                if (compound.Elements.Count > 1) {
+                    throw new NotImplementedException($"unexpected unbalanced compound count ({compounds.Count}): {string.Join(", ", compounds)}");
+                }
+                var notSingle = compounds.First(it => it.Elements.Count != 1);
+                int notSingleCount = notSingle.Coefficient
+                        * notSingle.Elements.First(it => it.Symbol == element.Key).Count;
+                max -= notSingleCount;
+                min -= notSingleCount;
+            }
             if (max % min != 0) {
-                throw new NotImplementedException($"unexpected element counts - left: {element.Value.left}, right: {element.Value.right}");
+                throw new NotImplementedException($"unexpected element counts - max: {max}, min: {min}");
             }
             compound.Coefficient = max / min;
         }
