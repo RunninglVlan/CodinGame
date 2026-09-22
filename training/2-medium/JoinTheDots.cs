@@ -59,8 +59,7 @@ class Board(int width, int height) {
         lines[point] = existing switch {
             Line.DIAGONAL_BACKWARD or Line.DIAGONAL_FORWARD => Line.CROSS_DIAGONAL,
             Line.ROW or Line.COLUMN => Line.CROSS_ORTHOGONAL,
-            Line.CROSS_ORTHOGONAL or Line.CROSS_DIAGONAL => Line.CROSS_MULTIPLE,
-            _ => lines[point]
+            _ => Line.CROSS_MULTIPLE
         };
     }
 
@@ -111,7 +110,6 @@ readonly record struct Point(int X, int Y) {
 }
 
 static class Screen {
-    public static readonly Point UP = new(0, -1);
     public static readonly Point DOWN = new(0, 1);
     public static readonly Point LEFT = new(-1, 0);
     public static readonly Point RIGHT = new(1, 0);
