@@ -58,14 +58,15 @@ class Board(int width, int height) {
 
     public void Print() {
         for (var y = 0; y < height; y++) {
+            var row = string.Empty;
             for (var x = 0; x < width; x++) {
                 var point = new Point(x, y);
                 char c = lines.TryGetValue(point, out char lineChar)
                         ? lineChar
                         : dots.ContainsValue(point) ? 'o' : ' ';
-                Console.Write(c);
+                row += c;
             }
-            Console.WriteLine();
+            Console.WriteLine(row.TrimEnd());
         }
     }
 }
