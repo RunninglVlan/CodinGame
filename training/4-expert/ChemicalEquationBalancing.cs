@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 
 // https://www.codingame.com/training/expert/chemical-equation-balancing
-string[] unbalanced = Debug.ReadLine()!.Split(Separators.SIDE);
+string[] unbalanced = Console.ReadLine()!.Split(Separators.SIDE);
 var equation = new Equation(ParseCompounds(unbalanced.First()), ParseCompounds(unbalanced.Last()));
 equation.Balance();
 Console.WriteLine(equation);
@@ -65,6 +65,7 @@ let's try to increase Na on the left
      */
     public void Balance() {
         for (var unbalanced = UnbalancedElements(); unbalanced.Count > 0; unbalanced = UnbalancedElements()) {
+            Debug.Log(this);
             Debug.Log($"unbalanced: {string.Join(", ", unbalanced)}", 1);
             var element = unbalanced.OrderBy(it => Math.Min(it.Value.left, it.Value.right)).First();
             var sideCompounds = element.Value.left < element.Value.right ? LeftCompounds : RightCompounds;
