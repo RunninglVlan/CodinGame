@@ -56,6 +56,8 @@ class Board(int width, int height) {
             lines[point] = line;
         } else if (existing is Line.DIAGONAL_BACKWARD or Line.DIAGONAL_FORWARD) {
             lines[point] = Line.CROSS_DIAGONAL;
+        } else if (existing is Line.ROW or Line.COLUMN) {
+            lines[point] = Line.CROSS_ORTHOGONAL;
         }
     }
 
@@ -94,6 +96,7 @@ static class Line {
     public const char COLUMN = '|';
     public const char DIAGONAL_FORWARD = '/';
     public const char DIAGONAL_BACKWARD = '\\';
+    public const char CROSS_ORTHOGONAL = '+';
     public const char CROSS_DIAGONAL = 'X';
 }
 
