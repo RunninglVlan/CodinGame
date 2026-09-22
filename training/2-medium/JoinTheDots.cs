@@ -59,6 +59,7 @@ class Board(int width, int height) {
         lines[point] = existing switch {
             Line.DIAGONAL_BACKWARD or Line.DIAGONAL_FORWARD => Line.CROSS_DIAGONAL,
             Line.ROW or Line.COLUMN => Line.CROSS_ORTHOGONAL,
+            Line.CROSS_ORTHOGONAL or Line.CROSS_DIAGONAL => Line.CROSS_MULTIPLE,
             _ => lines[point]
         };
     }
@@ -100,6 +101,7 @@ static class Line {
     public const char DIAGONAL_BACKWARD = '\\';
     public const char CROSS_ORTHOGONAL = '+';
     public const char CROSS_DIAGONAL = 'X';
+    public const char CROSS_MULTIPLE = '*';
 }
 
 readonly record struct Point(int X, int Y) {
