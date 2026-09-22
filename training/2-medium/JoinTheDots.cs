@@ -54,11 +54,13 @@ class Board(int width, int height) {
     void PlaceLine(Point point, char line) {
         if (!lines.TryGetValue(point, out char existing)) {
             lines[point] = line;
-        } else if (existing is Line.DIAGONAL_BACKWARD or Line.DIAGONAL_FORWARD) {
-            lines[point] = Line.CROSS_DIAGONAL;
-        } else if (existing is Line.ROW or Line.COLUMN) {
-            lines[point] = Line.CROSS_ORTHOGONAL;
+            return;
         }
+        lines[point] = existing switch {
+            Line.DIAGONAL_BACKWARD or Line.DIAGONAL_FORWARD => Line.CROSS_DIAGONAL,
+            Line.ROW or Line.COLUMN => Line.CROSS_ORTHOGONAL,
+            _ => lines[point]
+        };
     }
 
     void JoinDiagonally(Point current, Point next) {
