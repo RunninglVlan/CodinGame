@@ -39,15 +39,23 @@ class Board(int width, int height) {
             var next = dots[i + 1];
             if (current.Y == next.Y) {
                 for (int x = Math.Min(current.X, next.X) + 1; x < Math.Max(current.X, next.X); x++) {
-                    lines[current with { X = x }] = Line.ROW;
+                    PlaceLine(current with { X = x }, Line.ROW);
                 }
             } else if (current.X == next.X) {
                 for (int y = Math.Min(current.Y, next.Y) + 1; y < Math.Max(current.Y, next.Y); y++) {
-                    lines[current with { Y = y }] = Line.COLUMN;
+                    PlaceLine(current with { Y = y }, Line.COLUMN);
                 }
             } else {
                 JoinDiagonally(current, next);
             }
+        }
+    }
+
+    void PlaceLine(Point point, char line) {
+        if (!lines.TryGetValue(point, out char existing)) {
+            lines[point] = line;
+        } else if (existing is Line.DIAGONAL_BACKWARD or Line.DIAGONAL_FORWARD) {
+            lines[point] = Line.CROSS_DIAGONAL;
         }
     }
 
@@ -62,7 +70,7 @@ class Board(int width, int height) {
         var start = currentIsAbove ? current : next;
         var end = currentIsAbove ? next : current;
         for (var linePoint = start + direction; linePoint != end; linePoint += direction) {
-            lines[linePoint] = line;
+            PlaceLine(linePoint, line);
         }
     }
 
@@ -86,6 +94,7 @@ static class Line {
     public const char COLUMN = '|';
     public const char DIAGONAL_FORWARD = '/';
     public const char DIAGONAL_BACKWARD = '\\';
+    public const char CROSS_DIAGONAL = 'X';
 }
 
 readonly record struct Point(int X, int Y) {
