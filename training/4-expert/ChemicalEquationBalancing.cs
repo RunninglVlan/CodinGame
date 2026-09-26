@@ -40,34 +40,34 @@ record Equation(List<Compound> LeftCompounds, List<Compound> RightCompounds) {
             Debug.Log(this);
             var unbalancedFormatted = unbalanced.Select(it => {
                 (string e, var (l, r)) = it;
-                int lCount = ElementCount(l, e);
-                int rCount = ElementCount(r, e);
+                var lCount = ElementCount(l, e);
+                var rCount = ElementCount(r, e);
                 string lType = l.Count == 1 ? l[0].Elements.Count == 1 ? "s" : "m" : "mm";
                 string rType = r.Count == 1 ? r[0].Elements.Count == 1 ? "s" : "m" : "mm";
                 return $"[{e} ({lCount}{lType}->{rCount}{rType}): {string.Join(", ", l)} -> {string.Join(", ", r)}]";
             });
             Debug.Log($"unbalanced: {string.Join(", ", unbalancedFormatted)}", 1);
             (string element, var (left, right)) = unbalanced
-                    .OrderBy(it => Math.Min(ElementCount(it.Value.left, it.Key), ElementCount(it.Value.right, it.Key)))
+                    .OrderBy(it => Mathf.Min(ElementCount(it.Value.left, it.Key), ElementCount(it.Value.right, it.Key)))
                     .First();
-            Debug.Log($"balancing {element}", 1);
-            int leftCount = ElementCount(left, element);
-            int rightCount = ElementCount(right, element);
+            var leftCount = ElementCount(left, element);
+            var rightCount = ElementCount(right, element);
             var compounds = leftCount < rightCount ? left : right;
             var compound = compounds.OrderBy(it => it.Elements.Count).First();
-            int max = Math.Max(leftCount, rightCount);
-            int min = Math.Min(leftCount, rightCount);
+            Debug.Log($"balancing {element} from {compound}", 1);
+            var max = Mathf.Max(leftCount, rightCount);
+            var min = Mathf.Min(leftCount, rightCount);
             if (compounds.Count > 1) {
                 if (compound.Elements.Count > 1) {
                     compound = compounds.OrderBy(it => it.ElementCount(element)).First();
-                    compound.Coefficient++;
+                    compound.Coefficient += Fraction.ONE;
                     continue;
                 }
-                int notSingleCount = compounds.First(it => it.Elements.Count != 1).ElementCount(element);
+                var notSingleCount = compounds.First(it => it.Elements.Count != 1).ElementCount(element);
                 max -= notSingleCount;
                 min -= notSingleCount;
             }
-            if (max % min != 0) {
+            if ((int)max.ToFloat() % (int)min.ToFloat() != 0) {
                 compound.Coefficient = max;
                 continue;
             }
@@ -88,8 +88,8 @@ record Equation(List<Compound> LeftCompounds, List<Compound> RightCompounds) {
                 .ToDictionary(it => it.symbol, it => (it.left, it.right));
     }
 
-    static int ElementCount(List<Compound> compounds, string symbol) {
-        return compounds.Sum(it => it.ElementCount(symbol));
+    static Fraction ElementCount(List<Compound> compounds, string symbol) {
+        return compounds.Aggregate(Fraction.ZERO, (accumulator, it) => accumulator + it.ElementCount(symbol));
     }
 
     static List<Compound> ElementCompounds(List<Compound> compounds, string symbol) {
@@ -105,20 +105,20 @@ record Equation(List<Compound> LeftCompounds, List<Compound> RightCompounds) {
 }
 
 class Compound {
-    public int Coefficient { get; set; } = 1;
+    public Fraction Coefficient { get; set; } = Fraction.ONE;
     public List<Element> Elements { get; } = [];
 
     public void AddElement(string symbol, string count) {
         Elements.Add(new Element(symbol, count != string.Empty ? int.Parse(count) : 1));
     }
 
-    public int ElementCount(string symbol) => Coefficient * Elements.First(it => it.Symbol == symbol).Count;
+    public Fraction ElementCount(string symbol) => Coefficient * Elements.First(it => it.Symbol == symbol).Count;
 
     public override string ToString() {
         string result = string.Join(null, Elements);
         // string result = string.Join('-', Elements);
-        if (Coefficient > 1) {
-            result = Coefficient + result;
+        if (Coefficient > Fraction.ONE) {
+            result = Coefficient.ToIntString() + result;
         }
         return result;
     }
@@ -137,6 +137,80 @@ readonly record struct Element(string Symbol, int Count) {
 static class Separators {
     public const string SIDE = " -> ";
     public const string COMPOUND = " + ";
+}
+
+readonly record struct Fraction : IComparable<Fraction> {
+    public static readonly Fraction ZERO = new(0, 1);
+    public static readonly Fraction ONE = new(1, 1);
+
+    int Numerator { get; init; }
+    int Denominator { get; }
+
+    Fraction(int numerator, int denominator) {
+        int gcd = Mathf.GreatestCommonDivisor(numerator, denominator);
+        if (gcd != 0) {
+            numerator /= gcd;
+            denominator /= gcd;
+        }
+        Numerator = numerator;
+        Denominator = denominator;
+    }
+
+    public float ToFloat() => (float)Numerator / Denominator;
+
+    public int CompareTo(Fraction other) {
+        int left = Numerator * other.Denominator;
+        int right = other.Numerator * Denominator;
+        return left.CompareTo(right);
+    }
+
+    public static bool operator >(Fraction a, Fraction b) => a.CompareTo(b) > 0;
+    public static bool operator <(Fraction a, Fraction b) => a.CompareTo(b) < 0;
+    public static bool operator >=(Fraction a, Fraction b) => a.CompareTo(b) >= 0;
+    public static bool operator <=(Fraction a, Fraction b) => a.CompareTo(b) <= 0;
+
+    public static Fraction operator +(Fraction a, Fraction b) {
+        int lcm = Mathf.LeastCommonMultiple(a.Denominator, b.Denominator);
+        return new Fraction(a.Numerator * lcm / a.Denominator + b.Numerator * lcm / b.Denominator, lcm);
+    }
+
+    public static Fraction operator -(Fraction a, Fraction b) {
+        int lcm = Mathf.LeastCommonMultiple(a.Denominator, b.Denominator);
+        return new Fraction(a.Numerator * lcm / a.Denominator - b.Numerator * lcm / b.Denominator, lcm);
+    }
+
+    public static Fraction operator *(Fraction a, Fraction b) {
+        return new Fraction(a.Numerator * b.Numerator, a.Denominator * b.Denominator);
+    }
+
+    public static Fraction operator *(Fraction a, int value) => a with { Numerator = a.Numerator * value };
+
+    public static Fraction operator /(Fraction a, Fraction b) {
+        return new Fraction(a.Numerator * b.Denominator, b.Numerator * a.Denominator);
+    }
+
+    public override string ToString() => $"{Numerator}/{Denominator}";
+    public string ToIntString() => ((int)ToFloat()).ToString();
+}
+
+static class Mathf {
+    public static Fraction Max(Fraction a, Fraction b) => a >= b ? a : b;
+    public static Fraction Min(Fraction a, Fraction b) => a <= b ? a : b;
+
+    /// Euclidean algorithm
+    public static int GreatestCommonDivisor(int a, int b) {
+        // r is a remainder
+        int rPrevious = a, r = b;
+        while (r != 0) {
+            (rPrevious, r) = (r, rPrevious % r);
+        }
+        return rPrevious;
+    }
+
+    public static int LeastCommonMultiple(int a, int b) {
+        int gcd = GreatestCommonDivisor(a, b);
+        return Math.Abs(a) / gcd * Math.Abs(b);
+    }
 }
 
 static class Debug {
