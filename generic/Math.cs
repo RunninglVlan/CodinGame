@@ -4,8 +4,8 @@ readonly record struct Fraction : IComparable<Fraction> {
     public static readonly Fraction ZERO = new(0, 1);
     public static readonly Fraction ONE = new(1, 1);
 
-    public int Numerator { get; init; }
-    public int Denominator { get; init; }
+    int Numerator { get; }
+    public int Denominator { get; }
 
     Fraction(int numerator, int denominator) {
         int gcd = Mathf.GreatestCommonDivisor(numerator, denominator);
@@ -16,8 +16,6 @@ readonly record struct Fraction : IComparable<Fraction> {
         Numerator = numerator;
         Denominator = denominator;
     }
-
-    float ToFloat() => (float)Numerator / Denominator;
 
     public int CompareTo(Fraction other) {
         int left = Numerator * other.Denominator;
@@ -44,14 +42,15 @@ readonly record struct Fraction : IComparable<Fraction> {
         return new Fraction(a.Numerator * b.Numerator, a.Denominator * b.Denominator);
     }
 
-    public static Fraction operator *(Fraction a, int value) => a with { Numerator = a.Numerator * value };
+    public static Fraction operator *(Fraction a, int value) => new(a.Numerator * value, a.Denominator);
 
     public static Fraction operator /(Fraction a, Fraction b) {
         return new Fraction(a.Numerator * b.Denominator, b.Numerator * a.Denominator);
     }
 
-    public override string ToString() => $"{Numerator}/{Denominator}";
-    public string ToIntString() => ((int)ToFloat()).ToString();
+    public override string ToString() {
+        return Denominator == 1 ? Numerator.ToString() : $"{Numerator}/{Denominator}";
+    }
 }
 
 static class Mathf {
