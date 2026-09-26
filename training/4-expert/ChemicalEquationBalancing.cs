@@ -105,7 +105,7 @@ let's try to increase Na on the left
     }
 
     static int ElementCount(List<Compound> compounds, string symbol) {
-        return ElementCompounds(compounds, symbol).Sum(it => it.ElementCount(symbol));
+        return compounds.Sum(it => it.ElementCount(symbol));
     }
 
     static List<Compound> ElementCompounds(List<Compound> compounds, string symbol) {
