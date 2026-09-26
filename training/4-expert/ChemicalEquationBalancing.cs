@@ -56,12 +56,20 @@ step by step
 
  Na-O-H + H2-C-O3 -> Na2-C-O3 +  H2-O
   unbalanced: [Na, (m1, m2)], [H, (m1+m2, m2)]
-  balanced: 2Na-O-H + H2-C-O3 -> Na2-C-O3 + 2H2-O
+2Na-O-H + H2-C-O3 -> Na2-C-O3 + 2H2-O <- balanced
 let's try to increase Na on the left
 1. 2Na-O-H + H2-C-O3 -> Na2-C-O3 +  H2-O
   unbalanced: [O, (m2+m3, m3+m1)], [H, (m2+m2, m2)]
   Na-O-H were increased on the left, so they need to increase on the right too
 2. 2Na-O-H + H2-C-O3 -> Na2-C-O3 + 2H2-O: balance O on the right -> balanced
+
+ C2-H2 +  O2 ->  C-O2 +  H2-O
+  unbalanced: [C: C2-H2 -> C-O2], [O: O2 -> C-O2, H2-O]
+2C2-H2 + 5O2 -> 4C-O2 + 2H2-O <- balanced
+1. C2-H2 +  O2 -> 2C-O2 +  H2-O: balance C on the right, O increases
+  unbalanced: [O: O2 -> 2C-O2, H2-O]
+2. C2-H2 + 5O2 -> 2C-O2 +  H2-O
+  unbalanced: [O: 5O2 -> 2C-O2, H2-O]
      */
     public void Balance() {
         for (var unbalanced = UnbalancedElements(); unbalanced.Count > 0; unbalanced = UnbalancedElements()) {
