@@ -120,7 +120,7 @@ class Compound {
         string result = string.Join(null, Elements);
         // string result = string.Join('-', Elements);
         if (Coefficient > Fraction.ONE) {
-            result = Coefficient.ToIntString() + result;
+            result = Coefficient + result;
         }
         return result;
     }
@@ -158,8 +158,6 @@ readonly record struct Fraction : IComparable<Fraction> {
         Denominator = denominator;
     }
 
-    float ToFloat() => (float)Numerator / Denominator;
-
     public int CompareTo(Fraction other) {
         int left = Numerator * other.Denominator;
         int right = other.Numerator * Denominator;
@@ -191,8 +189,9 @@ readonly record struct Fraction : IComparable<Fraction> {
         return new Fraction(a.Numerator * b.Denominator, b.Numerator * a.Denominator);
     }
 
-    public override string ToString() => $"{Numerator}/{Denominator}";
-    public string ToIntString() => ((int)ToFloat()).ToString();
+    public override string ToString() {
+        return Denominator == 1 ? Numerator.ToString() : $"{Numerator}/{Denominator}";
+    }
 }
 
 static class Mathf {
