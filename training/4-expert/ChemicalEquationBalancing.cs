@@ -66,10 +66,19 @@ let's try to increase Na on the left
     public void Balance() {
         for (var unbalanced = UnbalancedElements(); unbalanced.Count > 0; unbalanced = UnbalancedElements()) {
             Debug.Log(this);
-            Debug.Log($"unbalanced: {string.Join(", ", unbalanced.Select(it => $"[{it.Key}: {string.Join(", ", it.Value.left)} -> {string.Join(", ", it.Value.right)}]"))}", 1);
+            var unbalancedFormatted = unbalanced.Select(it => {
+                (string e, var (l, r)) = it;
+                int lCount = ElementCount(l, e);
+                int rCount = ElementCount(r, e);
+                string lType = l.Count == 1 ? l[0].Elements.Count == 1 ? "s" : "m" : "mm";
+                string rType = r.Count == 1 ? r[0].Elements.Count == 1 ? "s" : "m" : "mm";
+                return $"[{e} ({lCount}{lType}->{rCount}{rType}): {string.Join(", ", l)} -> {string.Join(", ", r)}]";
+            });
+            Debug.Log($"unbalanced: {string.Join(", ", unbalancedFormatted)}", 1);
             (string element, var (left, right)) = unbalanced
                     .OrderBy(it => Math.Min(ElementCount(it.Value.left, it.Key), ElementCount(it.Value.right, it.Key)))
                     .First();
+            Debug.Log($"balancing {element}", 1);
             int leftCount = ElementCount(left, element);
             int rightCount = ElementCount(right, element);
             var compounds = leftCount < rightCount ? left : right;
@@ -132,6 +141,7 @@ class Compound {
 
     public override string ToString() {
         string result = string.Join(null, Elements);
+        // string result = string.Join('-', Elements);
         if (Coefficient > 1) {
             result = Coefficient + result;
         }
