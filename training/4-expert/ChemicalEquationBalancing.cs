@@ -35,42 +35,6 @@ List<Compound> ParseCompounds(string side) {
 }
 
 record Equation(List<Compound> LeftCompounds, List<Compound> RightCompounds) {
-    /*
- H2 + O2 ->  H2-O
-  unbalanced: [O, (s2, m1)], where s is single and m is multiple
-2H2 + O2 -> 2H2-O <- balanced
-- here we increase O on the right, then update left side accordingly
-step by step
-1.  H2 + O2 -> 2H2-O: balance O on the right
-  unbalanced: [H, (s2, m4)]
-2. 2H2 + O2 -> 2H2-O: balance H on the left -> balanced
-
- C-O2 +  H2-O -> C6-H12-O6 +  O2
-  unbalanced: [C, (m1, m6)], [H, (m2, m12)], [O, (m2+m1, m6+s2)]
-6C-O2 + 6H2-O -> C6-H12-O6 + 6O2 <- balanced
-1. 6C-O2 +  H2-O -> C6-H12-O6 +  O2: balance C on the left
-  unbalanced: [[H, (m2, m12)], [O, (m12+m1, m6+s2)]
-2. 6C-O2 + 6H2-O -> C6-H12-O6 +  O2: balance H on the left
-  unbalanced: [[O, (m12+m6, m6+s2)]: i need to increase 2O on the right
-3. 6C-O2 + 6H2-O -> C6-H12-O6 + 6O2: balance O on the right -> balanced
-
- Na-O-H + H2-C-O3 -> Na2-C-O3 +  H2-O
-  unbalanced: [Na, (m1, m2)], [H, (m1+m2, m2)]
-2Na-O-H + H2-C-O3 -> Na2-C-O3 + 2H2-O <- balanced
-let's try to increase Na on the left
-1. 2Na-O-H + H2-C-O3 -> Na2-C-O3 +  H2-O
-  unbalanced: [O, (m2+m3, m3+m1)], [H, (m2+m2, m2)]
-  Na-O-H were increased on the left, so they need to increase on the right too
-2. 2Na-O-H + H2-C-O3 -> Na2-C-O3 + 2H2-O: balance O on the right -> balanced
-
- C2-H2 +  O2 ->  C-O2 +  H2-O
-  unbalanced: [C: C2-H2 -> C-O2], [O: O2 -> C-O2, H2-O]
-2C2-H2 + 5O2 -> 4C-O2 + 2H2-O <- balanced
-1. C2-H2 +  O2 -> 2C-O2 +  H2-O: balance C on the right, O increases
-  unbalanced: [O: O2 -> 2C-O2, H2-O]
-2. C2-H2 + 5O2 -> 2C-O2 +  H2-O
-  unbalanced: [O: 5O2 -> 2C-O2, H2-O]
-     */
     public void Balance() {
         for (var unbalanced = UnbalancedElements(); unbalanced.Count > 0; unbalanced = UnbalancedElements()) {
             Debug.Log(this);
