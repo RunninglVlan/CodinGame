@@ -67,11 +67,13 @@ record Equation(List<Compound> LeftCompounds, List<Compound> RightCompounds) {
                 max -= notSingleCount;
                 min -= notSingleCount;
             }
-            if ((int)max.ToFloat() % (int)min.ToFloat() != 0) {
-                compound.Coefficient = max;
+            compound.Coefficient = max / min;
+            int denominator = compound.Coefficient.Denominator;
+            if (denominator == 1) {
                 continue;
             }
-            compound.Coefficient *= max / min;
+            LeftCompounds.ForEach(it => it.Coefficient *= denominator);
+            RightCompounds.ForEach(it => it.Coefficient *= denominator);
         }
     }
 
@@ -143,8 +145,8 @@ readonly record struct Fraction : IComparable<Fraction> {
     public static readonly Fraction ZERO = new(0, 1);
     public static readonly Fraction ONE = new(1, 1);
 
-    int Numerator { get; init; }
-    int Denominator { get; }
+    int Numerator { get; }
+    public int Denominator { get; }
 
     Fraction(int numerator, int denominator) {
         int gcd = Mathf.GreatestCommonDivisor(numerator, denominator);
@@ -156,7 +158,7 @@ readonly record struct Fraction : IComparable<Fraction> {
         Denominator = denominator;
     }
 
-    public float ToFloat() => (float)Numerator / Denominator;
+    float ToFloat() => (float)Numerator / Denominator;
 
     public int CompareTo(Fraction other) {
         int left = Numerator * other.Denominator;
@@ -183,7 +185,7 @@ readonly record struct Fraction : IComparable<Fraction> {
         return new Fraction(a.Numerator * b.Numerator, a.Denominator * b.Denominator);
     }
 
-    public static Fraction operator *(Fraction a, int value) => a with { Numerator = a.Numerator * value };
+    public static Fraction operator *(Fraction a, int value) => new(a.Numerator * value, a.Denominator);
 
     public static Fraction operator /(Fraction a, Fraction b) {
         return new Fraction(a.Numerator * b.Denominator, b.Numerator * a.Denominator);
