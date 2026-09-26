@@ -95,16 +95,19 @@ let's try to increase Na on the left
             int min = Math.Min(leftCount, rightCount);
             if (compounds.Count > 1) {
                 if (compound.Elements.Count > 1) {
-                    throw new NotImplementedException($"unexpected unbalanced compound count ({compounds.Count}): {string.Join(", ", compounds)}");
+                    compound = compounds.OrderBy(it => it.ElementCount(element)).First();
+                    compound.Coefficient++;
+                    continue;
                 }
                 int notSingleCount = compounds.First(it => it.Elements.Count != 1).ElementCount(element);
                 max -= notSingleCount;
                 min -= notSingleCount;
             }
             if (max % min != 0) {
-                throw new NotImplementedException($"unexpected element counts - max: {max}, min: {min}");
+                compound.Coefficient = max;
+                continue;
             }
-            compound.Coefficient = max / min;
+            compound.Coefficient *= max / min;
         }
     }
 
