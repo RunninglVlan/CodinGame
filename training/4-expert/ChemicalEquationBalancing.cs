@@ -82,10 +82,13 @@ record Equation(List<Compound> LeftCompounds, List<Compound> RightCompounds) {
                     break;
                 }
                 simplest.Coefficient = maxCount / minCount;
-                if (simplest.Coefficient.Denominator != 1) {
-                    Debug.Log("TODO: simplest.Coefficient.Denominator != 1", 2);
-                    break;
+                int denominator = simplest.Coefficient.Denominator;
+                if (denominator == 1) {
+                    continue;
                 }
+                Debug.Log("coefficient isn't whole, multiplying everything by its denominator", 2);
+                LeftCompounds.ForEach(it => it.Coefficient *= denominator);
+                RightCompounds.ForEach(it => it.Coefficient *= denominator);
                 continue;
             }
             {
