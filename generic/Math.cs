@@ -4,7 +4,7 @@ readonly record struct Fraction : IComparable<Fraction> {
     public static readonly Fraction ZERO = new(0, 1);
     public static readonly Fraction ONE = new(1, 1);
 
-    int Numerator { get; }
+    public int Numerator { get; }
     public int Denominator { get; }
 
     Fraction(int numerator, int denominator) {
