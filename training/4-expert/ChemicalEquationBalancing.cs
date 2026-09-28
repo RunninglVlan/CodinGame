@@ -46,21 +46,36 @@ record Equation(List<Compound> LeftCompounds, List<Compound> RightCompounds) {
             });
             Debug.Log($"unbalanced: {string.Join(", ", unbalancedFormatted)}", 1);
             (string element, var left, var right, var leftCount, var rightCount) = unbalanced
-                    .OrderByDescending(tuple => {
-                        // might be wrong
-                        int complexity = tuple.left.SelectMany(it => it.Elements).Sum(it => it.Count)
-                                + tuple.right.SelectMany(it => it.Elements).Sum(it => it.Count);
-                        Debug.Log($"complexity({tuple.element}): {complexity}", 2);
-                        return complexity;
-                    })
+                    .OrderBy(it => it.left.Count + it.right.Count)
                     .First();
+            Debug.Log($"balancing {element}", 1);
             if (left.Count > 1 && right.Count > 1) {
-                Debug.Log("TODO: left.Count > 1 && right.Count > 1", 2);
-                break;
+                var min = leftCount < rightCount ? left : right;
+                var simplest = min.FirstOrDefault(it => it.Elements.Count == 1);
+                if (simplest == null) {
+                    Debug.Log("TODO: left.Count > 1, right.Count > 1 and no simplest compound", 2);
+                    break;
+                }
+                var maxCount = Mathf.Max(leftCount, rightCount);
+                var minCount = Mathf.Min(leftCount, rightCount);
+                foreach (var compound in min.Where(it => it != simplest)) {
+                    var elementCount = compound.ElementCount(element);
+                    maxCount -= elementCount;
+                    minCount -= elementCount;
+                }
+                if (simplest.Coefficient != Fraction.ONE) {
+                    Debug.Log("TODO: simplest.Coefficient != Fraction.ONE", 2);
+                    break;
+                }
+                simplest.Coefficient = maxCount / minCount;
+                if (simplest.Coefficient.Denominator != 1) {
+                    Debug.Log("TODO: simplest.Coefficient.Denominator != 1", 2);
+                    break;
+                }
+                continue;
             }
             var leftCompound = left.First();
             var rightCompound = right.First();
-            Debug.Log($"balancing {element}", 1);
             if (leftCount.Denominator != 1 || rightCount.Denominator != 1) {
                 Debug.Log($"TODO: leftCount: {leftCount}, rightCount: {rightCount}, can't get LeastCommonMultiple as counts aren't whole", 2);
                 break;
