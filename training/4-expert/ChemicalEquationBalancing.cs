@@ -70,7 +70,7 @@ record Equation(List<Compound> LeftCompounds, List<Compound> RightCompounds) {
                         break;
                     }
                     var lcm = Fraction.ONE * Mathf.LeastCommonMultiple(leftCount.Numerator, rightCount.Numerator);
-                    Debug.Log($"leftCount: {leftCount}, rightCount: {rightCount}, lcm: {lcm}", 1);
+                    Debug.Log($"leftCount: {leftCount}, rightCount: {rightCount}, lcm: {lcm}", 2);
                     if (lcm != maxCount) {
                         Debug.Log("TODO: lcm != maxCount", 2);
                         break;
