@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 
 // https://www.codingame.com/training/expert/chemical-equation-balancing
-string[] unbalanced = Console.ReadLine()!.Split(Separators.SIDE);
+string[] unbalanced = Debug.ReadLine()!.Split(Separators.SIDE);
 var equation = new Equation(ParseCompounds(unbalanced.First()), ParseCompounds(unbalanced.Last()));
 equation.Balance();
 Console.WriteLine(equation);
@@ -36,69 +36,69 @@ List<Compound> ParseCompounds(string side) {
 
 record Equation(List<Compound> LeftCompounds, List<Compound> RightCompounds) {
     public void Balance() {
-        for (var unbalanced = UnbalancedElements(); unbalanced.Length > 0; unbalanced = UnbalancedElements()) {
-            Debug.Log(this);
-            var unbalancedFormatted = unbalanced.Select(it => {
-                (string e, var l, var r, var lCount, var rCount) = it;
-                string lType = l.Count == 1 ? l[0].Elements.Count == 1 ? "s" : "m" : "mm";
-                string rType = r.Count == 1 ? r[0].Elements.Count == 1 ? "s" : "m" : "mm";
-                return $"[{e} ({lCount}{lType}->{rCount}{rType}): {string.Join(", ", l)} -> {string.Join(", ", r)}]";
-            });
-            Debug.Log($"unbalanced: {string.Join(", ", unbalancedFormatted)}", 1);
-            (string element, var left, var right, var leftCount, var rightCount) = unbalanced
-                    .OrderBy(it => it.left.Count + it.right.Count)
-                    .ThenByDescending(tuple => {
-                        int complexity = tuple.left.Concat(tuple.right)
-                                .SelectMany(it => it.Elements)
-                                .Sum(it => it.Count);
-                        return complexity;
-                    })
-                    .First();
-            Debug.Log($"balancing {element}", 1);
-            var min = leftCount < rightCount ? left : right;
-            var maxCount = Mathf.Max(leftCount, rightCount);
-            var minCount = Mathf.Min(leftCount, rightCount);
-            if (unbalanced.Length == 1 && min.Any(it => it.Elements.Count == 1)) {
-                var simplest = min.First(it => it.Elements.Count == 1);
-                Debug.Log($"simplest exists: {simplest}", 2);
-                foreach (var compound in min.Where(it => it != simplest)) {
-                    var elementCount = compound.ElementCount(element);
-                    maxCount -= elementCount;
-                    minCount -= elementCount;
-                }
-                simplest.Coefficient = maxCount / minCount;
-                int denominator = simplest.Coefficient.Denominator;
-                if (denominator == 1) {
-                    continue;
-                }
-                Debug.Log("coefficient isn't whole, multiplying everything by its denominator", 2);
-                LeftCompounds.ForEach(it => it.Coefficient *= denominator);
-                RightCompounds.ForEach(it => it.Coefficient *= denominator);
-                continue;
+        string[] elements = [.. LeftCompounds.SelectMany(it => it.Elements).Select(it => it.Symbol).Distinct()];
+        var compounds = LeftCompounds.Concat(RightCompounds).ToArray();
+        var matrixCompounds = LeftCompounds.Concat(RightCompounds.Select(it => it.Clone(-1))).ToArray();
+        var matrix = new Fraction[matrixCompounds.Length, elements.Length];
+        for (var y = 0; y < elements.Length; y++) {
+            for (var x = 0; x < matrixCompounds.Length; x++) {
+                matrix[x, y] = matrixCompounds[x].ElementCount(elements[y]);
             }
-            if (leftCount.Denominator != 1 || rightCount.Denominator != 1) {
-                Debug.Log($"TODO: leftCount: {leftCount}, rightCount: {rightCount}, can't get LeastCommonMultiple as counts aren't whole", 2);
+        }
+        Log();
+        (int x, int y) pivotPoint = (0, 0);
+        var pivot = matrix[pivotPoint.x, pivotPoint.y];
+        if (pivot == Fraction.ZERO) {
+            Debug.Log($"TODO: pivot {pivotPoint} is zero, move row below", 1);
+            return;
+        }
+        for (var i = 0; i < elements.Length; i++, pivotPoint.x++, pivotPoint.y++) {
+            pivot = matrix[pivotPoint.x, pivotPoint.y];
+            if (pivot != Fraction.ONE) {
+                // divide row by itself
+                for (var x = 0; x < matrixCompounds.Length; x++) {
+                    matrix[x, pivotPoint.y] /= pivot;
+                }
+            }
+            for (int y = pivotPoint.y + 1; y < elements.Length; y++) {
+                var cellPoint = pivotPoint with { y = y };
+                if (matrix[cellPoint.x, cellPoint.y] != Fraction.ZERO) {
+                    Debug.Log($"TODO: cell {cellPoint} is not zero", 1);
+                }
+            }
+            Log();
+        }
+        for (int x = compounds.Length - 2, y = elements.Length - 1; x >= 0; x--, y--) {
+            var coefficient = Fraction.ZERO;
+            for (int coefficientX = x + 1; coefficientX < compounds.Length; coefficientX++) {
+                coefficient += matrix[coefficientX, y];
+                if (matrixCompounds[coefficientX].Coefficient < Fraction.ZERO) {
+                    coefficient *= -1;
+                }
+            }
+            compounds[x].Coefficient = coefficient;
+        }
+        int? fractionalDenominator = null;
+        foreach (var compound in compounds) {
+            if (compound.Coefficient.Denominator != 1) {
+                fractionalDenominator = compound.Coefficient.Denominator;
                 break;
             }
-            var lcm = Fraction.ONE * Mathf.LeastCommonMultiple(leftCount.Numerator, rightCount.Numerator);
-            Debug.Log($"leftCount: {leftCount}, rightCount: {rightCount}, lcm: {lcm}", 1);
-            if (lcm != leftCount) {
-                if (left.Count > 1) {
-                    Debug.Log("left.Count > 1", 2);
-                    break;
-                }
-                foreach (var compound in left) {
-                    compound.Coefficient = lcm / compound.ElementCount(element);
-                }
+        }
+        if (fractionalDenominator != null) {
+            foreach (var compound in compounds) {
+                compound.Coefficient *= fractionalDenominator.Value;
             }
-            if (lcm != rightCount) {
-                if (right.Count > 1) {
-                    Debug.Log("right.Count > 1", 2);
-                    break;
+        }
+        return;
+
+        void Log() {
+            for (var y = 0; y < elements.Length; y++) {
+                Console.Error.Write($"{elements[y]}: ");
+                for (var x = 0; x < matrixCompounds.Length; x++) {
+                    Console.Error.Write($"{matrix[x, y]} ");
                 }
-                foreach (var compound in right) {
-                    compound.Coefficient = lcm / compound.ElementCount(element);
-                }
+                Console.Error.WriteLine();
             }
         }
     }
@@ -137,13 +137,25 @@ record Equation(List<Compound> LeftCompounds, List<Compound> RightCompounds) {
 
 class Compound {
     public Fraction Coefficient { get; set; } = Fraction.ONE;
-    public List<Element> Elements { get; } = [];
+    public List<Element> Elements { get; private init; } = [];
 
     public void AddElement(string symbol, string count) {
         Elements.Add(new Element(symbol, count != string.Empty ? int.Parse(count) : 1));
     }
 
-    public Fraction ElementCount(string symbol) => Coefficient * Elements.First(it => it.Symbol == symbol).Count;
+    public Fraction ElementCount(string symbol) {
+        if (Elements.All(it => it.Symbol != symbol)) {
+            return Fraction.ZERO;
+        }
+        return Coefficient * Elements.First(it => it.Symbol == symbol).Count;
+    }
+
+    public Compound Clone(int multiplier) {
+        return new Compound {
+            Coefficient = Coefficient * multiplier,
+            Elements = [.. Elements]
+        };
+    }
 
     public override string ToString() {
         string result = string.Join(null, Elements);
