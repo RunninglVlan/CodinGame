@@ -55,37 +55,16 @@ record Equation(List<Compound> LeftCompounds, List<Compound> RightCompounds) {
                     })
                     .First();
             Debug.Log($"balancing {element}", 1);
-            if (left.Count > 1 || right.Count > 1) {
-                var min = leftCount < rightCount ? left : right;
-                var maxCount = Mathf.Max(leftCount, rightCount);
-                var minCount = Mathf.Min(leftCount, rightCount);
-                var simplest = min.FirstOrDefault(it => it.Elements.Count == 1);
-                if (simplest == null) {
-                    if (min.Count > 1) {
-                        Debug.Log("TODO: min.Count > 1", 2);
-                        break;
-                    }
-                    if (leftCount.Denominator != 1 || rightCount.Denominator != 1) {
-                        Debug.Log($"TODO: leftCount: {leftCount}, rightCount: {rightCount}, can't get LeastCommonMultiple as counts aren't whole", 2);
-                        break;
-                    }
-                    var lcm = Fraction.ONE * Mathf.LeastCommonMultiple(leftCount.Numerator, rightCount.Numerator);
-                    Debug.Log($"leftCount: {leftCount}, rightCount: {rightCount}, lcm: {lcm}", 2);
-                    if (lcm != maxCount) {
-                        Debug.Log("TODO: lcm != maxCount", 2);
-                        break;
-                    }
-                    min.First().Coefficient = lcm / minCount;
-                    continue;
-                }
+            var min = leftCount < rightCount ? left : right;
+            var maxCount = Mathf.Max(leftCount, rightCount);
+            var minCount = Mathf.Min(leftCount, rightCount);
+            if (unbalanced.Length == 1 && min.Any(it => it.Elements.Count == 1)) {
+                var simplest = min.First(it => it.Elements.Count == 1);
+                Debug.Log($"simplest exists: {simplest}", 2);
                 foreach (var compound in min.Where(it => it != simplest)) {
                     var elementCount = compound.ElementCount(element);
                     maxCount -= elementCount;
                     minCount -= elementCount;
-                }
-                if (simplest.Coefficient != Fraction.ONE) {
-                    Debug.Log("TODO: simplest.Coefficient != Fraction.ONE", 2);
-                    break;
                 }
                 simplest.Coefficient = maxCount / minCount;
                 int denominator = simplest.Coefficient.Denominator;
@@ -97,20 +76,28 @@ record Equation(List<Compound> LeftCompounds, List<Compound> RightCompounds) {
                 RightCompounds.ForEach(it => it.Coefficient *= denominator);
                 continue;
             }
-            {
-                var leftCompound = left.First();
-                var rightCompound = right.First();
-                if (leftCount.Denominator != 1 || rightCount.Denominator != 1) {
-                    Debug.Log($"TODO: leftCount: {leftCount}, rightCount: {rightCount}, can't get LeastCommonMultiple as counts aren't whole", 2);
+            if (leftCount.Denominator != 1 || rightCount.Denominator != 1) {
+                Debug.Log($"TODO: leftCount: {leftCount}, rightCount: {rightCount}, can't get LeastCommonMultiple as counts aren't whole", 2);
+                break;
+            }
+            var lcm = Fraction.ONE * Mathf.LeastCommonMultiple(leftCount.Numerator, rightCount.Numerator);
+            Debug.Log($"leftCount: {leftCount}, rightCount: {rightCount}, lcm: {lcm}", 1);
+            if (lcm != leftCount) {
+                if (left.Count > 1) {
+                    Debug.Log("left.Count > 1", 2);
                     break;
                 }
-                var lcm = Fraction.ONE * Mathf.LeastCommonMultiple(leftCount.Numerator, rightCount.Numerator);
-                Debug.Log($"leftCount: {leftCount}, rightCount: {rightCount}, lcm: {lcm}", 1);
-                if (lcm != leftCount) {
-                    leftCompound.Coefficient = lcm / leftCompound.ElementCount(element);
+                foreach (var compound in left) {
+                    compound.Coefficient = lcm / compound.ElementCount(element);
                 }
-                if (lcm != rightCount) {
-                    rightCompound.Coefficient = lcm / rightCompound.ElementCount(element);
+            }
+            if (lcm != rightCount) {
+                if (right.Count > 1) {
+                    Debug.Log("right.Count > 1", 2);
+                    break;
+                }
+                foreach (var compound in right) {
+                    compound.Coefficient = lcm / compound.ElementCount(element);
                 }
             }
         }
