@@ -47,6 +47,12 @@ record Equation(List<Compound> LeftCompounds, List<Compound> RightCompounds) {
             Debug.Log($"unbalanced: {string.Join(", ", unbalancedFormatted)}", 1);
             (string element, var left, var right, var leftCount, var rightCount) = unbalanced
                     .OrderBy(it => it.left.Count + it.right.Count)
+                    .ThenByDescending(tuple => {
+                        int complexity = tuple.left.Concat(tuple.right)
+                                .SelectMany(it => it.Elements)
+                                .Sum(it => it.Count);
+                        return complexity;
+                    })
                     .First();
             Debug.Log($"balancing {element}", 1);
             if (left.Count > 1 || right.Count > 1) {
