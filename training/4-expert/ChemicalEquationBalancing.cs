@@ -36,22 +36,18 @@ List<Compound> ParseCompounds(string side) {
 
 record Equation(List<Compound> LeftCompounds, List<Compound> RightCompounds) {
     public void Balance() {
-        for (var unbalanced = UnbalancedElements(); unbalanced.Count > 0; unbalanced = UnbalancedElements()) {
+        for (var unbalanced = UnbalancedElements(); unbalanced.Length > 0; unbalanced = UnbalancedElements()) {
             Debug.Log(this);
             var unbalancedFormatted = unbalanced.Select(it => {
-                (string e, var (l, r)) = it;
-                var lCount = ElementCount(l, e);
-                var rCount = ElementCount(r, e);
+                (string e, var l, var r, var lCount, var rCount) = it;
                 string lType = l.Count == 1 ? l[0].Elements.Count == 1 ? "s" : "m" : "mm";
                 string rType = r.Count == 1 ? r[0].Elements.Count == 1 ? "s" : "m" : "mm";
                 return $"[{e} ({lCount}{lType}->{rCount}{rType}): {string.Join(", ", l)} -> {string.Join(", ", r)}]";
             });
             Debug.Log($"unbalanced: {string.Join(", ", unbalancedFormatted)}", 1);
-            (string element, var (left, right)) = unbalanced
-                    .OrderBy(it => Mathf.Min(ElementCount(it.Value.left, it.Key), ElementCount(it.Value.right, it.Key)))
+            (string element, var left, var right, var leftCount, var rightCount) = unbalanced
+                    .OrderBy(it => Mathf.Min(it.leftCount, it.rightCount))
                     .First();
-            var leftCount = ElementCount(left, element);
-            var rightCount = ElementCount(right, element);
             var compounds = leftCount < rightCount ? left : right;
             var compound = compounds.OrderBy(it => it.Elements.Count).First();
             Debug.Log($"balancing {element} from {compound}", 1);
@@ -77,17 +73,20 @@ record Equation(List<Compound> LeftCompounds, List<Compound> RightCompounds) {
         }
     }
 
-    Dictionary<string, (List<Compound> left, List<Compound> right)> UnbalancedElements() {
+    (string element, List<Compound> left, List<Compound> right, Fraction leftCount, Fraction rightCount)[]
+            UnbalancedElements() {
         return LeftCompounds
                 .SelectMany(it => it.Elements.Select(element => element.Symbol))
                 .Distinct()
-                .Select(symbol => (
-                        symbol,
-                        left: ElementCompounds(LeftCompounds, symbol),
-                        right: ElementCompounds(RightCompounds, symbol))
-                )
-                .Where(it => ElementCount(it.left, it.symbol) != ElementCount(it.right, it.symbol))
-                .ToDictionary(it => it.symbol, it => (it.left, it.right));
+                .Select(symbol => {
+                    var left = ElementCompounds(LeftCompounds, symbol);
+                    var right = ElementCompounds(RightCompounds, symbol);
+                    var leftCount = ElementCount(left, symbol);
+                    var rightCount = ElementCount(right, symbol);
+                    return (symbol, left, right, leftCount, rightCount);
+                })
+                .Where(it => it.leftCount != it.rightCount)
+                .ToArray();
     }
 
     static Fraction ElementCount(List<Compound> compounds, string symbol) {
