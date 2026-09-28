@@ -46,30 +46,33 @@ record Equation(List<Compound> LeftCompounds, List<Compound> RightCompounds) {
             });
             Debug.Log($"unbalanced: {string.Join(", ", unbalancedFormatted)}", 1);
             (string element, var left, var right, var leftCount, var rightCount) = unbalanced
-                    .OrderBy(it => Mathf.Min(it.leftCount, it.rightCount))
+                    .OrderByDescending(tuple => {
+                        // might be wrong
+                        int complexity = tuple.left.SelectMany(it => it.Elements).Sum(it => it.Count)
+                                + tuple.right.SelectMany(it => it.Elements).Sum(it => it.Count);
+                        Debug.Log($"complexity({tuple.element}): {complexity}", 2);
+                        return complexity;
+                    })
                     .First();
-            var compounds = leftCount < rightCount ? left : right;
-            var compound = compounds.OrderBy(it => it.Elements.Count).First();
-            Debug.Log($"balancing {element} from {compound}", 1);
-            var max = Mathf.Max(leftCount, rightCount);
-            var min = Mathf.Min(leftCount, rightCount);
-            if (compounds.Count > 1) {
-                if (compound.Elements.Count > 1) {
-                    compound = compounds.OrderBy(it => it.ElementCount(element)).First();
-                    compound.Coefficient += Fraction.ONE;
-                    continue;
-                }
-                var notSingleCount = compounds.First(it => it.Elements.Count != 1).ElementCount(element);
-                max -= notSingleCount;
-                min -= notSingleCount;
+            if (left.Count > 1 && right.Count > 1) {
+                Debug.Log("TODO: left.Count > 1 && right.Count > 1", 2);
+                break;
             }
-            compound.Coefficient = max / min;
-            int denominator = compound.Coefficient.Denominator;
-            if (denominator == 1) {
-                continue;
+            var leftCompound = left.First();
+            var rightCompound = right.First();
+            Debug.Log($"balancing {element}", 1);
+            if (leftCount.Denominator != 1 || rightCount.Denominator != 1) {
+                Debug.Log($"TODO: leftCount: {leftCount}, rightCount: {rightCount}, can't get LeastCommonMultiple as counts aren't whole", 2);
+                break;
             }
-            LeftCompounds.ForEach(it => it.Coefficient *= denominator);
-            RightCompounds.ForEach(it => it.Coefficient *= denominator);
+            var lcm = Fraction.ONE * Mathf.LeastCommonMultiple(leftCount.Numerator, rightCount.Numerator);
+            Debug.Log($"leftCount: {leftCount}, rightCount: {rightCount}, lcm: {lcm}", 1);
+            if (lcm != leftCount) {
+                leftCompound.Coefficient = lcm / leftCompound.ElementCount(element);
+            }
+            if (lcm != rightCount) {
+                rightCompound.Coefficient = lcm / rightCompound.ElementCount(element);
+            }
         }
     }
 
@@ -144,7 +147,7 @@ readonly record struct Fraction : IComparable<Fraction> {
     public static readonly Fraction ZERO = new(0, 1);
     public static readonly Fraction ONE = new(1, 1);
 
-    int Numerator { get; }
+    public int Numerator { get; }
     public int Denominator { get; }
 
     Fraction(int numerator, int denominator) {
