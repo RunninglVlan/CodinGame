@@ -49,15 +49,18 @@ record Equation(List<Compound> LeftCompounds, List<Compound> RightCompounds) {
         Log("built matrix");
         // doing gaussian elimination
         for (int pivotX = 0, pivotY = 0; pivotX < compounds.Length && pivotY < elements.Length; pivotX++, pivotY++) {
-            if (matrix[pivotX, pivotY] == Fraction.ZERO && pivotY < elements.Length - 1) {
+            if (matrix[pivotX, pivotY] == Fraction.ZERO) {
                 // 1. swapping two rows
-                if (matrix[pivotX, pivotY + 1] == Fraction.ZERO) {
-                    Debug.Log($"TODO: cell below {(pivotX, pivotY)} is zero", 1);
+                int y = pivotY + 1;
+                while (y < elements.Length && matrix[pivotX, y] == Fraction.ZERO) {
+                    y++;
                 }
-                for (var x = 0; x < compounds.Length; x++) {
-                    (matrix[x, pivotY], matrix[x, pivotY + 1]) = (matrix[x, pivotY + 1], matrix[x, pivotY]);
+                if (y < elements.Length) {
+                    for (var x = 0; x < compounds.Length; x++) {
+                        (matrix[x, pivotY], matrix[x, y]) = (matrix[x, y], matrix[x, pivotY]);
+                    }
+                    (elements[pivotY], elements[y]) = (elements[y], elements[pivotY]);
                 }
-                (elements[pivotY], elements[pivotY + 1]) = (elements[pivotY + 1], elements[pivotY]);
             }
             for (int cellY = pivotY + 1; cellY < elements.Length; cellY++) {
                 // cells under pivot need to be zero
