@@ -55,23 +55,37 @@ record Equation(List<Compound> LeftCompounds, List<Compound> RightCompounds) {
             }
             for (int cellY = pivotY + 1; cellY < elements.Length; cellY++) {
                 // cells under pivot need to be zero
-                if (matrix[pivotX, cellY] != Fraction.ZERO) {
-                    Debug.Log($"TODO: cell {(pivotX, cellY)} is not zero", 2);
+                if (matrix[pivotX, cellY] == Fraction.ZERO) {
+                    continue;
+                }
+                if (matrix[pivotX, cellY - 1] == Fraction.ZERO) {
+                    Debug.Log($"TODO: cell above {(pivotX, cellY)} is zero", 1);
+                }
+                // adding multiple of one row to another row
+                var multiple = matrix[pivotX, cellY] / matrix[pivotX, cellY - 1];
+                for (var x = 0; x < matrixCompounds.Length; x++) {
+                    matrix[x, cellY] -= matrix[x, cellY - 1] * multiple;
                 }
             }
             Log($"processed pivot {(pivotX, pivotY)}");
         }
         // setting coefficients from matrix variables
+        Debug.Log($"coefficient for {compounds.Last()} is 1", 1);
         for (int x = compounds.Length - 2, y = elements.Length - 1; x >= 0; x--, y--) {
             var coefficient = Fraction.ZERO;
+            Debug.Log($"setting coefficient for {compounds[x]}", 1);
             for (int coefficientX = x + 1; coefficientX < compounds.Length; coefficientX++) {
-                coefficient += matrix[coefficientX, y];
+                var value = matrix[coefficientX, y];
                 if (matrixCompounds[coefficientX].Coefficient < Fraction.ZERO) {
-                    coefficient *= -1;
+                    value *= -1;
                 }
+                coefficient += value * compounds[coefficientX].Coefficient;
+                Debug.Log($"plus {value}: {coefficient}", 2);
             }
             compounds[x].Coefficient = coefficient / matrix[x, y];
+            Debug.Log($"divide by itself {matrix[x, y]}: {compounds[x].Coefficient}", 1);
         }
+        Debug.Log(this);
         // if fractional coefficient exists, multiply all coefficients by its denominator
         int? fractionalDenominator = null;
         foreach (var compound in compounds) {
@@ -156,7 +170,7 @@ class Compound {
     public override string ToString() {
         string result = string.Join(null, Elements);
         // string result = string.Join('-', Elements);
-        if (Coefficient > Fraction.ONE) {
+        if (Coefficient != Fraction.ONE) {
             result = Coefficient + result;
         }
         return result;
