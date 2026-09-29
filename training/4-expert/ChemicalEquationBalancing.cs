@@ -39,11 +39,11 @@ record Equation(List<Compound> LeftCompounds, List<Compound> RightCompounds) {
         string[] elements = [.. LeftCompounds.SelectMany(it => it.Elements).Select(it => it.Symbol).Distinct()];
         var compounds = LeftCompounds.Concat(RightCompounds).ToArray();
         // building matrix
-        var matrixCompounds = LeftCompounds.Concat(RightCompounds.Select(it => it.Clone(-1))).ToArray();
-        var matrix = new Fraction[matrixCompounds.Length, elements.Length];
+        int[] compoundSigns = [.. LeftCompounds.Select(_ => 1), .. RightCompounds.Select(_ => -1)];
+        var matrix = new Fraction[compounds.Length, elements.Length];
         for (var y = 0; y < elements.Length; y++) {
-            for (var x = 0; x < matrixCompounds.Length; x++) {
-                matrix[x, y] = matrixCompounds[x].ElementCount(elements[y]);
+            for (var x = 0; x < compounds.Length; x++) {
+                matrix[x, y] = compounds[x].ElementCount(elements[y]) * compoundSigns[x];
             }
         }
         Log("built matrix");
@@ -63,7 +63,7 @@ record Equation(List<Compound> LeftCompounds, List<Compound> RightCompounds) {
                 }
                 // adding multiple of one row to another row
                 var multiple = matrix[pivotX, cellY] / matrix[pivotX, cellY - 1];
-                for (var x = 0; x < matrixCompounds.Length; x++) {
+                for (var x = 0; x < compounds.Length; x++) {
                     matrix[x, cellY] -= matrix[x, cellY - 1] * multiple;
                 }
             }
@@ -74,13 +74,10 @@ record Equation(List<Compound> LeftCompounds, List<Compound> RightCompounds) {
         for (int x = compounds.Length - 2, y = elements.Length - 1; x >= 0; x--, y--) {
             var coefficient = Fraction.ZERO;
             Debug.Log($"setting coefficient for {compounds[x]}", 1);
-            for (int coefficientX = x + 1; coefficientX < compounds.Length; coefficientX++) {
-                var value = matrix[coefficientX, y];
-                if (matrixCompounds[coefficientX].Coefficient < Fraction.ZERO) {
-                    value *= -1;
-                }
-                coefficient += value * compounds[coefficientX].Coefficient;
-                Debug.Log($"plus {value}: {coefficient}", 2);
+            for (int xRight = x + 1; xRight < compounds.Length; xRight++) {
+                var right = matrix[xRight, y] * compoundSigns[xRight] * compounds[xRight].Coefficient;
+                coefficient += right;
+                Debug.Log($"plus {right}: {coefficient}", 2);
             }
             compounds[x].Coefficient = coefficient / matrix[x, y];
             Debug.Log($"divide by itself {matrix[x, y]}: {compounds[x].Coefficient}", 1);
@@ -105,7 +102,7 @@ record Equation(List<Compound> LeftCompounds, List<Compound> RightCompounds) {
             Console.Error.WriteLine($"-------- {message}");
             for (var y = 0; y < elements.Length; y++) {
                 Console.Error.Write($"{elements[y]}: ");
-                for (var x = 0; x < matrixCompounds.Length; x++) {
+                for (var x = 0; x < compounds.Length; x++) {
                     Console.Error.Write($"{matrix[x, y]} ");
                 }
                 Console.Error.WriteLine();
