@@ -26,10 +26,8 @@ for (var a = 0; a < pointCount; a++) {
 }
 var min = distances.MinBy(it => it.distance);
 var max = distances.MaxBy(it => it.distance);
-string minVector = min.a.Name + min.b.Name;
-string maxVector = max.a.Name + max.b.Name;
-Console.WriteLine(minVector);
-Console.WriteLine(maxVector);
+Console.WriteLine(min.b - min.a);
+Console.WriteLine(max.b - max.a);
 
 record Point(string Name, int[] Coordinates) {
     public const char PARENTHESIS_LEFT = '(';
@@ -47,8 +45,18 @@ record Point(string Name, int[] Coordinates) {
         return Math.Sqrt(sum);
     }
 
+    public static Point operator -(Point a, Point b) {
+        string name = b.Name + a.Name;
+        var coordinates = new int[Dimensions];
+        for (var i = 0; i < Dimensions; i++) {
+            int diff = a.Coordinates[i] - b.Coordinates[i];
+            coordinates[i] = diff;
+        }
+        return new Point(name, coordinates);
+    }
+
     public override string ToString() {
         string coordinates = string.Join(SEPARATOR, Coordinates);
-        return $"{PARENTHESIS_LEFT}{coordinates}{PARENTHESIS_RIGHT}";
+        return $"{Name}{PARENTHESIS_LEFT}{coordinates}{PARENTHESIS_RIGHT}";
     }
 }
