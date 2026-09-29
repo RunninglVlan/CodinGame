@@ -81,14 +81,14 @@ record Equation(List<Compound> LeftCompounds, List<Compound> RightCompounds) {
             if (matrix[x, y] == Fraction.ZERO) {
                 continue;
             }
-            var coefficient = Fraction.ZERO;
+            var rightSum = Fraction.ZERO;
             Debug.Log($"setting coefficient for {compounds[x]}", 1);
             for (int xRight = x + 1; xRight < compounds.Length; xRight++) {
                 var right = matrix[xRight, y] * compounds[xRight].Coefficient;
-                coefficient += right;
-                Debug.Log($"plus {right}: {coefficient}", 2);
+                rightSum += right;
+                Debug.Log($"plus {right}: {rightSum}", 2);
             }
-            compounds[x].Coefficient = coefficient * -1 / matrix[x, y];
+            compounds[x].Coefficient = rightSum * -1 / matrix[x, y];
             Debug.Log($"divide by itself {matrix[x, y]}: {compounds[x].Coefficient}", 1);
         }
         Debug.Log(this);
