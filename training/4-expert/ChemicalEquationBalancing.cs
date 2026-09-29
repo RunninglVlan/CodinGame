@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 
 // https://www.codingame.com/training/expert/chemical-equation-balancing
-string[] unbalanced = Debug.ReadLine()!.Split(Separators.SIDE);
+string[] unbalanced = Console.ReadLine()!.Split(Separators.SIDE);
 var equation = new Equation(ParseCompounds(unbalanced.First()), ParseCompounds(unbalanced.Last()));
 equation.Balance();
 Console.WriteLine(equation);
@@ -46,7 +46,6 @@ record Equation(List<Compound> LeftCompounds, List<Compound> RightCompounds) {
                 matrix[x, y] = compounds[x].ElementCount(elements[y]) * compoundSigns[x];
             }
         }
-        Log("built matrix");
         // doing gaussian elimination
         for (int pivotX = 0, pivotY = 0; pivotX < compounds.Length && pivotY < elements.Length; pivotX++, pivotY++) {
             if (matrix[pivotX, pivotY] == Fraction.ZERO) {
@@ -73,36 +72,28 @@ record Equation(List<Compound> LeftCompounds, List<Compound> RightCompounds) {
                     y--;
                 }
                 var multiple = matrix[pivotX, cellY] / matrix[pivotX, y];
-                Debug.Log($"multiple: {multiple}", 2);
                 for (var x = 0; x < compounds.Length; x++) {
                     matrix[x, cellY] -= matrix[x, y] * multiple;
                 }
             }
-            Log($"processed pivot {(pivotX, pivotY)}");
         }
         // setting coefficients from matrix variables
-        Debug.Log($"coefficient for {compounds.Last()} is 1", 1);
         for (int x = elements.Length - 1, y = elements.Length - 1; x >= 0; x--, y--) {
             if (x >= compounds.Length || matrix[x, y] == Fraction.ZERO) {
                 continue;
             }
             var rightSum = Fraction.ZERO;
-            Debug.Log($"setting coefficient for {compounds[x]}", 1);
             for (int xRight = x + 1; xRight < compounds.Length; xRight++) {
                 var right = matrix[xRight, y] * compounds[xRight].Coefficient;
                 rightSum += right;
-                Debug.Log($"plus {right}: {rightSum}", 2);
             }
             compounds[x].Coefficient = rightSum * -1 / matrix[x, y];
-            Debug.Log($"divide by itself {matrix[x, y]}: {compounds[x].Coefficient}", 1);
         }
-        Debug.Log(this);
         // if fractional coefficient exists, multiply all coefficients by its denominator
         int? fractionalDenominator = null;
         foreach (var compound in compounds) {
             if (compound.Coefficient.Denominator != 1) {
                 fractionalDenominator = compound.Coefficient.Denominator;
-                Debug.Log($"found fractional coefficient: {compound}, multiplying everything by {fractionalDenominator}", 1);
                 break;
             }
         }
@@ -111,43 +102,6 @@ record Equation(List<Compound> LeftCompounds, List<Compound> RightCompounds) {
                 compound.Coefficient *= fractionalDenominator.Value;
             }
         }
-        return;
-
-        void Log(string message) {
-            Console.Error.WriteLine($"-------- {message}");
-            for (var y = 0; y < elements.Length; y++) {
-                Console.Error.Write($"{elements[y]}:\t");
-                for (var x = 0; x < compounds.Length; x++) {
-                    Console.Error.Write($"{matrix[x, y]}\t");
-                }
-                Console.Error.WriteLine();
-            }
-        }
-    }
-
-    (string element, List<Compound> left, List<Compound> right, Fraction leftCount, Fraction rightCount)[]
-            UnbalancedElements() {
-        return LeftCompounds
-                .SelectMany(it => it.Elements.Select(element => element.Symbol))
-                .Distinct()
-                .Select(symbol => {
-                    var left = ElementCompounds(LeftCompounds, symbol);
-                    var right = ElementCompounds(RightCompounds, symbol);
-                    var leftCount = ElementCount(left, symbol);
-                    var rightCount = ElementCount(right, symbol);
-                    return (symbol, left, right, leftCount, rightCount);
-                })
-                .Where(it => it.leftCount != it.rightCount)
-                .ToArray();
-    }
-
-    static Fraction ElementCount(List<Compound> compounds, string symbol) {
-        return compounds.Aggregate(Fraction.ZERO, (accumulator, it) => accumulator + it.ElementCount(symbol));
-    }
-
-    static List<Compound> ElementCompounds(List<Compound> compounds, string symbol) {
-        var elementCompounds = compounds.Where(it => it.Elements.Any(element => element.Symbol == symbol));
-        return [.. elementCompounds];
     }
 
     public override string ToString() {
@@ -159,7 +113,7 @@ record Equation(List<Compound> LeftCompounds, List<Compound> RightCompounds) {
 
 class Compound {
     public Fraction Coefficient { get; set; } = Fraction.ONE;
-    public List<Element> Elements { get; private init; } = [];
+    public List<Element> Elements { get; } = [];
 
     public void AddElement(string symbol, string count) {
         Elements.Add(new Element(symbol, count != string.Empty ? int.Parse(count) : 1));
@@ -172,16 +126,8 @@ class Compound {
         return Coefficient * Elements.First(it => it.Symbol == symbol).Count;
     }
 
-    public Compound Clone(int multiplier) {
-        return new Compound {
-            Coefficient = Coefficient * multiplier,
-            Elements = [.. Elements]
-        };
-    }
-
     public override string ToString() {
         string result = string.Join(null, Elements);
-        // string result = string.Join('-', Elements);
         if (Coefficient != Fraction.ONE) {
             result = Coefficient + result;
         }
@@ -204,11 +150,11 @@ static class Separators {
     public const string COMPOUND = " + ";
 }
 
-readonly record struct Fraction : IComparable<Fraction> {
+readonly record struct Fraction {
     public static readonly Fraction ZERO = new(0, 1);
     public static readonly Fraction ONE = new(1, 1);
 
-    public int Numerator { get; }
+    int Numerator { get; }
     public int Denominator { get; }
 
     Fraction(int numerator, int denominator) {
@@ -221,7 +167,7 @@ readonly record struct Fraction : IComparable<Fraction> {
         Denominator = denominator;
     }
 
-    public int CompareTo(Fraction other) {
+    int CompareTo(Fraction other) {
         int left = Numerator * other.Denominator;
         int right = other.Numerator * Denominator;
         return left.CompareTo(right);
@@ -258,9 +204,6 @@ readonly record struct Fraction : IComparable<Fraction> {
 }
 
 static class Mathf {
-    public static Fraction Max(Fraction a, Fraction b) => a >= b ? a : b;
-    public static Fraction Min(Fraction a, Fraction b) => a <= b ? a : b;
-
     /// Euclidean algorithm
     public static int GreatestCommonDivisor(int a, int b) {
         // r is a remainder
@@ -274,23 +217,5 @@ static class Mathf {
     public static int LeastCommonMultiple(int a, int b) {
         int gcd = GreatestCommonDivisor(a, b);
         return Math.Abs(a) / gcd * Math.Abs(b);
-    }
-}
-
-static class Debug {
-    const int TAB_LENGTH = 2;
-
-    /// Reads the line from Console and also writes it to Console.Error
-    public static string? ReadLine() {
-        string? line = Console.ReadLine();
-        Console.Error.WriteLine(line);
-        return line;
-    }
-
-    public static void Log(object? line = null, int tab = 0, ConsoleColor? color = null) {
-        Console.ForegroundColor = color ?? ConsoleColor.Red;
-        var padding = new string(' ', tab * TAB_LENGTH);
-        Console.Error.WriteLine($"{padding}{line}");
-        Console.ResetColor();
     }
 }

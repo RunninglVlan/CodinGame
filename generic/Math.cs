@@ -56,9 +56,6 @@ readonly record struct Fraction : IComparable<Fraction> {
 static class Mathf {
     public static bool Approximately(double a, double b) => Math.Abs(a - b) < 0.001;
 
-    public static Fraction Max(Fraction a, Fraction b) => a >= b ? a : b;
-    public static Fraction Min(Fraction a, Fraction b) => a <= b ? a : b;
-
     /// Euclidean algorithm
     public static int GreatestCommonDivisor(int a, int b) {
         // r is a remainder
