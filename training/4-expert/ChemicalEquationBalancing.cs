@@ -62,7 +62,7 @@ record Equation(List<Compound> LeftCompounds, List<Compound> RightCompounds) {
             }
             for (int yBelow = y + 1; yBelow < height; yBelow++) {
                 if (matrix[x, yBelow] != Fraction.ZERO) {
-                    AddMultipleOfRow(x, yBelow);
+                    SubtractMultipleOfRow(x, yBelow);
                 }
             }
         }
@@ -77,7 +77,7 @@ record Equation(List<Compound> LeftCompounds, List<Compound> RightCompounds) {
             }
         }
 
-        void AddMultipleOfRow(int pivotX, int cellY) {
+        void SubtractMultipleOfRow(int pivotX, int cellY) {
             TryFindRow(pivotX, cellY, -1, out int y);
             var multiple = matrix[pivotX, cellY] / matrix[pivotX, y];
             for (var x = 0; x < width; x++) {
@@ -95,26 +95,25 @@ record Equation(List<Compound> LeftCompounds, List<Compound> RightCompounds) {
     }
 
     static void SetCoefficients(Fraction[,] matrix, Compound[] compounds, int elements) {
-        int? fractionalDenominator = null;
+        int? denominatorToClear = null;
         for (int x = elements - 1, y = elements - 1; x >= 0; x--, y--) {
             if (x >= compounds.Length || matrix[x, y] == Fraction.ZERO) {
                 continue;
             }
-            var rightSum = Fraction.ZERO;
-            for (int xRight = x + 1; xRight < compounds.Length; xRight++) {
-                var right = matrix[xRight, y] * compounds[xRight].Coefficient;
-                rightSum += right;
+            var knownSum = Fraction.ZERO;
+            for (int laterX = x + 1; laterX < compounds.Length; laterX++) {
+                knownSum += matrix[laterX, y] * compounds[laterX].Coefficient;
             }
-            compounds[x].Coefficient = rightSum * -1 / matrix[x, y];
-            if (fractionalDenominator == null && compounds[x].Coefficient.Denominator != 1) {
-                fractionalDenominator = compounds[x].Coefficient.Denominator;
+            compounds[x].Coefficient = knownSum * -1 / matrix[x, y];
+            if (denominatorToClear == null && compounds[x].Coefficient.Denominator != 1) {
+                denominatorToClear = compounds[x].Coefficient.Denominator;
             }
         }
-        if (fractionalDenominator == null) {
+        if (denominatorToClear == null) {
             return;
         }
         foreach (var compound in compounds) {
-            compound.Coefficient *= fractionalDenominator.Value;
+            compound.Coefficient *= denominatorToClear.Value;
         }
     }
 
