@@ -58,13 +58,12 @@ record Equation(List<Compound> LeftCompounds, List<Compound> RightCompounds) {
                 if (matrix[pivotX, cellY] == Fraction.ZERO) {
                     continue;
                 }
-                if (matrix[pivotX, cellY - 1] == Fraction.ZERO) {
-                    Debug.Log($"TODO: cell above {(pivotX, cellY)} is zero", 1);
-                }
                 // adding multiple of one row to another row
-                var multiple = matrix[pivotX, cellY] / matrix[pivotX, cellY - 1];
+                int y;
+                for (y = cellY - 1; matrix[pivotX, y] == Fraction.ZERO; y--) { }
+                var multiple = matrix[pivotX, cellY] / matrix[pivotX, y];
                 for (var x = 0; x < compounds.Length; x++) {
-                    matrix[x, cellY] -= matrix[x, cellY - 1] * multiple;
+                    matrix[x, cellY] -= matrix[x, y] * multiple;
                 }
             }
             Log($"processed pivot {(pivotX, pivotY)}");
