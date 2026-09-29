@@ -38,7 +38,12 @@ record Equation(List<Compound> LeftCompounds, List<Compound> RightCompounds) {
     public void Balance() {
         string[] elements = [.. LeftCompounds.SelectMany(it => it.Elements).Select(it => it.Symbol).Distinct()];
         var compounds = LeftCompounds.Concat(RightCompounds).ToArray();
-        // building matrix
+        var matrix = BuildMatrix(compounds, elements);
+        SolveMatrix(matrix, compounds.Length, elements.Length);
+        SetCoefficients(matrix, compounds, elements.Length);
+    }
+
+    Fraction[,] BuildMatrix(Compound[] compounds, string[] elements) {
         int[] compoundSigns = [.. LeftCompounds.Select(_ => 1), .. RightCompounds.Select(_ => -1)];
         var matrix = new Fraction[compounds.Length, elements.Length];
         for (var y = 0; y < elements.Length; y++) {
@@ -46,39 +51,52 @@ record Equation(List<Compound> LeftCompounds, List<Compound> RightCompounds) {
                 matrix[x, y] = compounds[x].ElementCount(elements[y]) * compoundSigns[x];
             }
         }
-        // doing gaussian elimination
-        for (int pivotX = 0, pivotY = 0; pivotX < compounds.Length && pivotY < elements.Length; pivotX++, pivotY++) {
-            if (matrix[pivotX, pivotY] == Fraction.ZERO) {
-                // 1. swapping two rows
-                int y = pivotY + 1;
-                while (y < elements.Length && matrix[pivotX, y] == Fraction.ZERO) {
-                    y++;
-                }
-                if (y < elements.Length) {
-                    for (var x = 0; x < compounds.Length; x++) {
-                        (matrix[x, pivotY], matrix[x, y]) = (matrix[x, y], matrix[x, pivotY]);
-                    }
-                    (elements[pivotY], elements[y]) = (elements[y], elements[pivotY]);
-                }
+        return matrix;
+    }
+
+    /// Solve the system of linear equations using Gaussian elimination
+    static void SolveMatrix(Fraction[,] matrix, int width, int height) {
+        for (int x = 0, y = 0; x < width && y < height; x++, y++) {
+            if (matrix[x, y] == Fraction.ZERO) {
+                Swap2Rows(x, y);
             }
-            for (int cellY = pivotY + 1; cellY < elements.Length; cellY++) {
-                // cells under pivot need to be zero
-                if (matrix[pivotX, cellY] == Fraction.ZERO) {
-                    continue;
-                }
-                // 3. adding multiple of one row to another row
-                int y = cellY - 1;
-                while (matrix[pivotX, y] == Fraction.ZERO) {
-                    y--;
-                }
-                var multiple = matrix[pivotX, cellY] / matrix[pivotX, y];
-                for (var x = 0; x < compounds.Length; x++) {
-                    matrix[x, cellY] -= matrix[x, y] * multiple;
+            for (int yBelow = y + 1; yBelow < height; yBelow++) {
+                if (matrix[x, yBelow] != Fraction.ZERO) {
+                    AddMultipleOfRow(x, yBelow);
                 }
             }
         }
-        // setting coefficients from matrix variables
-        for (int x = elements.Length - 1, y = elements.Length - 1; x >= 0; x--, y--) {
+        return;
+
+        void Swap2Rows(int pivotX, int pivotY) {
+            if (!TryFindRow(pivotX, pivotY, +1, out int y)) {
+                return;
+            }
+            for (var x = 0; x < width; x++) {
+                (matrix[x, pivotY], matrix[x, y]) = (matrix[x, y], matrix[x, pivotY]);
+            }
+        }
+
+        void AddMultipleOfRow(int pivotX, int cellY) {
+            TryFindRow(pivotX, cellY, -1, out int y);
+            var multiple = matrix[pivotX, cellY] / matrix[pivotX, y];
+            for (var x = 0; x < width; x++) {
+                matrix[x, cellY] -= matrix[x, y] * multiple;
+            }
+        }
+
+        bool TryFindRow(int x, int y, int direction, out int row) {
+            row = y + direction;
+            while (row < height && matrix[x, row] == Fraction.ZERO) {
+                row += direction;
+            }
+            return row < height;
+        }
+    }
+
+    static void SetCoefficients(Fraction[,] matrix, Compound[] compounds, int elements) {
+        int? fractionalDenominator = null;
+        for (int x = elements - 1, y = elements - 1; x >= 0; x--, y--) {
             if (x >= compounds.Length || matrix[x, y] == Fraction.ZERO) {
                 continue;
             }
@@ -88,19 +106,15 @@ record Equation(List<Compound> LeftCompounds, List<Compound> RightCompounds) {
                 rightSum += right;
             }
             compounds[x].Coefficient = rightSum * -1 / matrix[x, y];
+            if (fractionalDenominator == null && compounds[x].Coefficient.Denominator != 1) {
+                fractionalDenominator = compounds[x].Coefficient.Denominator;
+            }
         }
-        // if fractional coefficient exists, multiply all coefficients by its denominator
-        int? fractionalDenominator = null;
+        if (fractionalDenominator == null) {
+            return;
+        }
         foreach (var compound in compounds) {
-            if (compound.Coefficient.Denominator != 1) {
-                fractionalDenominator = compound.Coefficient.Denominator;
-                break;
-            }
-        }
-        if (fractionalDenominator != null) {
-            foreach (var compound in compounds) {
-                compound.Coefficient *= fractionalDenominator.Value;
-            }
+            compound.Coefficient *= fractionalDenominator.Value;
         }
     }
 
