@@ -50,14 +50,21 @@ record Equation(List<Compound> LeftCompounds, List<Compound> RightCompounds) {
         // doing gaussian elimination
         for (int pivotX = 0, pivotY = 0; pivotY < elements.Length; pivotX++, pivotY++) {
             if (matrix[pivotX, pivotY] == Fraction.ZERO && pivotY < elements.Length - 1) {
-                Debug.Log($"TODO: pivot {(pivotX, pivotY)} is zero", 1);
+                // 1. swapping two rows
+                if (matrix[pivotX, pivotY + 1] == Fraction.ZERO) {
+                    Debug.Log($"TODO: cell below {(pivotX, pivotY)} is zero", 1);
+                }
+                for (var x = 0; x < compounds.Length; x++) {
+                    (matrix[x, pivotY], matrix[x, pivotY + 1]) = (matrix[x, pivotY + 1], matrix[x, pivotY]);
+                }
+                (elements[pivotY], elements[pivotY + 1]) = (elements[pivotY + 1], elements[pivotY]);
             }
             for (int cellY = pivotY + 1; cellY < elements.Length; cellY++) {
                 // cells under pivot need to be zero
                 if (matrix[pivotX, cellY] == Fraction.ZERO) {
                     continue;
                 }
-                // adding multiple of one row to another row
+                // 3. adding multiple of one row to another row
                 int y;
                 for (y = cellY - 1; matrix[pivotX, y] == Fraction.ZERO; y--) { }
                 var multiple = matrix[pivotX, cellY] / matrix[pivotX, y];
