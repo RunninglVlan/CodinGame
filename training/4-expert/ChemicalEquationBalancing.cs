@@ -62,6 +62,7 @@ record Equation(List<Compound> LeftCompounds, List<Compound> RightCompounds) {
                 int y;
                 for (y = cellY - 1; matrix[pivotX, y] == Fraction.ZERO; y--) { }
                 var multiple = matrix[pivotX, cellY] / matrix[pivotX, y];
+                Debug.Log($"multiple: {multiple}", 2);
                 for (var x = 0; x < compounds.Length; x++) {
                     matrix[x, cellY] -= matrix[x, y] * multiple;
                 }
@@ -100,9 +101,9 @@ record Equation(List<Compound> LeftCompounds, List<Compound> RightCompounds) {
         void Log(string message) {
             Console.Error.WriteLine($"-------- {message}");
             for (var y = 0; y < elements.Length; y++) {
-                Console.Error.Write($"{elements[y]}: ");
+                Console.Error.Write($"{elements[y]}:\t");
                 for (var x = 0; x < compounds.Length; x++) {
-                    Console.Error.Write($"{matrix[x, y]} ");
+                    Console.Error.Write($"{matrix[x, y]}\t");
                 }
                 Console.Error.WriteLine();
             }
