@@ -65,8 +65,10 @@ record Equation(List<Compound> LeftCompounds, List<Compound> RightCompounds) {
                     continue;
                 }
                 // 3. adding multiple of one row to another row
-                int y;
-                for (y = cellY - 1; matrix[pivotX, y] == Fraction.ZERO; y--) { }
+                int y = cellY - 1;
+                while (matrix[pivotX, y] == Fraction.ZERO) {
+                    y--;
+                }
                 var multiple = matrix[pivotX, cellY] / matrix[pivotX, y];
                 Debug.Log($"multiple: {multiple}", 2);
                 for (var x = 0; x < compounds.Length; x++) {
