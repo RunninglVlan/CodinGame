@@ -46,7 +46,7 @@ record Equation(List<Compound> LeftCompounds, List<Compound> RightCompounds) {
                 matrix[x, y] = matrixCompounds[x].ElementCount(elements[y]);
             }
         }
-        Log();
+        Log("built matrix");
         // doing gaussian elimination
         for (int pivotX = 0, pivotY = 0; pivotY < elements.Length; pivotX++, pivotY++) {
             var pivot = matrix[pivotX, pivotY];
@@ -59,7 +59,7 @@ record Equation(List<Compound> LeftCompounds, List<Compound> RightCompounds) {
                     Debug.Log($"TODO: cell {(pivotX, cellY)} is not zero", 2);
                 }
             }
-            Log();
+            Log($"processed pivot {(pivotX, pivotY)}");
         }
         // setting coefficients from matrix variables
         for (int x = compounds.Length - 2, y = elements.Length - 1; x >= 0; x--, y--) {
@@ -87,7 +87,8 @@ record Equation(List<Compound> LeftCompounds, List<Compound> RightCompounds) {
         }
         return;
 
-        void Log() {
+        void Log(string message) {
+            Console.Error.WriteLine($"-------- {message}");
             for (var y = 0; y < elements.Length; y++) {
                 Console.Error.Write($"{elements[y]}: ");
                 for (var x = 0; x < matrixCompounds.Length; x++) {
