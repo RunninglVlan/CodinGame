@@ -1,6 +1,6 @@
 ﻿using System;
 
-readonly record struct Fraction : IComparable<Fraction> {
+readonly record struct Fraction {
     public static readonly Fraction ZERO = new(0, 1);
     public static readonly Fraction ONE = new(1, 1);
 
@@ -16,17 +16,6 @@ readonly record struct Fraction : IComparable<Fraction> {
         Numerator = numerator;
         Denominator = denominator;
     }
-
-    public int CompareTo(Fraction other) {
-        int left = Numerator * other.Denominator;
-        int right = other.Numerator * Denominator;
-        return left.CompareTo(right);
-    }
-
-    public static bool operator >(Fraction a, Fraction b) => a.CompareTo(b) > 0;
-    public static bool operator <(Fraction a, Fraction b) => a.CompareTo(b) < 0;
-    public static bool operator >=(Fraction a, Fraction b) => a.CompareTo(b) >= 0;
-    public static bool operator <=(Fraction a, Fraction b) => a.CompareTo(b) <= 0;
 
     public static Fraction operator +(Fraction a, Fraction b) {
         int lcm = Mathf.LeastCommonMultiple(a.Denominator, b.Denominator);

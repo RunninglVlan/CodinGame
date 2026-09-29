@@ -181,17 +181,6 @@ readonly record struct Fraction {
         Denominator = denominator;
     }
 
-    int CompareTo(Fraction other) {
-        int left = Numerator * other.Denominator;
-        int right = other.Numerator * Denominator;
-        return left.CompareTo(right);
-    }
-
-    public static bool operator >(Fraction a, Fraction b) => a.CompareTo(b) > 0;
-    public static bool operator <(Fraction a, Fraction b) => a.CompareTo(b) < 0;
-    public static bool operator >=(Fraction a, Fraction b) => a.CompareTo(b) >= 0;
-    public static bool operator <=(Fraction a, Fraction b) => a.CompareTo(b) <= 0;
-
     public static Fraction operator +(Fraction a, Fraction b) {
         int lcm = Mathf.LeastCommonMultiple(a.Denominator, b.Denominator);
         return new Fraction(a.Numerator * lcm / a.Denominator + b.Numerator * lcm / b.Denominator, lcm);
