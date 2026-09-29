@@ -12,5 +12,18 @@ for (var y = 0; y < pointCount; y++) {
     string coordinateData = pointData.Last()[..^1];
     points[name] = [.. coordinateData.Split(',').Select(it => Math.Clamp(int.Parse(it), -20, 20))];
 }
+var first = points.First();
+var last = points.Last();
+Console.Error.WriteLine($"{first.Key}-{last.Key}: {Distance(first.Value, last.Value)}");
 Console.WriteLine("shortest_vector");
 Console.WriteLine("longest_vector");
+return;
+
+double Distance(int[] a, int[] b) {
+    var sum = 0;
+    for (var i = 0; i < dimensions; i++) {
+        int diff = a[i] - b[i];
+        sum += diff * diff;
+    }
+    return Math.Sqrt(sum);
+}
