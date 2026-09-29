@@ -2,9 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 
-// todo: extract elimination to some math, i guess
-// todo: remove debug
-// todo: implement state search? nah
 // https://www.codingame.com/training/expert/chemical-equation-balancing
 string[] unbalanced = Debug.ReadLine()!.Split(Separators.SIDE);
 var equation = new Equation(ParseCompounds(unbalanced.First()), ParseCompounds(unbalanced.Last()));
@@ -41,6 +38,7 @@ record Equation(List<Compound> LeftCompounds, List<Compound> RightCompounds) {
     public void Balance() {
         string[] elements = [.. LeftCompounds.SelectMany(it => it.Elements).Select(it => it.Symbol).Distinct()];
         var compounds = LeftCompounds.Concat(RightCompounds).ToArray();
+        // building matrix
         var matrixCompounds = LeftCompounds.Concat(RightCompounds.Select(it => it.Clone(-1))).ToArray();
         var matrix = new Fraction[matrixCompounds.Length, elements.Length];
         for (var y = 0; y < elements.Length; y++) {
@@ -49,6 +47,7 @@ record Equation(List<Compound> LeftCompounds, List<Compound> RightCompounds) {
             }
         }
         Log();
+        // doing gaussian elimination
         (int x, int y) pivotPoint = (0, 0);
         var pivot = matrix[pivotPoint.x, pivotPoint.y];
         if (pivot == Fraction.ZERO) {
@@ -57,6 +56,7 @@ record Equation(List<Compound> LeftCompounds, List<Compound> RightCompounds) {
         }
         for (var i = 0; i < elements.Length; i++, pivotPoint.x++, pivotPoint.y++) {
             pivot = matrix[pivotPoint.x, pivotPoint.y];
+            // pivot needs to be 1
             if (pivot != Fraction.ONE) {
                 // divide row by itself
                 for (var x = 0; x < matrixCompounds.Length; x++) {
@@ -65,12 +65,14 @@ record Equation(List<Compound> LeftCompounds, List<Compound> RightCompounds) {
             }
             for (int y = pivotPoint.y + 1; y < elements.Length; y++) {
                 var cellPoint = pivotPoint with { y = y };
+                // cells under pivot need to be zero
                 if (matrix[cellPoint.x, cellPoint.y] != Fraction.ZERO) {
                     Debug.Log($"TODO: cell {cellPoint} is not zero", 1);
                 }
             }
             Log();
         }
+        // setting coefficients from matrix variables
         for (int x = compounds.Length - 2, y = elements.Length - 1; x >= 0; x--, y--) {
             var coefficient = Fraction.ZERO;
             for (int coefficientX = x + 1; coefficientX < compounds.Length; coefficientX++) {
@@ -81,6 +83,7 @@ record Equation(List<Compound> LeftCompounds, List<Compound> RightCompounds) {
             }
             compounds[x].Coefficient = coefficient;
         }
+        // if fractional coefficient exists, multiply all coefficients by its denominator
         int? fractionalDenominator = null;
         foreach (var compound in compounds) {
             if (compound.Coefficient.Denominator != 1) {
