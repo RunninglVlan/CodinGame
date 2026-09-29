@@ -1,21 +1,20 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 
 // https://www.codingame.com/training/easy/vectors-in-variables-dimensions
 Point.Dimensions = Math.Clamp(int.Parse(Console.ReadLine()!), 1, 10);
 int pointCount = Math.Clamp(int.Parse(Console.ReadLine()!), 2, 100);
-Dictionary<string, Point> points = [];
-for (var y = 0; y < pointCount; y++) {
+var points = new(string name, Point point)[pointCount];
+for (var i = 0; i < pointCount; i++) {
     string[] pointData = Console.ReadLine()!.Split(Point.PARENTHESIS_LEFT);
     string name = pointData.First();
     string coordinateData = pointData.Last()[..^1];
     int[] coordinates = [.. coordinateData.Split(Point.SEPARATOR).Select(it => Math.Clamp(int.Parse(it), -20, 20))];
-    points[name] = new Point(coordinates);
+    points[i] = (name, new Point(coordinates));
 }
 var first = points.First();
 var last = points.Last();
-Console.Error.WriteLine($"{first.Key}-{last.Key}: {Point.Distance(first.Value, last.Value)}");
+Console.Error.WriteLine($"{first.name}-{last.name}: {Point.Distance(first.point, last.point)}");
 Console.WriteLine("shortest_vector");
 Console.WriteLine("longest_vector");
 
