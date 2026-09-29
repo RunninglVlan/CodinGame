@@ -84,11 +84,11 @@ record Equation(List<Compound> LeftCompounds, List<Compound> RightCompounds) {
             var coefficient = Fraction.ZERO;
             Debug.Log($"setting coefficient for {compounds[x]}", 1);
             for (int xRight = x + 1; xRight < compounds.Length; xRight++) {
-                var right = matrix[xRight, y] * compoundSigns[xRight] * compounds[xRight].Coefficient;
+                var right = matrix[xRight, y] * compounds[xRight].Coefficient;
                 coefficient += right;
                 Debug.Log($"plus {right}: {coefficient}", 2);
             }
-            compounds[x].Coefficient = coefficient / matrix[x, y];
+            compounds[x].Coefficient = coefficient * -1 / matrix[x, y];
             Debug.Log($"divide by itself {matrix[x, y]}: {compounds[x].Coefficient}", 1);
         }
         Debug.Log(this);
@@ -97,6 +97,7 @@ record Equation(List<Compound> LeftCompounds, List<Compound> RightCompounds) {
         foreach (var compound in compounds) {
             if (compound.Coefficient.Denominator != 1) {
                 fractionalDenominator = compound.Coefficient.Denominator;
+                Debug.Log($"found fractional coefficient: {compound}, multiplying everything by {fractionalDenominator}", 1);
                 break;
             }
         }
