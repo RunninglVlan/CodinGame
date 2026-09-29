@@ -49,25 +49,16 @@ record Equation(List<Compound> LeftCompounds, List<Compound> RightCompounds) {
         Log();
         // doing gaussian elimination
         (int x, int y) pivotPoint = (0, 0);
-        var pivot = matrix[pivotPoint.x, pivotPoint.y];
-        if (pivot == Fraction.ZERO) {
-            Debug.Log($"TODO: pivot {pivotPoint} is zero, move row below", 1);
-            return;
-        }
         for (var i = 0; i < elements.Length; i++, pivotPoint.x++, pivotPoint.y++) {
-            pivot = matrix[pivotPoint.x, pivotPoint.y];
-            // pivot needs to be 1
-            if (pivot != Fraction.ONE) {
-                // divide row by itself
-                for (var x = 0; x < matrixCompounds.Length; x++) {
-                    matrix[x, pivotPoint.y] /= pivot;
-                }
+            var pivot = matrix[pivotPoint.x, pivotPoint.y];
+            if (pivot == Fraction.ZERO) {
+                Debug.Log($"TODO: pivot {pivotPoint} is zero", 1);
             }
             for (int y = pivotPoint.y + 1; y < elements.Length; y++) {
                 var cellPoint = pivotPoint with { y = y };
                 // cells under pivot need to be zero
                 if (matrix[cellPoint.x, cellPoint.y] != Fraction.ZERO) {
-                    Debug.Log($"TODO: cell {cellPoint} is not zero", 1);
+                    Debug.Log($"TODO: cell {cellPoint} is not zero", 2);
                 }
             }
             Log();
@@ -81,7 +72,7 @@ record Equation(List<Compound> LeftCompounds, List<Compound> RightCompounds) {
                     coefficient *= -1;
                 }
             }
-            compounds[x].Coefficient = coefficient;
+            compounds[x].Coefficient = coefficient / matrix[x, y];
         }
         // if fractional coefficient exists, multiply all coefficients by its denominator
         int? fractionalDenominator = null;
