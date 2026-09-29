@@ -2,6 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 
+// todo: extract elimination to some math, i guess
+// todo: remove debug
+// todo: implement state search? nah
 // https://www.codingame.com/training/expert/chemical-equation-balancing
 string[] unbalanced = Debug.ReadLine()!.Split(Separators.SIDE);
 var equation = new Equation(ParseCompounds(unbalanced.First()), ParseCompounds(unbalanced.Last()));
