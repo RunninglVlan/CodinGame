@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Text.RegularExpressions;
 
-// https://www.codingame.com/contribute/view/15475216bbf3fd5ab519bcb675b26f2cb7bd28
+// https://www.codingame.com/training/easy/log-sanitizer
 int lines = Math.Clamp(int.Parse(Console.ReadLine()!), 1, 10);
 for (var _ = 0; _ < lines; _++) {
     string line = Console.ReadLine()!;
