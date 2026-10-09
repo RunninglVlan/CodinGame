@@ -9,10 +9,11 @@ return;
 
 int FrugalBiscuits(double side) {
     var count = 0;
-    for (double doughArea = side * side; doughArea > biscuitDiameter * biscuitDiameter;) {
+    float biscuitSquareArea = biscuitDiameter * biscuitDiameter;
+    for (double doughArea = side * side; doughArea > biscuitSquareArea;) {
         int biscuits = WastefulBiscuits(side);
         count += biscuits;
-        doughArea -= biscuits * (Math.PI * biscuitDiameter * biscuitDiameter / 4);
+        doughArea -= biscuits * (Math.PI * biscuitSquareArea / 4);
         side = Math.Sqrt(doughArea);
     }
     return count;
