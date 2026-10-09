@@ -4,17 +4,21 @@
 string[] inputs = Console.ReadLine()!.Split(' ');
 float doughSide = Math.Clamp(float.Parse(inputs[0]), 1, 99);
 float biscuitDiameter = Math.Clamp(float.Parse(inputs[1]), 1, 99);
-Console.WriteLine(FrugalBiscuits() - WastefulBiscuits());
+Console.WriteLine(FrugalBiscuits(doughSide) - WastefulBiscuits(doughSide));
 return;
 
-int FrugalBiscuits() {
-    float doughArea = doughSide * doughSide;
-    double biscuitArea = Math.PI * biscuitDiameter * biscuitDiameter / 4;
-    return (int)(doughArea / biscuitArea);
+int FrugalBiscuits(double side) {
+    var count = 0;
+    for (double doughArea = side * side; doughArea > biscuitDiameter * biscuitDiameter;) {
+        int biscuits = WastefulBiscuits(side);
+        count += biscuits;
+        doughArea -= biscuits * (Math.PI * biscuitDiameter * biscuitDiameter / 4);
+        side = Math.Sqrt(doughArea);
+    }
+    return count;
 }
 
-int WastefulBiscuits() {
-    float doughArea = doughSide * doughSide;
-    float biscuitArea = biscuitDiameter * biscuitDiameter;
-    return (int)(doughArea / biscuitArea);
+int WastefulBiscuits(double side) {
+    var biscuitsPerSide = (int)(side / biscuitDiameter);
+    return biscuitsPerSide * biscuitsPerSide;
 }
