@@ -8,9 +8,13 @@ Console.WriteLine(FrugalBiscuits() - WastefulBiscuits());
 return;
 
 int FrugalBiscuits() {
-    return 3;
+    float doughArea = doughSide * doughSide;
+    double biscuitArea = Math.PI * biscuitDiameter * biscuitDiameter / 4;
+    return (int)(doughArea / biscuitArea);
 }
 
 int WastefulBiscuits() {
-    return 1;
+    float doughArea = doughSide * doughSide;
+    float biscuitArea = biscuitDiameter * biscuitDiameter;
+    return (int)(doughArea / biscuitArea);
 }
