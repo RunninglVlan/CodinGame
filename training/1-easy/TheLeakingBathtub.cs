@@ -15,22 +15,23 @@ for (var i = 0; i < leakCount; i++) {
     int leakFlow = int.Parse(inputs[1]);
     leaks[i] = new Leak(leakHeight, leakFlow);
 }
-float timeInSeconds = 0;
-for (float filled = 0; filled < volume;) {
-    float currentHeight = filled / surfaceArea;
-    float amount = Flow(currentHeight) * 1000;
+double timeInSeconds = 0;
+for (double filled = 0; filled < volume;) {
+    double currentHeight = filled / surfaceArea;
+    double amount = Flow(currentHeight) * 1000;
+    amount /= 60;
     if (amount < 0) {
         Console.WriteLine($"Impossible, {(int)currentHeight} cm.");
         return;
     }
-    timeInSeconds += 60;
+    timeInSeconds++;
     filled += amount;
 }
 Console.WriteLine(FormatTime(timeInSeconds));
 return;
 
 [SuppressMessage("ReSharper", "LoopCanBeConvertedToQuery")]
-int Flow(float currentHeight) {
+int Flow(double currentHeight) {
     int result = flow;
     foreach (var leak in leaks.Where(it => it.Height <= currentHeight)) {
         result -= leak.Flow;
@@ -38,7 +39,7 @@ int Flow(float currentHeight) {
     return result;
 }
 
-string FormatTime(float totalSeconds) {
+string FormatTime(double totalSeconds) {
     var hours = (int)(totalSeconds / 3600);
     var minutes = (int)(totalSeconds / 60 % 60);
     var seconds = (int)(totalSeconds % 60);
