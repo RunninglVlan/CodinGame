@@ -10,7 +10,7 @@ return;
 int FrugalBiscuits(double side) {
     var count = 0;
     float biscuitSquareArea = biscuitDiameter * biscuitDiameter;
-    for (double doughArea = side * side; doughArea > biscuitSquareArea;) {
+    for (double doughArea = side * side; doughArea >= biscuitSquareArea;) {
         int biscuits = WastefulBiscuits(side);
         count += biscuits;
         doughArea -= biscuits * (Math.PI * biscuitSquareArea / 4);
