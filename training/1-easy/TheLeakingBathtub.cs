@@ -16,8 +16,9 @@ for (var i = 0; i < leakCount; i++) {
     leaks.Add(new Leak(leakHeight, leakFlow));
 }
 var orderedLeaks = leaks.OrderBy(it => it.Height).ToList();
+const int stepMilliseconds = 100;
 var timeInMilliseconds = 0;
-float currentFlow = flow;
+double currentFlow = flow;
 for (double filled = 0; filled < volume;) {
     double currentHeight = filled / surfaceArea;
     if (orderedLeaks.Count > 0 && currentHeight >= orderedLeaks.First().Height) {
@@ -25,19 +26,19 @@ for (double filled = 0; filled < volume;) {
         currentFlow -= leak.Flow;
         orderedLeaks.RemoveAt(0);
     }
-    double amount = currentFlow / 10;
+    double amount = currentFlow * stepMilliseconds;
     if (amount < 0) {
         Console.WriteLine($"Impossible, {(int)currentHeight} cm.");
         return;
     }
-    timeInMilliseconds += 100;
+    timeInMilliseconds += stepMilliseconds;
     filled += amount;
 }
 Console.WriteLine(FormatTime(timeInMilliseconds));
 return;
 
-// convert l/minute to cm3/second
-float Flow(int amount) => amount * 1000f / 60;
+// convert l/minute to cm3/millisecond
+float Flow(int amount) => amount / 60f;
 
 string FormatTime(int totalMilliseconds) {
     double totalSeconds = totalMilliseconds / 1000f;
