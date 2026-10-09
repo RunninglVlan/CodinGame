@@ -2,8 +2,8 @@
 
 // https://www.codingame.com/training/easy/should-bakers-be-frugal
 string[] inputs = Console.ReadLine()!.Split(' ');
-float doughSide = Math.Clamp(float.Parse(inputs[0]), 1, 99);
-float biscuitDiameter = Math.Clamp(float.Parse(inputs[1]), 1, 99);
+float doughSide = Math.Clamp(float.Parse(inputs[0]), 0, 100);
+float biscuitDiameter = Math.Clamp(float.Parse(inputs[1]), 0, 100);
 Console.WriteLine(FrugalBiscuits(doughSide) - WastefulBiscuits(doughSide));
 return;
 
