@@ -8,7 +8,8 @@ Math.Clamp(int.Parse(Console.ReadLine()!), 1, 100); // botCount
 int[] botPositions = [.. Console.ReadLine()!.Split(' ').Select(int.Parse).OrderBy(it => it)];
 List<Bot> bots = [];
 for (var i = 0; i < botPositions.Length; i++) {
-    // only first looks right
+    // only first looks right;
+    // not optimal when there's single bot, and it's closer to the right
     bots.Add(new Bot(botPositions[i], i == 0 ? 1 : -1));
 }
 Console.WriteLine(SimulateBotMovement());
