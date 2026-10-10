@@ -60,7 +60,7 @@ class Facility : IGraph<Point> {
     }
 
     public void ReachExit() {
-        while (!HasReachedExit(out char doorSymbol)) {
+        while (!TryReachExit(out char doorSymbol)) {
             var path = pathfinding.Path(start, it => grid[it.X, it.Y].Symbol == char.ToLower(doorSymbol));
             Debug.Log($"unlocked door {doorSymbol}", 1);
             AddPath(path);
@@ -68,7 +68,7 @@ class Facility : IGraph<Point> {
     }
 
     [SuppressMessage("ReSharper", "ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator")]
-    bool HasReachedExit(out char lockedDoor) {
+    bool TryReachExit(out char lockedDoor) {
         var path = pathfinding.Path(start, exit);
         lockedDoor = '\0';
         foreach (var point in path) {
