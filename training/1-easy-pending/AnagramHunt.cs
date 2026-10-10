@@ -19,8 +19,11 @@ for (var i = 0; i < dictionaryWords; i++) {
         player.TryPlay(word);
     }
 }
-var playersOrdered = players.Where(it => it.PlayedWord != null).OrderByDescending(it => it.Score);
-Console.WriteLine(mode == Modes.HIGH ? playersOrdered.First() : playersOrdered.Last());
+var playerScores = players.Where(it => it.PlayedWord != null).Select(it => it.Score).OrderByDescending(it => it);
+int winningScore = mode == Modes.HIGH ? playerScores.First() : playerScores.Last();
+foreach (var player in players.Where(it => it.Score == winningScore)) {
+    Console.WriteLine(player);
+}
 
 static class Modes {
     public const string HIGH = "high";
