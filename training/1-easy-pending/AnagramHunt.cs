@@ -43,12 +43,25 @@ record Player(string Name, char[] Hand) {
         score = 0;
         for (var i = 0; i < word.Length; i++) {
             if (i < Hand.Length && word[i] == Hand[i]) {
-                score++;
+                score += LetterScore(word[i]);
             } else {
                 return false;
             }
         }
         return true;
+    }
+
+    static int LetterScore(char c) {
+        return c switch {
+            'a' or 'e' or 'i' or 'l' or 'n' or 'o' or 'r' or 's' or 't' or 'u' => 1,
+            'd' or 'g' => 2,
+            'b' or 'c' or 'm' or 'p' => 3,
+            'f' or 'h' or 'v' or 'w' or 'y' => 4,
+            'k' => 5,
+            'j' or 'x' => 8,
+            'q' or 'z' => 10,
+            _ => throw new ArgumentException($"Unexpected letter: {c}")
+        };
     }
 
     public override string ToString() => $"{Name} {playedWord}";
