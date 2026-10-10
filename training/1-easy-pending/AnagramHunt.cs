@@ -12,9 +12,13 @@ for (var i = 0; i < playerCount; i++) {
     string hand = inputs[1];
     players.Add(new Player(name, [.. hand.OrderBy(it => it)]));
 }
-int dictionaryWords = Math.Clamp(int.Parse(Console.ReadLine()!), 1, 50);
-for (var i = 0; i < dictionaryWords; i++) {
+int dictionaryLength = Math.Clamp(int.Parse(Console.ReadLine()!), 1, 50);
+List<string> dictionary = [];
+for (var i = 0; i < dictionaryLength; i++) {
     string word = Console.ReadLine()!;
+    dictionary.Add(word);
+}
+foreach (string word in dictionary.OrderBy(it => it)) {
     foreach (var player in players) {
         player.TryPlay(word);
     }
@@ -35,6 +39,9 @@ record Player(string Name, char[] Hand) {
     public string? PlayedWord { get; private set; }
 
     public void TryPlay(string word) {
+        if (PlayedWord != null) {
+            return;
+        }
         if (!HasAnagram([.. word.OrderBy(it => it)], out int score)) {
             return;
         }
