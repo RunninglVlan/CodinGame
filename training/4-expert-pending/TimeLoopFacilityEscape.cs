@@ -13,7 +13,7 @@ int maxLoops = Math.Clamp(int.Parse(inputs[2]), 1, 5);
 var facility = new Facility(width, height, maxLoops);
 facility.ReadGrid();
 facility.ReachExit();
-facility.PrintMoves();
+facility.PrintActions();
 
 class Facility : IGraph<Point> {
     readonly Pathfinding<Point> pathfinding;
@@ -94,11 +94,21 @@ class Facility : IGraph<Point> {
         ghostPaths.Add(path);
     }
 
-    public void PrintMoves() {
-        Console.WriteLine("U R W..."); // D | L | R | U | W
+    public void PrintActions() {
+        int pathLength = ghostPaths.Last().Count;
+        foreach (var path in ghostPaths) {
+            var actions = new List<char>();
+            var previous = start;
+            foreach (var point in path) {
+                actions.Add(Screen.ToChar(point - previous));
+                previous = point;
+            }
+            string padding = string.Concat(Enumerable.Repeat("W ", pathLength - actions.Count));
+            Console.WriteLine(padding + string.Join(' ', actions));
+        }
     }
 
-    IEnumerable<Point> IGraph<Point>.Next(Point current) => Point.Directions4
+    IEnumerable<Point> IGraph<Point>.Next(Point current) => Screen.Directions4
             .Select(it => current + it)
             .Where(it => grid[it.X, it.Y].Type is not CellType.Wall);
 }
@@ -115,17 +125,27 @@ enum CellType {
 }
 
 readonly record struct Point(int X, int Y) {
-    static readonly Point UP = new(0, 1);
-    static readonly Point DOWN = new(0, -1);
+    public static Point operator +(Point a, Point b) => new(a.X + b.X, a.Y + b.Y);
+    public static Point operator -(Point a, Point b) => new(a.X - b.X, a.Y - b.Y);
+
+    public override string ToString() => $"({X}, {Y})";
+}
+
+static class Screen {
+    static readonly Point UP = new(0, -1);
+    static readonly Point DOWN = new(0, 1);
     static readonly Point LEFT = new(-1, 0);
     static readonly Point RIGHT = new(1, 0);
 
     public static Point[] Directions4 { get; } = [RIGHT, LEFT, UP, DOWN];
 
-    public static Point operator +(Point a, Point b) => new(a.X + b.X, a.Y + b.Y);
-    public static Point operator -(Point a, Point b) => new(a.X - b.X, a.Y - b.Y);
-
-    public override string ToString() => $"({X}, {Y})";
+    public static char ToChar(Point direction) => direction switch {
+        _ when direction == UP => 'U',
+        _ when direction == DOWN => 'D',
+        _ when direction == LEFT => 'L',
+        _ when direction == RIGHT => 'R',
+        _ => throw new ArgumentException($"Unsupported direction: {direction}")
+    };
 }
 
 class Pathfinding<T>(IGraph<T> graph) where T : IEquatable<T> {
