@@ -30,7 +30,7 @@ return;
 bool IsAnagram(char[] word, char[] playerHand, out int score) {
     score = 0;
     for (var i = 0; i < word.Length; i++) {
-        if (word[i] == playerHand[i]) {
+        if (i < playerHand.Length && word[i] == playerHand[i]) {
             score++;
         } else {
             return false;
