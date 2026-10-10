@@ -41,8 +41,11 @@ record Player(string Name, char[] Hand) {
 
     bool HasAnagram(char[] word, out int score) {
         score = 0;
+        if (word.Length != Hand.Length) {
+            return false;
+        }
         for (var i = 0; i < word.Length; i++) {
-            if (i < Hand.Length && word[i] == Hand[i]) {
+            if (word[i] == Hand[i]) {
                 score += LetterScore(word[i]);
             } else {
                 return false;
