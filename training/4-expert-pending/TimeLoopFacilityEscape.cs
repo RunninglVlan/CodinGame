@@ -62,7 +62,7 @@ class Facility : IGraph<Point> {
     public void ReachExit() {
         while (!HasReachedExit(out char doorSymbol)) {
             var path = pathfinding.Path(start, it => grid[it.X, it.Y].Symbol == char.ToLower(doorSymbol));
-            Console.Error.WriteLine($" unlocked door {doorSymbol}");
+            Debug.Log($"unlocked door {doorSymbol}", 1);
             AddPath(path);
         }
     }
@@ -79,7 +79,7 @@ class Facility : IGraph<Point> {
             lockedDoor = cell.Symbol;
             return false;
         }
-        Console.Error.WriteLine($" reached {exit} {grid[exit.X, exit.Y]}");
+        Debug.Log($"reached {exit} {grid[exit.X, exit.Y]}", 1);
         AddPath(path);
         return true;
 
@@ -193,4 +193,15 @@ class Pathfinding<T>(IGraph<T> graph) where T : IEquatable<T> {
 
 interface IGraph<T> {
     IEnumerable<T> Next(T current);
+}
+
+static class Debug {
+    const int TAB_LENGTH = 2;
+
+    public static void Log(object? line = null, int tab = 0, ConsoleColor? color = null) {
+        Console.ForegroundColor = color ?? ConsoleColor.Red;
+        var padding = new string(' ', tab * TAB_LENGTH);
+        Console.Error.WriteLine($"{padding}{line}");
+        Console.ResetColor();
+    }
 }
