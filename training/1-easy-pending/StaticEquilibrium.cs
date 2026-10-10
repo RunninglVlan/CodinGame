@@ -1,19 +1,22 @@
 ﻿using System;
 
 // https://www.codingame.com/contribute/view/134886a1467b44cd36bccace7cef8fc3771021
-int forces = Math.Clamp(int.Parse(Console.ReadLine()!), 1, 1000);
-var balancingForce = Vector.ZERO;
-for (var _ = 0; _ < forces; _++) {
+int forceCount = Math.Clamp(int.Parse(Console.ReadLine()!), 1, 1000);
+var forces = Vector.ZERO;
+for (var _ = 0; _ < forceCount; _++) {
     string[] inputs = Console.ReadLine()!.Split(' ');
     int forceMagnitude = Math.Clamp(int.Parse(inputs[0]), 1, 1000_000);
     string direction = inputs[1];
-    if (direction is Directions.X_POSITIVE or Directions.X_NEGATIVE) {
-        balancingForce.X += direction == Directions.X_POSITIVE ? forceMagnitude : -forceMagnitude;
-    } else {
-        balancingForce.Y += direction == Directions.Y_POSITIVE ? forceMagnitude : -forceMagnitude;
-    }
+    var force = direction switch {
+        Directions.X_POSITIVE => new Vector(forceMagnitude, 0),
+        Directions.X_NEGATIVE => new Vector(-forceMagnitude, 0),
+        Directions.Y_POSITIVE => new Vector(0, forceMagnitude),
+        Directions.Y_NEGATIVE => new Vector(0, -forceMagnitude),
+        _ => throw new ArgumentException($"Invalid direction: {direction}")
+    };
+    forces += force;
 }
-balancingForce *= -1;
+var balancingForce = forces * -1;
 Console.WriteLine(balancingForce.Magnitude().ToString("F2"));
 double forceAngle = balancingForce == Vector.ZERO ? 0 : Vector.Angle(balancingForce);
 Console.WriteLine(forceAngle.ToString("F2"));
@@ -25,7 +28,7 @@ static class Directions {
     public const string Y_NEGATIVE = "DOWN";
 }
 
-record struct Vector(double X, double Y) {
+readonly record struct Vector(double X, double Y) {
     public static readonly Vector ZERO = new(0, 0);
 
     public double Magnitude() => Math.Sqrt(X * X + Y * Y);
@@ -39,5 +42,6 @@ record struct Vector(double X, double Y) {
         return degrees < 0 ? degrees + 360 : Math.Abs(degrees);
     }
 
+    public static Vector operator +(Vector a, Vector b) => new(a.X + b.X, a.Y + b.Y);
     public static Vector operator *(Vector a, double value) => new(a.X * value, a.Y * value);
 }
