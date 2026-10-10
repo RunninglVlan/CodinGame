@@ -10,6 +10,10 @@ string actions = Console.ReadLine()!;
 foreach (char action in actions) {
     if (action == Actions.TAKE) {
         var cart = carts.OrderByDescending(it => it.Count).ThenBy(it => it.Index).First();
+        if (cart.Count == 0) {
+            Console.WriteLine("IMPOSSIBLE");
+            return;
+        }
         cart.Count--;
     } else {
         var cart = carts.OrderBy(it => it.Count).ThenByDescending(it => it.Index).First();
