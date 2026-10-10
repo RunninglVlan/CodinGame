@@ -100,18 +100,48 @@ class Facility : IGraph<Point> {
         }
         if (ghostPaths.Count > 0 && ghostPaths.Last().Count != path.Count) {
             int maxCount = Math.Max(ghostPaths.Last().Count, path.Count);
-            foreach (var existing in ghostPaths) {
-                PadPath(existing, maxCount);
-            }
+            ghostPaths.ForEach(it => PadPath(it, maxCount));
             PadPath(path, maxCount);
         }
+        ResolveCollisions(path);
         ghostPaths.Add(path);
+    }
+
+    void PadPath(List<Point> path, int length) {
+        while (path.Count < length) {
+            path.Insert(0, start);
+        }
+    }
+
+    [SuppressMessage("ReSharper", "InvertIf")]
+    void ResolveCollisions(List<Point> path) {
+        while (HasCollision(out var collision)) {
+            for (int i = collision.i; i < path.Count; i++) {
+                if (path[i] != ghostPaths[collision.j][i]) {
+                    path.Insert(i, path[i]);
+                    ghostPaths.ForEach(it => PadPath(it, path.Count));
+                    break;
+                }
+            }
+        }
         return;
 
-        void PadPath(List<Point> points, int length) {
-            while (points.Count < length) {
-                points.Insert(0, start);
+        bool HasCollision(out (int i, int j) collision) {
+            collision = default;
+            for (var i = 0; i < path.Count; i++) {
+                var point = path[i];
+                if (point == start) {
+                    continue;
+                }
+                for (var j = 0; j < ghostPaths.Count; j++) {
+                    if (ghostPaths[j][i] == point) {
+                        collision = (i, j);
+                        Debug.Log($"found collision at path[{i}], ghostPaths[{j}]: {point}", 1);
+                        return true;
+                    }
+                }
             }
+            return false;
         }
     }
 
