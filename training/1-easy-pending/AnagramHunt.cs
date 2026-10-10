@@ -15,29 +15,12 @@ for (var i = 0; i < playerCount; i++) {
 int dictionaryWords = Math.Clamp(int.Parse(Console.ReadLine()!), 1, 50);
 for (var i = 0; i < dictionaryWords; i++) {
     string word = Console.ReadLine()!;
-    char[] wordOrdered = [.. word.OrderBy(it => it)];
     foreach (var player in players) {
-        if (IsAnagram(wordOrdered, player.Hand, out int score)) {
-            player.Score = score;
-            player.PlayedWord = word;
-        }
+        player.TryPlay(word);
     }
 }
 var playersOrdered = players.OrderByDescending(it => it.Score);
 Console.WriteLine(mode == Modes.HIGH ? playersOrdered.First() : playersOrdered.Last());
-return;
-
-bool IsAnagram(char[] word, char[] playerHand, out int score) {
-    score = 0;
-    for (var i = 0; i < word.Length; i++) {
-        if (i < playerHand.Length && word[i] == playerHand[i]) {
-            score++;
-        } else {
-            return false;
-        }
-    }
-    return true;
-}
 
 static class Modes {
     public const string HIGH = "high";
@@ -45,8 +28,28 @@ static class Modes {
 }
 
 record Player(string Name, char[] Hand) {
-    public int Score { get; set; }
-    public string PlayedWord { get; set; } = null!;
+    public int Score { get; private set; }
+    string playedWord = null!;
 
-    public override string ToString() => $"{Name} {PlayedWord}";
+    public void TryPlay(string word) {
+        if (!HasAnagram([.. word.OrderBy(it => it)], out int score)) {
+            return;
+        }
+        Score = score;
+        playedWord = word;
+    }
+
+    bool HasAnagram(char[] word, out int score) {
+        score = 0;
+        for (var i = 0; i < word.Length; i++) {
+            if (i < Hand.Length && word[i] == Hand[i]) {
+                score++;
+            } else {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public override string ToString() => $"{Name} {playedWord}";
 }
