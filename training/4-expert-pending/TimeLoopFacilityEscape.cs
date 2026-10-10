@@ -60,16 +60,20 @@ class Facility : IGraph<Point> {
     }
 
     public void ReachExit() {
-        while (!TryReachExit(out char doorSymbol)) {
-            var path = pathfinding.Path(start, it => grid[it.X, it.Y].Symbol == char.ToLower(doorSymbol));
-            Debug.Log($"unlocked door {doorSymbol}", 1);
-            AddPath(path);
+        var targets = new Stack<char>();
+        targets.Push(grid[exit.X, exit.Y].Symbol);
+        while (targets.Count > 0) {
+            if (TryReach(targets, out char lockedDoor)) {
+                continue;
+            }
+            char doorSwitch = char.ToLower(lockedDoor);
+            targets.Push(doorSwitch);
         }
     }
 
     [SuppressMessage("ReSharper", "ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator")]
-    bool TryReachExit(out char lockedDoor) {
-        var path = pathfinding.Path(start, exit);
+    bool TryReach(Stack<char> targets, out char lockedDoor) {
+        var path = pathfinding.Path(start, it => grid[it.X, it.Y].Symbol == targets.Peek());
         lockedDoor = '\0';
         foreach (var point in path) {
             var cell = grid[point.X, point.Y];
@@ -79,7 +83,8 @@ class Facility : IGraph<Point> {
             lockedDoor = cell.Symbol;
             return false;
         }
-        Debug.Log($"reached {exit} {grid[exit.X, exit.Y]}", 1);
+        Debug.Log($"reached {targets.Peek()}", 1);
+        targets.Pop();
         AddPath(path);
         return true;
 
