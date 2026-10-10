@@ -97,13 +97,13 @@ class Facility : IGraph<Point> {
     }
 
     public void PrintActions() {
-        int pathLength = ghostPaths.Last().Count;
+        int actionCount = ghostPaths.Max(it => it.Count);
         foreach (var path in ghostPaths) {
             var actions = path
                     .Zip(path.Prepend(start), (point, previous) => point - previous)
                     .Select(Screen.ToChar)
                     .ToList();
-            string padding = string.Concat(Enumerable.Repeat("W ", pathLength - actions.Count));
+            string padding = string.Concat(Enumerable.Repeat("W ", actionCount - actions.Count));
             Console.WriteLine(padding + string.Join(' ', actions));
         }
     }
