@@ -19,17 +19,18 @@ class Facility : IGraph<Point> {
     readonly Pathfinding<Point> pathfinding;
 
     readonly int width, height;
+    readonly int maxLoops;
     readonly Cell[,] grid;
     Point start, exit;
-    readonly List<Point>?[] ghostPaths;
+    readonly List<List<Point>> ghostPaths = [];
 
     /// maxLoops is for the maximum number of ghosts available (including the final robot)
     public Facility(int width, int height, int maxLoops) {
         pathfinding = new(this);
         this.width = width;
         this.height = height;
+        this.maxLoops = maxLoops;
         grid = new Cell[width, height];
-        ghostPaths = new List<Point>[maxLoops];
     }
 
     [SuppressMessage("ReSharper", "ConvertIfStatementToSwitchStatement")]
@@ -81,19 +82,16 @@ class Facility : IGraph<Point> {
         return true;
 
         bool IsUnlocked(Cell door) {
-            var ghostPositions = ghostPaths.OfType<List<Point>>().Select(it => it.Last());
+            var ghostPositions = ghostPaths.Select(it => it.Last());
             return ghostPositions.Any(it => grid[it.X, it.Y].Symbol == char.ToLower(door.Symbol));
         }
     }
 
     void AddPath(List<Point> path) {
-        for (var i = 0; i < ghostPaths.Length; i++) {
-            if (ghostPaths[i] != null) {
-                continue;
-            }
-            ghostPaths[i] = path;
-            break;
+        if (ghostPaths.Count == maxLoops) {
+            throw new InvalidOperationException($"Maximum number of ghosts ({maxLoops}) reached");
         }
+        ghostPaths.Add(path);
     }
 
     public void PrintMoves() {
