@@ -148,11 +148,12 @@ class Facility : IGraph<Point> {
         }
     }
 
-    [SuppressMessage("ReSharper", "ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator")]
     public void PrintActions() {
-        foreach (var path in ghostPaths) {
-            var actions = path.Zip(path.Prepend(start), (point, previous) => point - previous).Select(Screen.ToChar);
-            Console.WriteLine(string.Join(' ', actions));
+        var listOfActions = ghostPaths
+                .Select(it => it.Zip(it.Prepend(start), (point, previous) => point - previous).Select(Screen.ToChar))
+                .Select(it => string.Join(' ', it));
+        foreach (string actions in listOfActions) {
+            Console.WriteLine(actions);
         }
     }
 
