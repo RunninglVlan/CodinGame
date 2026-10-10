@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 
 class Pathfinding<T>(IGraph<T> graph) where T : IEquatable<T> {
-    readonly Dictionary<T, T> parents = new();
+    readonly Dictionary<T, T> parents = [];
 
     /// BFS to end
     public List<T>? Path(T start, T end) {

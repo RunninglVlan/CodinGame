@@ -195,12 +195,7 @@ static class Screen {
 }
 
 class Pathfinding<T>(IGraph<T> graph) where T : IEquatable<T> {
-    readonly Dictionary<T, T> parents = new();
-
-    /// BFS to end
-    public List<T> Path(T start, T end) {
-        return Path(start, it => it.Equals(end));
-    }
+    readonly Dictionary<T, T> parents = [];
 
     /// BFS to endPredicate
     public List<T> Path(T start, Predicate<T> endPredicate) {
