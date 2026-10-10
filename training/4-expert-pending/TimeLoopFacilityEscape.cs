@@ -98,15 +98,26 @@ class Facility : IGraph<Point> {
         if (ghostPaths.Count == maxLoops) {
             throw new InvalidOperationException($"Maximum number of ghosts ({maxLoops}) reached");
         }
+        if (ghostPaths.Count > 0 && ghostPaths.Last().Count != path.Count) {
+            int maxCount = Math.Max(ghostPaths.Last().Count, path.Count);
+            foreach (var existing in ghostPaths) {
+                PadPath(existing, maxCount);
+            }
+            PadPath(path, maxCount);
+        }
         ghostPaths.Add(path);
+        return;
+
+        void PadPath(List<Point> points, int length) {
+            while (points.Count < length) {
+                points.Insert(0, start);
+            }
+        }
     }
 
+    [SuppressMessage("ReSharper", "ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator")]
     public void PrintActions() {
-        int actionCount = ghostPaths.Max(it => it.Count);
         foreach (var path in ghostPaths) {
-            while (path.Count < actionCount) {
-                path.Insert(0, start);
-            }
             var actions = path.Zip(path.Prepend(start), (point, previous) => point - previous).Select(Screen.ToChar);
             Console.WriteLine(string.Join(' ', actions));
         }
