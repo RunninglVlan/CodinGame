@@ -19,7 +19,7 @@ for (var i = 0; i < dictionaryWords; i++) {
         player.TryPlay(word);
     }
 }
-var playersOrdered = players.OrderByDescending(it => it.Score);
+var playersOrdered = players.Where(it => it.PlayedWord != null).OrderByDescending(it => it.Score);
 Console.WriteLine(mode == Modes.HIGH ? playersOrdered.First() : playersOrdered.Last());
 
 static class Modes {
@@ -29,14 +29,14 @@ static class Modes {
 
 record Player(string Name, char[] Hand) {
     public int Score { get; private set; }
-    string playedWord = null!;
+    public string? PlayedWord { get; private set; }
 
     public void TryPlay(string word) {
         if (!HasAnagram([.. word.OrderBy(it => it)], out int score)) {
             return;
         }
         Score = score;
-        playedWord = word;
+        PlayedWord = word;
     }
 
     bool HasAnagram(char[] word, out int score) {
@@ -64,5 +64,5 @@ record Player(string Name, char[] Hand) {
         };
     }
 
-    public override string ToString() => $"{Name} {playedWord}";
+    public override string ToString() => $"{Name} {PlayedWord}";
 }
