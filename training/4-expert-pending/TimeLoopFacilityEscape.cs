@@ -1,26 +1,44 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 
 // Navigate through a facility to reach the extraction point by coordinating robot actions across multiple time loops
 // https://www.codingame.com/contribute/view/1415851ba1aa5d4b0600a53ac02dd35417fd8b
 string[] inputs = Console.ReadLine()!.Split(' ');
 int width = Math.Clamp(int.Parse(inputs[0]), 3, 30);
 int height = Math.Clamp(int.Parse(inputs[1]), 3, 30);
-var facility = new Facility(width, height);
-// maximum number of ghosts available
 int maxLoops = Math.Clamp(int.Parse(inputs[2]), 1, 5);
+var facility = new Facility(width, height, maxLoops);
 facility.ReadGrid();
 facility.ReachExit();
 facility.PrintMoves();
 
-class Facility(int width, int height) {
-    readonly Cell[,] grid = new Cell[width, height];
+class Facility : IGraph<Point> {
+    readonly Pathfinding<Point> pathfinding;
 
+    readonly int width, height;
+    readonly Cell[,] grid;
+    Point start, exit;
+    readonly List<Point>?[] ghostPaths;
+
+    /// maxLoops is for the maximum number of ghosts available (including the final robot)
+    public Facility(int width, int height, int maxLoops) {
+        pathfinding = new(this);
+        this.width = width;
+        this.height = height;
+        grid = new Cell[width, height];
+        ghostPaths = new List<Point>[maxLoops];
+    }
+
+    [SuppressMessage("ReSharper", "ConvertIfStatementToSwitchStatement")]
     public void ReadGrid() {
         for (var y = 0; y < height; y++) {
             string row = Console.ReadLine()!;
             for (var x = 0; x < width; x++) {
                 char symbol = row[x];
-                grid[x, y] = symbol switch {
+                var cell = symbol switch {
                     'S' => new Cell(CellType.Start, symbol),
                     'E' => new Cell(CellType.Exit, symbol),
                     '#' => new Cell(CellType.Wall, symbol),
@@ -28,15 +46,63 @@ class Facility(int width, int height) {
                     _ when char.IsLower(symbol) => new Cell(CellType.Switch, symbol),
                     _ => new Cell(CellType.Door, symbol)
                 };
+                grid[x, y] = cell;
+                if (cell.Type == CellType.Start) {
+                    start = new Point(x, y);
+                } else if (cell.Type == CellType.Exit) {
+                    exit = new Point(x, y);
+                }
             }
         }
     }
 
-    public void ReachExit() { }
+    public void ReachExit() {
+        while (!HasReachedExit(out char doorSymbol)) {
+            var path = pathfinding.Path(start, it => grid[it.X, it.Y].Symbol == char.ToLower(doorSymbol));
+            Console.Error.WriteLine($" unlocked door {doorSymbol}");
+            AddPath(path);
+        }
+    }
+
+    [SuppressMessage("ReSharper", "ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator")]
+    bool HasReachedExit(out char lockedDoor) {
+        var path = pathfinding.Path(start, exit);
+        lockedDoor = '\0';
+        foreach (var point in path) {
+            var cell = grid[point.X, point.Y];
+            if (cell.Type != CellType.Door || IsUnlocked(cell)) {
+                continue;
+            }
+            lockedDoor = cell.Symbol;
+            return false;
+        }
+        Console.Error.WriteLine($" reached {exit} {grid[exit.X, exit.Y]}");
+        AddPath(path);
+        return true;
+
+        bool IsUnlocked(Cell door) {
+            var ghostPositions = ghostPaths.OfType<List<Point>>().Select(it => it.Last());
+            return ghostPositions.Any(it => grid[it.X, it.Y].Symbol == char.ToLower(door.Symbol));
+        }
+    }
+
+    void AddPath(List<Point> path) {
+        for (var i = 0; i < ghostPaths.Length; i++) {
+            if (ghostPaths[i] != null) {
+                continue;
+            }
+            ghostPaths[i] = path;
+            break;
+        }
+    }
 
     public void PrintMoves() {
         Console.WriteLine("U R W..."); // D | L | R | U | W
     }
+
+    IEnumerable<Point> IGraph<Point>.Next(Point current) => Point.Directions4
+            .Select(it => current + it)
+            .Where(it => grid[it.X, it.Y].Type is not CellType.Wall);
 }
 
 readonly record struct Cell(CellType Type, char Symbol);
@@ -48,4 +114,64 @@ enum CellType {
     Floor,
     Switch,
     Door
+}
+
+readonly record struct Point(int X, int Y) {
+    static readonly Point UP = new(0, 1);
+    static readonly Point DOWN = new(0, -1);
+    static readonly Point LEFT = new(-1, 0);
+    static readonly Point RIGHT = new(1, 0);
+
+    public static Point[] Directions4 { get; } = [RIGHT, LEFT, UP, DOWN];
+
+    public static Point operator +(Point a, Point b) => new(a.X + b.X, a.Y + b.Y);
+    public static Point operator -(Point a, Point b) => new(a.X - b.X, a.Y - b.Y);
+
+    public override string ToString() => $"({X}, {Y})";
+}
+
+class Pathfinding<T>(IGraph<T> graph) where T : IEquatable<T> {
+    readonly Dictionary<T, T> parents = new();
+
+    /// BFS to end
+    public List<T> Path(T start, T end) {
+        return Path(start, it => it.Equals(end));
+    }
+
+    /// BFS to endPredicate
+    public List<T> Path(T start, Predicate<T> endPredicate) {
+        Queue<T> queue = [];
+        HashSet<T> visited = [];
+        parents.Clear();
+        queue.Enqueue(start);
+        visited.Add(start);
+        while (queue.TryDequeue(out var current)) {
+            if (endPredicate(current)) {
+                return Reconstruct(start, current);
+            }
+            foreach (var next in graph.Next(current)) {
+                if (!visited.Add(next)) {
+                    continue;
+                }
+                queue.Enqueue(next);
+                parents[next] = current;
+            }
+        }
+        throw new UnreachableException("No path found");
+    }
+
+    List<T> Reconstruct(T start, T end) {
+        var path = new List<T>();
+        var current = end;
+        while (!current.Equals(start)) {
+            path.Add(current);
+            current = parents[current];
+        }
+        path.Reverse();
+        return path;
+    }
+}
+
+interface IGraph<T> {
+    IEnumerable<T> Next(T current);
 }
