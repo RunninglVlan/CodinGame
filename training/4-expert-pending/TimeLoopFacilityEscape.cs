@@ -104,12 +104,11 @@ class Facility : IGraph<Point> {
     public void PrintActions() {
         int actionCount = ghostPaths.Max(it => it.Count);
         foreach (var path in ghostPaths) {
-            var actions = path
-                    .Zip(path.Prepend(start), (point, previous) => point - previous)
-                    .Select(Screen.ToChar)
-                    .ToList();
-            string padding = string.Concat(Enumerable.Repeat("W ", actionCount - actions.Count));
-            Console.WriteLine(padding + string.Join(' ', actions));
+            while (path.Count < actionCount) {
+                path.Insert(0, start);
+            }
+            var actions = path.Zip(path.Prepend(start), (point, previous) => point - previous).Select(Screen.ToChar);
+            Console.WriteLine(string.Join(' ', actions));
         }
     }
 
@@ -150,7 +149,7 @@ static class Screen {
         _ when direction == DOWN => 'D',
         _ when direction == LEFT => 'L',
         _ when direction == RIGHT => 'R',
-        _ => throw new ArgumentException($"Unsupported direction: {direction}")
+        _ => 'W'
     };
 }
 
