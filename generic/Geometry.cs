@@ -58,11 +58,12 @@ readonly record struct Vector(double X, double Y) {
     }
 
     /// Calculates the absolute heading of a vector. <br/>
-    /// RIGHT is 0°, UP is 90°, LEFT is 180° and DOWN is 270°
+    /// RIGHT is 0°, UP is 90°, LEFT is 180°, and DOWN is 270°
     /// <returns>The angle in degrees from 0 to 360.</returns>
     public static double Angle(Vector value) {
-        double angle = Math.Atan2(value.Y, value.X) * (180 / Math.PI);
-        return angle < 0 ? angle + 360 : angle;
+        double radians = Math.Atan2(value.Y, value.X);
+        double degrees = double.RadiansToDegrees(radians);
+        return degrees < 0 ? degrees + 360 : Math.Abs(degrees);
     }
 
     public static double Angle(Vector from, Vector to) {
