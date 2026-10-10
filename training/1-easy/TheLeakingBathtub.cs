@@ -16,7 +16,7 @@ for (var i = 0; i < leakCount; i++) {
     leaks.Add(new Leak(leakHeight, leakFlow));
 }
 var orderedLeaks = leaks.OrderBy(it => it.Height).ToList();
-const int stepMilliseconds = 100;
+const int stepMilliseconds = 40;
 var timeInMilliseconds = 0;
 double currentFlow = flow;
 for (double filled = 0; filled < volume;) {
