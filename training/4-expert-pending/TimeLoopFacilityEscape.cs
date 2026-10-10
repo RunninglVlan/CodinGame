@@ -38,7 +38,7 @@ class Facility : IGraph<Point> {
     [SuppressMessage("ReSharper", "ConvertIfStatementToSwitchStatement")]
     public void ReadGrid() {
         for (var y = 0; y < height; y++) {
-            string row = Console.ReadLine()!;
+            string row = Debug.ReadLine()!;
             for (var x = 0; x < width; x++) {
                 char symbol = row[x];
                 var cell = symbol switch {
@@ -197,6 +197,13 @@ interface IGraph<T> {
 
 static class Debug {
     const int TAB_LENGTH = 2;
+
+    /// Reads the line from Console and also writes it to Console.Error
+    public static string? ReadLine() {
+        string? line = Console.ReadLine();
+        Console.Error.WriteLine(line);
+        return line;
+    }
 
     public static void Log(object? line = null, int tab = 0, ConsoleColor? color = null) {
         Console.ForegroundColor = color ?? ConsoleColor.Red;
