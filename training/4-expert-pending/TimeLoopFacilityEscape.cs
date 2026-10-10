@@ -62,18 +62,21 @@ class Facility : IGraph<Point> {
     public void ReachExit() {
         var targets = new Stack<char>();
         targets.Push(grid[exit.X, exit.Y].Symbol);
+        Debug.Log($"searching {targets.Peek()}");
         while (targets.Count > 0) {
             if (TryReach(targets, out char lockedDoor)) {
                 continue;
             }
             char doorSwitch = char.ToLower(lockedDoor);
             targets.Push(doorSwitch);
+            Debug.Log($"searching {targets.Peek()}");
         }
     }
 
     [SuppressMessage("ReSharper", "ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator")]
     bool TryReach(Stack<char> targets, out char lockedDoor) {
         var path = pathfinding.Path(start, it => grid[it.X, it.Y].Symbol == targets.Peek());
+        Debug.Log($"found {string.Join(", ", path)}", 1);
         lockedDoor = '\0';
         foreach (var point in path) {
             var cell = grid[point.X, point.Y];
@@ -156,7 +159,8 @@ class Facility : IGraph<Point> {
     IEnumerable<Point> IGraph<Point>.Next(Point current) => Screen.Directions4
             .Select(it => current + it)
             .Where(it => grid[it.X, it.Y].Type is not CellType.Wall)
-            .OrderBy(it => Array.IndexOf(DIRECTION_PRIORITY, it - current));
+            .OrderByDescending(it => grid[it.X, it.Y].Type is not CellType.Door)
+            .ThenBy(it => Array.IndexOf(DIRECTION_PRIORITY, it - current));
 }
 
 readonly record struct Cell(CellType Type, char Symbol);
