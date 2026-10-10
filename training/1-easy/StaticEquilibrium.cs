@@ -1,6 +1,6 @@
 ﻿using System;
 
-// https://www.codingame.com/contribute/view/134886a1467b44cd36bccace7cef8fc3771021
+// https://www.codingame.com/training/easy/static-equilibrium
 int forceCount = Math.Clamp(int.Parse(Console.ReadLine()!), 1, 1000);
 var forces = Vector.ZERO;
 for (var _ = 0; _ < forceCount; _++) {
