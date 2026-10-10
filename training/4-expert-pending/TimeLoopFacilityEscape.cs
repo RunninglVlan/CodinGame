@@ -16,6 +16,8 @@ facility.ReachExit();
 facility.PrintActions();
 
 class Facility : IGraph<Point> {
+    static readonly Point[] DIRECTION_PRIORITY = [Screen.UP, Screen.RIGHT, Screen.LEFT, Screen.DOWN];
+
     readonly Pathfinding<Point> pathfinding;
 
     readonly int width, height;
@@ -108,7 +110,8 @@ class Facility : IGraph<Point> {
 
     IEnumerable<Point> IGraph<Point>.Next(Point current) => Screen.Directions4
             .Select(it => current + it)
-            .Where(it => grid[it.X, it.Y].Type is not CellType.Wall);
+            .Where(it => grid[it.X, it.Y].Type is not CellType.Wall)
+            .OrderBy(it => Array.IndexOf(DIRECTION_PRIORITY, it - current));
 }
 
 readonly record struct Cell(CellType Type, char Symbol);
@@ -130,10 +133,10 @@ readonly record struct Point(int X, int Y) {
 }
 
 static class Screen {
-    static readonly Point UP = new(0, -1);
-    static readonly Point DOWN = new(0, 1);
-    static readonly Point LEFT = new(-1, 0);
-    static readonly Point RIGHT = new(1, 0);
+    public static readonly Point UP = new(0, -1);
+    public static readonly Point DOWN = new(0, 1);
+    public static readonly Point LEFT = new(-1, 0);
+    public static readonly Point RIGHT = new(1, 0);
 
     public static Point[] Directions4 { get; } = [RIGHT, LEFT, UP, DOWN];
 
