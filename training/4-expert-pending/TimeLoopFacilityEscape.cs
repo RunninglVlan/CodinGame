@@ -16,11 +16,13 @@ facility.PrintActions();
 
 record GhostState(List<List<Point>> Paths) : IState<GhostState> {
     bool IState<GhostState>.IsBetterThan(GhostState other) {
-        if (Paths.Count < other.Paths.Count) {
-            return true;
+        int turns = Paths.First().Count.CompareTo(other.Paths.First().Count);
+        if (turns != 0) {
+            return turns < 0;
         }
-        if (Paths.First().Count < other.Paths.First().Count) {
-            return true;
+        int loops = Paths.Count.CompareTo(other.Paths.Count);
+        if (loops != 0) {
+            return loops < 0;
         }
         var actions = Actions();
         var otherActions = other.Actions();
