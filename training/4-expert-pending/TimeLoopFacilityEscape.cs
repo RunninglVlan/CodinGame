@@ -73,8 +73,9 @@ class Facility : IGraph<Point> {
 
     [SuppressMessage("ReSharper", "ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator")]
     bool TryReach(Stack<char> targets, out char lockedDoor) {
-        Debug.Log($"searching {targets.Peek()}");
-        var path = pathfinding.Path(start, it => grid[it].Symbol == targets.Peek());
+        char target = targets.Peek();
+        Debug.Log($"searching {target}");
+        var path = pathfinding.Path(start, it => grid[it].Symbol == target);
         Debug.Log($"found {string.Join(", ", path)}", 1);
         lockedDoor = '\0';
         foreach (var point in path) {
@@ -85,7 +86,7 @@ class Facility : IGraph<Point> {
             lockedDoor = cell.Symbol;
             return false;
         }
-        Debug.Log($"reached {targets.Peek()}", 1);
+        Debug.Log($"reached {target}", 1);
         targets.Pop();
         AddPath(path);
         return true;
