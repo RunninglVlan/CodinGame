@@ -104,6 +104,7 @@ class Facility : IGraph<Point> {
     }
 
     void AddPath(List<Point> path) {
+        RemoveDuplicate(path);
         if (ghostPaths.Count > 0 && ghostPaths.Last().Count != path.Count) {
             int maxCount = Math.Max(ghostPaths.Last().Count, path.Count);
             ghostPaths.ForEach(it => PadPath(it, maxCount));
@@ -111,6 +112,39 @@ class Facility : IGraph<Point> {
         }
         AvoidCollisions(path);
         ghostPaths.Add(path);
+    }
+
+    /// Removes an existing path if the new path has all of its switches and more.
+    /// Ignoring switches that have connected doors in the path,
+    /// as robots can't unlock and go through doors in their loop.
+    [SuppressMessage("ReSharper", "InvertIf")]
+    void RemoveDuplicate(List<Point> newPath) {
+        var switches = Switches(newPath);
+        for (int i = ghostPaths.Count - 1; i >= 0; i--) {
+            var existingSwitches = Switches(ghostPaths[i]);
+            if (switches.Count > existingSwitches.Count && existingSwitches.All(switches.Contains)) {
+                ghostPaths.RemoveAt(i);
+                break;
+            }
+        }
+        return;
+
+        List<char> Switches(List<Point> path) {
+            var cells = path
+                    .Select(it => grid[it])
+                    .Where(it => it.Type is CellType.Switch or CellType.Door)
+                    .ToList();
+            for (int i = cells.Count - 1; i >= 0; i--) {
+                var cell = cells[i];
+                if (cell.Type != CellType.Switch) {
+                    continue;
+                }
+                if (cells.Any(it => it.Type == CellType.Door && it.Symbol == char.ToUpper(cell.Symbol))) {
+                    cells.RemoveAt(i);
+                }
+            }
+            return [.. cells.Where(it => it.Type == CellType.Switch).Select(it => it.Symbol)];
+        }
     }
 
     void PadPath(List<Point> path, int length) {
