@@ -109,7 +109,7 @@ class Facility : IGraph<Point> {
             ghostPaths.ForEach(it => PadPath(it, maxCount));
             PadPath(path, maxCount);
         }
-        ResolveCollisions(path);
+        AvoidCollisions(path);
         ghostPaths.Add(path);
     }
 
@@ -120,7 +120,7 @@ class Facility : IGraph<Point> {
     }
 
     [SuppressMessage("ReSharper", "InvertIf")]
-    void ResolveCollisions(List<Point> path) {
+    void AvoidCollisions(List<Point> path) {
         while (HasCollision(out var collision)) {
             for (int i = collision.i; i < path.Count; i++) {
                 if (path[i] != ghostPaths[collision.j][i]) {
