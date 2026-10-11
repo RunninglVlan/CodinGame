@@ -19,6 +19,9 @@ record GhostState(List<List<Point>> Paths) : IState<GhostState> {
         if (Paths.Count < other.Paths.Count) {
             return true;
         }
+        if (Paths.First().Count < other.Paths.First().Count) {
+            return true;
+        }
         var actions = Actions();
         var otherActions = other.Actions();
         Debug.Log("choosing best between this:");
