@@ -22,7 +22,7 @@ class Facility : IGraph<Point> {
 
     readonly int width, height;
     readonly int maxLoops;
-    readonly Cell[,] grid;
+    readonly Dictionary<Point, Cell> grid = [];
     Point start, exit;
     readonly List<List<Point>> ghostPaths = [];
 
@@ -32,7 +32,6 @@ class Facility : IGraph<Point> {
         this.width = width;
         this.height = height;
         this.maxLoops = maxLoops;
-        grid = new Cell[width, height];
     }
 
     [SuppressMessage("ReSharper", "ConvertIfStatementToSwitchStatement")]
@@ -49,11 +48,12 @@ class Facility : IGraph<Point> {
                     _ when char.IsLower(symbol) => new Cell(CellType.Switch, symbol),
                     _ => new Cell(CellType.Door, symbol)
                 };
-                grid[x, y] = cell;
+                var point = new Point(x, y);
+                grid[point] = cell;
                 if (cell.Type == CellType.Start) {
-                    start = new Point(x, y);
+                    start = point;
                 } else if (cell.Type == CellType.Exit) {
-                    exit = new Point(x, y);
+                    exit = point;
                 }
             }
         }
@@ -61,7 +61,7 @@ class Facility : IGraph<Point> {
 
     public void ReachExit() {
         var targets = new Stack<char>();
-        targets.Push(grid[exit.X, exit.Y].Symbol);
+        targets.Push(grid[exit].Symbol);
         Debug.Log($"searching {targets.Peek()}");
         while (targets.Count > 0) {
             if (TryReach(targets, out char lockedDoor)) {
@@ -75,11 +75,11 @@ class Facility : IGraph<Point> {
 
     [SuppressMessage("ReSharper", "ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator")]
     bool TryReach(Stack<char> targets, out char lockedDoor) {
-        var path = pathfinding.Path(start, it => grid[it.X, it.Y].Symbol == targets.Peek());
+        var path = pathfinding.Path(start, it => grid[it].Symbol == targets.Peek());
         Debug.Log($"found {string.Join(", ", path)}", 1);
         lockedDoor = '\0';
         foreach (var point in path) {
-            var cell = grid[point.X, point.Y];
+            var cell = grid[point];
             if (cell.Type != CellType.Door || IsUnlocked(cell)) {
                 continue;
             }
@@ -94,7 +94,7 @@ class Facility : IGraph<Point> {
 
     bool IsUnlocked(Cell door) {
         var ghostPositions = ghostPaths.Select(it => it.Last());
-        return ghostPositions.Any(it => grid[it.X, it.Y].Symbol == char.ToLower(door.Symbol));
+        return ghostPositions.Any(it => grid[it].Symbol == char.ToLower(door.Symbol));
     }
 
     void AddPath(List<Point> path) {
@@ -162,11 +162,8 @@ class Facility : IGraph<Point> {
 
     IEnumerable<Point> IGraph<Point>.Next(Point current) => Screen.Directions4
             .Select(it => current + it)
-            .Where(it => grid[it.X, it.Y].Type is not CellType.Wall)
-            .OrderByDescending(it => {
-                var cell = grid[it.X, it.Y];
-                return cell.Type is not CellType.Door || IsUnlocked(cell);
-            })
+            .Where(it => grid[it].Type is not CellType.Wall)
+            .OrderByDescending(it => grid[it].Type is not CellType.Door || IsUnlocked(grid[it]))
             .ThenBy(it => Array.IndexOf(DIRECTION_PRIORITY, it - current));
 }
 
