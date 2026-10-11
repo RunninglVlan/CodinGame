@@ -198,7 +198,7 @@ class Facility : IGraph<Point>, IGame<GhostState> {
     }
 
     string Actions(List<Point> path) {
-        var actions = path.Zip(path.Prepend(start), (point, previous) => point - previous).Select(Screen.ToChar);
+        var actions = path.Skip(1).Zip(path, (point, previous) => point - previous).Select(Screen.ToChar);
         return string.Join(' ', actions);
     }
 
@@ -330,6 +330,7 @@ class Pathfinding<T>(IGraph<T> graph) where T : IEquatable<T> {
             path.Add(current);
             current = parents[current];
         }
+        path.Add(start);
         path.Reverse();
         return path;
     }
