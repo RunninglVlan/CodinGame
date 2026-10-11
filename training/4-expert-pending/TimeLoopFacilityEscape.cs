@@ -151,10 +151,13 @@ class Facility : IGraph<Point> {
     public void PrintActions() {
         var listOfActions = ghostPaths
                 .Select(it => it.Zip(it.Prepend(start), (point, previous) => point - previous).Select(Screen.ToChar))
-                .Select(it => string.Join(' ', it));
-        foreach (string actions in listOfActions) {
+                .Select(it => string.Join(' ', it))
+                .ToList();
+        string finalActions = listOfActions.Last();
+        foreach (string actions in listOfActions.SkipLast(1).OrderByDescending(it => it)) {
             Console.WriteLine(actions);
         }
+        Console.WriteLine(finalActions);
     }
 
     IEnumerable<Point> IGraph<Point>.Next(Point current) => Screen.Directions4
