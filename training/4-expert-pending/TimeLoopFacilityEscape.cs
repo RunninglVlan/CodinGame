@@ -75,7 +75,10 @@ class Facility : IGraph<Point> {
     bool TryReach(Stack<char> targets, out char lockedDoor) {
         char target = targets.Peek();
         Debug.Log($"searching {target}");
-        var path = pathfinding.Path(start, it => grid[it].Symbol == target);
+        var source = target != grid[exit].Symbol && maxLoops - ghostPaths.Count == 1
+                ? ghostPaths.Last().Last()
+                : start;
+        var path = pathfinding.Path(source, it => grid[it].Symbol == target);
         Debug.Log($"found {string.Join(", ", path)}", 1);
         lockedDoor = '\0';
         foreach (var point in path) {
@@ -88,19 +91,19 @@ class Facility : IGraph<Point> {
         }
         Debug.Log($"reached {target}", 1);
         targets.Pop();
-        AddPath(path);
+        if (source == start) {
+            AddPath(path);
+        } else {
+            ghostPaths.Last().AddRange(path);
+        }
         return true;
     }
 
     bool IsUnlocked(Cell door) {
-        var ghostPositions = ghostPaths.Select(it => it.Last());
-        return ghostPositions.Any(it => grid[it].Symbol == char.ToLower(door.Symbol));
+        return ghostPaths.SelectMany(it => it).Any(it => grid[it].Symbol == char.ToLower(door.Symbol));
     }
 
     void AddPath(List<Point> path) {
-        if (ghostPaths.Count == maxLoops) {
-            throw new InvalidOperationException($"Maximum number of ghosts ({maxLoops}) reached");
-        }
         if (ghostPaths.Count > 0 && ghostPaths.Last().Count != path.Count) {
             int maxCount = Math.Max(ghostPaths.Last().Count, path.Count);
             ghostPaths.ForEach(it => PadPath(it, maxCount));
