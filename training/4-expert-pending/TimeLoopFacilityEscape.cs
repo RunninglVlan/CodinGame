@@ -15,12 +15,6 @@ facility.ReachExit();
 facility.PrintActions();
 
 record GhostState(List<List<Point>> Paths) : IState<GhostState> {
-    public GhostState CopyWith(List<Point> path) {
-        var copy = new GhostState([.. Paths.Select(it => it.ToList())]);
-        copy.Paths.Add(path);
-        return copy;
-    }
-
     bool IState<GhostState>.IsBetterThan(GhostState other) {
         return Paths.Count < other.Paths.Count;
     }
@@ -109,29 +103,30 @@ class Facility : IGraph<Point>, IGame<GhostState> {
     bool IsUnlocked(Cell door) {
         return ghostPaths.SelectMany(it => it).Any(it => grid[it].Symbol == char.ToLower(door.Symbol));
     }
+    */
 
-    void AddPath(List<Point> path) {
-        RemoveDuplicate(path);
-        if (ghostPaths.Count > 0 && ghostPaths.Last().Count != path.Count) {
-            int maxCount = Math.Max(ghostPaths.Last().Count, path.Count);
-            ghostPaths.ForEach(it => PadPath(it, maxCount));
+    void AddPath(GhostState state, List<Point> path) {
+        RemoveDuplicate(state, path);
+        if (state.Paths.Count > 0 && state.Paths.Last().Count != path.Count) {
+            int maxCount = Math.Max(state.Paths.Last().Count, path.Count);
+            state.Paths.ForEach(it => PadPath(it, maxCount));
             PadPath(path, maxCount);
         }
-        AvoidCollisions(path);
-        ghostPaths.Add(path);
+        AvoidCollisions(state, path);
+        state.Paths.Add(path);
     }
 
     /// Removes an existing path if the new path has all of its switches and more.
     /// Ignoring switches that have connected doors in the path,
     /// as robots can't unlock and go through doors in their loop.
     [SuppressMessage("ReSharper", "InvertIf")]
-    void RemoveDuplicate(List<Point> newPath) {
+    void RemoveDuplicate(GhostState state, List<Point> newPath) {
         var switches = Switches(newPath);
-        for (int i = ghostPaths.Count - 1; i >= 0; i--) {
-            var existingSwitches = Switches(ghostPaths[i]);
+        for (int i = state.Paths.Count - 1; i >= 0; i--) {
+            var existingSwitches = Switches(state.Paths[i]);
             if (switches.Count > existingSwitches.Count && existingSwitches.All(switches.Contains)) {
-                Debug.Log($"removed duplicate: {Actions(ghostPaths[i])}", 2);
-                ghostPaths.RemoveAt(i);
+                Debug.Log($"removed duplicate: {Actions(state.Paths[i])}", 2);
+                state.Paths.RemoveAt(i);
                 break;
             }
         }
@@ -162,12 +157,12 @@ class Facility : IGraph<Point>, IGame<GhostState> {
     }
 
     [SuppressMessage("ReSharper", "InvertIf")]
-    void AvoidCollisions(List<Point> path) {
+    void AvoidCollisions(GhostState state, List<Point> path) {
         while (HasCollision(out var collision)) {
             for (int i = collision.i; i < path.Count; i++) {
-                if (path[i] != ghostPaths[collision.j][i]) {
+                if (path[i] != state.Paths[collision.j][i]) {
                     path.Insert(i, path[i]);
-                    ghostPaths.ForEach(it => PadPath(it, path.Count));
+                    state.Paths.ForEach(it => PadPath(it, path.Count));
                     break;
                 }
             }
@@ -181,8 +176,8 @@ class Facility : IGraph<Point>, IGame<GhostState> {
                 if (point == start) {
                     continue;
                 }
-                for (var j = 0; j < ghostPaths.Count; j++) {
-                    if (ghostPaths[j][i] == point) {
+                for (var j = 0; j < state.Paths.Count; j++) {
+                    if (state.Paths[j][i] == point) {
                         collision = (i, j);
                         Debug.Log($"found collision at path[{i}], ghostPaths[{j}]: {point}", 1);
                         return true;
@@ -192,7 +187,6 @@ class Facility : IGraph<Point>, IGame<GhostState> {
             return false;
         }
     }
-    */
 
     public void PrintActions() {
         var listOfActions = exitState.Paths.Select(Actions).ToList();
@@ -218,21 +212,29 @@ class Facility : IGraph<Point>, IGame<GhostState> {
     }
 
     IEnumerable<GhostState> IGame<GhostState>.Next(GhostState current) {
-        var path = pathfinding.Path(start, exit, current);
-        if (path != null) {
-            yield return current.CopyWith(path);
+        var exitPath = pathfinding.Path(start, exit, current);
+        if (exitPath != null) {
+            yield return CopyWith(exitPath);
             Debug.Log("found exit", 1);
             yield break;
         }
         foreach (var door in LockedDoors(current)) {
             char doorSwitch = char.ToLower(door.Symbol);
-            path = pathfinding.Path(start, it => grid[it].Symbol == doorSwitch, current);
-            if (path == null) {
+            var switchPath = pathfinding.Path(start, it => grid[it].Symbol == doorSwitch, current);
+            if (switchPath == null) {
                 continue;
             }
             Debug.Log($"unlocked door {door.Symbol}", 1);
-            yield return current.CopyWith(path);
+            yield return CopyWith(switchPath);
         }
+        yield break;
+
+        GhostState CopyWith(List<Point> path) {
+            var copy = new GhostState([.. current.Paths.Select(it => it.ToList())]);
+            AddPath(copy, path);
+            return copy;
+        }
+
     }
 
     IEnumerable<Cell> LockedDoors(GhostState state) {
