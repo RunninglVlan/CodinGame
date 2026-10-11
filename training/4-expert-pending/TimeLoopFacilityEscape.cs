@@ -16,7 +16,35 @@ facility.PrintActions();
 
 record GhostState(List<List<Point>> Paths) : IState<GhostState> {
     bool IState<GhostState>.IsBetterThan(GhostState other) {
-        return Paths.Count < other.Paths.Count;
+        if (Paths.Count < other.Paths.Count) {
+            return true;
+        }
+        var actions = Actions();
+        var otherActions = other.Actions();
+        Debug.Log("choosing best between this:");
+        foreach (string action in actions) {
+            Debug.Log(action, 1);
+        }
+        Debug.Log("and other:");
+        foreach (string action in otherActions) {
+            Debug.Log(action, 1);
+        }
+        for (var i = 0; i < actions.Count; i++) {
+            if (actions[i] == otherActions[i]) {
+                continue;
+            }
+            return string.Compare(actions[i], otherActions[i], StringComparison.Ordinal) > 0;
+        }
+        return false;
+    }
+
+    public List<string> Actions() => [.. Paths.Select(Actions)];
+
+    public string Actions(int i) => Actions(Paths[i]);
+
+    static string Actions(List<Point> path) {
+        var actions = path.Skip(1).Zip(path, (point, previous) => point - previous).Select(Screen.ToChar);
+        return string.Join(' ', actions);
     }
 }
 
@@ -125,7 +153,7 @@ class Facility : IGraph<Point>, IGame<GhostState> {
         for (int i = state.Paths.Count - 1; i >= 0; i--) {
             var existingSwitches = Switches(state.Paths[i]);
             if (switches.Count > existingSwitches.Count && existingSwitches.All(switches.Contains)) {
-                Debug.Log($"removed duplicate: {Actions(state.Paths[i])}", 2);
+                Debug.Log($"removed duplicate: {state.Actions(i)}", 2);
                 state.Paths.RemoveAt(i);
                 break;
             }
@@ -189,17 +217,12 @@ class Facility : IGraph<Point>, IGame<GhostState> {
     }
 
     public void PrintActions() {
-        var listOfActions = exitState.Paths.Select(Actions).ToList();
+        var listOfActions = exitState.Actions();
         string finalActions = listOfActions.Last();
         foreach (string actions in listOfActions.SkipLast(1).OrderByDescending(it => it)) {
             Console.WriteLine(actions);
         }
         Console.WriteLine(finalActions);
-    }
-
-    string Actions(List<Point> path) {
-        var actions = path.Skip(1).Zip(path, (point, previous) => point - previous).Select(Screen.ToChar);
-        return string.Join(' ', actions);
     }
 
     IEnumerable<Point> IGraph<Point>.Next(Point current, GhostState state) {
