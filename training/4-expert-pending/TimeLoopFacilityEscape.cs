@@ -90,11 +90,11 @@ class Facility : IGraph<Point> {
         targets.Pop();
         AddPath(path);
         return true;
+    }
 
-        bool IsUnlocked(Cell door) {
-            var ghostPositions = ghostPaths.Select(it => it.Last());
-            return ghostPositions.Any(it => grid[it.X, it.Y].Symbol == char.ToLower(door.Symbol));
-        }
+    bool IsUnlocked(Cell door) {
+        var ghostPositions = ghostPaths.Select(it => it.Last());
+        return ghostPositions.Any(it => grid[it.X, it.Y].Symbol == char.ToLower(door.Symbol));
     }
 
     void AddPath(List<Point> path) {
@@ -163,7 +163,10 @@ class Facility : IGraph<Point> {
     IEnumerable<Point> IGraph<Point>.Next(Point current) => Screen.Directions4
             .Select(it => current + it)
             .Where(it => grid[it.X, it.Y].Type is not CellType.Wall)
-            .OrderByDescending(it => grid[it.X, it.Y].Type is not CellType.Door)
+            .OrderByDescending(it => {
+                var cell = grid[it.X, it.Y];
+                return cell.Type is not CellType.Door || IsUnlocked(cell);
+            })
             .ThenBy(it => Array.IndexOf(DIRECTION_PRIORITY, it - current));
 }
 
