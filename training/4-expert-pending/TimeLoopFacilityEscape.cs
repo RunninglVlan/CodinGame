@@ -62,19 +62,18 @@ class Facility : IGraph<Point> {
     public void ReachExit() {
         var targets = new Stack<char>();
         targets.Push(grid[exit].Symbol);
-        Debug.Log($"searching {targets.Peek()}");
         while (targets.Count > 0) {
             if (TryReach(targets, out char lockedDoor)) {
                 continue;
             }
             char doorSwitch = char.ToLower(lockedDoor);
             targets.Push(doorSwitch);
-            Debug.Log($"searching {targets.Peek()}");
         }
     }
 
     [SuppressMessage("ReSharper", "ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator")]
     bool TryReach(Stack<char> targets, out char lockedDoor) {
+        Debug.Log($"searching {targets.Peek()}");
         var path = pathfinding.Path(start, it => grid[it].Symbol == targets.Peek());
         Debug.Log($"found {string.Join(", ", path)}", 1);
         lockedDoor = '\0';
