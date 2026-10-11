@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
@@ -15,20 +14,34 @@ facility.ReadGrid();
 facility.ReachExit();
 facility.PrintActions();
 
-class Facility : IGraph<Point> {
+record GhostState(List<List<Point>> Paths) : IState<GhostState> {
+    public GhostState CopyWith(List<Point> path) {
+        var copy = new GhostState([.. Paths.Select(it => it.ToList())]);
+        copy.Paths.Add(path);
+        return copy;
+    }
+
+    bool IState<GhostState>.IsBetterThan(GhostState other) {
+        return Paths.Count < other.Paths.Count;
+    }
+}
+
+class Facility : IGraph<Point>, IGame<GhostState> {
     static readonly Point[] DIRECTION_PRIORITY = [Screen.UP, Screen.RIGHT, Screen.LEFT, Screen.DOWN];
 
     readonly Pathfinding<Point> pathfinding;
+    readonly StateSearch<GhostState> stateSearch;
 
     readonly int width, height;
     readonly int maxLoops;
     readonly Dictionary<Point, Cell> grid = [];
     Point start, exit;
-    readonly List<List<Point>> ghostPaths = [];
+    GhostState exitState = null!;
 
     /// maxLoops is for the maximum number of ghosts available (including the final robot)
     public Facility(int width, int height, int maxLoops) {
         pathfinding = new(this);
+        stateSearch = new(this, 10);
         this.width = width;
         this.height = height;
         this.maxLoops = maxLoops;
@@ -60,17 +73,10 @@ class Facility : IGraph<Point> {
     }
 
     public void ReachExit() {
-        var targets = new Stack<char>();
-        targets.Push(grid[exit].Symbol);
-        while (targets.Count > 0) {
-            if (TryReach(targets, out char lockedDoor)) {
-                continue;
-            }
-            char doorSwitch = char.ToLower(lockedDoor);
-            targets.Push(doorSwitch);
-        }
+        exitState = stateSearch.FindBest(new GhostState([]))!;
     }
 
+    /*
     [SuppressMessage("ReSharper", "ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator")]
     bool TryReach(Stack<char> targets, out char lockedDoor) {
         char target = targets.Peek();
@@ -186,9 +192,10 @@ class Facility : IGraph<Point> {
             return false;
         }
     }
+    */
 
     public void PrintActions() {
-        var listOfActions = ghostPaths.Select(Actions).ToList();
+        var listOfActions = exitState.Paths.Select(Actions).ToList();
         string finalActions = listOfActions.Last();
         foreach (string actions in listOfActions.SkipLast(1).OrderByDescending(it => it)) {
             Console.WriteLine(actions);
@@ -201,11 +208,52 @@ class Facility : IGraph<Point> {
         return string.Join(' ', actions);
     }
 
-    IEnumerable<Point> IGraph<Point>.Next(Point current) => Screen.Directions4
-            .Select(it => current + it)
-            .Where(it => grid[it].Type is not CellType.Wall)
-            .OrderByDescending(it => grid[it].Type is not CellType.Door || IsUnlocked(grid[it]))
-            .ThenBy(it => Array.IndexOf(DIRECTION_PRIORITY, it - current));
+    IEnumerable<Point> IGraph<Point>.Next(Point current, GhostState state) {
+        var unlockedDoors = UnlockedDoors(state);
+        return Screen.Directions4
+                .Select(it => current + it)
+                .Where(it => grid[it].Type is not CellType.Wall)
+                .Where(it => grid[it].Type is not CellType.Door || unlockedDoors.Contains(grid[it].Symbol))
+                .OrderBy(it => Array.IndexOf(DIRECTION_PRIORITY, it - current));
+    }
+
+    IEnumerable<GhostState> IGame<GhostState>.Next(GhostState current) {
+        var path = pathfinding.Path(start, exit, current);
+        if (path != null) {
+            yield return current.CopyWith(path);
+            Debug.Log("found exit", 1);
+            yield break;
+        }
+        foreach (var door in LockedDoors(current)) {
+            char doorSwitch = char.ToLower(door.Symbol);
+            path = pathfinding.Path(start, it => grid[it].Symbol == doorSwitch, current);
+            if (path == null) {
+                continue;
+            }
+            Debug.Log($"unlocked door {door.Symbol}", 1);
+            yield return current.CopyWith(path);
+        }
+    }
+
+    IEnumerable<Cell> LockedDoors(GhostState state) {
+        var unlockedDoors = UnlockedDoors(state);
+        return grid
+                .Where(it => it.Value.Type is CellType.Door && !unlockedDoors.Contains(it.Value.Symbol))
+                .Select(it => it.Value);
+    }
+
+    HashSet<char> UnlockedDoors(GhostState state) {
+        var unlockedDoors = state.Paths
+                .SelectMany(it => it)
+                .Select(it => grid[it])
+                .Where(it => it.Type is CellType.Switch)
+                .Select(it => char.ToUpper(it.Symbol));
+        return [.. unlockedDoors];
+    }
+
+    bool IGame<GhostState>.HasReachedEnd(GhostState state) {
+        return state.Paths.Count > 0 && exit == state.Paths.Last().Last();
+    }
 }
 
 readonly record struct Cell(CellType Type, char Symbol);
@@ -246,8 +294,13 @@ static class Screen {
 class Pathfinding<T>(IGraph<T> graph) where T : IEquatable<T> {
     readonly Dictionary<T, T> parents = [];
 
+    /// BFS to end
+    public List<T>? Path(T start, T end, GhostState state) {
+        return Path(start, it => it.Equals(end), state);
+    }
+
     /// BFS to endPredicate
-    public List<T> Path(T start, Predicate<T> endPredicate) {
+    public List<T>? Path(T start, Predicate<T> endPredicate, GhostState state) {
         Queue<T> queue = [];
         HashSet<T> visited = [];
         parents.Clear();
@@ -257,7 +310,7 @@ class Pathfinding<T>(IGraph<T> graph) where T : IEquatable<T> {
             if (endPredicate(current)) {
                 return Reconstruct(start, current);
             }
-            foreach (var next in graph.Next(current)) {
+            foreach (var next in graph.Next(current, state)) {
                 if (!visited.Add(next)) {
                     continue;
                 }
@@ -265,7 +318,7 @@ class Pathfinding<T>(IGraph<T> graph) where T : IEquatable<T> {
                 parents[next] = current;
             }
         }
-        throw new UnreachableException("No path found");
+        return null;
     }
 
     List<T> Reconstruct(T start, T end) {
@@ -281,7 +334,36 @@ class Pathfinding<T>(IGraph<T> graph) where T : IEquatable<T> {
 }
 
 interface IGraph<T> {
-    IEnumerable<T> Next(T current);
+    IEnumerable<T> Next(T current, GhostState state);
+}
+
+class StateSearch<T>(IGame<T> game, int depthMax) where T : IState<T> {
+    /// DFS/Backtracking
+    public T? FindBest(T current, int depth = 0) {
+        if (game.HasReachedEnd(current) || depth > depthMax) {
+            return current;
+        }
+        T? best = default;
+        foreach (var next in game.Next(current)) {
+            var nextBest = FindBest(next, depth + 1);
+            if (nextBest == null) {
+                continue;
+            }
+            if (best == null || nextBest.IsBetterThan(best)) {
+                best = nextBest;
+            }
+        }
+        return best;
+    }
+}
+
+interface IGame<TState> {
+    IEnumerable<TState> Next(TState current);
+    bool HasReachedEnd(TState state);
+}
+
+interface IState<in T> where T : IState<T> {
+    bool IsBetterThan(T other);
 }
 
 static class Debug {
