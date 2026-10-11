@@ -79,22 +79,23 @@ class Facility : IGraph<Point> {
                 ? ghostPaths.Last().Last()
                 : start;
         var path = pathfinding.Path(source, it => grid[it].Symbol == target);
-        Debug.Log($"found {string.Join(", ", path)}", 1);
         lockedDoor = '\0';
         foreach (var point in path) {
             var cell = grid[point];
             if (cell.Type != CellType.Door || IsUnlocked(cell)) {
                 continue;
             }
+            Debug.Log($"it's behind a door: {cell.Symbol}", 1);
             lockedDoor = cell.Symbol;
             return false;
         }
-        Debug.Log($"reached {target}", 1);
+        Debug.Log($"reached {target} through {Actions(path)}", 1);
         targets.Pop();
         if (source == start) {
             AddPath(path);
         } else {
             ghostPaths.Last().AddRange(path);
+            Debug.Log($"combined: {Actions(ghostPaths.Last())}", 2);
         }
         return true;
     }
@@ -123,6 +124,7 @@ class Facility : IGraph<Point> {
         for (int i = ghostPaths.Count - 1; i >= 0; i--) {
             var existingSwitches = Switches(ghostPaths[i]);
             if (switches.Count > existingSwitches.Count && existingSwitches.All(switches.Contains)) {
+                Debug.Log($"removed duplicate: {Actions(ghostPaths[i])}", 2);
                 ghostPaths.RemoveAt(i);
                 break;
             }
@@ -186,15 +188,17 @@ class Facility : IGraph<Point> {
     }
 
     public void PrintActions() {
-        var listOfActions = ghostPaths
-                .Select(it => it.Zip(it.Prepend(start), (point, previous) => point - previous).Select(Screen.ToChar))
-                .Select(it => string.Join(' ', it))
-                .ToList();
+        var listOfActions = ghostPaths.Select(Actions).ToList();
         string finalActions = listOfActions.Last();
         foreach (string actions in listOfActions.SkipLast(1).OrderByDescending(it => it)) {
             Console.WriteLine(actions);
         }
         Console.WriteLine(finalActions);
+    }
+
+    string Actions(List<Point> path) {
+        var actions = path.Zip(path.Prepend(start), (point, previous) => point - previous).Select(Screen.ToChar);
+        return string.Join(' ', actions);
     }
 
     IEnumerable<Point> IGraph<Point>.Next(Point current) => Screen.Directions4
