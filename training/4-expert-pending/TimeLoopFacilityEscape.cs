@@ -11,10 +11,11 @@ int height = Math.Clamp(int.Parse(inputs[1]), 3, 30);
 int maxLoops = Math.Clamp(int.Parse(inputs[2]), 1, 5);
 var facility = new Facility(width, height, maxLoops);
 facility.ReadGrid();
+facility.BuildConnections();
 facility.ReachExit();
 facility.PrintActions();
 
-record GhostState(List<List<Point>> Paths) : IState<GhostState> {
+record GhostState(List<List<Point>> Paths, Stack<char> Targets) : IState<GhostState> {
     bool IState<GhostState>.IsBetterThan(GhostState other) {
         var actions = Actions();
         var otherActions = other.Actions();
@@ -51,21 +52,20 @@ record GhostState(List<List<Point>> Paths) : IState<GhostState> {
     }
 }
 
-class Facility : IGraph<Point>, IGame<GhostState> {
+class Facility : IGame<GhostState> {
     static readonly Point[] DIRECTION_PRIORITY = [Screen.UP, Screen.RIGHT, Screen.LEFT, Screen.DOWN];
 
-    readonly Pathfinding<Point> pathfinding;
     readonly StateSearch<GhostState> stateSearch;
 
     readonly int width, height;
     readonly int maxLoops;
     readonly Dictionary<Point, char> grid = [];
+    readonly Dictionary<char, Node> graph = [];
     Point start, exit;
     GhostState exitState = null!;
 
     public Facility(int width, int height, int maxLoops) {
-        pathfinding = new(this);
-        stateSearch = new(this, maxLoops);
+        stateSearch = new(this, maxLoops * 2);
         this.width = width;
         this.height = height;
         this.maxLoops = maxLoops;
@@ -88,8 +88,33 @@ class Facility : IGraph<Point>, IGame<GhostState> {
         }
     }
 
+    public void BuildConnections() {
+        foreach ((var point, char cell) in grid) {
+            if (cell is not (Cell.WALL or Cell.FLOOR)) {
+                graph.Add(cell, new Node(cell, point));
+            }
+        }
+        foreach ((char idI, var nodeI) in graph) {
+            foreach ((char idJ, var nodeJ) in graph) {
+                if (idI == idJ) {
+                    continue;
+                }
+                var path = Pathfinding.Shortest(nodeI.Point, nodeJ.Point, current => Screen.Directions4
+                        .Select(it => current + it)
+                        .Where(it => it == nodeJ.Point || grid[it] != Cell.WALL && !Cell.IsDoor(grid[it])));
+                if (path == null) {
+                    continue;
+                }
+                nodeI.Connections.Add(nodeJ.Id);
+                nodeJ.Connections.Add(nodeI.Id);
+            }
+        }
+    }
+
     public void ReachExit() {
-        exitState = stateSearch.FindBest(new GhostState([]))!;
+        var targets = new Stack<char>();
+        targets.Push(grid[exit]);
+        exitState = stateSearch.FindBest(new GhostState([], targets))!;
     }
 
     void AddPath(GhostState state, List<Point> path) {
@@ -181,7 +206,7 @@ class Facility : IGraph<Point>, IGame<GhostState> {
         }
     }
 
-    IEnumerable<Point> IGraph<Point>.Next(Point current, GhostState state) {
+    IEnumerable<Point> Next(Point current, GhostState state) {
         var unlockedDoors = UnlockedDoors(state);
         return Screen.Directions4
                 .Select(it => current + it)
@@ -191,42 +216,63 @@ class Facility : IGraph<Point>, IGame<GhostState> {
     }
 
     IEnumerable<GhostState> IGame<GhostState>.Next(GhostState current) {
-        Debug.Log("searching exit");
-        var exitPath = pathfinding.Path(start, exit, current);
-        if (exitPath != null) {
-            yield return NextState(start, exitPath);
-            Debug.Log($"found exit through {GhostState.Actions(exitPath)}", 1);
+        Func<Point, IEnumerable<Point>> next = it => Next(it, current);
+        if (!current.Targets.TryPeek(out char target)) {
+            yield break;
         }
-        foreach (char door in LockedDoors(current)) {
-            char doorSwitch = char.ToLower(door);
-            var source = maxLoops - current.Paths.Count == 1 ? current.Paths.Last().Last() : start;
-            Debug.Log($"searching switch {doorSwitch}");
-            var switchPath = pathfinding.Path(source, it => grid[it] == doorSwitch, current);
-            if (switchPath == null) {
-                continue;
+        Debug.Log($"searching {target}");
+        if (current.Paths.Count > 0) {
+            var path = Pathfinding.Shortest(current.Paths.Last().Last(), it => grid[it] == target, next);
+            if (path != null) {
+                var copy = NextState();
+                path = [.. copy.Paths.Last(), .. path.Skip(1)];
+                copy.Paths.RemoveAt(copy.Paths.Count - 1);
+                AddPath(copy, path);
+                copy.Targets.Pop();
+                Debug.Log($"found {target} through {GhostState.Actions(path)}", 1);
+                yield return copy;
             }
-            Debug.Log($"unlocked door {door} through {GhostState.Actions(switchPath)}", 1);
-            yield return NextState(source, switchPath);
+        }
+        {
+            var path = Pathfinding.Shortest(start, it => grid[it] == target, next);
+            if (path != null) {
+                var copy = NextState();
+                AddPath(copy, path);
+                copy.Targets.Pop();
+                Debug.Log($"found {target} through {GhostState.Actions(path)}", 1);
+                yield return copy;
+                yield break;
+            }
+        }
+        Debug.Log($"can't find {target}", 1);
+        var pathsToTarget = Pathfinding.All(graph[Cell.START], graph[target], it => {
+                    return it.Connections
+                            .Select(id => graph[id])
+                            .Where(node => Cell.IsDoor(grid[node.Point]) || node == graph[target]);
+                })
+                .ToArray();
+        Debug.Log($"shortest paths to {target}:");
+        int shortestSteps = pathsToTarget.Min(it => it.Count);
+        foreach (var nodes in pathsToTarget.Where(it => it.Count == shortestSteps)) {
+            Debug.Log(string.Join(", ", nodes.Select(it => it.Id)), 1);
+        }
+        var unlockedDoors = UnlockedDoors(current);
+        var lockedDoors = pathsToTarget
+                .Where(it => it.Count == shortestSteps)
+                .Select(it => it.Skip(1).First(node => !unlockedDoors.Contains(node.Id)).Id);
+        foreach (char door in lockedDoors) {
+            var copy = NextState();
+            char doorSwitch = char.ToLower(door);
+            copy.Targets.Push(doorSwitch);
+            yield return copy;
         }
         yield break;
 
-        GhostState NextState(Point source, List<Point> path) {
-            var copy = new GhostState([.. current.Paths.Select(it => it.ToList())]);
-            if (source != start) {
-                path = [.. copy.Paths.Last(), .. path.Skip(1)];
-                copy.Paths.RemoveAt(copy.Paths.Count - 1);
-                Debug.Log($"combined: {GhostState.Actions(path)}", 2);
-            }
-            AddPath(copy, path);
-            return copy;
+        GhostState NextState() {
+            char[] currentTargets = [.. current.Targets];
+            Array.Reverse(currentTargets);
+            return new GhostState([.. current.Paths.Select(it => it.ToList())], new Stack<char>(currentTargets));
         }
-    }
-
-    IEnumerable<char> LockedDoors(GhostState state) {
-        var unlockedDoors = UnlockedDoors(state);
-        return grid
-                .Where(it => Cell.IsDoor(it.Value) && !unlockedDoors.Contains(it.Value))
-                .Select(it => it.Value);
     }
 
     HashSet<char> UnlockedDoors(GhostState state) {
@@ -253,6 +299,13 @@ static class Cell {
     public static bool IsDoor(char c) => c is not (START or EXIT) && char.IsUpper(c);
 }
 
+record Node(char Id, Point Point) {
+    public HashSet<char> Connections { get; } = [];
+
+    public virtual bool Equals(Node? other) => Id == other?.Id;
+    public override int GetHashCode() => Id;
+}
+
 readonly record struct Point(int X, int Y) {
     public static Point operator +(Point a, Point b) => new(a.X + b.X, a.Y + b.Y);
     public static Point operator -(Point a, Point b) => new(a.X - b.X, a.Y - b.Y);
@@ -277,26 +330,25 @@ static class Screen {
     };
 }
 
-class Pathfinding<T>(IGraph<T> graph) where T : IEquatable<T> {
-    readonly Dictionary<T, T> parents = [];
-
+static class Pathfinding {
     /// BFS to end
-    public List<T>? Path(T start, T end, GhostState state) {
-        return Path(start, it => it.Equals(end), state);
+    public static List<T>? Shortest<T>(T start, T end, Func<T, IEnumerable<T>> getNext) where T : IEquatable<T> {
+        return Shortest(start, it => it.Equals(end), getNext);
     }
 
     /// BFS to endPredicate
-    public List<T>? Path(T start, Predicate<T> endPredicate, GhostState state) {
+    public static List<T>? Shortest<T>(T start, Predicate<T> endPredicate, Func<T, IEnumerable<T>> getNext)
+            where T : IEquatable<T> {
+        Dictionary<T, T> parents = [];
         Queue<T> queue = [];
         HashSet<T> visited = [];
-        parents.Clear();
         queue.Enqueue(start);
         visited.Add(start);
         while (queue.TryDequeue(out var current)) {
             if (endPredicate(current)) {
-                return Reconstruct(start, current);
+                return Reconstruct(parents, start, current);
             }
-            foreach (var next in graph.Next(current, state)) {
+            foreach (var next in getNext(current)) {
                 if (!visited.Add(next)) {
                     continue;
                 }
@@ -307,7 +359,7 @@ class Pathfinding<T>(IGraph<T> graph) where T : IEquatable<T> {
         return null;
     }
 
-    List<T> Reconstruct(T start, T end) {
+    static List<T> Reconstruct<T>(Dictionary<T, T> parents, T start, T end) where T : IEquatable<T> {
         var path = new List<T>();
         var current = end;
         while (!current.Equals(start)) {
@@ -318,10 +370,28 @@ class Pathfinding<T>(IGraph<T> graph) where T : IEquatable<T> {
         path.Reverse();
         return path;
     }
-}
 
-interface IGraph<T> {
-    IEnumerable<T> Next(T current, GhostState state);
+    /// DFS/Backtracking
+    public static IEnumerable<List<T>> All<T>(T start, T end, Func<T, IEnumerable<T>> getNext)
+            where T : IEquatable<T> {
+        return All(start, end, getNext, [start], [start]);
+    }
+
+    static IEnumerable<List<T>> All<T>(T current, T end,
+            Func<T, IEnumerable<T>> getNext, List<T> path, HashSet<T> visited) where T : IEquatable<T> {
+        if (current.Equals(end)) {
+            yield return [.. path];
+            yield break;
+        }
+        foreach (var next in getNext(current)) {
+            if (visited.Contains(next)) {
+                continue;
+            }
+            foreach (var result in All(next, end, getNext, [.. path, next], [.. visited, next])) {
+                yield return result;
+            }
+        }
+    }
 }
 
 class StateSearch<T>(IGame<T> game, int depthMax) where T : IState<T> {
