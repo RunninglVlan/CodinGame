@@ -227,6 +227,9 @@ class Facility : IGame<GhostState> {
     }
 
     IEnumerable<GhostState> IGame<GhostState>.Next(GhostState current) {
+        if (current.Loops.Count == maxLoops) {
+            yield break;
+        }
         Debug.Log("current state", 1);
         Debug.Log(current);
         Func<Point, IEnumerable<Point>> next = it => Next(it, current);
