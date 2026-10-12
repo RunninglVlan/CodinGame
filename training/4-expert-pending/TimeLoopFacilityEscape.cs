@@ -222,14 +222,16 @@ class Facility : IGame<GhostState> {
         }
         Debug.Log($"searching {target}");
         if (current.Paths.Count > 0) {
-            var path = Pathfinding.Shortest(current.Paths.Last().Last(), it => grid[it] == target, next);
+            var source = current.Paths.Last().Last();
+            var path = Pathfinding.Shortest(source, it => grid[it] == target, next);
             if (path != null) {
                 var copy = NextState();
+                Debug.Log($"found {target} from {grid[source]} through {GhostState.Actions(path)}", 1);
                 path = [.. copy.Paths.Last(), .. path.Skip(1)];
+                Debug.Log($"combined: {GhostState.Actions(path)}", 2);
                 copy.Paths.RemoveAt(copy.Paths.Count - 1);
                 AddPath(copy, path);
                 copy.Targets.Pop();
-                Debug.Log($"found {target} through {GhostState.Actions(path)}", 1);
                 yield return copy;
             }
         }
