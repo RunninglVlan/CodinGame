@@ -207,7 +207,6 @@ class Facility : IGraph<Point>, IGame<GhostState> {
         if (exitPath != null) {
             yield return NextState(start, exitPath);
             Debug.Log($"found exit through {GhostState.Actions(exitPath)}", 1);
-            yield break;
         }
         foreach (var door in LockedDoors(current)) {
             char doorSwitch = char.ToLower(door.Symbol);
