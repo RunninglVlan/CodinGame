@@ -292,6 +292,16 @@ class Facility : IGame<GhostState> {
             copy.Targets.Push(doorSwitch);
             yield return copy;
         }
+        var lockedDoors = grid.Where(it => Cell.IsDoor(it.Value) && !unlockedDoors.Contains(it.Value))
+                .Select(it => it.Value);
+        var moreDoors = lockedDoors.Where(it => !doors.Contains(it) && it != char.ToUpper(target)).ToList();
+        Debug.Log($"trying to unlock remaining doors {string.Join(", ", moreDoors)}", 2);
+        foreach (char door in moreDoors) {
+            var copy = NextState();
+            char doorSwitch = char.ToLower(door);
+            copy.Targets.Push(doorSwitch);
+            yield return copy;
+        }
         yield break;
 
         GhostState NextState() {
