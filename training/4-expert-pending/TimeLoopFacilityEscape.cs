@@ -65,7 +65,7 @@ class Facility : IGraph<Point>, IGame<GhostState> {
 
     public Facility(int width, int height, int maxLoops) {
         pathfinding = new(this);
-        stateSearch = new(this, 10);
+        stateSearch = new(this, maxLoops);
         this.width = width;
         this.height = height;
         this.maxLoops = maxLoops;
@@ -223,12 +223,12 @@ class Facility : IGraph<Point>, IGame<GhostState> {
 
         GhostState NextState(Point source, List<Point> path) {
             var copy = new GhostState([.. current.Paths.Select(it => it.ToList())]);
-            if (source == start) {
-                AddPath(copy, path);
-            } else {
-                copy.Paths.Last().AddRange(path.Skip(1));
-                Debug.Log($"combined: {GhostState.Actions(copy.Paths.Last())}", 2);
+            if (source != start) {
+                path = [.. copy.Paths.Last(), .. path.Skip(1)];
+                copy.Paths.RemoveAt(copy.Paths.Count - 1);
+                Debug.Log($"combined: {GhostState.Actions(path)}", 2);
             }
+            AddPath(copy, path);
             return copy;
         }
     }
