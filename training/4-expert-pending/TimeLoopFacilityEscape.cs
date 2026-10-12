@@ -184,12 +184,9 @@ class Facility : IGraph<Point>, IGame<GhostState> {
     }
 
     public void PrintActions() {
-        var listOfActions = exitState.Actions();
-        string finalActions = listOfActions.Last();
-        foreach (string actions in listOfActions.SkipLast(1).OrderByDescending(it => it)) {
+        foreach (string actions in exitState.Actions()) {
             Console.WriteLine(actions);
         }
-        Console.WriteLine(finalActions);
     }
 
     IEnumerable<Point> IGraph<Point>.Next(Point current, GhostState state) {
