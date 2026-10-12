@@ -59,7 +59,7 @@ class Facility : IGraph<Point>, IGame<GhostState> {
 
     readonly int width, height;
     readonly int maxLoops;
-    readonly Dictionary<Point, Cell> grid = [];
+    readonly Dictionary<Point, char> grid = [];
     Point start, exit;
     GhostState exitState = null!;
 
@@ -77,19 +77,11 @@ class Facility : IGraph<Point>, IGame<GhostState> {
             string row = Debug.ReadLine()!;
             for (var x = 0; x < width; x++) {
                 char symbol = row[x];
-                var cell = symbol switch {
-                    'S' => new Cell(CellType.Start, symbol),
-                    'E' => new Cell(CellType.Exit, symbol),
-                    '#' => new Cell(CellType.Wall, symbol),
-                    '.' => new Cell(CellType.Floor, symbol),
-                    _ when char.IsLower(symbol) => new Cell(CellType.Switch, symbol),
-                    _ => new Cell(CellType.Door, symbol)
-                };
                 var point = new Point(x, y);
-                grid[point] = cell;
-                if (cell.Type == CellType.Start) {
+                grid[point] = symbol;
+                if (symbol == Cell.START) {
                     start = point;
-                } else if (cell.Type == CellType.Exit) {
+                } else if (symbol == Cell.EXIT) {
                     exit = point;
                 }
             }
@@ -130,18 +122,18 @@ class Facility : IGraph<Point>, IGame<GhostState> {
         List<char> Switches(List<Point> path) {
             var cells = path
                     .Select(it => grid[it])
-                    .Where(it => it.Type is CellType.Switch or CellType.Door)
+                    .Where(it => Cell.IsSwitch(it) || Cell.IsDoor(it))
                     .ToList();
             for (int i = cells.Count - 1; i >= 0; i--) {
-                var cell = cells[i];
-                if (cell.Type != CellType.Switch) {
+                char cell = cells[i];
+                if (!Cell.IsSwitch(cell)) {
                     continue;
                 }
-                if (cells.Any(it => it.Type == CellType.Door && it.Symbol == char.ToUpper(cell.Symbol))) {
+                if (cells.Any(it => Cell.IsDoor(it) && it == char.ToUpper(cell))) {
                     cells.RemoveAt(i);
                 }
             }
-            return [.. cells.Where(it => it.Type == CellType.Switch).Select(it => it.Symbol)];
+            return [.. cells.Where(Cell.IsSwitch)];
         }
     }
 
@@ -193,8 +185,8 @@ class Facility : IGraph<Point>, IGame<GhostState> {
         var unlockedDoors = UnlockedDoors(state);
         return Screen.Directions4
                 .Select(it => current + it)
-                .Where(it => grid[it].Type is not CellType.Wall)
-                .Where(it => grid[it].Type is not CellType.Door || unlockedDoors.Contains(grid[it].Symbol))
+                .Where(it => grid[it] != Cell.WALL)
+                .Where(it => !Cell.IsDoor(grid[it]) || unlockedDoors.Contains(grid[it]))
                 .OrderBy(it => Array.IndexOf(DIRECTION_PRIORITY, it - current));
     }
 
@@ -205,15 +197,15 @@ class Facility : IGraph<Point>, IGame<GhostState> {
             yield return NextState(start, exitPath);
             Debug.Log($"found exit through {GhostState.Actions(exitPath)}", 1);
         }
-        foreach (var door in LockedDoors(current)) {
-            char doorSwitch = char.ToLower(door.Symbol);
+        foreach (char door in LockedDoors(current)) {
+            char doorSwitch = char.ToLower(door);
             var source = maxLoops - current.Paths.Count == 1 ? current.Paths.Last().Last() : start;
             Debug.Log($"searching switch {doorSwitch}");
-            var switchPath = pathfinding.Path(source, it => grid[it].Symbol == doorSwitch, current);
+            var switchPath = pathfinding.Path(source, it => grid[it] == doorSwitch, current);
             if (switchPath == null) {
                 continue;
             }
-            Debug.Log($"unlocked door {door.Symbol} through {GhostState.Actions(switchPath)}", 1);
+            Debug.Log($"unlocked door {door} through {GhostState.Actions(switchPath)}", 1);
             yield return NextState(source, switchPath);
         }
         yield break;
@@ -230,10 +222,10 @@ class Facility : IGraph<Point>, IGame<GhostState> {
         }
     }
 
-    IEnumerable<Cell> LockedDoors(GhostState state) {
+    IEnumerable<char> LockedDoors(GhostState state) {
         var unlockedDoors = UnlockedDoors(state);
         return grid
-                .Where(it => it.Value.Type is CellType.Door && !unlockedDoors.Contains(it.Value.Symbol))
+                .Where(it => Cell.IsDoor(it.Value) && !unlockedDoors.Contains(it.Value))
                 .Select(it => it.Value);
     }
 
@@ -241,8 +233,8 @@ class Facility : IGraph<Point>, IGame<GhostState> {
         var unlockedDoors = state.Paths
                 .SelectMany(it => it)
                 .Select(it => grid[it])
-                .Where(it => it.Type is CellType.Switch)
-                .Select(it => char.ToUpper(it.Symbol));
+                .Where(Cell.IsSwitch)
+                .Select(char.ToUpper);
         return [.. unlockedDoors];
     }
 
@@ -251,15 +243,14 @@ class Facility : IGraph<Point>, IGame<GhostState> {
     }
 }
 
-readonly record struct Cell(CellType Type, char Symbol);
+static class Cell {
+    public const char START = 'S';
+    public const char EXIT = 'E';
+    public const char WALL = '#';
+    public const char FLOOR = '.';
 
-enum CellType {
-    Start,
-    Exit,
-    Wall,
-    Floor,
-    Switch,
-    Door
+    public static bool IsSwitch(char c) => char.IsLower(c);
+    public static bool IsDoor(char c) => c is not (START or EXIT) && char.IsUpper(c);
 }
 
 readonly record struct Point(int X, int Y) {
