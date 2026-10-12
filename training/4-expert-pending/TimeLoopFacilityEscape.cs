@@ -16,14 +16,6 @@ facility.PrintActions();
 
 record GhostState(List<List<Point>> Paths) : IState<GhostState> {
     bool IState<GhostState>.IsBetterThan(GhostState other) {
-        int turns = Paths.First().Count.CompareTo(other.Paths.First().Count);
-        if (turns != 0) {
-            return turns < 0;
-        }
-        int loops = Paths.Count.CompareTo(other.Paths.Count);
-        if (loops != 0) {
-            return loops < 0;
-        }
         var actions = Actions();
         var otherActions = other.Actions();
         Debug.Log("choosing best between this:");
@@ -33,6 +25,14 @@ record GhostState(List<List<Point>> Paths) : IState<GhostState> {
         Debug.Log("and other:");
         foreach (string action in otherActions) {
             Debug.Log(action, 1);
+        }
+        int turns = Paths.First().Count.CompareTo(other.Paths.First().Count);
+        if (turns != 0) {
+            return turns < 0;
+        }
+        int loops = Paths.Count.CompareTo(other.Paths.Count);
+        if (loops != 0) {
+            return loops < 0;
         }
         for (var i = 0; i < actions.Count; i++) {
             if (actions[i] == otherActions[i]) {
@@ -99,41 +99,6 @@ class Facility : IGraph<Point>, IGame<GhostState> {
     public void ReachExit() {
         exitState = stateSearch.FindBest(new GhostState([]))!;
     }
-
-    /*
-    [SuppressMessage("ReSharper", "ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator")]
-    bool TryReach(Stack<char> targets, out char lockedDoor) {
-        char target = targets.Peek();
-        Debug.Log($"searching {target}");
-        var source = target != grid[exit].Symbol && maxLoops - ghostPaths.Count == 1
-                ? ghostPaths.Last().Last()
-                : start;
-        var path = pathfinding.Path(source, it => grid[it].Symbol == target);
-        lockedDoor = '\0';
-        foreach (var point in path) {
-            var cell = grid[point];
-            if (cell.Type != CellType.Door || IsUnlocked(cell)) {
-                continue;
-            }
-            Debug.Log($"it's behind a door: {cell.Symbol}", 1);
-            lockedDoor = cell.Symbol;
-            return false;
-        }
-        Debug.Log($"reached {target} through {Actions(path)}", 1);
-        targets.Pop();
-        if (source == start) {
-            AddPath(path);
-        } else {
-            ghostPaths.Last().AddRange(path);
-            Debug.Log($"combined: {Actions(ghostPaths.Last())}", 2);
-        }
-        return true;
-    }
-
-    bool IsUnlocked(Cell door) {
-        return ghostPaths.SelectMany(it => it).Any(it => grid[it].Symbol == char.ToLower(door.Symbol));
-    }
-    */
 
     void AddPath(GhostState state, List<Point> path) {
         RemoveDuplicate(state, path);
@@ -237,26 +202,34 @@ class Facility : IGraph<Point>, IGame<GhostState> {
     }
 
     IEnumerable<GhostState> IGame<GhostState>.Next(GhostState current) {
+        Debug.Log("searching exit");
         var exitPath = pathfinding.Path(start, exit, current);
         if (exitPath != null) {
-            yield return CopyWith(exitPath);
-            Debug.Log("found exit", 1);
+            yield return NextState(start, exitPath);
+            Debug.Log($"found exit through {GhostState.Actions(exitPath)}", 1);
             yield break;
         }
         foreach (var door in LockedDoors(current)) {
             char doorSwitch = char.ToLower(door.Symbol);
-            var switchPath = pathfinding.Path(start, it => grid[it].Symbol == doorSwitch, current);
+            var source = maxLoops - current.Paths.Count == 1 ? current.Paths.Last().Last() : start;
+            Debug.Log($"searching switch {doorSwitch}");
+            var switchPath = pathfinding.Path(source, it => grid[it].Symbol == doorSwitch, current);
             if (switchPath == null) {
                 continue;
             }
-            Debug.Log($"unlocked door {door.Symbol}", 1);
-            yield return CopyWith(switchPath);
+            Debug.Log($"unlocked door {door.Symbol} through {GhostState.Actions(switchPath)}", 1);
+            yield return NextState(source, switchPath);
         }
         yield break;
 
-        GhostState CopyWith(List<Point> path) {
+        GhostState NextState(Point source, List<Point> path) {
             var copy = new GhostState([.. current.Paths.Select(it => it.ToList())]);
-            AddPath(copy, path);
+            if (source == start) {
+                AddPath(copy, path);
+            } else {
+                copy.Paths.Last().AddRange(path.Skip(1));
+                Debug.Log($"combined: {GhostState.Actions(copy.Paths.Last())}", 2);
+            }
             return copy;
         }
     }
