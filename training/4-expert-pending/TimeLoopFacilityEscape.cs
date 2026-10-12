@@ -45,9 +45,7 @@ record GhostState(List<List<Point>> Paths) : IState<GhostState> {
 
     public List<string> Actions() => [.. Paths.Select(Actions)];
 
-    public string Actions(int i) => Actions(Paths[i]);
-
-    static string Actions(List<Point> path) {
+    public static string Actions(List<Point> path) {
         var actions = path.Skip(1).Zip(path, (point, previous) => point - previous).Select(Screen.ToChar);
         return string.Join(' ', actions);
     }
@@ -65,7 +63,6 @@ class Facility : IGraph<Point>, IGame<GhostState> {
     Point start, exit;
     GhostState exitState = null!;
 
-    /// maxLoops is for the maximum number of ghosts available (including the final robot)
     public Facility(int width, int height, int maxLoops) {
         pathfinding = new(this);
         stateSearch = new(this, 10);
@@ -158,7 +155,7 @@ class Facility : IGraph<Point>, IGame<GhostState> {
         for (int i = state.Paths.Count - 1; i >= 0; i--) {
             var existingSwitches = Switches(state.Paths[i]);
             if (switches.Count > existingSwitches.Count && existingSwitches.All(switches.Contains)) {
-                Debug.Log($"removed duplicate: {state.Actions(i)}", 2);
+                Debug.Log($"removed duplicate: {GhostState.Actions(state.Paths[i])}", 2);
                 state.Paths.RemoveAt(i);
                 break;
             }
@@ -262,7 +259,6 @@ class Facility : IGraph<Point>, IGame<GhostState> {
             AddPath(copy, path);
             return copy;
         }
-
     }
 
     IEnumerable<Cell> LockedDoors(GhostState state) {
