@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Text;
 
 // Navigate through a facility to reach the extraction point by coordinating robot actions across multiple time loops
 // https://www.codingame.com/contribute/view/1415851ba1aa5d4b0600a53ac02dd35417fd8b
@@ -49,6 +50,14 @@ record GhostState(List<List<Point>> Loops, Stack<char> Targets) : IState<GhostSt
     public static string Actions(List<Point> loop) {
         var actions = loop.Skip(1).Zip(loop, (point, previous) => point - previous).Select(Screen.ToChar);
         return string.Join(' ', actions);
+    }
+
+    public override string ToString() {
+        var lines = new StringBuilder();
+        foreach (var loop in Loops) {
+            lines.AppendLine(Actions(loop));
+        }
+        return lines.ToString();
     }
 }
 
@@ -191,7 +200,9 @@ class Facility : IGame<GhostState> {
                 for (var j = 0; j < state.Loops.Count; j++) {
                     if (state.Loops[j][i] == point) {
                         collision = (i, j);
-                        Debug.Log($"found collision at loop[{i}], ghostLoops[{j}]: {point}", 1);
+                        Debug.Log("found collision in state", 1);
+                        Debug.Log(state);
+                        Debug.Log($"with loop: {GhostState.Actions(loop)}", 1);
                         return true;
                     }
                 }
@@ -216,6 +227,8 @@ class Facility : IGame<GhostState> {
     }
 
     IEnumerable<GhostState> IGame<GhostState>.Next(GhostState current) {
+        Debug.Log("current state", 1);
+        Debug.Log(current);
         Func<Point, IEnumerable<Point>> next = it => Next(it, current);
         if (!current.Targets.TryPeek(out char target)) {
             yield break;
@@ -252,23 +265,32 @@ class Facility : IGame<GhostState> {
                             .Select(id => graph[id])
                             .Where(node => Cell.IsDoor(grid[node.Point]) || node == graph[target]);
                 })
-                .ToArray();
-        Debug.Log($"shortest paths to {target}:");
-        int shortestSteps = pathsToTarget.Min(it => it.Count);
-        foreach (var nodes in pathsToTarget.Where(it => it.Count == shortestSteps)) {
-            Debug.Log(string.Join(", ", nodes.Select(it => it.Id)), 1);
+                .ToList();
+        Debug.Log($"paths to {target}", 1);
+        // todo: sets can be created once
+        pathsToTarget = [.. pathsToTarget.OrderBy(it => it.Count)];
+        for (var i = 0; i < pathsToTarget.Count; i++) {
+            var shorter = pathsToTarget[i].ToHashSet();
+            for (int j = pathsToTarget.Count - 1; j > i; j--) {
+                if (pathsToTarget[j].ToHashSet().IsSupersetOf(shorter)) {
+                    pathsToTarget.RemoveAt(j);
+                }
+            }
+        }
+        foreach (var path in pathsToTarget) {
+            Debug.Log(string.Join(", ", path.Select(it => grid[it.Point])), 2);
         }
         var unlockedDoors = UnlockedDoors(current);
-        foreach (var path in pathsToTarget.Where(it => it.Count == shortestSteps)) {
-            foreach (char door in path.Skip(1).SkipLast(1).Select(it => it.Id)) {
-                if (unlockedDoors.Contains(door)) {
-                    continue;
-                }
-                var copy = NextState();
-                char doorSwitch = char.ToLower(door);
-                copy.Targets.Push(doorSwitch);
-                yield return copy;
-            }
+        var doors = pathsToTarget
+                .SelectMany(path => path.Skip(1).SkipLast(1).Select(it => it.Id))
+                .Where(it => !unlockedDoors.Contains(it))
+                .ToHashSet();
+        Debug.Log($"trying to unlock doors {string.Join(", ", doors)}", 2);
+        foreach (char door in doors) {
+            var copy = NextState();
+            char doorSwitch = char.ToLower(door);
+            copy.Targets.Push(doorSwitch);
+            yield return copy;
         }
         yield break;
 
