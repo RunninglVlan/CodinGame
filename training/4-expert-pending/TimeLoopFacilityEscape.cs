@@ -339,8 +339,11 @@ interface IGraph<T> {
 class StateSearch<T>(IGame<T> game, int depthMax) where T : IState<T> {
     /// DFS/Backtracking
     public T? FindBest(T current, int depth = 0) {
-        if (game.HasReachedEnd(current) || depth > depthMax) {
+        if (game.HasReachedEnd(current)) {
             return current;
+        }
+        if (depth > depthMax) {
+            return default;
         }
         T? best = default;
         foreach (var next in game.Next(current)) {
