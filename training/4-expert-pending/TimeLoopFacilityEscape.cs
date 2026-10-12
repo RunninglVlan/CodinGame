@@ -224,7 +224,7 @@ class Facility : IGame<GhostState> {
         if (current.Paths.Count > 0) {
             var source = current.Paths.Last().Last();
             var path = Pathfinding.Shortest(source, it => grid[it] == target, next);
-            if (path != null) {
+            if (path != null && path.All(it => grid[it] != char.ToUpper(grid[source]))) {
                 var copy = NextState();
                 Debug.Log($"found {target} from {grid[source]} through {GhostState.Actions(path)}", 1);
                 path = [.. copy.Paths.Last(), .. path.Skip(1)];
