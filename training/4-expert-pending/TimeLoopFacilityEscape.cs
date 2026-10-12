@@ -259,14 +259,16 @@ class Facility : IGame<GhostState> {
             Debug.Log(string.Join(", ", nodes.Select(it => it.Id)), 1);
         }
         var unlockedDoors = UnlockedDoors(current);
-        var lockedDoors = pathsToTarget
-                .Where(it => it.Count == shortestSteps)
-                .Select(it => it.Skip(1).First(node => !unlockedDoors.Contains(node.Id)).Id);
-        foreach (char door in lockedDoors) {
-            var copy = NextState();
-            char doorSwitch = char.ToLower(door);
-            copy.Targets.Push(doorSwitch);
-            yield return copy;
+        foreach (var path in pathsToTarget.Where(it => it.Count == shortestSteps)) {
+            foreach (char door in path.Skip(1).SkipLast(1).Select(it => it.Id)) {
+                if (unlockedDoors.Contains(door)) {
+                    continue;
+                }
+                var copy = NextState();
+                char doorSwitch = char.ToLower(door);
+                copy.Targets.Push(doorSwitch);
+                yield return copy;
+            }
         }
         yield break;
 
