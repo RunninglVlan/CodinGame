@@ -2,22 +2,18 @@
 using System.Text;
 
 const string testCase = """
-                        9 15 5
-                        #########
-                        #.B.i.D.#
-                        #.#...#F#
-                        #.#...#H#
-                        #.#...#.#
-                        #.#...#.#
-                        #.#.g.#a#
-                        #E#cSd#.#
-                        #.#.f.#b#
-                        #.#...#.#
-                        #.#...#.#
-                        #.#...#I#
-                        #.#...#G#
-                        #.A.h.C.#
-                        #########
+                        10 11 5
+                        ##########
+                        ###a######
+                        ###.######
+                        #b#.######
+                        #.#.######
+                        #..SABCDE#
+                        #.#.######
+                        #c#.######
+                        ###.######
+                        ###d######
+                        ##########
                         """;
 Console.SetIn(new StringReader(testCase));
 // Navigate through a facility to reach the extraction point by coordinating robot actions across multiple time loops
@@ -29,27 +25,24 @@ int maxLoops = Math.Clamp(int.Parse(inputs[2]), 1, 5);
 var facility = new Facility(width, height, maxLoops);
 facility.ReadGrid();
 facility.BuildConnections();
-File.WriteAllText("output.txt", "");
 facility.ReachExit();
 facility.PrintActions();
 
-record GhostState(List<List<Point>> Paths, Stack<char> Targets) : IState<GhostState> {
+record GhostState(List<List<Point>> Loops, Stack<char> Targets) : IState<GhostState> {
+    public string Steps { get; set; } = string.Empty;
+
     bool IState<GhostState>.IsBetterThan(GhostState other) {
         var actions = Actions();
         var otherActions = other.Actions();
-        // Debug.Log("choosing best between this:");
-        // foreach (string action in actions) {
-        //     Debug.Log(action, 1);
-        // }
-        // Debug.Log("and other:");
-        // foreach (string action in otherActions) {
-        //     Debug.Log(action, 1);
-        // }
-        int turns = Paths.First().Count.CompareTo(other.Paths.First().Count);
+        Debug.Log("choosing best between this:", 1);
+        Debug.Log(this);
+        Debug.Log("and other:", 1);
+        Debug.Log(other);
+        int turns = Loops.First().Count.CompareTo(other.Loops.First().Count);
         if (turns != 0) {
             return turns < 0;
         }
-        int loops = Paths.Count.CompareTo(other.Paths.Count);
+        int loops = Loops.Count.CompareTo(other.Loops.Count);
         if (loops != 0) {
             return loops < 0;
         }
@@ -62,18 +55,19 @@ record GhostState(List<List<Point>> Paths, Stack<char> Targets) : IState<GhostSt
         return false;
     }
 
-    public List<string> Actions() => [.. Paths.Select(Actions)];
+    public List<string> Actions() => [.. Loops.Select(Actions)];
 
-    public static string Actions(List<Point> path) {
-        var actions = path.Skip(1).Zip(path, (point, previous) => point - previous).Select(Screen.ToChar);
+    public static string Actions(List<Point> loop) {
+        var actions = loop.Skip(1).Zip(loop, (point, previous) => point - previous).Select(Screen.ToChar);
         return string.Join(' ', actions);
     }
 
     public override string ToString() {
         var lines = new StringBuilder();
-        foreach (var path in Paths) {
-            lines.AppendLine(Actions(path));
+        foreach (var loop in Loops) {
+            lines.AppendLine(Actions(loop));
         }
+        lines.Append($"{Steps}, {Targets.Count}");
         return lines.ToString();
     }
 }
@@ -140,38 +134,43 @@ class Facility : IGame<GhostState> {
     public void ReachExit() {
         var targets = new Stack<char>();
         targets.Push(grid[exit]);
-        exitState = stateSearch.FindBest(new GhostState([], targets))!;
+        var startState = new GhostState([], targets);
+        startState.Steps += $"+{grid[exit]}";
+        exitState = stateSearch.FindBest(startState)!;
     }
 
-    void AddPath(GhostState state, List<Point> path) {
-        RemoveDuplicate(state, path);
-        if (state.Paths.Count > 0 && state.Paths.Last().Count != path.Count) {
-            int maxCount = Math.Max(state.Paths.Last().Count, path.Count);
-            state.Paths.ForEach(it => PadPath(it, maxCount));
-            PadPath(path, maxCount);
+    bool AddLoop(GhostState state, List<Point> loop) {
+        RemoveDuplicate(state, loop);
+        if (state.Loops.Count > 0 && state.Loops.Last().Count != loop.Count) {
+            int maxCount = Math.Max(state.Loops.Last().Count, loop.Count);
+            state.Loops.ForEach(it => PadLoop(it, maxCount));
+            PadLoop(loop, maxCount);
         }
-        AvoidCollisions(state, path);
-        state.Paths.Add(path);
+        if (!AvoidCollisions(state, loop)) {
+            return false;
+        }
+        state.Loops.Add(loop);
+        return true;
     }
 
-    /// Removes an existing path if the new path has all of its switches and more.
-    /// Ignoring switches that have connected doors in the path,
+    /// Removes an existing loop if the new loop contains all of its switches and more.
+    /// Ignoring switches that have connected doors in a loop,
     /// as robots can't unlock and go through doors in their loop.
     [SuppressMessage("ReSharper", "InvertIf")]
-    void RemoveDuplicate(GhostState state, List<Point> newPath) {
-        var switches = Switches(newPath);
-        for (int i = state.Paths.Count - 1; i >= 0; i--) {
-            var existingSwitches = Switches(state.Paths[i]);
+    void RemoveDuplicate(GhostState state, List<Point> newLoop) {
+        var switches = Switches(newLoop);
+        for (int i = state.Loops.Count - 1; i >= 0; i--) {
+            var existingSwitches = Switches(state.Loops[i]);
             if (switches.Count > existingSwitches.Count && existingSwitches.All(switches.Contains)) {
-                // Debug.Log($"removed duplicate: {GhostState.Actions(state.Paths[i])}", 2);
-                state.Paths.RemoveAt(i);
+                Debug.Log($"removed duplicate: {GhostState.Actions(state.Loops[i])}", 2);
+                state.Loops.RemoveAt(i);
                 break;
             }
         }
         return;
 
-        List<char> Switches(List<Point> path) {
-            var cells = path
+        List<char> Switches(List<Point> loop) {
+            var cells = loop
                     .Select(it => grid[it])
                     .Where(it => Cell.IsSwitch(it) || Cell.IsDoor(it))
                     .ToList();
@@ -188,36 +187,43 @@ class Facility : IGame<GhostState> {
         }
     }
 
-    void PadPath(List<Point> path, int length) {
-        while (path.Count < length) {
-            path.Insert(0, start);
+    void PadLoop(List<Point> loop, int length) {
+        while (loop.Count < length) {
+            loop.Insert(0, start);
         }
     }
 
     [SuppressMessage("ReSharper", "InvertIf")]
-    void AvoidCollisions(GhostState state, List<Point> path) {
+    bool AvoidCollisions(GhostState state, List<Point> loop) {
         while (HasCollision(out var collision)) {
-            for (int i = collision.i; i < path.Count; i++) {
-                if (path[i] != state.Paths[collision.j][i]) {
-                    path.Insert(i, path[i]);
-                    state.Paths.ForEach(it => PadPath(it, path.Count));
+            var resolved = false;
+            for (int i = collision.i; i < loop.Count; i++) {
+                if (loop[i] != state.Loops[collision.j][i]) {
+                    loop.Insert(i, loop[i]);
+                    state.Loops.ForEach(it => PadLoop(it, loop.Count));
+                    resolved = true;
                     break;
                 }
             }
+            if (!resolved) {
+                return false;
+            }
         }
-        return;
+        return true;
 
         bool HasCollision(out (int i, int j) collision) {
             collision = default;
-            for (var i = 0; i < path.Count; i++) {
-                var point = path[i];
+            for (var i = 0; i < loop.Count; i++) {
+                var point = loop[i];
                 if (point == start) {
                     continue;
                 }
-                for (var j = 0; j < state.Paths.Count; j++) {
-                    if (state.Paths[j][i] == point) {
+                for (var j = 0; j < state.Loops.Count; j++) {
+                    if (state.Loops[j][i] == point) {
                         collision = (i, j);
-                        // Debug.Log($"found collision at path[{i}], ghostPaths[{j}]: {point}", 1);
+                        Debug.Log($"found collision in ghostLoops[{j}] of state", 1);
+                        Debug.Log(state);
+                        Debug.Log($"with loop[{i}]: {GhostState.Actions(loop)}", 1);
                         return true;
                     }
                 }
@@ -242,149 +248,106 @@ class Facility : IGame<GhostState> {
     }
 
     IEnumerable<GhostState> IGame<GhostState>.Next(GhostState current) {
+        if (current.Loops.Count == maxLoops) {
+            yield break;
+        }
         Func<Point, IEnumerable<Point>> next = it => Next(it, current);
         if (!current.Targets.TryPeek(out char target)) {
             yield break;
         }
         Debug.Log($"searching {target}");
-        if (current.Paths.Count > 0) {
-            // combine last
-            var path = Pathfinding.Shortest(current.Paths.Last().Last(), it => grid[it] == target, next);
-            if (path != null) {
-                // so i need to make more states here - one normal and with combined paths
-                // i guess i could start with combining last
+        if (current.Loops.Count > 0) {
+            var source = current.Loops.Last().Last();
+            var loop = Pathfinding.Shortest(source, it => grid[it] == target, next);
+            if (loop != null && loop.All(it => grid[it] != char.ToUpper(grid[source]))) {
                 var copy = NextState();
-                path = [.. copy.Paths.Last(), .. path.Skip(1)];
-                copy.Paths.RemoveAt(copy.Paths.Count - 1);
-                AddPath(copy, path);
-                copy.Targets.Pop();
-                Debug.Log($"found {target} through {GhostState.Actions(path)}", 1);
-                yield return copy;
-                // let's add return here again, at least for now
+                Debug.Log($"found {target} from {grid[source]} through {GhostState.Actions(loop)}", 1);
+                loop = [.. copy.Loops.Last(), .. loop.Skip(1)];
+                Debug.Log($"combined: {GhostState.Actions(loop)}", 2);
+                copy.Loops.RemoveAt(copy.Loops.Count - 1);
+                if (AddLoop(copy, loop)) {
+                    copy.Targets.Pop();
+                    copy.Steps += $"-{target}";
+                    yield return copy;
+                }
             }
         }
         {
-            var path = Pathfinding.Shortest(start, it => grid[it] == target, next);
-            if (path != null) {
-                // so i need to make more states here - one normal and with combined paths
-                // i guess i could start with combining last
+            var loop = Pathfinding.Shortest(start, it => grid[it] == target, next);
+            if (loop != null) {
                 var copy = NextState();
-                AddPath(copy, path);
-                copy.Targets.Pop();
-                Debug.Log($"found {target} through {GhostState.Actions(path)}", 1);
-                yield return copy;
-                // let's add return here again, at least for now
-                yield break;
+                if (AddLoop(copy, loop)) {
+                    copy.Targets.Pop();
+                    copy.Steps += $"-{target}";
+                    Debug.Log($"found {target} through {GhostState.Actions(loop)}", 1);
+                    yield return copy;
+                }
             }
         }
         Debug.Log($"can't find {target}", 1);
-        // if i can't find current target, i'll search for switches to locked doors on the way to current target
         var pathsToTarget = Pathfinding.All(graph[Cell.START], graph[target], it => {
                     return it.Connections
                             .Select(id => graph[id])
                             .Where(node => Cell.IsDoor(grid[node.Point]) || node == graph[target]);
                 })
-                .ToArray();
-        Debug.Log($"shortest paths to {target}:");
-        int shortestSteps = pathsToTarget.Min(it => it.Count);
-        foreach (var nodes in pathsToTarget.Where(it => it.Count == shortestSteps)) {
-            Debug.Log(string.Join(", ", nodes.Select(it => it.Id)), 1);
+                .ToList();
+        Debug.Log($"paths to {target}", 1);
+        // todo: sets can be created once
+        pathsToTarget = [.. pathsToTarget.OrderBy(it => it.Count)];
+        for (var i = 0; i < pathsToTarget.Count; i++) {
+            var shorter = pathsToTarget[i].ToHashSet();
+            for (int j = pathsToTarget.Count - 1; j > i; j--) {
+                if (pathsToTarget[j].ToHashSet().IsSupersetOf(shorter)) {
+                    pathsToTarget.RemoveAt(j);
+                }
+            }
+        }
+        foreach (var path in pathsToTarget) {
+            Debug.Log(string.Join(", ", path.Select(it => grid[it.Point])), 2);
         }
         var unlockedDoors = UnlockedDoors(current);
-        var lockedDoors = pathsToTarget
-                .Where(it => it.Count == shortestSteps)
-                .Select(it => it.Skip(1).First(node => !unlockedDoors.Contains(node.Id)).Id);
-        foreach (char door in lockedDoors) {
+        var doors = pathsToTarget
+                .SelectMany(path => path.Skip(1).SkipLast(1).Select(it => it.Id))
+                .Where(it => !unlockedDoors.Contains(it))
+                .ToHashSet();
+        Debug.Log($"trying to unlock doors {string.Join(", ", doors)}", 2);
+        foreach (char door in doors) {
             var copy = NextState();
             char doorSwitch = char.ToLower(door);
             copy.Targets.Push(doorSwitch);
+            copy.Steps += $"+{doorSwitch}";
             yield return copy;
         }
-        // let's first ignore combining
-        /*
-        if (maxLoops - current.Paths.Count == 1) {
-            for (var i = 0; i < current.Paths.Count; i++) {
-                var path = current.Paths[i];
-                foreach (var door in LockedDoors(current)) {
-                    char doorSwitch = char.ToLower(door.Symbol);
-                    var switchPath = Pathfinding.Shortest(path.Last(), it => grid[it].Symbol == doorSwitch, getNext);
-                    if (switchPath == null) {
-                        continue;
-                    }
-                    var copy = new GhostState([.. current.Paths.Select(it => it.ToList())]);
-                    switchPath = [.. copy.Paths[i], .. switchPath.Skip(1)];
-                    copy.Paths.RemoveAt(i);
-                    AddPath(copy, switchPath);
-                    yield return copy;
-                }
-            }
+        var lockedDoors = grid.Where(it => Cell.IsDoor(it.Value) && !unlockedDoors.Contains(it.Value))
+                .Select(it => it.Value);
+        var moreDoors = lockedDoors
+                .Where(it => !doors.Contains(it) && it != char.ToUpper(target))
+                .Where(it => !current.Targets.Contains(char.ToLower(it)))
+                .ToList();
+        if (moreDoors.Count == 0) {
             yield break;
         }
-        foreach (var door in LockedDoors(current)) {
-            char doorSwitch = char.ToLower(door.Symbol);
-            var switchPath = Pathfinding.Shortest(start, it => grid[it].Symbol == doorSwitch, getNext);
-            if (switchPath == null) {
-                continue;
-            }
-            yield return NextState(switchPath);
+        Debug.Log($"trying to unlock remaining doors {string.Join(", ", moreDoors)}", 2);
+        foreach (char door in moreDoors) {
+            var copy = NextState();
+            char doorSwitch = char.ToLower(door);
+            copy.Targets.Push(doorSwitch);
+            copy.Steps += $"+{doorSwitch}";
+            yield return copy;
         }
-        */
         yield break;
 
-        // let's just always copy all fields
         GhostState NextState() {
             char[] currentTargets = [.. current.Targets];
             Array.Reverse(currentTargets);
-            return new GhostState([.. current.Paths.Select(it => it.ToList())], new Stack<char>(currentTargets));
+            return new GhostState([.. current.Loops.Select(it => it.ToList())], new Stack<char>(currentTargets)) {
+                Steps = current.Steps
+            };
         }
-    }
-
-    /*
-    [SuppressMessage("ReSharper", "ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator")]
-    bool TryReach(Stack<char> targets, out char lockedDoor) {
-        char target = targets.Peek();
-        Debug.Log($"searching {target}");
-        var source = target != grid[exit].Symbol && maxLoops - ghostPaths.Count == 1
-                ? ghostPaths.Last().Last()
-                : start;
-        var path = pathfinding.Path(source, it => grid[it].Symbol == target);
-        lockedDoor = '\0';
-        foreach (var point in path) {
-            var cell = grid[point];
-            if (cell.Type != CellType.Door || IsUnlocked(cell)) {
-                continue;
-            }
-            Debug.Log($"it's behind a door: {cell.Symbol}", 1);
-            lockedDoor = cell.Symbol;
-            return false;
-        }
-        Debug.Log($"reached {target} through {Actions(path)}", 1);
-        targets.Pop();
-        if (source == start) {
-            AddPath(path);
-        } else {
-            ghostPaths.Last().AddRange(path);
-            Debug.Log($"combined: {Actions(ghostPaths.Last())}", 2);
-        }
-        return true;
-    }
-    */
-
-    bool IsUnlocked(GhostState state, char door) {
-        return state.Paths.SelectMany(it => it).Any(it => grid[it] == char.ToLower(door));
-    }
-
-    // this should return locked doors on the way to exit, or another locked door
-    // so i see a list of connections between source and target, and this should return next door in them
-    IEnumerable<char> LockedDoors(GhostState state) {
-        var unlockedDoors = UnlockedDoors(state);
-        return grid
-                .Where(it => Cell.IsDoor(it.Value) && !unlockedDoors.Contains(it.Value))
-                .Select(it => it.Value);
     }
 
     HashSet<char> UnlockedDoors(GhostState state) {
-        var unlockedDoors = state.Paths
+        var unlockedDoors = state.Loops
                 .SelectMany(it => it)
                 .Select(it => grid[it])
                 .Where(Cell.IsSwitch)
@@ -393,7 +356,7 @@ class Facility : IGame<GhostState> {
     }
 
     bool IGame<GhostState>.HasReachedEnd(GhostState state) {
-        return state.Paths.Count > 0 && exit == state.Paths.Last().Last();
+        return state.Loops.Count > 0 && exit == state.Loops.Last().Last();
     }
 }
 
@@ -505,6 +468,9 @@ static class Pathfinding {
 class StateSearch<T>(IGame<T> game, int depthMax) where T : IState<T> {
     /// DFS/Backtracking
     public T? FindBest(T current, int depth = 0) {
+        Debug.Log();
+        Debug.Log("current", depth);
+        Debug.Log(current);
         if (game.HasReachedEnd(current)) {
             return current;
         }
@@ -513,10 +479,6 @@ class StateSearch<T>(IGame<T> game, int depthMax) where T : IState<T> {
         }
         T? best = default;
         foreach (var next in game.Next(current)) {
-            File.AppendAllText("output.txt", "  next:\n");
-            File.AppendAllText("output.txt", next.ToString());
-            Debug.Log("next state", 1);
-            Debug.Log(next);
             var nextBest = FindBest(next, depth + 1);
             if (nextBest == null) {
                 continue;
@@ -549,7 +511,7 @@ static class Debug {
     }
 
     public static void Log(object? line = null, int tab = 0, ConsoleColor? color = null) {
-        return;
+        // return;
         Console.ForegroundColor = color ?? ConsoleColor.Red;
         var padding = new string(' ', tab * TAB_LENGTH);
         Console.Error.WriteLine($"{padding}{line}");
