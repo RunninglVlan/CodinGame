@@ -1,0 +1,266 @@
+01 Basic Lock
+5 6 2
+#####
+#a###
+#S..#
+###A#
+#E..#
+#####
+W W W W W U
+R R D D L L
+
+02 Validator 1
+5 6 2
+#####
+###a#
+#E#S#
+#A#.#
+#...#
+#####
+W W W W W U
+D D L L U U
+
+03 The Polite Keymaster
+6 3 2
+######
+#SaAE#
+######
+W W R
+R R R
+
+04 Validator 2
+6 3 2
+######
+#EXxS#
+######
+W W L
+L L L
+
+05 Alone in the Dark
+6 7 1
+######
+#E...#
+#....#
+#....#
+#....#
+#...S#
+######
+U U U U L L L
+
+06 Validator 3
+6 7 1
+######
+#...E#
+#....#
+#....#
+#....#
+#S...#
+######
+U U U U R R R
+
+07 Time Gap
+5 6 2
+#####
+#S..#
+#..a#
+#A..#
+#E#.#
+#####
+R R D
+D D D
+
+08 Validator 4
+5 6 2
+#####
+#..S#
+#a..#
+#..A#
+#.#E#
+#####
+L L D
+D D D
+
+09 Tumbler
+10 3 3
+##########
+#EASbBaCc#
+##########
+W W R
+R R R
+W L L
+
+10 Validator 5
+3 10 3
+###
+#E#
+#A#
+#S#
+#b#
+#B#
+#a#
+#C#
+#c#
+###
+W W D
+D D D
+W U U
+
+11 The Fork
+9 5 3
+#########
+#E...A.S#
+#.#####a#
+#.B...b.#
+#########
+W W W W W D
+L L L L L L
+
+12 Validator 6
+9 5 3
+#########
+#.B...b.#
+#.#####a#
+#E...A.S#
+#########
+W W W W W U
+L L L L L L
+
+13 Crossfire
+6 4 3
+######
+##baB#
+#S.AE#
+######
+W R U R
+R R W R
+
+14 Validator 7
+6 4 3
+######
+#S.AE#
+##baB#
+######
+W R D R
+R R W R
+
+15 Mirage
+8 5 3
+########
+#S.Xx#E#
+#.####.#
+#y...Y.#
+########
+W W W W W W W D D
+D D R R R R R U U
+
+16 Validator 8
+8 5 3
+########
+#.Y...y#
+#.####.#
+#E#xX.S#
+########
+W W W W W W W U U
+U U L L L L L D D
+
+17 Tag Team
+10 5 5
+##########
+#c.#.a.SB#
+##.#.#.#A#
+#C...b.#E#
+##########
+W W L L
+L D D L
+W R D D
+
+18 Validator 9
+10 5 5
+##########
+#C...b.#E#
+##.#.#.#A#
+#c.#.a.SB#
+##########
+W W L L
+L U U L
+W R U U
+
+19 LexMaze
+7 7 3
+#######
+#S...a#
+#.....#
+#.....#
+#...#A#
+#####E#
+#######
+W W W W R R R R
+R R R R D D D D
+
+20 Validator 10
+7 7 3
+#######
+#E#####
+#A#...#
+#.....#
+#.....#
+#a...S#
+#######
+W W W W L L L L
+U U L L L L U U
+
+21 The Useless Door
+5 10 3
+#####
+#E#a#
+#.#.#
+#.#.#
+#A#.#
+#.#.#
+#...#
+#b#B#
+#..S#
+#####
+W W W W W W L L U
+W W U U U U U U U
+U U L L U U U U U
+
+22 Validator 11
+5 10 3
+#####
+#a#E#
+#.#.#
+#.#.#
+#.#A#
+#.#.#
+#...#
+#B#b#
+#S..#
+#####
+W W W W W W R R U
+W W U U U U U U U
+U U R R U U U U U
+
+23 If Only
+7 7 2
+#######
+#a...S#
+#####.#
+#b....#
+#####.#
+#E..BA#
+#######
+L L L L R R R R D D L L L L
+W W W W W W D D D D L L L L
+
+24 Validator 12
+7 7 2
+#######
+#S...a#
+#.#####
+#....z#
+#.#####
+#AZ..E#
+#######
+R R R R L L L L D D R R R R
+W W W W W W D D D D R R R R

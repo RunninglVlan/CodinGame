@@ -1,33 +1,27 @@
 ﻿using System.Diagnostics.CodeAnalysis;
-using System.Text;
 
-const string testCase = """
-                        10 11 5
-                        ##########
-                        ###a######
-                        ###.######
-                        #b#.######
-                        #.#.######
-                        #..SABCDE#
-                        #.#.######
-                        #c#.######
-                        ###.######
-                        ###d######
-                        ##########
-                        """;
+string testCases = File.ReadAllText("test_cases.txt");
 Test.consoleIn = Console.In;
-Console.SetIn(Test.stringIn = new StringReader(testCase));
-// Navigate through a facility to reach the extraction point by coordinating robot actions across multiple time loops
-// https://www.codingame.com/contribute/view/1415851ba1aa5d4b0600a53ac02dd35417fd8b
-string[] inputs = Console.ReadLine()!.Split(' ');
-int width = Math.Clamp(int.Parse(inputs[0]), 3, 30);
-int height = Math.Clamp(int.Parse(inputs[1]), 3, 30);
-int maxLoops = Math.Clamp(int.Parse(inputs[2]), 1, 5);
-var facility = new Facility(width, height, maxLoops);
-facility.ReadGrid();
-facility.BuildConnections();
-facility.ReachExit();
-facility.PrintActions();
+Console.SetIn(Test.stringIn = new StringReader(testCases));
+while (Console.In.Peek() != -1) {
+    Debug.ReadLine();
+    // Navigate through a facility to reach the extraction point by coordinating robot actions across multiple time loops
+    // https://www.codingame.com/contribute/view/1415851ba1aa5d4b0600a53ac02dd35417fd8b
+    string[] inputs = Console.ReadLine()!.Split(' ');
+    int width = Math.Clamp(int.Parse(inputs[0]), 3, 30);
+    int height = Math.Clamp(int.Parse(inputs[1]), 3, 30);
+    int maxLoops = Math.Clamp(int.Parse(inputs[2]), 1, 5);
+    var facility = new Facility(width, height, maxLoops);
+    facility.ReadGrid();
+    facility.BuildConnections();
+    var actual = facility.ReachExit();
+    List<string> lines = [];
+    string currentLine;
+    while (!string.IsNullOrEmpty(currentLine = Console.ReadLine()!)) {
+        lines.Add(currentLine);
+    }
+    Assert.ActualEqualsExpected(actual.ToString(), string.Join("\n", lines));
+}
 
 static class Test {
     public static TextReader consoleIn;
@@ -61,7 +55,7 @@ record GhostState(List<List<Point>> Loops, Stack<char> Targets) : IState<GhostSt
         return false;
     }
 
-    public List<string> Actions() => [.. Loops.Select(Actions)];
+    List<string> Actions() => [.. Loops.Select(Actions)];
 
     public static string Actions(List<Point> loop) {
         var actions = loop.Skip(1).Zip(loop, (point, previous) => point - previous).Select(Screen.ToChar);
@@ -69,12 +63,8 @@ record GhostState(List<List<Point>> Loops, Stack<char> Targets) : IState<GhostSt
     }
 
     public override string ToString() {
-        var lines = new StringBuilder();
-        foreach (var loop in Loops) {
-            lines.AppendLine(Actions(loop));
-        }
-        lines.Append($"{Steps}, {Targets.Count}");
-        return lines.ToString();
+        Debug.Log($"{Steps}, {Targets.Count}");
+        return string.Join("\n", Loops.Select(Actions));
     }
 }
 
@@ -88,7 +78,6 @@ class Facility : IGame<GhostState> {
     readonly Dictionary<Point, char> grid = [];
     readonly Dictionary<char, Node> graph = [];
     Point start, exit;
-    GhostState exitState = null!;
 
     public Facility(int width, int height, int maxLoops) {
         stateSearch = new(this, maxLoops * 2);
@@ -137,12 +126,12 @@ class Facility : IGame<GhostState> {
         }
     }
 
-    public void ReachExit() {
+    public GhostState ReachExit() {
         var targets = new Stack<char>();
         targets.Push(grid[exit]);
         var startState = new GhostState([], targets);
         startState.Steps += $"+{grid[exit]}";
-        exitState = stateSearch.FindBest(startState)!;
+        return stateSearch.FindBest(startState)!;
     }
 
     bool AddLoop(GhostState state, List<Point> loop) {
@@ -238,12 +227,6 @@ class Facility : IGame<GhostState> {
         }
     }
 
-    public void PrintActions() {
-        foreach (string actions in exitState.Actions()) {
-            Console.WriteLine(actions);
-        }
-    }
-
     IEnumerable<Point> Next(Point current, GhostState state) {
         var unlockedDoors = UnlockedDoors(state);
         return Screen.Directions4
@@ -267,7 +250,8 @@ class Facility : IGame<GhostState> {
             var loop = Pathfinding.Shortest(source, it => grid[it] == target, next);
             if (loop != null && loop.All(it => grid[it] != char.ToUpper(grid[source]))) {
                 var copy = NextState();
-                Debug.Log($"found {target} from {grid[source]} through {GhostState.Actions(loop)}", 1, ConsoleColor.Blue);
+                Debug.Log($"found {target} from {grid[source]} through {GhostState.Actions(loop)}", 1,
+                        ConsoleColor.Blue);
                 loop = [.. copy.Loops.Last(), .. loop.Skip(1)];
                 Debug.Log($"combined: {GhostState.Actions(loop)}", 2, ConsoleColor.Blue);
                 copy.Loops.RemoveAt(copy.Loops.Count - 1);
@@ -528,10 +512,20 @@ static class Debug {
     }
 
     public static void Log(object? line = null, int tab = 0, ConsoleColor? color = null) {
-        // return;
+        return;
         Console.ForegroundColor = color ?? ConsoleColor.Red;
         var padding = new string(' ', tab * TAB_LENGTH);
         Console.Error.WriteLine($"{padding}{line}");
         Console.ResetColor();
+    }
+}
+
+static class Assert {
+    public static void ActualEqualsExpected(string actual, string expected) {
+        bool equals = Equals(actual, expected);
+        Console.WriteLine(equals ? $"✅ {actual}" : $"❌ found {actual}, but expected {expected}");
+        if (!equals) {
+            throw new Exception();
+        }
     }
 }

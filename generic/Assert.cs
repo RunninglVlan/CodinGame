@@ -2,6 +2,10 @@
 
 static class Assert {
     public static void ActualEqualsExpected(string actual, string expected) {
-        Console.WriteLine(Equals(actual, expected) ? $"✅ {actual}" : $"❌ found {actual}, but expected {expected}");
+        bool equals = Equals(actual, expected);
+        Console.WriteLine(equals ? $"✅ {actual}" : $"❌ found {actual}, but expected {expected}");
+        if (!equals) {
+            throw new Exception();
+        }
     }
 }
