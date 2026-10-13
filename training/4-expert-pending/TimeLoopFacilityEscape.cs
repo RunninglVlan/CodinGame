@@ -17,17 +17,15 @@ facility.ReachExit();
 facility.PrintActions();
 
 record GhostState(List<List<Point>> Loops, Stack<char> Targets) : IState<GhostState> {
+    public string Steps { get; set; } = string.Empty;
+
     bool IState<GhostState>.IsBetterThan(GhostState other) {
         var actions = Actions();
         var otherActions = other.Actions();
-        Debug.Log("choosing best between this:");
-        foreach (string action in actions) {
-            Debug.Log(action, 1);
-        }
-        Debug.Log("and other:");
-        foreach (string action in otherActions) {
-            Debug.Log(action, 1);
-        }
+        Debug.Log("choosing best between this:", 1);
+        Debug.Log(this);
+        Debug.Log("and other:", 1);
+        Debug.Log(other);
         int turns = Loops.First().Count.CompareTo(other.Loops.First().Count);
         if (turns != 0) {
             return turns < 0;
@@ -57,6 +55,7 @@ record GhostState(List<List<Point>> Loops, Stack<char> Targets) : IState<GhostSt
         foreach (var loop in Loops) {
             lines.AppendLine(Actions(loop));
         }
+        lines.Append($"{Steps}, {Targets.Count}");
         return lines.ToString();
     }
 }
@@ -123,7 +122,9 @@ class Facility : IGame<GhostState> {
     public void ReachExit() {
         var targets = new Stack<char>();
         targets.Push(grid[exit]);
-        exitState = stateSearch.FindBest(new GhostState([], targets))!;
+        var startState = new GhostState([], targets);
+        startState.Steps += $"+{grid[exit]}";
+        exitState = stateSearch.FindBest(startState)!;
     }
 
     void AddLoop(GhostState state, List<Point> loop) {
@@ -200,9 +201,9 @@ class Facility : IGame<GhostState> {
                 for (var j = 0; j < state.Loops.Count; j++) {
                     if (state.Loops[j][i] == point) {
                         collision = (i, j);
-                        Debug.Log("found collision in state", 1);
+                        Debug.Log($"found collision in ghostLoops[{j}] of state", 1);
                         Debug.Log(state);
-                        Debug.Log($"with loop: {GhostState.Actions(loop)}", 1);
+                        Debug.Log($"with loop[{i}]: {GhostState.Actions(loop)}", 1);
                         return true;
                     }
                 }
@@ -230,8 +231,6 @@ class Facility : IGame<GhostState> {
         if (current.Loops.Count == maxLoops) {
             yield break;
         }
-        Debug.Log("current state", 1);
-        Debug.Log(current);
         Func<Point, IEnumerable<Point>> next = it => Next(it, current);
         if (!current.Targets.TryPeek(out char target)) {
             yield break;
@@ -242,12 +241,14 @@ class Facility : IGame<GhostState> {
             var loop = Pathfinding.Shortest(source, it => grid[it] == target, next);
             if (loop != null && loop.All(it => grid[it] != char.ToUpper(grid[source]))) {
                 var copy = NextState();
-                Debug.Log($"found {target} from {grid[source]} through {GhostState.Actions(loop)}", 1);
+                Debug.Log($"found {target} from {grid[source]} through {GhostState.Actions(loop)}", 1,
+                        ConsoleColor.Blue);
                 loop = [.. copy.Loops.Last(), .. loop.Skip(1)];
-                Debug.Log($"combined: {GhostState.Actions(loop)}", 2);
+                Debug.Log($"combined: {GhostState.Actions(loop)}", 2, ConsoleColor.Blue);
                 copy.Loops.RemoveAt(copy.Loops.Count - 1);
                 AddLoop(copy, loop);
                 copy.Targets.Pop();
+                copy.Steps += $"-{target}";
                 yield return copy;
             }
         }
@@ -257,7 +258,8 @@ class Facility : IGame<GhostState> {
                 var copy = NextState();
                 AddLoop(copy, loop);
                 copy.Targets.Pop();
-                Debug.Log($"found {target} through {GhostState.Actions(loop)}", 1);
+                copy.Steps += $"-{target}";
+                Debug.Log($"found {target} through {GhostState.Actions(loop)}", 1, ConsoleColor.Blue);
                 yield return copy;
                 yield break;
             }
@@ -293,16 +295,24 @@ class Facility : IGame<GhostState> {
             var copy = NextState();
             char doorSwitch = char.ToLower(door);
             copy.Targets.Push(doorSwitch);
+            copy.Steps += $"+{doorSwitch}";
             yield return copy;
         }
         var lockedDoors = grid.Where(it => Cell.IsDoor(it.Value) && !unlockedDoors.Contains(it.Value))
                 .Select(it => it.Value);
-        var moreDoors = lockedDoors.Where(it => !doors.Contains(it) && it != char.ToUpper(target)).ToList();
+        var moreDoors = lockedDoors
+                .Where(it => !doors.Contains(it))
+                .Where(it => !current.Targets.Contains(char.ToLower(it)))
+                .ToList();
+        if (moreDoors.Count == 0) {
+            yield break;
+        }
         Debug.Log($"trying to unlock remaining doors {string.Join(", ", moreDoors)}", 2);
         foreach (char door in moreDoors) {
             var copy = NextState();
             char doorSwitch = char.ToLower(door);
             copy.Targets.Push(doorSwitch);
+            copy.Steps += $"+{doorSwitch}";
             yield return copy;
         }
         yield break;
@@ -310,7 +320,9 @@ class Facility : IGame<GhostState> {
         GhostState NextState() {
             char[] currentTargets = [.. current.Targets];
             Array.Reverse(currentTargets);
-            return new GhostState([.. current.Loops.Select(it => it.ToList())], new Stack<char>(currentTargets));
+            return new GhostState([.. current.Loops.Select(it => it.ToList())], new Stack<char>(currentTargets)) {
+                Steps = current.Steps
+            };
         }
     }
 
@@ -436,6 +448,9 @@ static class Pathfinding {
 class StateSearch<T>(IGame<T> game, int depthMax) where T : IState<T> {
     /// DFS/Backtracking
     public T? FindBest(T current, int depth = 0) {
+        Debug.Log();
+        Debug.Log("current", depth);
+        Debug.Log(current);
         if (game.HasReachedEnd(current)) {
             return current;
         }
@@ -450,6 +465,8 @@ class StateSearch<T>(IGame<T> game, int depthMax) where T : IState<T> {
             }
             if (best == null || nextBest.IsBetterThan(best)) {
                 best = nextBest;
+                // Debug.Log("new best", depth, ConsoleColor.Blue);
+                // Debug.Log(best, color: ConsoleColor.Blue);
             }
         }
         return best;
