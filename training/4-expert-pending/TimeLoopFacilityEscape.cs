@@ -215,26 +215,23 @@ class Facility : IGame<GhostState> {
         }
     }
 
+    /// Simple collision avoidance, checks only one collision and tries to resolve it.
+    /// If it can't, it fails
     [SuppressMessage("ReSharper", "InvertIf")]
     bool AvoidCollisions(GhostState state, List<Point> loop) {
-        while (HasCollision(out var collision)) {
-            var resolved = false;
+        (int i, int j) collision = (-1, -1);
+        if (HasCollision()) {
             for (int i = collision.i; i < loop.Count; i++) {
                 if (loop[i] != state.Loops[collision.j][i]) {
                     loop.Insert(i, loop[i]);
                     state.Loops.ForEach(it => PadLoop(it, loop.Count));
-                    resolved = true;
                     break;
                 }
             }
-            if (!resolved) {
-                return false;
-            }
         }
-        return true;
+        return !HasCollision();
 
-        bool HasCollision(out (int i, int j) collision) {
-            collision = default;
+        bool HasCollision() {
             for (var i = 0; i < loop.Count; i++) {
                 var point = loop[i];
                 if (point == start) {
