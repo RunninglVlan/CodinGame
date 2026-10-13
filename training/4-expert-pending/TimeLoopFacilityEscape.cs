@@ -312,7 +312,8 @@ class Facility : IGame<GhostState> {
             }
             foreach (char door in pathsToTarget
                     .SelectMany(path => path.Skip(1).SkipLast(1).Select(it => it.Id))
-                    .Where(it => !unlockedDoors.Contains(it))) {
+                    .Where(it => !unlockedDoors.Contains(it))
+                    .Where(it => !current.Targets.Contains(char.ToLower(it)))) {
                 doors.Add(door);
             }
             Debug.Log($"trying to unlock doors {string.Join(", ", doors)}", 2);
