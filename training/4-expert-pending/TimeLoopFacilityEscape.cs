@@ -336,15 +336,16 @@ class Facility : IGame<GhostState> {
             }
         }
         var lockedDoors = grid.Where(it => Cell.IsDoor(it.Value) && !unlockedDoors.Contains(it.Value))
+                .OrderBy(it => Point.ManhattanDistance(start, it.Key))
                 .Select(it => it.Value);
         var moreDoors = lockedDoors
                 .Where(it => !doors.Contains(it))
                 .Where(it => !current.Targets.Contains(Cell.ToSwitch(it)))
                 .ToList();
         if (moreDoors.Count > 0) {
-            Debug.Log($"trying to unlock remaining doors {string.Join(", ", moreDoors)}", 2);
+            Debug.Log($"trying to unlock first remaining door from {string.Join(", ", moreDoors)}", 2);
         }
-        foreach (char door in moreDoors) {
+        foreach (char door in moreDoors.Take(1)) {
             yield return door;
         }
     }
@@ -410,6 +411,10 @@ record Node(char Id, Point Point) {
 }
 
 readonly record struct Point(int X, int Y) {
+    public static int ManhattanDistance(Point a, Point b) {
+        return Math.Abs(a.X - b.X) + Math.Abs(a.Y - b.Y);
+    }
+
     public static Point operator +(Point a, Point b) => new(a.X + b.X, a.Y + b.Y);
     public static Point operator -(Point a, Point b) => new(a.X - b.X, a.Y - b.Y);
 
