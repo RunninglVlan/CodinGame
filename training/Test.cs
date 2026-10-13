@@ -1,9 +1,30 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 
-string testCases = File.ReadAllText("test_cases.txt");
-Test.consoleIn = Console.In;
-Console.SetIn(Test.stringIn = new StringReader(testCases));
+// string testCases = File.ReadAllText("test_cases.txt");
+const string testCases = """
+                         25 Starburst
+                         10 11 5
+                         ##########
+                         ###a######
+                         ###.######
+                         #b#.######
+                         #.#.######
+                         #..SABCDE#
+                         #.#.######
+                         #c#.######
+                         ###.######
+                         ###d######
+                         ##########
+                         W U U U U
+                         W L L U U
+                         W D D D D
+                         L L D W D
+                         R R R R R
+                         """;
+Test.Cases(testCases);
 while (Console.In.Peek() != -1) {
+    var stopwatch = Stopwatch.StartNew();
     Debug.ReadLine();
     // Navigate through a facility to reach the extraction point by coordinating robot actions across multiple time loops
     // https://www.codingame.com/contribute/view/1415851ba1aa5d4b0600a53ac02dd35417fd8b
@@ -16,16 +37,11 @@ while (Console.In.Peek() != -1) {
     facility.BuildConnections();
     var actual = facility.ReachExit();
     List<string> lines = [];
-    string currentLine;
-    while (!string.IsNullOrEmpty(currentLine = Console.ReadLine()!)) {
-        lines.Add(currentLine);
+    for (string line; !string.IsNullOrEmpty(line = Console.ReadLine()!);) {
+        lines.Add(line);
     }
     Assert.ActualEqualsExpected(actual.ToString(), string.Join("\n", lines));
-}
-
-static class Test {
-    public static TextReader consoleIn;
-    public static StringReader stringIn;
+    Console.Error.WriteLine($"Test took {stopwatch.ElapsedMilliseconds}ms");
 }
 
 record GhostState(List<List<Point>> Loops, Stack<char> Targets) : IState<GhostState> {
@@ -467,9 +483,6 @@ class StateSearch<T>(IGame<T> game, int depthMax) where T : IState<T> {
         Debug.Log();
         Debug.Log("current", depth);
         Debug.Log(current);
-        // Console.SetIn(Test.consoleIn);
-        // Console.ReadLine();
-        // Console.SetIn(Test.stringIn);
         if (game.HasReachedEnd(current)) {
             return current;
         }
@@ -517,6 +530,22 @@ static class Debug {
         var padding = new string(' ', tab * TAB_LENGTH);
         Console.Error.WriteLine($"{padding}{line}");
         Console.ResetColor();
+    }
+}
+
+static class Test {
+    static TextReader consoleIn = null!;
+    static StringReader stringIn = null!;
+
+    public static void Cases(string cases) {
+        consoleIn = Console.In;
+        Console.SetIn(stringIn = new StringReader(cases));
+    }
+
+    public static void ReadLine() {
+        Console.SetIn(consoleIn);
+        Console.ReadLine();
+        Console.SetIn(stringIn);
     }
 }
 
