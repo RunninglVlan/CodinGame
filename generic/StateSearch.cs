@@ -1,20 +1,33 @@
 using System.Collections.Generic;
 
-class StateSearch<T>(IGame<T> game, int depthMax) where T : IState<T> {
+class StateSearch<T>(IGame<T> game, int depthMax) where T : IState<T>, IEquatable<T> {
+    readonly HashSet<T> visited = [];
+
     /// DFS/Backtracking
-    public (T state, string action)? FindBest(T current, int depth = 0) {
-        if (game.HasReachedEnd(current) || depth > depthMax) {
-            return (current, string.Empty);
+    public T? FindBest(T start) {
+        visited.Clear();
+        visited.Add(start);
+        return FindBest(start, 0);
+    }
+
+    T? FindBest(T current, int depth) {
+        if (game.HasReachedEnd(current)) {
+            return current;
         }
-        (T state, string action)? best = null;
-        foreach ((var next, string action) in game.Next(current)) {
+        if (depth > depthMax) {
+            return default;
+        }
+        T? best = default;
+        foreach (var next in game.Next(current)) {
+            if (!visited.Add(next)) {
+                continue;
+            }
             var nextBest = FindBest(next, depth + 1);
             if (nextBest == null) {
                 continue;
             }
-            var (state, _) = nextBest.Value;
-            if (best == null || state.IsBetterThan(best.Value.state)) {
-                best = (state, action);
+            if (best == null || nextBest.IsBetterThan(best)) {
+                best = nextBest;
             }
         }
         return best;
@@ -22,7 +35,7 @@ class StateSearch<T>(IGame<T> game, int depthMax) where T : IState<T> {
 }
 
 interface IGame<TState> {
-    IEnumerable<(TState, string action)> Next(TState current);
+    IEnumerable<TState> Next(TState current);
     bool HasReachedEnd(TState state);
 }
 
