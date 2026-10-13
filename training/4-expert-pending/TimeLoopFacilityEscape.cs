@@ -493,6 +493,8 @@ class StateSearch<T>(IGame<T> game, int depthMax) where T : IState<T>, IEquatabl
             if (!visited.Add(next)) {
                 continue;
             }
+            Debug.Log("next", 1);
+            Debug.Log(next);
             var nextBest = FindBest(next, depth + 1);
             if (nextBest == null) {
                 continue;
