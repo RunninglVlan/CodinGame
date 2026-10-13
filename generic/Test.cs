@@ -2,8 +2,12 @@
 using System.IO;
 
 static class Test {
+    const string FILE = "test_log.txt";
+
     static TextReader consoleIn = null!;
     static StringReader stringIn = null!;
+
+    static Test() => File.WriteAllText(FILE, null);
 
     public static void Cases(string cases) {
         consoleIn = Console.In;
@@ -15,6 +19,8 @@ static class Test {
         Console.ReadLine();
         Console.SetIn(stringIn);
     }
+
+    public static void Log(object line) => File.AppendAllText(FILE, $"{line}{Environment.NewLine}");
 }
 
 static class Assert {

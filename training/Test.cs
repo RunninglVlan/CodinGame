@@ -80,6 +80,7 @@ record GhostState(List<List<Point>> Loops, Stack<char> Targets) : IState<GhostSt
 
     public override string ToString() {
         Debug.Log($"{Steps}, {Targets.Count}");
+        Test.Log($"{Steps}, {Targets.Count}");
         return string.Join("\n", Loops.Select(Actions));
     }
 }
@@ -495,6 +496,8 @@ class StateSearch<T>(IGame<T> game, int depthMax) where T : IState<T> {
             if (nextBest == null) {
                 continue;
             }
+            Test.Log("nextBest");
+            Test.Log(nextBest);
             if (best == null || nextBest.IsBetterThan(best)) {
                 best = nextBest;
                 // Debug.Log("new best", depth, ConsoleColor.Blue);
@@ -534,8 +537,12 @@ static class Debug {
 }
 
 static class Test {
+    const string FILE = "test_log.txt";
+
     static TextReader consoleIn = null!;
     static StringReader stringIn = null!;
+
+    static Test() => File.WriteAllText(FILE, null);
 
     public static void Cases(string cases) {
         consoleIn = Console.In;
@@ -547,6 +554,8 @@ static class Test {
         Console.ReadLine();
         Console.SetIn(stringIn);
     }
+
+    public static void Log(object line) => File.AppendAllText(FILE, $"{line}{Environment.NewLine}");
 }
 
 static class Assert {
