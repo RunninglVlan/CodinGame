@@ -127,15 +127,18 @@ class Facility : IGame<GhostState> {
         exitState = stateSearch.FindBest(startState)!;
     }
 
-    void AddLoop(GhostState state, List<Point> loop) {
+    bool AddLoop(GhostState state, List<Point> loop) {
         RemoveDuplicate(state, loop);
         if (state.Loops.Count > 0 && state.Loops.Last().Count != loop.Count) {
             int maxCount = Math.Max(state.Loops.Last().Count, loop.Count);
             state.Loops.ForEach(it => PadLoop(it, maxCount));
             PadLoop(loop, maxCount);
         }
-        AvoidCollisions(state, loop);
+        if (!AvoidCollisions(state, loop)) {
+            return false;
+        }
         state.Loops.Add(loop);
+        return true;
     }
 
     /// Removes an existing loop if the new loop contains all of its switches and more.
@@ -179,17 +182,22 @@ class Facility : IGame<GhostState> {
     }
 
     [SuppressMessage("ReSharper", "InvertIf")]
-    void AvoidCollisions(GhostState state, List<Point> loop) {
+    bool AvoidCollisions(GhostState state, List<Point> loop) {
         while (HasCollision(out var collision)) {
+            var resolved = false;
             for (int i = collision.i; i < loop.Count; i++) {
                 if (loop[i] != state.Loops[collision.j][i]) {
                     loop.Insert(i, loop[i]);
                     state.Loops.ForEach(it => PadLoop(it, loop.Count));
+                    resolved = true;
                     break;
                 }
             }
+            if (!resolved) {
+                return false;
+            }
         }
-        return;
+        return true;
 
         bool HasCollision(out (int i, int j) collision) {
             collision = default;
@@ -246,22 +254,24 @@ class Facility : IGame<GhostState> {
                 loop = [.. copy.Loops.Last(), .. loop.Skip(1)];
                 Debug.Log($"combined: {GhostState.Actions(loop)}", 2, ConsoleColor.Blue);
                 copy.Loops.RemoveAt(copy.Loops.Count - 1);
-                AddLoop(copy, loop);
-                copy.Targets.Pop();
-                copy.Steps += $"-{target}";
-                yield return copy;
+                if (AddLoop(copy, loop)) {
+                    copy.Targets.Pop();
+                    copy.Steps += $"-{target}";
+                    yield return copy;
+                }
             }
         }
         {
             var loop = Pathfinding.Shortest(start, it => grid[it] == target, next);
             if (loop != null) {
                 var copy = NextState();
-                AddLoop(copy, loop);
-                copy.Targets.Pop();
-                copy.Steps += $"-{target}";
-                Debug.Log($"found {target} through {GhostState.Actions(loop)}", 1, ConsoleColor.Blue);
-                yield return copy;
-                yield break;
+                if (AddLoop(copy, loop)) {
+                    copy.Targets.Pop();
+                    copy.Steps += $"-{target}";
+                    Debug.Log($"found {target} through {GhostState.Actions(loop)}", 1, ConsoleColor.Blue);
+                    yield return copy;
+                    yield break;
+                }
             }
         }
         Debug.Log($"can't find {target}", 1);
