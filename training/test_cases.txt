@@ -264,3 +264,565 @@ W W W W W W D D D D L L L L
 #######
 R R R R L L L L D D R R R R
 W W W W W W D D D D R R R R
+
+25 Starburst
+10 11 5
+##########
+###a######
+###.######
+#b#.######
+#.#.######
+#..SABCDE#
+#.#.######
+#c#.######
+###.######
+###d######
+##########
+W U U U U
+W L L U U
+W D D D D
+L L D W D
+R R R R R
+
+26 Validator 13
+10 11 5
+##########
+######a###
+######.###
+######.#b#
+######.#.#
+#EDCBAS..#
+######.#.#
+######.#c#
+######.###
+######d###
+##########
+W U U U U
+W R R U U
+W D D D D
+R R D W D
+L L L L L
+
+27 What A Maze
+14 7 3
+##############
+#a.........bS#
+#####.####.#.#
+#c...B...D.#.#
+###.##.####.##
+#E.A...C..d..#
+##############
+W W W W L L L L L L L L L L L
+L L L L L L L D D L L D D L L
+
+28 Validator 14
+14 7 3
+##############
+#Sf.........x#
+#.#.####.#####
+#.#.D...F...c#
+##.####.##.###
+#..d..C...X.E#
+##############
+W W W W R R R R R R R R R R R
+R R R R R R R D D R R D D R R
+
+29 The Deep Descent
+7 11 5
+#######
+#S...a#
+#A#####
+#....b#
+#B#####
+#....c#
+#C#####
+#....d#
+#D#####
+#....E#
+#######
+W W W W W W W W R R R R
+W W W W W W D D R R R R
+W W W W D D D D R R R R
+W W D D D D D D R R R R
+D D D D D D D D R R R R
+
+30 Validator 15
+7 11 5
+#######
+#a...S#
+#####A#
+#b....#
+#####B#
+#c....#
+#####C#
+#d....#
+#####D#
+#E....#
+#######
+W W W W W W W W L L L L
+W W W W W W D D L L L L
+W W W W D D D D L L L L
+W W D D D D D D L L L L
+D D D D D D D D L L L L
+
+31 Another Brick In The Wall
+15 25 4
+###############
+#............C#
+#.........###.#
+#.#........##.#
+#..#######..#.#
+#..#......#.#.#
+#....####H#.#.#
+#.##.##.hSc.#.#
+#.B.....#b###.#
+#E##.####.....#
+#....#..#.#####
+#.####.#......#
+#.#....#####..#
+#.#...........#
+#...##.###.##.#
+#...##.###.##.#
+#...##.###.##.#
+#...##.###.##.#
+#...##.###.##.#
+#...##.###.##.#
+#...##.###.##.#
+#...##.###.##.#
+#...##.###.##.#
+#.............#
+###############
+W W W W W W W W W D
+L L D L L L L L L D
+
+32 Validator 16
+15 25 4
+###############
+#.#...#.......#
+#.#..##.#.###.#
+#.#.....#..##.#
+#..#######..#.#
+#..#......#.#.#
+#....####X#.#.#
+#.##.##.BSx.#.#
+#.#.....#b###.#
+#E##.####.....#
+#.#..#..#.#####
+#.#.##.#......#
+#.#....#####..#
+#.#...........#
+#.#.##.###.##.#
+#.#.##.###.##.#
+#.#.##.###.##.#
+#.#.##.###.##.#
+#.#.##.###.##.#
+#.#.##.###.##.#
+#...##.###.##.#
+#.#.##.###.##.#
+#.#.##.###.##.#
+#.............#
+###############
+W W W W W W W W W W W W W R
+U U L L L L L D L L L D D D
+
+33 Symphony No 5
+9 15 5
+#########
+#.B.i.D.#
+#.#...#F#
+#.#...#H#
+#.#...#.#
+#.#...#.#
+#.#.g.#a#
+#E#cSd#.#
+#.#.f.#b#
+#.#...#.#
+#.#...#.#
+#.#...#I#
+#.#...#G#
+#.A.h.C.#
+#########
+W W W W W W W R L D D D D D D
+W U U U U U U R R R D D D D D
+L D D D D D D L L U U U U U U
+
+34 Validator 17
+9 15 5
+#########
+#.D.i.B.#
+#F#...#.#
+#H#...#.#
+#.#...#.#
+#.#...#.#
+#a#.g.#.#
+#.#dSc#E#
+#b#.f.#.#
+#.#...#.#
+#.#...#.#
+#I#...#.#
+#G#...#.#
+#.C.h.A.#
+#########
+W W W W W W W R U L U U U U U
+W L D D D D D D L L U U U U U
+U U U U U U R R R D D D D D D
+
+35 The Labyrinth Sprint
+27 6 4
+###########################
+#g....b.......c........aFE#
+#D####C#######B###G######A#
+#...#...#...#...#.h.#...#f#
+###.d.#.H.#...#...#...#..S#
+###########################
+W W W W W W W W W W W W W W W W W W W W W W W W W W W L L U L L D L L U L
+W W W W U D L L U L L D L L U L L D L L U L L D L L U L L D L L U L L D L
+L L U L L D L L U L L D L L U L L D L L U L L D L L U L L D L L U L L U U
+W W W W W W W W W W W W W W W W W W L L U L L D L L U L U U R R R R R R R
+
+36 Validator 18
+27 6 4
+###########################
+#EFa........c.......b....g#
+#A######G###B#######C####D#
+#f#...#.h.#...#...#...#...#
+#S..#...#...#...#.H.#.d.###
+###########################
+W W W W W W W W W W W W W W W W W W W W W W W W W W W R R U R R D R R U R
+W W W W U D R R U R R D R R U R R D R R U R R D R R U R R D R R U R R D R
+R R U R R D R R U R R D R R U R R D R R U R R D R R U R R D R R U R R U U
+W W W W W W W W W W W W W W W W W W R R U R R D R R U R U U L L L L L L L
+
+37 Temporal Cascade
+25 15 4
+#########################
+#S.a..#..b..d..#..c..#..#
+#.###.########.#####.##.#
+#.#...A........B.....C..#
+#.#.###.########.#####.##
+#.#.#...#......#.#...#..#
+#.#.#...#......#.#...#..#
+#.#.#####......#.#...#..#
+#.#.#####......#.#...#..#
+#.#.#####......#.#...#..#
+#.#.#####......#.#...#..#
+#.#.#####......#.#...#..#
+#.#.#####......#.D...#..#
+#.......#......#.#...#E.#
+#########################
+W W W W W W W W W W W W W W W W W W W W W W W W W W W W W W W R R
+W W W W W W W W W W W R R R R D D R R R R R R R R R U U L L L L L
+W W W W W W W W R R R R D D R R R R R R R R R R R R R R R U U L L
+R R R R D D R R R R R R R R R R R R R R R R R D D D D D D D D D D
+
+38 Validator 19
+25 15 4
+#########################
+#..#..c..#..d..b..#..a.S#
+#.##.#####.########.###.#
+#..C.....B........A...#.#
+##.#####.########.###.#.#
+#..#...#.#......#...#.#.#
+#..#...#.#......#...#.#.#
+#..#...#.#......#####.#.#
+#..#...#.#......#####.#.#
+#..#...#.#......#####.#.#
+#..#...#.#......#####.#.#
+#..#...#.#......#####.#.#
+#..#...D.#......#####.#.#
+#.E#...#.#......#.......#
+#########################
+W W W W W W W W W W W W W W W W W W W W W W W W W W W W W W W L L
+W W W W W W W W W W W L L L L D D L L L L L L L L L U U R R R R R
+W W W W W W W W L L L L D D L L L L L L L L L L L L L L L U U R R
+L L L L D D L L L L L L L L L L L L L L L L L D D D D D D D D D D
+
+39 Endless Corridors
+20 30 2
+####################
+#a.................#
+#.################.#
+#.#...............##
+#.#.#.#.#.#.#.#...##
+#.#.#.#.#.#.#.#.#.##
+#.#.#.#.#.#.#.#.#.##
+#.#.#.#.#.#.#.#.#.##
+#.#.#.#.#.#.#.#.#.##
+#.#.#.#.#.#.#.#.#.##
+#.#.#.#.#.#.#.#.#.##
+#.#.#.#.#.#.#.#.#.##
+#.#.#.#.#.#.#.#.#.##
+#.#.#.#.#.#.#.#.#.##
+#.#.#.#.#.#.#.#.#.##
+#.#.#.#.#.#.#.#.#.##
+#.#.#.#.#.#.#.#.#.##
+#.#.#.#.#.#.#.#.#.##
+#.#.#.#.#.#.#.#.#.##
+#.#.#.#.#.#.#.#.#.##
+#.#.#.#.#.#.#.#.#.##
+#.#.#.#.#.#.#.#.#.##
+#.#.#.#.#.#.#.#.#.##
+#.#.#.#.#.#.#.#.#.##
+#.#.#.#.#.#.#.#.#.##
+#.#.#.#.#.#.#.#.#.##
+#.#.#.#.#.#.#.#.#A##
+#.#.#.#.#.#.#.#.#.##
+#S..............#E##
+####################
+W W W W W W W W W W W W W W W W W W W W W W W W W W W W W W W W W W W W W U U U U U U U U U U U U U U U U U U U U U U U U U U U
+R R R R R R R R R R R R R R U U U U U U U U U U U U U U U U U U U U U U U U R R D D D D D D D D D D D D D D D D D D D D D D D D
+
+40 Validator 20
+20 30 2
+####################
+#S..............#E##
+#.#.#.#.#.#.#.#.#.##
+#.#.#.#.#.#.#.#.#A##
+#.#.#.#.#.#.#.#.#.##
+#.#.#.#.#.#.#.#.#.##
+#.#.#.#.#.#.#.#.#.##
+#.#.#.#.#.#.#.#.#.##
+#.#.#.#.#.#.#.#.#.##
+#.#.#.#.#.#.#.#.#.##
+#.#.#.#.#.#.#.#.#.##
+#.#.#.#.#.#.#.#.#.##
+#.#.#.#.#.#.#.#.#.##
+#.#.#.#.#.#.#.#.#.##
+#.#.#.#.#.#.#.#.#.##
+#.#.#.#.#.#.#.#.#.##
+#.#.#.#.#.#.#.#.#.##
+#.#.#.#.#.#.#.#.#.##
+#.#.#.#.#.#.#.#.#.##
+#.#.#.#.#.#.#.#.#.##
+#.#.#.#.#.#.#.#.#.##
+#.#.#.#.#.#.#.#.#.##
+#.#.#.#.#.#.#.#.#.##
+#.#.#.#.#.#.#.#.#.##
+#.#.#.#.#.#.#.#.#.##
+#.#.#.#.#.#.#.#...##
+#.#...............##
+#.################.#
+#a.................#
+####################
+W W W W W W W W W W W W W W W W W W W W W W W W W W W W W W W W W W W W W D D D D D D D D D D D D D D D D D D D D D D D D D D D
+R R R R R R R R R R R R R R D D D D D D D D D D D D D D D D D D D D D D D D R R U U U U U U U U U U U U U U U U U U U U U U U U
+
+41 The Seven-Gate Barrier
+26 9 5
+##########################
+#E.Z........A.....#.....i#
+####........B.....#.....h#
+#...........C...........g#
+#j#.........D...........d#
+#...........G.....#.....c#
+####........H.....#b....a#
+#z.J........I...........S#
+##########################
+W W W W W W W W W W W W W W W W W W W W W W W W W W W U U
+W U U U U L L L L L L L L L L L L L L L L L L L L L L L D
+W W L L L L L L L U U L L L L L L L L L L L L L D D L L L
+U U U U L L L L L L L U U L L L L L L L L L L L L L L L L
+
+42 Validator 21
+26 9 5
+##########################
+#i.....#.....A........Z.E#
+#h.....#.....B........####
+#g...........C...........#
+#d...........D.........#j#
+#c.....#.....G...........#
+#a....b#.....H........####
+#S...........I........J.z#
+##########################
+W W W W W W W W W W W W W W W W W W W W W W W W W W W U U
+W U U U U R R R R R R R R R R R R R R R R R R R R R R R D
+W W R R R R R R R U U R R R R R R R R R R R R R D D R R R
+U U U U R R R R R R R U U R R R R R R R R R R R R R R R R
+
+43 The Switchboard
+30 7 5
+##############################
+#aA.B.C.D.F.G#H.I.J.K.L.M.N#E#
+#.###.#.#P#.#.###.#.#.#.#Q##.#
+#.#.O.#.#.R.T.U.V.W#X.Y#..##Z#
+#S#.####.##.#######.##.##....#
+#bcdfg#hijklmnopqrtuvwxyz#####
+##############################
+W W W W W W W W W W W W W W W W W W W W W W W W W W W W W W U U U D D D D R R R
+W W W W W W U U U R R R R R R R R R R D D D D L L R R R R R R R R R R R R R R R
+U U U R R R R R R R R R R D D R R R R R R U U R R R R R R R R D D D R R R U U U
+
+44 Validator 22
+30 7 5
+##############################
+#bcdfg#hijklmnopqrtuvwxyz#####
+#S#.####.##.#######.##.##....#
+#.#.O.#.#.R.T.U.V.W#X.Y#..##Z#
+#.###.#.#P#.#.###.#.#.#.#Q##.#
+#aA.B.C.D.F.G#H.I.J.K.L.M.N#E#
+##############################
+W W W W W W W W W W W W W W W W W W W W W W W W W W W W W W D D D U U U U R R R
+W W W W W W D D D R R R R R R R R R R U U U U L L R R R R R R R R R R R R R R R
+D D D R R R R R R R R U U R R R R R R R R D D R R R R R R R R U U U R R R D D D
+
+45 Ghosts Priority
+6 9 4
+######
+#ED#d#
+##C.B#
+#....#
+#c...#
+#....#
+#b#A##
+#.#Sa#
+######
+W W W W W W W W R
+W W U U U L L D D
+W U U U U W U R U
+U U U U U W L U L
+
+46 Validator 23
+6 9 4
+######
+#d#DE#
+#B.C##
+#....#
+#...c#
+#....#
+##A#b#
+#aS#.#
+######
+W W W W W W W W L
+W W U U U R R D D
+W U U U U W U L U
+U U U U U W R U R
+
+47 The Bunker
+20 30 5
+####################
+#.#............v.V.#
+#.T..............U.#
+#.#..............#.#
+#.#.#####D#####..#z#
+#o#.R.........P..#.#
+#.#.#.#######.#..#y#
+#.#.#.#.#E#.#.#..#t#
+#.#.#.#.#Z#.#.#..#.#
+#.#.#.#.#.#.#.#..#.#
+#.#.#.G.#.#.H.#..#.#
+#c#.#.#.#.#.#.#..#q#
+#.#.#.#.#.#.#.#..#n#
+#.#.#.#.#.#.#.#..#m#
+#.#.#.#.M.#.#.#x.#.#
+#aN.B.#.#.J.#.A.S#b#
+#.#.#.#.#.#.#.#u.#.#
+#.#.#.#.#.#.#.#..#j#
+#.#.#.#.#.#.#.#..#i#
+#d#.#.F.#.#.I.#..#h#
+#.#.#.#.#.#.#.#..#g#
+#.#.#.#.###.#.#..#f#
+#.#.#.#.....#.#..#.#
+#.#.#.#######.#..#.#
+#p#.Q.........O..#r#
+#.#.#####C#####..#.#
+#.#..............#.#
+#.Y..............W.#
+#.#............w.X.#
+####################
+W W W W W W W W W W W W W W W W W W W W W W W W W W W W W W W L D
+W W U U U U U U U U U U U U U R R D D D D D D D D D D D D D D D D
+W W L U U U U U U U U U U U U U L L L L L L L L L L L L L L D D D
+L D D D D D D D D D L L U U U U U L L U U U U L L U U U U U U U U
+
+48 Validator 24
+20 30 5
+####################
+#.#............w.X.#
+#.Y..............W.#
+#.#..............#.#
+#.#.#####C#####..#.#
+#p#.Q.........O..#r#
+#.#.#.#######.#..#.#
+#.#.#.#.....#.#..#.#
+#.#.#.#.###.#.#..#f#
+#.#.#.#.#.#.#.#..#g#
+#d#.#.F.#.#.I.#..#h#
+#.#.#.#.#.#.#.#..#i#
+#.#.#.#.#.#.#.#..#j#
+#.#.#.#.#.#.#.#u.#.#
+#aN.B.#.#.J.#.A.S#b#
+#.#.#.#.M.#.#.#x.#.#
+#.#.#.#.#.#.#.#..#m#
+#.#.#.#.#.#.#.#..#n#
+#c#.#.#.#.#.#.#..#q#
+#.#.#.G.#.#.H.#..#.#
+#.#.#.#.#.#.#.#..#.#
+#.#.#.#.#Z#.#.#..#.#
+#.#.#.#.#E#.#.#..#t#
+#.#.#.#######.#..#y#
+#o#.R.........P..#.#
+#.#.#####D#####..#z#
+#.#..............#.#
+#.T..............U.#
+#.#............v.V.#
+####################
+W W W W W W W W W W W W W W W W W W W W W W W W W W W W W W W U L
+W W D D D D D D D D D D D D D R R U U U U U U U U U U U U U U U U
+W W L D D D D D D D D D D D D L L L L L L L L L L L L D L L U U U
+U U U U U U U U U L L L D D D D D L L D D D D L L D D D D D D D D
+
+49 Alphabet Hub
+18 21 4
+##################
+#######S##########
+#................#
+#.#.###.####.#.#.#
+#w#q#JK..A.#l#f#a#
+#.#.#I####B#.#.#.#
+#.#.#H####C#.#.#.#
+#x#r#GF..D.#m#g#b#
+#.#.###W####.#.#.#
+#.#.###X####.#.#.#
+#y#t###Y####n#h#c#
+#.#.###Z####.#.#.#
+#.#.#.P..Q.#.#.#.#
+#z#u#O####R#o#i#d#
+#.#.#N####T#.#.#.#
+#.#.#M####U#.#.#.#
+#.#v#.L..V.#p#j#.#
+#.#.###.####.#.#.#
+#.#.###.####.#.#.#
+#.#.###E####.#k#.#
+##################
+W W W W W W W W D L L L L L L D D D D D D D D D D D
+W W W W W W D R R R R R D D D D D D D D D D D D D D
+W D R R R R R R R D D D D D D D D D D D D D D D D D
+D D D L L D D D R R D D D D D L L D D D D R R D D D
+
+50 Validator 25
+18 21 4
+##################
+#.#.###E####.#k#.#
+#.#.###.####.#.#.#
+#.#.###.####.#.#.#
+#.#v#.L..V.#p#j#.#
+#.#.#M####U#.#.#.#
+#.#.#N####T#.#.#.#
+#z#u#O####R#o#i#d#
+#.#.#.P..Q.#.#.#.#
+#.#.###Z####.#.#.#
+#y#t###Y####n#h#c#
+#.#.###X####.#.#.#
+#.#.###W####.#.#.#
+#x#r#GF..D.#m#g#b#
+#.#.#H####C#.#.#.#
+#.#.#I####B#.#.#.#
+#w#q#JK..A.#l#f#a#
+#.#.###.####.#.#.#
+#................#
+#######S##########
+##################
+W W W W W W W W U L L L L L L U U U U U U U U U U U
+W W W W W W U R R R R R U U U U U U U U U U U U U U
+W U R R R R R R R U U U U U U U U U U U U U U U U U
+U U U L L U U U R R U U U U U L L U U U U R R U U U
