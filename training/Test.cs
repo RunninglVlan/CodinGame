@@ -253,8 +253,7 @@ class Facility : IGame<GhostState> {
     /// If it can't, it fails
     [SuppressMessage("ReSharper", "InvertIf")]
     bool AvoidCollisions(GhostState state, List<Point> loop) {
-        (int i, int j) collision = (-1, -1);
-        if (HasCollision()) {
+        if (HasCollision(out var collision, loop, state)) {
             for (int i = collision.i; i < loop.Count; i++) {
                 if (loop[i] != state.Loops[collision.j][i]) {
                     loop.Insert(i, loop[i]);
@@ -263,26 +262,28 @@ class Facility : IGame<GhostState> {
                 }
             }
         }
-        return !HasCollision();
+        return !HasCollision(out _, loop, state);
+    }
 
-        bool HasCollision() {
-            for (var i = 0; i < loop.Count; i++) {
-                var point = loop[i];
-                if (point == start) {
-                    continue;
-                }
-                for (var j = 0; j < state.Loops.Count; j++) {
-                    if (state.Loops[j][i] == point) {
-                        collision = (i, j);
-                        Debug.Log($"found collision in ghostLoops[{j}] of state", 1);
-                        Debug.Log(state);
-                        Debug.Log($"with loop[{i}]: {GhostState.Actions(loop)}", 1);
-                        return true;
-                    }
+    [SuppressMessage("ReSharper", "InvertIf")]
+    bool HasCollision(out (int i, int j) collision, List<Point> loop, GhostState state) {
+        collision = default;
+        for (var i = 0; i < loop.Count; i++) {
+            var point = loop[i];
+            if (point == start) {
+                continue;
+            }
+            for (var j = 0; j < state.Loops.Count; j++) {
+                if (state.Loops[j][i] == point) {
+                    collision = (i, j);
+                    Debug.Log($"found collision in ghostLoops[{j}] of state", 1);
+                    Debug.Log(state);
+                    Debug.Log($"with loop[{i}]: {GhostState.Actions(loop)}", 1);
+                    return true;
                 }
             }
-            return false;
         }
+        return false;
     }
 
     IEnumerable<Point> Next(Point current, GhostState state) {
@@ -369,17 +370,17 @@ class Facility : IGame<GhostState> {
                 yield return door;
             }
         }
-        // yield break;
         var lockedDoors = grid.Where(it => Cell.IsDoor(it.Value) && !unlockedDoors.Contains(it.Value))
+                .OrderBy(it => Point.ManhattanDistance(start, it.Key))
                 .Select(it => it.Value);
         var moreDoors = lockedDoors
                 .Where(it => !doors.Contains(it))
                 .Where(it => !current.Targets.Contains(Cell.ToSwitch(it)))
                 .ToList();
         if (moreDoors.Count > 0) {
-            Debug.Log($"trying to unlock remaining doors {string.Join(", ", moreDoors)}", 2);
+            Debug.Log($"trying to unlock first remaining door from {string.Join(", ", moreDoors)}", 2);
         }
-        foreach (char door in moreDoors) {
+        foreach (char door in moreDoors.Take(1)) {
             yield return door;
         }
     }
@@ -445,6 +446,10 @@ record Node(char Id, Point Point) {
 }
 
 readonly record struct Point(int X, int Y) {
+    public static int ManhattanDistance(Point a, Point b) {
+        return Math.Abs(a.X - b.X) + Math.Abs(a.Y - b.Y);
+    }
+
     public static Point operator +(Point a, Point b) => new(a.X + b.X, a.Y + b.Y);
     public static Point operator -(Point a, Point b) => new(a.X - b.X, a.Y - b.Y);
 
