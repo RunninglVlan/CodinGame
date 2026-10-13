@@ -15,7 +15,8 @@ const string testCase = """
                         ###d######
                         ##########
                         """;
-Console.SetIn(new StringReader(testCase));
+Test.consoleIn = Console.In;
+Console.SetIn(Test.stringIn = new StringReader(testCase));
 // Navigate through a facility to reach the extraction point by coordinating robot actions across multiple time loops
 // https://www.codingame.com/contribute/view/1415851ba1aa5d4b0600a53ac02dd35417fd8b
 string[] inputs = Console.ReadLine()!.Split(' ');
@@ -27,6 +28,11 @@ facility.ReadGrid();
 facility.BuildConnections();
 facility.ReachExit();
 facility.PrintActions();
+
+static class Test {
+    public static TextReader consoleIn;
+    public static StringReader stringIn;
+}
 
 record GhostState(List<List<Point>> Loops, Stack<char> Targets) : IState<GhostState> {
     public string Steps { get; set; } = string.Empty;
@@ -261,9 +267,9 @@ class Facility : IGame<GhostState> {
             var loop = Pathfinding.Shortest(source, it => grid[it] == target, next);
             if (loop != null && loop.All(it => grid[it] != char.ToUpper(grid[source]))) {
                 var copy = NextState();
-                Debug.Log($"found {target} from {grid[source]} through {GhostState.Actions(loop)}", 1);
+                Debug.Log($"found {target} from {grid[source]} through {GhostState.Actions(loop)}", 1, ConsoleColor.Blue);
                 loop = [.. copy.Loops.Last(), .. loop.Skip(1)];
-                Debug.Log($"combined: {GhostState.Actions(loop)}", 2);
+                Debug.Log($"combined: {GhostState.Actions(loop)}", 2, ConsoleColor.Blue);
                 copy.Loops.RemoveAt(copy.Loops.Count - 1);
                 if (AddLoop(copy, loop)) {
                     copy.Targets.Pop();
@@ -272,6 +278,7 @@ class Facility : IGame<GhostState> {
                 }
             }
         }
+        var foundTarget = false;
         {
             var loop = Pathfinding.Shortest(start, it => grid[it] == target, next);
             if (loop != null) {
@@ -279,49 +286,54 @@ class Facility : IGame<GhostState> {
                 if (AddLoop(copy, loop)) {
                     copy.Targets.Pop();
                     copy.Steps += $"-{target}";
-                    Debug.Log($"found {target} through {GhostState.Actions(loop)}", 1);
+                    Debug.Log($"found {target} through {GhostState.Actions(loop)}", 1, ConsoleColor.Blue);
+                    foundTarget = true;
                     yield return copy;
                 }
             }
         }
-        Debug.Log($"can't find {target}", 1);
-        var pathsToTarget = Pathfinding.All(graph[Cell.START], graph[target], it => {
-                    return it.Connections
-                            .Select(id => graph[id])
-                            .Where(node => Cell.IsDoor(grid[node.Point]) || node == graph[target]);
-                })
-                .ToList();
-        Debug.Log($"paths to {target}", 1);
-        // todo: sets can be created once
-        pathsToTarget = [.. pathsToTarget.OrderBy(it => it.Count)];
-        for (var i = 0; i < pathsToTarget.Count; i++) {
-            var shorter = pathsToTarget[i].ToHashSet();
-            for (int j = pathsToTarget.Count - 1; j > i; j--) {
-                if (pathsToTarget[j].ToHashSet().IsSupersetOf(shorter)) {
-                    pathsToTarget.RemoveAt(j);
+        var unlockedDoors = UnlockedDoors(current);
+        HashSet<char> doors = [];
+        if (!foundTarget) {
+            Debug.Log($"can't find {target}", 1);
+            var pathsToTarget = Pathfinding.All(graph[Cell.START], graph[target], it => {
+                        return it.Connections
+                                .Select(id => graph[id])
+                                .Where(node => Cell.IsDoor(grid[node.Point]) || node == graph[target]);
+                    })
+                    .ToList();
+            Debug.Log($"paths to {target}", 1);
+            // todo: sets can be created once
+            pathsToTarget = [.. pathsToTarget.OrderBy(it => it.Count)];
+            for (var i = 0; i < pathsToTarget.Count; i++) {
+                var shorter = pathsToTarget[i].ToHashSet();
+                for (int j = pathsToTarget.Count - 1; j > i; j--) {
+                    if (pathsToTarget[j].ToHashSet().IsSupersetOf(shorter)) {
+                        pathsToTarget.RemoveAt(j);
+                    }
                 }
             }
-        }
-        foreach (var path in pathsToTarget) {
-            Debug.Log(string.Join(", ", path.Select(it => grid[it.Point])), 2);
-        }
-        var unlockedDoors = UnlockedDoors(current);
-        var doors = pathsToTarget
-                .SelectMany(path => path.Skip(1).SkipLast(1).Select(it => it.Id))
-                .Where(it => !unlockedDoors.Contains(it))
-                .ToHashSet();
-        Debug.Log($"trying to unlock doors {string.Join(", ", doors)}", 2);
-        foreach (char door in doors) {
-            var copy = NextState();
-            char doorSwitch = char.ToLower(door);
-            copy.Targets.Push(doorSwitch);
-            copy.Steps += $"+{doorSwitch}";
-            yield return copy;
+            foreach (var path in pathsToTarget) {
+                Debug.Log(string.Join(", ", path.Select(it => grid[it.Point])), 2);
+            }
+            foreach (char door in pathsToTarget
+                    .SelectMany(path => path.Skip(1).SkipLast(1).Select(it => it.Id))
+                    .Where(it => !unlockedDoors.Contains(it))) {
+                doors.Add(door);
+            }
+            Debug.Log($"trying to unlock doors {string.Join(", ", doors)}", 2);
+            foreach (char door in doors) {
+                var copy = NextState();
+                char doorSwitch = char.ToLower(door);
+                copy.Targets.Push(doorSwitch);
+                copy.Steps += $"+{doorSwitch}";
+                yield return copy;
+            }
         }
         var lockedDoors = grid.Where(it => Cell.IsDoor(it.Value) && !unlockedDoors.Contains(it.Value))
                 .Select(it => it.Value);
         var moreDoors = lockedDoors
-                .Where(it => !doors.Contains(it) && it != char.ToUpper(target))
+                .Where(it => !doors.Contains(it))
                 .Where(it => !current.Targets.Contains(char.ToLower(it)))
                 .ToList();
         if (moreDoors.Count == 0) {
@@ -471,6 +483,9 @@ class StateSearch<T>(IGame<T> game, int depthMax) where T : IState<T> {
         Debug.Log();
         Debug.Log("current", depth);
         Debug.Log(current);
+        // Console.SetIn(Test.consoleIn);
+        // Console.ReadLine();
+        // Console.SetIn(Test.stringIn);
         if (game.HasReachedEnd(current)) {
             return current;
         }
@@ -485,6 +500,8 @@ class StateSearch<T>(IGame<T> game, int depthMax) where T : IState<T> {
             }
             if (best == null || nextBest.IsBetterThan(best)) {
                 best = nextBest;
+                // Debug.Log("new best", depth, ConsoleColor.Blue);
+                // Debug.Log(best, color: ConsoleColor.Blue);
             }
         }
         return best;
