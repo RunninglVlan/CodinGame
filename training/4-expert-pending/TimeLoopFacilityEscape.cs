@@ -48,6 +48,30 @@ record GhostState(List<List<Point>> Loops, Stack<char> Targets) : IState<GhostSt
         return string.Join(' ', actions);
     }
 
+    public virtual bool Equals(GhostState? other) {
+        if (other == null) {
+            return false;
+        }
+        return Targets.SequenceEqual(other.Targets)
+                && Loops.Count == other.Loops.Count
+                && Loops.Zip(other.Loops).All(p => p.First.SequenceEqual(p.Second));
+    }
+
+    public override int GetHashCode() {
+        var hashCode = new HashCode();
+        foreach (char target in Targets) {
+            hashCode.Add(target);
+        }
+        hashCode.Add(Loops.Count);
+        foreach (var loop in Loops) {
+            hashCode.Add(loop.Count);
+            foreach (var point in loop) {
+                hashCode.Add(point);
+            }
+        }
+        return hashCode.ToHashCode();
+    }
+
     public override string ToString() {
         Debug.Log($"{Steps}, {Targets.Count}");
         return string.Join("\n", Loops.Select(Actions));
@@ -447,12 +471,17 @@ static class Pathfinding {
     }
 }
 
-class StateSearch<T>(IGame<T> game, int depthMax) where T : IState<T> {
+class StateSearch<T>(IGame<T> game, int depthMax) where T : IState<T>, IEquatable<T> {
+    readonly HashSet<T> visited = [];
+
     /// DFS/Backtracking
-    public T? FindBest(T current, int depth = 0) {
-        Debug.Log();
-        Debug.Log("current", depth);
-        Debug.Log(current);
+    public T? FindBest(T start) {
+        visited.Clear();
+        visited.Add(start);
+        return FindBest(start, 0);
+    }
+
+    T? FindBest(T current, int depth) {
         if (game.HasReachedEnd(current)) {
             return current;
         }
@@ -461,14 +490,15 @@ class StateSearch<T>(IGame<T> game, int depthMax) where T : IState<T> {
         }
         T? best = default;
         foreach (var next in game.Next(current)) {
+            if (!visited.Add(next)) {
+                continue;
+            }
             var nextBest = FindBest(next, depth + 1);
             if (nextBest == null) {
                 continue;
             }
             if (best == null || nextBest.IsBetterThan(best)) {
                 best = nextBest;
-                // Debug.Log("new best", depth, ConsoleColor.Blue);
-                // Debug.Log(best, color: ConsoleColor.Blue);
             }
         }
         return best;
