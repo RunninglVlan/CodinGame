@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
-using System.Text;
 
 // Navigate through a facility to reach the extraction point by coordinating robot actions across multiple time loops
 // https://www.codingame.com/contribute/view/1415851ba1aa5d4b0600a53ac02dd35417fd8b
@@ -13,8 +12,7 @@ int maxLoops = Math.Clamp(int.Parse(inputs[2]), 1, 5);
 var facility = new Facility(width, height, maxLoops);
 facility.ReadGrid();
 facility.BuildConnections();
-facility.ReachExit();
-facility.PrintActions();
+Console.WriteLine(facility.ReachExit());
 
 record GhostState(List<List<Point>> Loops, Stack<char> Targets) : IState<GhostState> {
     public string Steps { get; set; } = string.Empty;
@@ -43,7 +41,7 @@ record GhostState(List<List<Point>> Loops, Stack<char> Targets) : IState<GhostSt
         return false;
     }
 
-    public List<string> Actions() => [.. Loops.Select(Actions)];
+    List<string> Actions() => [.. Loops.Select(Actions)];
 
     public static string Actions(List<Point> loop) {
         var actions = loop.Skip(1).Zip(loop, (point, previous) => point - previous).Select(Screen.ToChar);
@@ -51,12 +49,8 @@ record GhostState(List<List<Point>> Loops, Stack<char> Targets) : IState<GhostSt
     }
 
     public override string ToString() {
-        var lines = new StringBuilder();
-        foreach (var loop in Loops) {
-            lines.AppendLine(Actions(loop));
-        }
-        lines.Append($"{Steps}, {Targets.Count}");
-        return lines.ToString();
+        Debug.Log($"{Steps}, {Targets.Count}");
+        return string.Join("\n", Loops.Select(Actions));
     }
 }
 
@@ -70,7 +64,6 @@ class Facility : IGame<GhostState> {
     readonly Dictionary<Point, char> grid = [];
     readonly Dictionary<char, Node> graph = [];
     Point start, exit;
-    GhostState exitState = null!;
 
     public Facility(int width, int height, int maxLoops) {
         stateSearch = new(this, maxLoops * 2);
@@ -119,12 +112,12 @@ class Facility : IGame<GhostState> {
         }
     }
 
-    public void ReachExit() {
+    public GhostState ReachExit() {
         var targets = new Stack<char>();
         targets.Push(grid[exit]);
         var startState = new GhostState([], targets);
         startState.Steps += $"+{grid[exit]}";
-        exitState = stateSearch.FindBest(startState)!;
+        return stateSearch.FindBest(startState)!;
     }
 
     bool AddLoop(GhostState state, List<Point> loop) {
@@ -217,12 +210,6 @@ class Facility : IGame<GhostState> {
                 }
             }
             return false;
-        }
-    }
-
-    public void PrintActions() {
-        foreach (string actions in exitState.Actions()) {
-            Console.WriteLine(actions);
         }
     }
 
