@@ -1,27 +1,29 @@
 ﻿using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 
-string testCases = File.ReadAllText("test_cases.txt");
-// const string testCases = """
-//                          25 Starburst
-//                          10 11 5
-//                          ##########
-//                          ###a######
-//                          ###.######
-//                          #b#.######
-//                          #.#.######
-//                          #..SABCDE#
-//                          #.#.######
-//                          #c#.######
-//                          ###.######
-//                          ###d######
-//                          ##########
-//                          W U U U U
-//                          W L L U U
-//                          W D D D D
-//                          L L D W D
-//                          R R R R R
-//                          """;
+// string testCases = File.ReadAllText("test_cases.txt");
+const string testCases = """
+                         33 Symphony No 5
+                         9 15 5
+                         #########
+                         #.B.i.D.#
+                         #.#...#F#
+                         #.#...#H#
+                         #.#...#.#
+                         #.#...#.#
+                         #.#.g.#a#
+                         #E#cSd#.#
+                         #.#.f.#b#
+                         #.#...#.#
+                         #.#...#.#
+                         #.#...#I#
+                         #.#...#G#
+                         #.A.h.C.#
+                         #########
+                         W W W W W W W R L D D D D D D
+                         W U U U U U U R R R D D D D D
+                         L D D D D D D L L U U U U U U
+                         """;
 Test.Cases(testCases);
 while (Console.In.Peek() != -1) {
     var stopwatch = Stopwatch.StartNew();
@@ -104,7 +106,6 @@ record GhostState(List<List<Point>> Loops, Stack<char> Targets) : IState<GhostSt
 
     public override string ToString() {
         Debug.Log($"{Steps}, {Targets.Count}");
-        Test.Log($"{Steps}, {Targets.Count}");
         return string.Join("\n", Loops.Select(Actions));
     }
 }
@@ -343,7 +344,8 @@ class Facility : IGame<GhostState> {
             }
             foreach (char door in pathsToTarget
                     .SelectMany(path => path.Skip(1).SkipLast(1).Select(it => it.Id))
-                    .Where(it => !unlockedDoors.Contains(it))) {
+                    .Where(it => !unlockedDoors.Contains(it))
+                    .Where(it => !current.Targets.Contains(char.ToLower(it)))) {
                 doors.Add(door);
             }
             Debug.Log($"trying to unlock doors {string.Join(", ", doors)}", 2);
@@ -524,6 +526,8 @@ class StateSearch<T>(IGame<T> game, int depthMax) where T : IState<T>, IEquatabl
             if (!visited.Add(next)) {
                 continue;
             }
+            Debug.Log("next", depth);
+            Debug.Log(next);
             var nextBest = FindBest(next, depth + 1);
             if (nextBest == null) {
                 continue;
@@ -552,14 +556,17 @@ static class Debug {
     public static string? ReadLine() {
         string? line = Console.ReadLine();
         Console.Error.WriteLine(line);
+        if (line != null) Test.Log(line);
         return line;
     }
 
     public static void Log(object? line = null, int tab = 0, ConsoleColor? color = null) {
-        return;
+        // return;
         Console.ForegroundColor = color ?? ConsoleColor.Red;
         var padding = new string(' ', tab * TAB_LENGTH);
-        Console.Error.WriteLine($"{padding}{line}");
+        var log = $"{padding}{line}";
+        Console.Error.WriteLine(log);
+        Test.Log(log);
         Console.ResetColor();
     }
 }
