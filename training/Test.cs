@@ -49,33 +49,33 @@ while (Console.In.Peek() != -1) {
 }
 
 record GhostState(List<List<Point>> Loops, Stack<char> Targets) : IState<GhostState> {
-    string steps = string.Empty;
+    public string Steps { get; private set; } = string.Empty;
 
     public GhostState Copy() {
         char[] currentTargets = [.. Targets];
         Array.Reverse(currentTargets);
         return new GhostState([.. Loops.Select(it => it.ToList())], new Stack<char>(currentTargets)) {
-            steps = steps
+            Steps = Steps
         };
     }
 
     public void PushTarget(char value) {
         Targets.Push(value);
-        steps += $"+{value}";
+        Steps += $"+{value}";
     }
 
     public void PopTarget() {
         char target = Targets.Pop();
-        steps += $"-{target}";
+        Steps += $"-{target}";
     }
 
     bool IState<GhostState>.IsBetterThan(GhostState other) {
         var actions = Actions();
         var otherActions = other.Actions();
-        Debug.Log("choosing best between this:", 1);
-        Debug.Log(this);
-        Debug.Log("and other:", 1);
-        Debug.Log(other);
+        // Debug.Log("choosing best between this:", 1);
+        // Debug.Log(this);
+        // Debug.Log("and other:", 1);
+        // Debug.Log(other);
         int turns = Loops.First().Count.CompareTo(other.Loops.First().Count);
         if (turns != 0) {
             return turns < 0;
@@ -125,7 +125,7 @@ record GhostState(List<List<Point>> Loops, Stack<char> Targets) : IState<GhostSt
     }
 
     public override string ToString() {
-        Debug.Log($"{steps}, {Targets.Count}");
+        Debug.Log($"{Steps}, {Targets.Count}");
         return string.Join("\n", Loops.Select(Actions));
     }
 }
@@ -140,6 +140,7 @@ class Facility : IGame<GhostState> {
     readonly Dictionary<Point, char> grid = [];
     readonly Dictionary<char, Node> graph = [];
     Point start, exit;
+    readonly Dictionary<char, List<List<Node>>> pathsToTargets = [];
 
     public Facility(int width, int height, int maxLoops) {
         stateSearch = new(this, maxLoops * 2);
@@ -248,26 +249,23 @@ class Facility : IGame<GhostState> {
         }
     }
 
+    /// Simple collision avoidance, checks only one collision and tries to resolve it.
+    /// If it can't, it fails
     [SuppressMessage("ReSharper", "InvertIf")]
     bool AvoidCollisions(GhostState state, List<Point> loop) {
-        while (HasCollision(out var collision)) {
-            var resolved = false;
+        (int i, int j) collision = (-1, -1);
+        if (HasCollision()) {
             for (int i = collision.i; i < loop.Count; i++) {
                 if (loop[i] != state.Loops[collision.j][i]) {
                     loop.Insert(i, loop[i]);
                     state.Loops.ForEach(it => PadLoop(it, loop.Count));
-                    resolved = true;
                     break;
                 }
             }
-            if (!resolved) {
-                return false;
-            }
         }
-        return true;
+        return !HasCollision();
 
-        bool HasCollision(out (int i, int j) collision) {
-            collision = default;
+        bool HasCollision() {
             for (var i = 0; i < loop.Count; i++) {
                 var point = loop[i];
                 if (point == start) {
@@ -371,6 +369,7 @@ class Facility : IGame<GhostState> {
                 yield return door;
             }
         }
+        // yield break;
         var lockedDoors = grid.Where(it => Cell.IsDoor(it.Value) && !unlockedDoors.Contains(it.Value))
                 .Select(it => it.Value);
         var moreDoors = lockedDoors
@@ -395,8 +394,10 @@ class Facility : IGame<GhostState> {
     }
 
     List<List<Node>> PathsTo(char target) {
+        if (pathsToTargets.TryGetValue(target, out var paths)) {
+            return paths;
+        }
         Debug.Log($"can't find {target}, paths that lead there:", 1);
-        // todo: paths from start to target could be cached
         var pathsToTarget = Pathfinding.All(graph[Cell.START], graph[target], it => {
                     return it.Connections
                             .Select(id => graph[id])
@@ -416,7 +417,7 @@ class Facility : IGame<GhostState> {
         foreach (var path in pathsToTarget) {
             Debug.Log(string.Join(", ", path.Select(it => grid[it.Point])), 2);
         }
-        return pathsToTarget;
+        return pathsToTargets[target] = pathsToTarget;
     }
 
     bool IGame<GhostState>.HasReachedEnd(GhostState state) {
@@ -533,6 +534,7 @@ static class Pathfinding {
 
 class StateSearch<T>(IGame<T> game, int depthMax) where T : IState<T>, IEquatable<T> {
     readonly HashSet<T> visited = [];
+    readonly HashSet<string> uniqueSteps = [];
 
     /// DFS/Backtracking
     public T? FindBest(T start) {
@@ -555,6 +557,10 @@ class StateSearch<T>(IGame<T> game, int depthMax) where T : IState<T>, IEquatabl
             }
             Debug.Log("next", depth);
             Debug.Log(next);
+            // string steps = next.Steps;
+            // if (uniqueSteps.Add(steps)) {
+            //     Console.Error.WriteLine(steps);
+            // }
             var nextBest = FindBest(next, depth + 1);
             if (nextBest == null) {
                 continue;
@@ -573,6 +579,7 @@ interface IGame<TState> {
 }
 
 interface IState<in T> where T : IState<T> {
+    public string Steps { get; }
     bool IsBetterThan(T other);
 }
 
