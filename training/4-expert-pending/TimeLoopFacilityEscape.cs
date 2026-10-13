@@ -106,6 +106,7 @@ class Facility : IGame<GhostState> {
     readonly Dictionary<Point, char> grid = [];
     readonly Dictionary<char, Node> graph = [];
     Point start, exit;
+    readonly Dictionary<char, List<List<Node>>> pathsToTargets = [];
 
     public Facility(int width, int height, int maxLoops) {
         stateSearch = new(this, maxLoops * 2);
@@ -361,8 +362,10 @@ class Facility : IGame<GhostState> {
     }
 
     List<List<Node>> PathsTo(char target) {
+        if (pathsToTargets.TryGetValue(target, out var paths)) {
+            return paths;
+        }
         Debug.Log($"can't find {target}, paths that lead there:", 1);
-        // todo: paths from start to target could be cached
         var pathsToTarget = Pathfinding.All(graph[Cell.START], graph[target], it => {
                     return it.Connections
                             .Select(id => graph[id])
@@ -382,7 +385,7 @@ class Facility : IGame<GhostState> {
         foreach (var path in pathsToTarget) {
             Debug.Log(string.Join(", ", path.Select(it => grid[it.Point])), 2);
         }
-        return pathsToTarget;
+        return pathsToTargets[target] = pathsToTarget;
     }
 
     bool IGame<GhostState>.HasReachedEnd(GhostState state) {
