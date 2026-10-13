@@ -43,7 +43,9 @@ while (Console.In.Peek() != -1) {
         lines.Add(line);
     }
     Assert.ActualEqualsExpected(actual.ToString(), string.Join("\n", lines));
-    Test.Log($"Test took {stopwatch.ElapsedMilliseconds}ms");
+    var time = $"Test took {stopwatch.ElapsedMilliseconds}ms";
+    Console.Error.WriteLine(time);
+    Test.Log(time);
 }
 
 record GhostState(List<List<Point>> Loops, Stack<char> Targets) : IState<GhostState> {
