@@ -219,8 +219,7 @@ class Facility : IGame<GhostState> {
     /// If it can't, it fails
     [SuppressMessage("ReSharper", "InvertIf")]
     bool AvoidCollisions(GhostState state, List<Point> loop) {
-        (int i, int j) collision = (-1, -1);
-        if (HasCollision()) {
+        if (HasCollision(out var collision, loop, state)) {
             for (int i = collision.i; i < loop.Count; i++) {
                 if (loop[i] != state.Loops[collision.j][i]) {
                     loop.Insert(i, loop[i]);
@@ -229,26 +228,28 @@ class Facility : IGame<GhostState> {
                 }
             }
         }
-        return !HasCollision();
+        return !HasCollision(out _, loop, state);
+    }
 
-        bool HasCollision() {
-            for (var i = 0; i < loop.Count; i++) {
-                var point = loop[i];
-                if (point == start) {
-                    continue;
-                }
-                for (var j = 0; j < state.Loops.Count; j++) {
-                    if (state.Loops[j][i] == point) {
-                        collision = (i, j);
-                        Debug.Log($"found collision in ghostLoops[{j}] of state", 1);
-                        Debug.Log(state);
-                        Debug.Log($"with loop[{i}]: {GhostState.Actions(loop)}", 1);
-                        return true;
-                    }
+    [SuppressMessage("ReSharper", "InvertIf")]
+    bool HasCollision(out (int i, int j) collision, List<Point> loop, GhostState state) {
+        collision = default;
+        for (var i = 0; i < loop.Count; i++) {
+            var point = loop[i];
+            if (point == start) {
+                continue;
+            }
+            for (var j = 0; j < state.Loops.Count; j++) {
+                if (state.Loops[j][i] == point) {
+                    collision = (i, j);
+                    Debug.Log($"found collision in ghostLoops[{j}] of state", 1);
+                    Debug.Log(state);
+                    Debug.Log($"with loop[{i}]: {GhostState.Actions(loop)}", 1);
+                    return true;
                 }
             }
-            return false;
         }
+        return false;
     }
 
     IEnumerable<Point> Next(Point current, GhostState state) {
