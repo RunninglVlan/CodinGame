@@ -265,20 +265,41 @@ class Facility : IGame<GhostState> {
         if (current.Loops.Count == maxLoops) {
             yield break;
         }
-        Debug.Log($"searching {current.Targets.Peek()}");
-        var found = FindTarget(current);
-        if (found != null) {
-            yield return found;
+        var searchState = current.Copy();
+        while (searchState.Targets.TryPeek(out char target)) {
+            Debug.Log($"searching {target}");
+            var loop = Pathfinding.Shortest(start, it => grid[it] == target, it => Next(it, searchState));
+            if (loop == null) {
+                break;
+            }
+            Debug.Log($"found {target} using {GhostState.Actions(loop)}", 1, ConsoleColor.Blue);
+            if (!AddLoop(searchState, loop)) {
+                yield break;
+            }
+            searchState.PopTarget();
         }
-        var foundAndCombined = FindTargetAndCombine(current);
-        if (foundAndCombined != null) {
-            yield return foundAndCombined;
+        if (!searchState.Targets.TryPeek(out char unreachableTarget)) {
+            yield return searchState;
+            yield break;
         }
+        var unlockedDoors = UnlockedDoors(searchState);
+        foreach (var path in PathsTo(unreachableTarget)) {
+            var pathState = searchState.Copy();
+            foreach (char door in path.Skip(1).SkipLast(1).Select(it => it.Id).Reverse()) {
+                if (unlockedDoors.Contains(door)) {
+                    continue;
+                }
+                pathState.PushTarget(Cell.ToSwitch(door));
+            }
+            yield return pathState;
+        }
+        /*
         foreach (char door in LockedDoors(current, found != null)) {
             var copy = current.Copy();
             copy.PushTarget(Cell.ToSwitch(door));
             yield return copy;
         }
+        */
     }
 
     GhostState? FindTarget(GhostState state) {
