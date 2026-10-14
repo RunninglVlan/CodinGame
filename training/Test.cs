@@ -1,29 +1,29 @@
 ﻿using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 
-string testCases = File.ReadAllText("test_cases.txt");
-// const string testCases = """
-//                          33 Symphony No 5
-//                          9 15 5
-//                          #########
-//                          #.B.i.D.#
-//                          #.#...#F#
-//                          #.#...#H#
-//                          #.#...#.#
-//                          #.#...#.#
-//                          #.#.g.#a#
-//                          #E#cSd#.#
-//                          #.#.f.#b#
-//                          #.#...#.#
-//                          #.#...#.#
-//                          #.#...#I#
-//                          #.#...#G#
-//                          #.A.h.C.#
-//                          #########
-//                          W W W W W W W R L D D D D D D
-//                          W U U U U U U R R R D D D D D
-//                          L D D D D D D L L U U U U U U
-//                          """;
+// string testCases = File.ReadAllText("test_cases.txt");
+const string testCases = """
+                         33 Symphony No 5
+                         9 15 5
+                         #########
+                         #.B.i.D.#
+                         #.#...#F#
+                         #.#...#H#
+                         #.#...#.#
+                         #.#...#.#
+                         #.#.g.#a#
+                         #E#cSd#.#
+                         #.#.f.#b#
+                         #.#...#.#
+                         #.#...#.#
+                         #.#...#I#
+                         #.#...#G#
+                         #.A.h.C.#
+                         #########
+                         W W W W W W W R L D D D D D D
+                         W U U U U U U R R R D D D D D
+                         L D D D D D D L L U U U U U U
+                         """;
 Test.Cases(testCases);
 while (Console.In.Peek() != -1) {
     var stopwatch = Stopwatch.StartNew();
@@ -46,6 +46,7 @@ while (Console.In.Peek() != -1) {
     var time = $"Test took {stopwatch.ElapsedMilliseconds}ms";
     Console.Error.WriteLine(time);
     Test.Log(time);
+    Perf.Report("block");
 }
 
 record GhostState(List<List<Point>> Loops, Stack<char> Targets) : IState<GhostState> {
@@ -405,6 +406,7 @@ class Facility : IGame<GhostState> {
                             .Where(node => Cell.IsDoor(grid[node.Point]) || node == graph[target]);
                 })
                 .ToList();
+        long t = Perf.Start();
         // todo: sets can be created once
         pathsToTarget = [.. pathsToTarget.OrderBy(it => it.Count)];
         for (var i = 0; i < pathsToTarget.Count; i++) {
@@ -415,6 +417,7 @@ class Facility : IGame<GhostState> {
                 }
             }
         }
+        Perf.Stop(t);
         foreach (var path in pathsToTarget) {
             Debug.Log(string.Join(", ", path.Select(it => grid[it.Point])), 2);
         }
@@ -560,8 +563,6 @@ class StateSearch<T>(IGame<T> game, int depthMax) where T : IState<T>, IEquatabl
             if (!visited.Add(next)) {
                 continue;
             }
-            Debug.Log("next", depth);
-            Debug.Log(next);
             // string steps = next.Steps;
             // if (uniqueSteps.Add(steps)) {
             //     Console.Error.WriteLine(steps);
@@ -570,6 +571,8 @@ class StateSearch<T>(IGame<T> game, int depthMax) where T : IState<T>, IEquatabl
             if (nextBest == null) {
                 continue;
             }
+            Debug.Log("nextBest", depth);
+            Debug.Log(nextBest);
             if (best == null || nextBest.IsBetterThan(best)) {
                 best = nextBest;
             }
@@ -600,7 +603,7 @@ static class Debug {
     }
 
     public static void Log(object? line = null, int tab = 0, ConsoleColor? color = null) {
-        return;
+        // return;
         Console.ForegroundColor = color ?? ConsoleColor.Red;
         var padding = new string(' ', tab * TAB_LENGTH);
         var log = $"{padding}{line}";
@@ -639,5 +642,23 @@ static class Assert {
         if (!equals) {
             throw new Exception();
         }
+    }
+}
+
+static class Perf {
+    static long ticks, calls;
+
+    public static long Start() => Stopwatch.GetTimestamp();
+
+    public static void Stop(long start) {
+        ticks += Stopwatch.GetTimestamp() - start;
+        calls++;
+    }
+
+    public static void Report(string name) {
+        var total = Stopwatch.GetElapsedTime(0, ticks);
+        Console.Error.WriteLine(
+                $"{name}: {total.TotalMilliseconds:F1}ms total, {calls} calls, " +
+                $"{total.TotalMilliseconds * 1000 / calls:F2}µs/call");
     }
 }
