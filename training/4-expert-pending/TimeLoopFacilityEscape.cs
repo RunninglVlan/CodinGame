@@ -265,9 +265,11 @@ class Facility : IGame<GhostState> {
         if (current.Loops.Count == maxLoops) {
             yield break;
         }
+        Func<Point, IEnumerable<Point>> next = it => Next(it, current);
         char target = current.Targets.Peek();
         Debug.Log($"searching {target}");
-        var loop = Pathfinding.Shortest(start, it => grid[it] == target, it => Next(it, current));
+        // todo: refactor
+        var loop = Pathfinding.Shortest(start, it => grid[it] == target, next);
         if (loop != null) {
             var searchState = current.Copy();
             Debug.Log($"found {target} using {GhostState.Actions(loop)}", 1, ConsoleColor.Blue);
@@ -276,6 +278,24 @@ class Facility : IGame<GhostState> {
             }
             searchState.PopTarget();
             yield return searchState;
+            if (current.Loops.Count <= 0) {
+                yield break;
+            }
+            var source = current.Loops.Last().Last();
+            loop = Pathfinding.Shortest(source, it => grid[it] == target, next)!;
+            if (loop.Any(it => grid[it] == Cell.ToDoor(grid[source]))) {
+                yield break;
+            }
+            var combineState = current.Copy();
+            Debug.Log($"found {target} from {grid[source]} using {GhostState.Actions(loop)}", 1, ConsoleColor.Blue);
+            loop = [.. combineState.Loops.Last(), .. loop.Skip(1)];
+            Debug.Log($"combined: {GhostState.Actions(loop)}", 2, ConsoleColor.Blue);
+            combineState.Loops.RemoveAt(combineState.Loops.Count - 1);
+            if (!AddLoop(combineState, loop)) {
+                yield break;
+            }
+            combineState.PopTarget();
+            yield return combineState;
             yield break;
         }
         var unlockedDoors = UnlockedDoors(current);
