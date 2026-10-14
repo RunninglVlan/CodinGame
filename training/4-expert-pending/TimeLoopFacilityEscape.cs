@@ -15,33 +15,33 @@ facility.BuildConnections();
 Console.WriteLine(facility.ReachExit());
 
 record GhostState(List<List<Point>> Loops, Stack<char> Targets) : IState<GhostState> {
-    string steps = string.Empty;
+    public string Steps { get; private set; } = string.Empty;
 
     public GhostState Copy() {
         char[] currentTargets = [.. Targets];
         Array.Reverse(currentTargets);
         return new GhostState([.. Loops.Select(it => it.ToList())], new Stack<char>(currentTargets)) {
-            steps = steps
+            Steps = Steps
         };
     }
 
     public void PushTarget(char value) {
         Targets.Push(value);
-        steps += $"+{value}";
+        Steps += $"+{value}";
     }
 
     public void PopTarget() {
         char target = Targets.Pop();
-        steps += $"-{target}";
+        Steps += $"-{target}";
     }
 
     bool IState<GhostState>.IsBetterThan(GhostState other) {
         var actions = Actions();
         var otherActions = other.Actions();
-        Debug.Log("choosing best between this:", 1);
-        Debug.Log(this);
-        Debug.Log("and other:", 1);
-        Debug.Log(other);
+        // Debug.Log("choosing best between this:", 1);
+        // Debug.Log(this);
+        // Debug.Log("and other:", 1);
+        // Debug.Log(other);
         int turns = Loops.First().Count.CompareTo(other.Loops.First().Count);
         if (turns != 0) {
             return turns < 0;
@@ -91,7 +91,7 @@ record GhostState(List<List<Point>> Loops, Stack<char> Targets) : IState<GhostSt
     }
 
     public override string ToString() {
-        Debug.Log($"{steps}, {Targets.Count}");
+        Debug.Log($"{Steps}, {Targets.Count}");
         return string.Join("\n", Loops.Select(Actions));
     }
 }
@@ -288,7 +288,7 @@ class Facility : IGame<GhostState> {
             return null;
         }
         var copy = state.Copy();
-        Debug.Log($"found {target} through {GhostState.Actions(loop)}", 1, ConsoleColor.Blue);
+        Debug.Log($"found {target} using {GhostState.Actions(loop)}", 1, ConsoleColor.Blue);
         if (!AddLoop(copy, loop)) {
             return null;
         }
@@ -307,7 +307,7 @@ class Facility : IGame<GhostState> {
             return null;
         }
         var copy = state.Copy();
-        Debug.Log($"found {target} from {grid[source]} through {GhostState.Actions(loop)}", 1, ConsoleColor.Blue);
+        Debug.Log($"found {target} from {grid[source]} using {GhostState.Actions(loop)}", 1, ConsoleColor.Blue);
         loop = [.. copy.Loops.Last(), .. loop.Skip(1)];
         Debug.Log($"combined: {GhostState.Actions(loop)}", 2, ConsoleColor.Blue);
         copy.Loops.RemoveAt(copy.Loops.Count - 1);
@@ -382,7 +382,7 @@ class Facility : IGame<GhostState> {
             }
         }
         foreach (var path in pathsToTarget) {
-            Debug.Log(string.Join(", ", path.Select(it => grid[it.Point])), 2);
+            Debug.Log(string.Join('-', path.Select(it => grid[it.Point])), 2);
         }
         return pathsToTargets[target] = pathsToTarget;
     }
