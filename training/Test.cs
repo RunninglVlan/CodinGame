@@ -279,29 +279,25 @@ class Facility : IGame<GhostState> {
         if (current.Loops.Count == maxLoops) {
             yield break;
         }
-        var searchState = current.Copy();
-        while (searchState.Targets.TryPeek(out char target)) {
-            Debug.Log($"searching {target}");
-            var loop = Pathfinding.Shortest(start, it => grid[it] == target, it => Next(it, searchState));
-            if (loop == null) {
-                break;
-            }
+        char target = current.Targets.Peek();
+        Debug.Log($"searching {target}");
+        var loop = Pathfinding.Shortest(start, it => grid[it] == target, it => Next(it, current));
+        if (loop != null) {
+            var searchState = current.Copy();
             Debug.Log($"found {target} using {GhostState.Actions(loop)}", 1, ConsoleColor.Blue);
             if (!AddLoop(searchState, loop)) {
                 yield break;
             }
             searchState.PopTarget();
-        }
-        if (!searchState.Targets.TryPeek(out char unreachableTarget)) {
             yield return searchState;
             yield break;
         }
-        var unlockedDoors = UnlockedDoors(searchState);
+        var unlockedDoors = UnlockedDoors(current);
         var lockedDoors = grid.Values.Where(it => Cell.IsDoor(it) && !unlockedDoors.Contains(it)).ToHashSet();
         // todo: refactor
-        foreach (var path in PathsTo(unreachableTarget)) {
+        foreach (var path in PathsTo(target)) {
             var doors = path.Skip(1).SkipLast(1).Select(it => it.Id).Where(it => !unlockedDoors.Contains(it)).ToList();
-            var pathState = searchState.Copy();
+            var pathState = current.Copy();
             foreach (char door in doors) {
                 lockedDoors.Remove(door);
                 pathState.PushTarget(Cell.ToSwitch(door));
@@ -310,7 +306,7 @@ class Facility : IGame<GhostState> {
             if (doors.Count <= 1) {
                 continue;
             }
-            pathState = searchState.Copy();
+            pathState = current.Copy();
             doors.Reverse();
             foreach (char door in doors) {
                 pathState.PushTarget(Cell.ToSwitch(door));
@@ -318,7 +314,7 @@ class Facility : IGame<GhostState> {
             yield return pathState;
         }
         foreach (char door in lockedDoors) {
-            var doorState = searchState.Copy();
+            var doorState = current.Copy();
             doorState.PushTarget(Cell.ToSwitch(door));
             yield return doorState;
         }
