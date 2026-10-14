@@ -303,26 +303,32 @@ class Facility : IGame<GhostState> {
         // todo: refactor
         foreach (var path in PathsTo(target)) {
             var doors = path.Skip(1).SkipLast(1).Select(it => it.Id).Where(it => !unlockedDoors.Contains(it)).ToList();
-            var pathState = current.Copy();
-            foreach (char door in doors) {
-                lockedDoors.Remove(door);
-                pathState.PushTarget(Cell.ToSwitch(door));
+            foreach (var doorOrders in Permutations(doors)) {
+                var pathState = current.Copy();
+                foreach (char door in doorOrders) {
+                    lockedDoors.Remove(door);
+                    pathState.PushTarget(Cell.ToSwitch(door));
+                }
+                yield return pathState;
             }
-            yield return pathState;
-            if (doors.Count <= 1) {
-                continue;
-            }
-            pathState = current.Copy();
-            doors.Reverse();
-            foreach (char door in doors) {
-                pathState.PushTarget(Cell.ToSwitch(door));
-            }
-            yield return pathState;
         }
         foreach (char door in lockedDoors) {
             var doorState = current.Copy();
             doorState.PushTarget(Cell.ToSwitch(door));
             yield return doorState;
+        }
+    }
+
+    static IEnumerable<List<T>> Permutations<T>(List<T> items) {
+        if (items.Count <= 1) {
+            yield return items;
+            yield break;
+        }
+        for (var i = 0; i < items.Count; i++) {
+            var rest = items.Where((_, index) => index != i).ToList();
+            foreach (var permutation in Permutations(rest)) {
+                yield return [.. permutation.Prepend(items[i])];
+            }
         }
     }
 
