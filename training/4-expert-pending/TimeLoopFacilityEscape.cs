@@ -283,12 +283,20 @@ class Facility : IGame<GhostState> {
             yield break;
         }
         var unlockedDoors = UnlockedDoors(searchState);
+        // todo: refactor
         foreach (var path in PathsTo(unreachableTarget)) {
+            var doors = path.Skip(1).SkipLast(1).Select(it => it.Id).Where(it => !unlockedDoors.Contains(it)).ToList();
             var pathState = searchState.Copy();
-            foreach (char door in path.Skip(1).SkipLast(1).Select(it => it.Id).Reverse()) {
-                if (unlockedDoors.Contains(door)) {
-                    continue;
-                }
+            foreach (char door in doors) {
+                pathState.PushTarget(Cell.ToSwitch(door));
+            }
+            yield return pathState;
+            if (doors.Count <= 1) {
+                continue;
+            }
+            pathState = searchState.Copy();
+            doors.Reverse();
+            foreach (char door in doors) {
                 pathState.PushTarget(Cell.ToSwitch(door));
             }
             yield return pathState;
