@@ -297,11 +297,13 @@ class Facility : IGame<GhostState> {
             yield break;
         }
         var unlockedDoors = UnlockedDoors(searchState);
+        var lockedDoors = grid.Values.Where(it => Cell.IsDoor(it) && !unlockedDoors.Contains(it)).ToHashSet();
         // todo: refactor
         foreach (var path in PathsTo(unreachableTarget)) {
             var doors = path.Skip(1).SkipLast(1).Select(it => it.Id).Where(it => !unlockedDoors.Contains(it)).ToList();
             var pathState = searchState.Copy();
             foreach (char door in doors) {
+                lockedDoors.Remove(door);
                 pathState.PushTarget(Cell.ToSwitch(door));
             }
             yield return pathState;
@@ -315,13 +317,11 @@ class Facility : IGame<GhostState> {
             }
             yield return pathState;
         }
-        /*
-        foreach (char door in LockedDoors(current, found != null)) {
-            var copy = current.Copy();
-            copy.PushTarget(Cell.ToSwitch(door));
-            yield return copy;
+        foreach (char door in lockedDoors) {
+            var doorState = searchState.Copy();
+            doorState.PushTarget(Cell.ToSwitch(door));
+            yield return doorState;
         }
-        */
     }
 
     GhostState? FindTarget(GhostState state) {
