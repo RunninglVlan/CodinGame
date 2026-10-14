@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
+Debug.Enabled = false;
 // Navigate through a facility to reach the extraction point by coordinating robot actions across multiple time loops
 // https://www.codingame.com/contribute/view/1415851ba1aa5d4b0600a53ac02dd35417fd8b
 string[] inputs = Console.ReadLine()!.Split(' ');
@@ -602,6 +603,8 @@ interface IState<in T> where T : IState<T> {
 static class Debug {
     const int TAB_LENGTH = 2;
 
+    public static bool Enabled { get; set; }
+
     /// Reads the line from Console and also writes it to Console.Error
     public static string? ReadLine() {
         string? line = Console.ReadLine();
@@ -610,6 +613,9 @@ static class Debug {
     }
 
     public static void Log(object? line = null, int tab = 0, ConsoleColor? color = null) {
+        if (!Enabled) {
+            return;
+        }
         Console.ForegroundColor = color ?? ConsoleColor.Red;
         var padding = new string(' ', tab * TAB_LENGTH);
         Console.Error.WriteLine($"{padding}{line}");
