@@ -1,6 +1,8 @@
 ﻿using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 
+Debug.Enabled = true;
+Assert.Throw = false;
 Test.Cases(File.ReadAllText("test_case.txt"));
 while (Console.In.Peek() != -1) {
     var stopwatch = Stopwatch.StartNew();
@@ -282,12 +284,10 @@ class Facility : IGame<GhostState> {
             Debug.Log($"searching {target}");
             var loop = Pathfinding.Shortest(start, it => grid[it] == target, it => Next(it, searchState));
             if (loop == null) {
-                // can't find? search for paths to target and create new states
                 break;
             }
             Debug.Log($"found {target} using {GhostState.Actions(loop)}", 1, ConsoleColor.Blue);
             if (!AddLoop(searchState, loop)) {
-                // can't successfully add loop? assume this is a failed state
                 yield break;
             }
             searchState.PopTarget();
@@ -305,14 +305,15 @@ class Facility : IGame<GhostState> {
                 }
                 pathState.PushTarget(Cell.ToSwitch(door));
             }
-            // need to create a state that will combine if possible
             yield return pathState;
         }
-        // foreach (char door in LockedDoors(current, found != null)) {
-        //     var copy = current.Copy();
-        //     copy.PushTarget(Cell.ToSwitch(door));
-        //     yield return copy;
-        // }
+        /*
+        foreach (char door in LockedDoors(current, found != null)) {
+            var copy = current.Copy();
+            copy.PushTarget(Cell.ToSwitch(door));
+            yield return copy;
+        }
+        */
     }
 
     GhostState? FindTarget(GhostState state) {
@@ -594,6 +595,8 @@ interface IState<in T> where T : IState<T> {
 static class Debug {
     const int TAB_LENGTH = 2;
 
+    public static bool Enabled { get; set; }
+
     /// Reads the line from Console and also writes it to Console.Error
     public static string? ReadLine() {
         string? line = Console.ReadLine();
@@ -603,7 +606,9 @@ static class Debug {
     }
 
     public static void Log(object? line = null, int tab = 0, ConsoleColor? color = null) {
-        return;
+        if (!Enabled) {
+            return;
+        }
         Console.ForegroundColor = color ?? ConsoleColor.Red;
         var padding = new string(' ', tab * TAB_LENGTH);
         var log = $"{padding}{line}";
@@ -636,11 +641,13 @@ static class Test {
 }
 
 static class Assert {
+    public static bool Throw { get; set; }
+
     public static void ActualEqualsExpected(string actual, string expected) {
         bool equals = Equals(actual, expected);
         Console.WriteLine(equals ? $"✅ {actual}" : $"❌ found {actual}, but expected {expected}");
-        if (!equals) {
-            // throw new Exception();
+        if (!equals && Throw) {
+            throw new Exception();
         }
     }
 }
