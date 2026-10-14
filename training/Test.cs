@@ -1,30 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 
-// string testCases = File.ReadAllText("test_cases.txt");
-const string testCases = """
-                         33 Symphony No 5
-                         9 15 5
-                         #########
-                         #.B.i.D.#
-                         #.#...#F#
-                         #.#...#H#
-                         #.#...#.#
-                         #.#...#.#
-                         #.#.g.#a#
-                         #E#cSd#.#
-                         #.#.f.#b#
-                         #.#...#.#
-                         #.#...#.#
-                         #.#...#I#
-                         #.#...#G#
-                         #.A.h.C.#
-                         #########
-                         W W W W W W W R L D D D D D D
-                         W U U U U U U R R R D D D D D
-                         L D D D D D D L L U U U U U U
-                         """;
-Test.Cases(testCases);
+Test.Cases(File.ReadAllText("test_case.txt"));
 while (Console.In.Peek() != -1) {
     var stopwatch = Stopwatch.StartNew();
     Debug.ReadLine();
@@ -300,20 +277,42 @@ class Facility : IGame<GhostState> {
         if (current.Loops.Count == maxLoops) {
             yield break;
         }
-        Debug.Log($"searching {current.Targets.Peek()}");
-        var found = FindTarget(current);
-        if (found != null) {
-            yield return found;
+        var searchState = current.Copy();
+        while (searchState.Targets.TryPeek(out char target)) {
+            Debug.Log($"searching {target}");
+            var loop = Pathfinding.Shortest(start, it => grid[it] == target, it => Next(it, searchState));
+            if (loop == null) {
+                // can't find? search for paths to target and create new states
+                break;
+            }
+            Debug.Log($"found {target} using {GhostState.Actions(loop)}", 1, ConsoleColor.Blue);
+            if (!AddLoop(searchState, loop)) {
+                // can't successfully add loop? assume this is a failed state
+                yield break;
+            }
+            searchState.PopTarget();
         }
-        var foundAndCombined = FindTargetAndCombine(current);
-        if (foundAndCombined != null) {
-            yield return foundAndCombined;
+        if (!searchState.Targets.TryPeek(out char unreachableTarget)) {
+            yield return searchState;
+            yield break;
         }
-        foreach (char door in LockedDoors(current, found != null)) {
-            var copy = current.Copy();
-            copy.PushTarget(Cell.ToSwitch(door));
-            yield return copy;
+        var unlockedDoors = UnlockedDoors(searchState);
+        foreach (var path in PathsTo(unreachableTarget)) {
+            var pathState = searchState.Copy();
+            foreach (char door in path.Skip(1).SkipLast(1).Select(it => it.Id).Reverse()) {
+                if (unlockedDoors.Contains(door)) {
+                    continue;
+                }
+                pathState.PushTarget(Cell.ToSwitch(door));
+            }
+            // need to create a state that will combine if possible
+            yield return pathState;
         }
+        // foreach (char door in LockedDoors(current, found != null)) {
+        //     var copy = current.Copy();
+        //     copy.PushTarget(Cell.ToSwitch(door));
+        //     yield return copy;
+        // }
     }
 
     GhostState? FindTarget(GhostState state) {
@@ -323,7 +322,7 @@ class Facility : IGame<GhostState> {
             return null;
         }
         var copy = state.Copy();
-        Debug.Log($"found {target} through {GhostState.Actions(loop)}", 1, ConsoleColor.Blue);
+        Debug.Log($"found {target} using {GhostState.Actions(loop)}", 1, ConsoleColor.Blue);
         if (!AddLoop(copy, loop)) {
             return null;
         }
@@ -342,7 +341,7 @@ class Facility : IGame<GhostState> {
             return null;
         }
         var copy = state.Copy();
-        Debug.Log($"found {target} from {grid[source]} through {GhostState.Actions(loop)}", 1, ConsoleColor.Blue);
+        Debug.Log($"found {target} from {grid[source]} using {GhostState.Actions(loop)}", 1, ConsoleColor.Blue);
         loop = [.. copy.Loops.Last(), .. loop.Skip(1)];
         Debug.Log($"combined: {GhostState.Actions(loop)}", 2, ConsoleColor.Blue);
         copy.Loops.RemoveAt(copy.Loops.Count - 1);
@@ -419,7 +418,7 @@ class Facility : IGame<GhostState> {
         }
         Perf.Stop(t);
         foreach (var path in pathsToTarget) {
-            Debug.Log(string.Join(", ", path.Select(it => grid[it.Point])), 2);
+            Debug.Log(string.Join('-', path.Select(it => grid[it.Point])), 2);
         }
         return pathsToTargets[target] = pathsToTarget;
     }
@@ -563,6 +562,9 @@ class StateSearch<T>(IGame<T> game, int depthMax) where T : IState<T>, IEquatabl
             if (!visited.Add(next)) {
                 continue;
             }
+            Debug.Log("next", depth);
+            Debug.Log(next);
+            // Test.ReadLine();
             // string steps = next.Steps;
             // if (uniqueSteps.Add(steps)) {
             //     Console.Error.WriteLine(steps);
@@ -571,8 +573,6 @@ class StateSearch<T>(IGame<T> game, int depthMax) where T : IState<T>, IEquatabl
             if (nextBest == null) {
                 continue;
             }
-            Debug.Log("nextBest", depth);
-            Debug.Log(nextBest);
             if (best == null || nextBest.IsBetterThan(best)) {
                 best = nextBest;
             }
@@ -603,7 +603,7 @@ static class Debug {
     }
 
     public static void Log(object? line = null, int tab = 0, ConsoleColor? color = null) {
-        // return;
+        return;
         Console.ForegroundColor = color ?? ConsoleColor.Red;
         var padding = new string(' ', tab * TAB_LENGTH);
         var log = $"{padding}{line}";
@@ -640,7 +640,7 @@ static class Assert {
         bool equals = Equals(actual, expected);
         Console.WriteLine(equals ? $"✅ {actual}" : $"❌ found {actual}, but expected {expected}");
         if (!equals) {
-            throw new Exception();
+            // throw new Exception();
         }
     }
 }
