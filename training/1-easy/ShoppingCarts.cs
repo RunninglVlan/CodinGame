@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Linq;
 
-// https://www.codingame.com/contribute/view/154026f4c56967fa2dfb15ca7bbd572c9fe863
+// https://www.codingame.com/training/easy/shopping-carts
 Math.Clamp(int.Parse(Console.ReadLine()!), 1, 100); // cartLines
 var carts = Console.ReadLine()!.Split(' ')
         .Select((it, i) => new Cart(i) { Count = Math.Clamp(int.Parse(it), 0, 250) })
