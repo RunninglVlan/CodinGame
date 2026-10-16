@@ -270,20 +270,26 @@ class Facility : IGame<GhostState> {
         char target = current.Targets.Peek();
         Debug.Log($"searching {target}");
         // todo: refactor
+        // we try to reach current target
         var loop = Pathfinding.Shortest(start, it => grid[it] == target, next);
         if (loop != null) {
+            // we can
             var searchState = current.Copy();
             Debug.Log($"found {target} using {GhostState.Actions(loop)}", 1, ConsoleColor.Blue);
+            // try to add new loop
             if (!AddLoop(searchState, loop)) {
                 yield break;
             }
+            // remove reached target
             searchState.PopTarget();
             yield return searchState;
+            // if previous loops exist, try combining and branching
             if (current.Loops.Count <= 0) {
                 yield break;
             }
             var source = current.Loops.Last().Last();
             loop = Pathfinding.Shortest(source, it => grid[it] == target, next)!;
+            // check that it's a valid loop
             if (loop.Any(it => grid[it] == Cell.ToDoor(grid[source]))) {
                 yield break;
             }
@@ -292,16 +298,20 @@ class Facility : IGame<GhostState> {
             loop = [.. combineState.Loops.Last(), .. loop.Skip(1)];
             Debug.Log($"combined: {GhostState.Actions(loop)}", 2, ConsoleColor.Blue);
             combineState.Loops.RemoveAt(combineState.Loops.Count - 1);
+            // try to add new loop
             if (!AddLoop(combineState, loop)) {
                 yield break;
             }
             combineState.PopTarget();
             yield return combineState;
+            // no need to search for paths to target, new states will handle remaining targets
             yield break;
         }
+        // we can't reach target
         var unlockedDoors = UnlockedDoors(current);
         var lockedDoors = grid.Values.Where(it => Cell.IsDoor(it) && !unlockedDoors.Contains(it)).ToHashSet();
         // todo: refactor
+        // add new states with permutations of paths that lead there
         foreach (var path in PathsTo(target)) {
             var doors = path.Skip(1).SkipLast(1).Select(it => it.Id).Where(it => !unlockedDoors.Contains(it)).ToList();
             foreach (var doorOrders in Permutations(doors)) {
@@ -313,6 +323,7 @@ class Facility : IGame<GhostState> {
                 yield return pathState;
             }
         }
+        // add new states for remaining locked doors
         foreach (char door in lockedDoors) {
             var doorState = current.Copy();
             doorState.PushTarget(Cell.ToSwitch(door));
