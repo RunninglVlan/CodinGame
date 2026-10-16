@@ -2,7 +2,7 @@
 using System.IO;
 
 static class Test {
-    const string FILE = "test_log.txt";
+    const string FILE = "Test.Log.txt";
 
     static TextReader consoleIn = null!;
     static StringReader stringIn = null!;

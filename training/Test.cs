@@ -4,7 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 Debug.Enabled = false;
 Assert.Throw = true;
 Test.StepEnabled = false;
-Test.Cases(File.ReadAllText("test_cases.txt"));
+Test.Cases(File.ReadAllText("Test.Cases.txt"));
 while (Console.In.Peek() != -1) {
     var stopwatch = Stopwatch.StartNew();
     Debug.ReadLine();
@@ -638,7 +638,7 @@ static class Debug {
 }
 
 static class Test {
-    const string FILE = "test_log.txt";
+    const string FILE = "Test.Log.txt";
 
     static TextReader consoleIn = null!;
     static StringReader stringIn = null!;
