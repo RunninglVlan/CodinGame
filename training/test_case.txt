@@ -1,18 +1,10 @@
-29 The Deep Descent
-7 11 5
-#######
-#S...a#
-#A#####
-#....b#
-#B#####
-#....c#
-#C#####
-#....d#
-#D#####
-#....E#
-#######
-W W W W W W W W R R R R
-W W W W W W D D R R R R
-W W W W D D D D R R R R
-W W D D D D D D R R R R
-D D D D D D D D R R R R
+01 Basic Lock
+5 6 2
+#####
+#a###
+#S..#
+###A#
+#E..#
+#####
+W W W W W U
+R R D D L L
