@@ -292,6 +292,7 @@ class Facility : IGame<GhostState> {
                 var doors = path.Skip(1).SkipLast(1)
                         .Select(it => it.Id)
                         .Where(it => !unlockedDoors.Contains(it))
+                        .Where(it => !current.Targets.Contains(Cell.ToSwitch(it)))
                         .ToList();
                 foreach (var doorOrders in Permutations(doors)) {
                     var pathState = current.Copy();
@@ -382,8 +383,7 @@ class Facility : IGame<GhostState> {
         var pathsToTarget = Pathfinding.All(graph[Cell.START], graph[target], it => {
                     return it.Connections
                             .Select(id => graph[id])
-                            .Where(node => Cell.IsDoor(node.Id) || node == graph[target])
-                            .Where(node => node.Id != Cell.ToDoor(target));
+                            .Where(node => Cell.IsDoor(node.Id) && node.Id != Cell.ToDoor(target) || node == graph[target]);
                 })
                 .ToList();
         long t = Perf.Start();
