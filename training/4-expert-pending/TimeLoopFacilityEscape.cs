@@ -296,7 +296,7 @@ class Facility : IGame<GhostState> {
             }
         }
         // add new states for remaining locked doors
-        foreach (char door in lockedDoors) {
+        foreach (char door in lockedDoors.Where(it => !current.Targets.Contains(Cell.ToSwitch(it)))) {
             var doorState = current.Copy();
             doorState.AddTarget(Cell.ToSwitch(door));
             yield return doorState;

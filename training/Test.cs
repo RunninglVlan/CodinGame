@@ -4,8 +4,8 @@ using System.Diagnostics.CodeAnalysis;
 Debug.Enabled = false;
 Assert.Throw = true;
 Test.StepEnabled = false;
-// Test.From = "02 Validator 1";
-// Test.Until = "03 The Polite Keymaster";
+// Test.From = "09 Tumbler";
+// Test.Until = "10 Validator 5";
 Test.Run(expected => {
     // Navigate through a facility to reach the extraction point by coordinating robot actions across multiple time loops
     // https://www.codingame.com/contribute/view/1415851ba1aa5d4b0600a53ac02dd35417fd8b
@@ -301,7 +301,7 @@ class Facility : IGame<GhostState> {
             }
         }
         // add new states for remaining locked doors
-        foreach (char door in lockedDoors) {
+        foreach (char door in lockedDoors.Where(it => !current.Targets.Contains(Cell.ToSwitch(it)))) {
             var doorState = current.Copy();
             doorState.AddTarget(Cell.ToSwitch(door));
             yield return doorState;
