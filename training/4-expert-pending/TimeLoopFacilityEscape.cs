@@ -265,93 +265,18 @@ class Facility : IGame<GhostState> {
         if (current.Loops.Count == maxLoops) {
             yield break;
         }
-        Func<Point, IEnumerable<Point>> next = it => Next(it, current);
-        {
-            int i = current.Targets.Count - 1;
-            char target = current.Targets[i];
-            Debug.Log($"searching {target}");
-            // todo: refactor
-            // we try to reach current target
-            var loop = Pathfinding.Shortest(start, it => grid[it] == target, next);
-            if (loop != null) {
-                // we can
-                var searchState = current.Copy();
-                Debug.Log($"found {target} using {GhostState.Actions(loop)}", 1, ConsoleColor.Blue);
-                // try to add new loop
-                if (!AddLoop(searchState, loop)) {
-                    yield break;
-                }
-                // remove reached target
-                searchState.RemoveTarget(i);
-                yield return searchState;
-                // if previous loops exist, try combining and branching
-                if (current.Loops.Count <= 0) {
-                    yield break;
-                }
-                var source = current.Loops.Last().Last();
-                loop = Pathfinding.Shortest(source, it => grid[it] == target, next)!;
-                // check that it's a valid loop
-                if (loop.Any(it => grid[it] == Cell.ToDoor(grid[source]))) {
-                    yield break;
-                }
-                var combineState = current.Copy();
-                Debug.Log($"found {target} from {grid[source]} using {GhostState.Actions(loop)}", 1,
-                        ConsoleColor.Blue);
-                loop = [.. combineState.Loops.Last(), .. loop.Skip(1)];
-                Debug.Log($"combined: {GhostState.Actions(loop)}", 2, ConsoleColor.Blue);
-                combineState.Loops.RemoveAt(combineState.Loops.Count - 1);
-                // try to add new loop
-                if (!AddLoop(combineState, loop)) {
-                    yield break;
-                }
-                combineState.RemoveTarget(i);
-                yield return combineState;
-                // no need to search for paths to target, new states will handle remaining targets
-                yield break;
+        int startIndex = current.Targets.Count == 1 ? 0 : 1;
+        for (int i = current.Targets.Count - 1; i >= startIndex; i--) {
+            var found = FindTarget(current, i);
+            if (found == null) {
+                continue;
             }
-        }
-        for (int i = current.Targets.Count - 2; i >= 1; i--) {
-            char target = current.Targets[i];
-            Debug.Log($"searching {target}");
-            // todo: refactor
-            // we try to reach current target
-            var loop = Pathfinding.Shortest(start, it => grid[it] == target, next);
-            if (loop != null) {
-                // we can
-                var searchState = current.Copy();
-                Debug.Log($"found {target} using {GhostState.Actions(loop)}", 1, ConsoleColor.Blue);
-                // try to add new loop
-                if (!AddLoop(searchState, loop)) {
-                    yield break;
-                }
-                // remove reached target
-                searchState.RemoveTarget(i);
-                yield return searchState;
-                // if previous loops exist, try combining and branching
-                if (current.Loops.Count <= 0) {
-                    yield break;
-                }
-                var source = current.Loops.Last().Last();
-                loop = Pathfinding.Shortest(source, it => grid[it] == target, next)!;
-                // check that it's a valid loop
-                if (loop.Any(it => grid[it] == Cell.ToDoor(grid[source]))) {
-                    yield break;
-                }
-                var combineState = current.Copy();
-                Debug.Log($"found {target} from {grid[source]} using {GhostState.Actions(loop)}", 1,
-                        ConsoleColor.Blue);
-                loop = [.. combineState.Loops.Last(), .. loop.Skip(1)];
-                Debug.Log($"combined: {GhostState.Actions(loop)}", 2, ConsoleColor.Blue);
-                combineState.Loops.RemoveAt(combineState.Loops.Count - 1);
-                // try to add new loop
-                if (!AddLoop(combineState, loop)) {
-                    yield break;
-                }
-                combineState.RemoveTarget(i);
-                yield return combineState;
-                // no need to search for paths to target, new states will handle remaining targets
-                yield break;
+            yield return found;
+            var foundAndCombined = FindTargetAndCombine(current, i);
+            if (foundAndCombined != null) {
+                yield return foundAndCombined;
             }
+            yield break;
         }
         // we can't reach target
         var unlockedDoors = UnlockedDoors(current);
@@ -378,6 +303,44 @@ class Facility : IGame<GhostState> {
         }
     }
 
+    GhostState? FindTarget(GhostState state, int index) {
+        char target = state.Targets[index];
+        Debug.Log($"searching {target}");
+        var loop = Pathfinding.Shortest(start, it => grid[it] == target, it => Next(it, state));
+        if (loop == null) {
+            return null;
+        }
+        var copy = state.Copy();
+        Debug.Log($"found {target} using {GhostState.Actions(loop)}", 1, ConsoleColor.Blue);
+        if (!AddLoop(copy, loop)) {
+            return null;
+        }
+        copy.RemoveTarget(index);
+        return copy;
+    }
+
+    GhostState? FindTargetAndCombine(GhostState state, int index) {
+        if (state.Loops.Count <= 0) {
+            return null;
+        }
+        var source = state.Loops.Last().Last();
+        char target = state.Targets[index];
+        var loop = Pathfinding.Shortest(source, it => grid[it] == target, it => Next(it, state))!;
+        if (loop.Any(it => grid[it] == Cell.ToDoor(grid[source]))) {
+            return null;
+        }
+        var copy = state.Copy();
+        Debug.Log($"found {target} from {grid[source]} using {GhostState.Actions(loop)}", 1, ConsoleColor.Blue);
+        loop = [.. copy.Loops.Last(), .. loop.Skip(1)];
+        Debug.Log($"combined: {GhostState.Actions(loop)}", 2, ConsoleColor.Blue);
+        copy.Loops.RemoveAt(copy.Loops.Count - 1);
+        if (!AddLoop(copy, loop)) {
+            return null;
+        }
+        copy.RemoveTarget(index);
+        return copy;
+    }
+
     static IEnumerable<List<T>> Permutations<T>(List<T> items) {
         if (items.Count <= 1) {
             yield return items;
@@ -392,43 +355,6 @@ class Facility : IGame<GhostState> {
     }
 
     /*
-    GhostState? FindTarget(GhostState state) {
-        char target = state.Targets.Peek();
-        var loop = Pathfinding.Shortest(start, it => grid[it] == target, it => Next(it, state));
-        if (loop == null) {
-            return null;
-        }
-        var copy = state.Copy();
-        Debug.Log($"found {target} using {GhostState.Actions(loop)}", 1, ConsoleColor.Blue);
-        if (!AddLoop(copy, loop)) {
-            return null;
-        }
-        copy.RemoveTarget();
-        return copy;
-    }
-
-    GhostState? FindTargetAndCombine(GhostState state) {
-        if (state.Loops.Count <= 0) {
-            return null;
-        }
-        var source = state.Loops.Last().Last();
-        char target = state.Targets.Peek();
-        var loop = Pathfinding.Shortest(source, it => grid[it] == target, it => Next(it, state));
-        if (loop == null || loop.Any(it => grid[it] == Cell.ToDoor(grid[source]))) {
-            return null;
-        }
-        var copy = state.Copy();
-        Debug.Log($"found {target} from {grid[source]} using {GhostState.Actions(loop)}", 1, ConsoleColor.Blue);
-        loop = [.. copy.Loops.Last(), .. loop.Skip(1)];
-        Debug.Log($"combined: {GhostState.Actions(loop)}", 2, ConsoleColor.Blue);
-        copy.Loops.RemoveAt(copy.Loops.Count - 1);
-        if (!AddLoop(copy, loop)) {
-            return null;
-        }
-        copy.RemoveTarget();
-        return copy;
-    }
-
     IEnumerable<char> LockedDoors(GhostState current, bool foundTarget) {
         var unlockedDoors = UnlockedDoors(current);
         HashSet<char> doors = [];
