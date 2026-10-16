@@ -4,11 +4,9 @@ using System.Diagnostics.CodeAnalysis;
 Debug.Enabled = false;
 Assert.Throw = true;
 Test.StepEnabled = false;
-Test.StartLine = "";
-Test.EndLine = "";
-Test.Run(() => {
-    var stopwatch = Stopwatch.StartNew();
-    Debug.ReadLine();
+// Test.From = "02 Validator 1";
+// Test.Until = "03 The Polite Keymaster";
+Test.Run(expected => {
     // Navigate through a facility to reach the extraction point by coordinating robot actions across multiple time loops
     // https://www.codingame.com/contribute/view/1415851ba1aa5d4b0600a53ac02dd35417fd8b
     string[] inputs = Console.ReadLine()!.Split(' ');
@@ -18,15 +16,7 @@ Test.Run(() => {
     var facility = new Facility(width, height, maxLoops);
     facility.ReadGrid();
     facility.BuildConnections();
-    var actual = facility.ReachExit();
-    List<string> lines = [];
-    for (string line; !string.IsNullOrEmpty(line = Console.ReadLine()!);) {
-        lines.Add(line);
-    }
-    Assert.ActualEqualsExpected(actual.ToString(), string.Join("\n", lines));
-    var time = $"Test took {stopwatch.ElapsedMilliseconds}ms";
-    Console.Error.WriteLine(time);
-    Test.Log(time);
+    Assert.ActualEqualsExpected(facility.ReachExit().ToString(), expected());
     Perf.Report("block");
 });
 
@@ -644,15 +634,35 @@ static class Test {
 
     static readonly TextReader consoleIn = Console.In;
     public static bool StepEnabled { get; set; }
-    public static string? StartLine { get; set; }
-    public static string? EndLine { get; set; }
+    public static string? From { get; set; }
+    public static string? Until { get; set; }
 
-    public static void Run(Action action) {
+    public static void Run(Action<Func<string>> action) {
         File.WriteAllText(LOG_FILE, null);
         string cases = File.ReadAllText(CASES_FILE);
+        if (From != null) {
+            cases = cases[cases.IndexOf(From, StringComparison.Ordinal)..];
+        }
+        if (Until != null) {
+            cases = cases[..cases.IndexOf(Until, StringComparison.Ordinal)];
+        }
         Console.SetIn(new StringReader(cases));
         while (Console.In.Peek() != -1) {
-            action();
+            var stopwatch = Stopwatch.StartNew();
+            string? name = Console.ReadLine();
+            Log(name, debug: true, color: ConsoleColor.Cyan);
+            action(Expected);
+            Log($"Test took {stopwatch.ElapsedMilliseconds}ms", debug: true);
+            Log(debug: true);
+        }
+        return;
+
+        static string Expected() {
+            List<string> lines = [];
+            for (string line; !string.IsNullOrEmpty(line = Console.ReadLine()!);) {
+                lines.Add(line);
+            }
+            return string.Join("\n", lines);
         }
     }
 
@@ -666,8 +676,16 @@ static class Test {
         Console.SetIn(current);
     }
 
-    public static void Log(object? line = null) {
+    public static void Log(object? line = null, bool debug = false, ConsoleColor? color = null) {
         File.AppendAllText(LOG_FILE, $"{line}{Environment.NewLine}");
+        if (!debug) {
+            return;
+        }
+        if (color != null) {
+            Console.ForegroundColor = color.Value;
+        }
+        Console.Error.WriteLine(line);
+        Console.ResetColor();
     }
 }
 

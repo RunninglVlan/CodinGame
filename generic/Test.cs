@@ -1,16 +1,43 @@
 ﻿using System;
+using System.Diagnostics;
 using System.IO;
 
 static class Test {
-    const string FILE = "Test.Log.txt";
+    const string CASES_FILE = "Test.Cases.txt";
+    const string LOG_FILE = "Test.Log.txt";
 
     static readonly TextReader consoleIn = Console.In;
     public static bool StepEnabled { get; set; }
+    public static string? From { get; set; }
+    public static string? Until { get; set; }
 
-    static Test() => File.WriteAllText(FILE, null);
-
-    public static void Cases(string cases) {
+    public static void Run(Action<Func<string>> action) {
+        File.WriteAllText(LOG_FILE, null);
+        string cases = File.ReadAllText(CASES_FILE);
+        if (From != null) {
+            cases = cases[cases.IndexOf(From, StringComparison.Ordinal)..];
+        }
+        if (Until != null) {
+            cases = cases[..cases.IndexOf(Until, StringComparison.Ordinal)];
+        }
         Console.SetIn(new StringReader(cases));
+        while (Console.In.Peek() != -1) {
+            var stopwatch = Stopwatch.StartNew();
+            string? name = Console.ReadLine();
+            Log(name, debug: true, color: ConsoleColor.Cyan);
+            action(Expected);
+            Log($"Test took {stopwatch.ElapsedMilliseconds}ms", debug: true);
+            Log(debug: true);
+        }
+        return;
+
+        static string Expected() {
+            List<string> lines = [];
+            for (string line; !string.IsNullOrEmpty(line = Console.ReadLine()!);) {
+                lines.Add(line);
+            }
+            return string.Join("\n", lines);
+        }
     }
 
     public static void Step() {
@@ -23,7 +50,17 @@ static class Test {
         Console.SetIn(current);
     }
 
-    public static void Log(object? line = null) => File.AppendAllText(FILE, $"{line}{Environment.NewLine}");
+    public static void Log(object? line = null, bool debug = false, ConsoleColor? color = null) {
+        File.AppendAllText(LOG_FILE, $"{line}{Environment.NewLine}");
+        if (!debug) {
+            return;
+        }
+        if (color != null) {
+            Console.ForegroundColor = color.Value;
+        }
+        Console.Error.WriteLine(line);
+        Console.ResetColor();
+    }
 }
 
 static class Assert {
