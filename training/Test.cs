@@ -4,8 +4,9 @@ using System.Diagnostics.CodeAnalysis;
 Debug.Enabled = false;
 Assert.Throw = true;
 Test.StepEnabled = false;
-Test.Cases(File.ReadAllText("Test.Cases.txt"));
-while (Console.In.Peek() != -1) {
+Test.StartLine = "";
+Test.EndLine = "";
+Test.Run(() => {
     var stopwatch = Stopwatch.StartNew();
     Debug.ReadLine();
     // Navigate through a facility to reach the extraction point by coordinating robot actions across multiple time loops
@@ -27,7 +28,7 @@ while (Console.In.Peek() != -1) {
     Console.Error.WriteLine(time);
     Test.Log(time);
     Perf.Report("block");
-}
+});
 
 record GhostState(List<List<Point>> Loops, List<char> Targets) : IState<GhostState> {
     public string Steps { get; private set; } = string.Empty;
@@ -638,15 +639,21 @@ static class Debug {
 }
 
 static class Test {
-    const string FILE = "Test.Log.txt";
+    const string CASES_FILE = "Test.Cases.txt";
+    const string LOG_FILE = "Test.Log.txt";
 
     static readonly TextReader consoleIn = Console.In;
     public static bool StepEnabled { get; set; }
+    public static string? StartLine { get; set; }
+    public static string? EndLine { get; set; }
 
-    static Test() => File.WriteAllText(FILE, null);
-
-    public static void Cases(string cases) {
+    public static void Run(Action action) {
+        File.WriteAllText(LOG_FILE, null);
+        string cases = File.ReadAllText(CASES_FILE);
         Console.SetIn(new StringReader(cases));
+        while (Console.In.Peek() != -1) {
+            action();
+        }
     }
 
     public static void Step() {
@@ -659,7 +666,9 @@ static class Test {
         Console.SetIn(current);
     }
 
-    public static void Log(object? line = null) => File.AppendAllText(FILE, $"{line}{Environment.NewLine}");
+    public static void Log(object? line = null) {
+        File.AppendAllText(LOG_FILE, $"{line}{Environment.NewLine}");
+    }
 }
 
 static class Assert {
