@@ -28,25 +28,23 @@ while (Console.In.Peek() != -1) {
     Perf.Report("block");
 }
 
-record GhostState(List<List<Point>> Loops, Stack<char> Targets) : IState<GhostState> {
+record GhostState(List<List<Point>> Loops, List<char> Targets) : IState<GhostState> {
     public string Steps { get; private set; } = string.Empty;
 
     public GhostState Copy() {
-        char[] currentTargets = [.. Targets];
-        Array.Reverse(currentTargets);
-        return new GhostState([.. Loops.Select(it => it.ToList())], new Stack<char>(currentTargets)) {
+        return new GhostState([.. Loops.Select(it => it.ToList())], [.. Targets]) {
             Steps = Steps
         };
     }
 
-    public void PushTarget(char value) {
-        Targets.Push(value);
+    public void AddTarget(char value) {
+        Targets.Add(value);
         Steps += $"+{value}";
     }
 
-    public void PopTarget() {
-        char target = Targets.Pop();
-        Steps += $"-{target}";
+    public void RemoveTarget(char value) {
+        Targets.RemoveAll(it => it == value);
+        Steps += $"-{value}";
     }
 
     bool IState<GhostState>.IsBetterThan(GhostState other) {
@@ -171,7 +169,7 @@ class Facility : IGame<GhostState> {
 
     public GhostState ReachExit() {
         var startState = new GhostState([], []);
-        startState.PushTarget(grid[exit]);
+        startState.AddTarget(grid[exit]);
         return stateSearch.FindBest(startState)!;
     }
 
@@ -280,7 +278,7 @@ class Facility : IGame<GhostState> {
             yield break;
         }
         Func<Point, IEnumerable<Point>> next = it => Next(it, current);
-        char target = current.Targets.Peek();
+        char target = current.Targets.Last();
         Debug.Log($"searching {target}");
         // todo: refactor
         var loop = Pathfinding.Shortest(start, it => grid[it] == target, next);
@@ -290,7 +288,7 @@ class Facility : IGame<GhostState> {
             if (!AddLoop(searchState, loop)) {
                 yield break;
             }
-            searchState.PopTarget();
+            searchState.RemoveTarget(target);
             yield return searchState;
             if (current.Loops.Count <= 0) {
                 yield break;
@@ -308,7 +306,7 @@ class Facility : IGame<GhostState> {
             if (!AddLoop(combineState, loop)) {
                 yield break;
             }
-            combineState.PopTarget();
+            combineState.RemoveTarget(target);
             yield return combineState;
             yield break;
         }
@@ -321,14 +319,14 @@ class Facility : IGame<GhostState> {
                 var pathState = current.Copy();
                 foreach (char door in doorOrders) {
                     lockedDoors.Remove(door);
-                    pathState.PushTarget(Cell.ToSwitch(door));
+                    pathState.AddTarget(Cell.ToSwitch(door));
                 }
                 yield return pathState;
             }
         }
         foreach (char door in lockedDoors) {
             var doorState = current.Copy();
-            doorState.PushTarget(Cell.ToSwitch(door));
+            doorState.AddTarget(Cell.ToSwitch(door));
             yield return doorState;
         }
     }
@@ -346,6 +344,7 @@ class Facility : IGame<GhostState> {
         }
     }
 
+    /*
     GhostState? FindTarget(GhostState state) {
         char target = state.Targets.Peek();
         var loop = Pathfinding.Shortest(start, it => grid[it] == target, it => Next(it, state));
@@ -357,7 +356,7 @@ class Facility : IGame<GhostState> {
         if (!AddLoop(copy, loop)) {
             return null;
         }
-        copy.PopTarget();
+        copy.RemoveTarget();
         return copy;
     }
 
@@ -379,7 +378,7 @@ class Facility : IGame<GhostState> {
         if (!AddLoop(copy, loop)) {
             return null;
         }
-        copy.PopTarget();
+        copy.RemoveTarget();
         return copy;
     }
 
@@ -415,6 +414,7 @@ class Facility : IGame<GhostState> {
             yield return door;
         }
     }
+    */
 
     HashSet<char> UnlockedDoors(GhostState state) {
         var unlockedDoors = state.Loops
