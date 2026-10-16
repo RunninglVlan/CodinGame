@@ -1,19 +1,28 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.IO;
 using System.Linq;
 
-Debug.Enabled = false;
-// Navigate through a facility to reach the extraction point by coordinating robot actions across multiple time loops
-// https://www.codingame.com/contribute/view/1415851ba1aa5d4b0600a53ac02dd35417fd8b
-string[] inputs = Console.ReadLine()!.Split(' ');
-int width = Math.Clamp(int.Parse(inputs[0]), 3, 30);
-int height = Math.Clamp(int.Parse(inputs[1]), 3, 30);
-int maxLoops = Math.Clamp(int.Parse(inputs[2]), 1, 5);
-var facility = new Facility(width, height, maxLoops);
-facility.ReadGrid();
-facility.BuildConnections();
-Console.WriteLine(facility.ReachExit());
+// Debug.Enabled = true;
+Assert.Throw = true;
+// Test.StepEnabled = true;
+// Test.From = "09 Tumbler";
+// Test.Until = "10 Validator 5";
+Test.Run(expected => {
+    // Navigate through a facility to reach the extraction point by coordinating robot actions across multiple time loops
+    // https://www.codingame.com/contribute/view/1415851ba1aa5d4b0600a53ac02dd35417fd8b
+    string[] inputs = Console.ReadLine()!.Split(' ');
+    int width = Math.Clamp(int.Parse(inputs[0]), 3, 30);
+    int height = Math.Clamp(int.Parse(inputs[1]), 3, 30);
+    int maxLoops = Math.Clamp(int.Parse(inputs[2]), 1, 5);
+    var facility = new Facility(width, height, maxLoops);
+    facility.ReadGrid();
+    facility.BuildConnections();
+    Assert.ActualEqualsExpected(facility.ReachExit().ToString(), expected());
+    Perf.Report("block");
+});
 
 record GhostState(List<List<Point>> Loops, List<char> Targets) : IState<GhostState> {
     public string Steps { get; private set; } = string.Empty;
@@ -381,6 +390,7 @@ class Facility : IGame<GhostState> {
                             .Where(node => Cell.IsDoor(node.Id) && node.Id != Cell.ToDoor(target) || node == graph[target]);
                 })
                 .ToList();
+        long t = Perf.Start();
         // todo: sets can be created once
         pathsToTarget = [.. pathsToTarget.OrderBy(it => it.Count)];
         for (var i = 0; i < pathsToTarget.Count; i++) {
@@ -391,6 +401,7 @@ class Facility : IGame<GhostState> {
                 }
             }
         }
+        Perf.Stop(t);
         foreach (var path in pathsToTarget) {
             Debug.Log(string.Join('-', path.Select(it => grid[it.Point])), depth + 2);
         }
@@ -537,6 +548,7 @@ class StateSearch<T>(IGame<T> game, int depthMax) where T : IState<T>, IEquatabl
             }
             Debug.Log($"next: {next.Steps} (depth {depth})", depth);
             Debug.Log(next);
+            Test.Step();
             var nextBest = FindBest(next, depth + 1);
             if (nextBest == null) {
                 continue;
@@ -568,6 +580,7 @@ static class Debug {
     public static string? ReadLine() {
         string? line = Console.ReadLine();
         Console.Error.WriteLine(line);
+        if (line != null) Test.Log(line);
         return line;
     }
 
@@ -577,7 +590,100 @@ static class Debug {
         }
         Console.ForegroundColor = color ?? ConsoleColor.Red;
         var padding = new string(' ', tab * TAB_LENGTH);
-        Console.Error.WriteLine($"{padding}{line}");
+        var log = $"{padding}{line}";
+        Console.Error.WriteLine(log);
+        Test.Log(log);
         Console.ResetColor();
+    }
+}
+
+static class Test {
+    const string CASES_FILE = "../Test.Cases.txt";
+    const string LOG_FILE = "../Test.Log.txt";
+
+    static readonly TextReader consoleIn = Console.In;
+    public static bool StepEnabled { get; set; }
+    public static string? From { get; set; }
+    public static string? Until { get; set; }
+
+    public static void Run(Action<Func<string>> action) {
+        File.WriteAllText(LOG_FILE, null);
+        string cases = File.ReadAllText(CASES_FILE);
+        if (From != null) {
+            cases = cases[cases.IndexOf(From, StringComparison.Ordinal)..];
+        }
+        if (Until != null) {
+            cases = cases[..cases.IndexOf(Until, StringComparison.Ordinal)];
+        }
+        Console.SetIn(new StringReader(cases));
+        while (Console.In.Peek() != -1) {
+            var stopwatch = Stopwatch.StartNew();
+            string? name = Console.ReadLine();
+            Log(name, debug: true, color: ConsoleColor.Cyan);
+            action(Expected);
+            Log($"Test took {stopwatch.ElapsedMilliseconds}ms", debug: true);
+            Log(debug: true);
+        }
+        return;
+
+        static string Expected() {
+            List<string> lines = [];
+            for (string line; !string.IsNullOrEmpty(line = Console.ReadLine()!);) {
+                lines.Add(line);
+            }
+            return string.Join("\n", lines);
+        }
+    }
+
+    public static void Step() {
+        if (!StepEnabled) {
+            return;
+        }
+        var current = Console.In;
+        Console.SetIn(consoleIn);
+        Console.ReadLine();
+        Console.SetIn(current);
+    }
+
+    public static void Log(object? line = null, bool debug = false, ConsoleColor? color = null) {
+        File.AppendAllText(LOG_FILE, $"{line}{Environment.NewLine}");
+        if (!debug) {
+            return;
+        }
+        if (color != null) {
+            Console.ForegroundColor = color.Value;
+        }
+        Console.Error.WriteLine(line);
+        Console.ResetColor();
+    }
+}
+
+static class Assert {
+    public static bool Throw { get; set; }
+
+    public static void ActualEqualsExpected(string actual, string expected) {
+        bool equals = Equals(actual, expected);
+        Console.WriteLine(equals ? $"✅ {actual}" : $"❌ found {actual}, but expected {expected}");
+        if (!equals && Throw) {
+            throw new Exception();
+        }
+    }
+}
+
+static class Perf {
+    static long ticks, calls;
+
+    public static long Start() => Stopwatch.GetTimestamp();
+
+    public static void Stop(long start) {
+        ticks += Stopwatch.GetTimestamp() - start;
+        calls++;
+    }
+
+    public static void Report(string name) {
+        var total = Stopwatch.GetElapsedTime(0, ticks);
+        Console.Error.WriteLine(
+                $"{name}: {total.TotalMilliseconds:F1}ms total, {calls} calls, " +
+                $"{total.TotalMilliseconds * 1000 / calls:F2}µs/call");
     }
 }
