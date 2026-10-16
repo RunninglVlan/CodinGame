@@ -4,7 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 // Debug.Enabled = true;
 Assert.Throw = true;
 // Test.StepEnabled = true;
-// Test.From = "09 Tumbler";
+// Test.From = "31 Another Brick In The Wall";
 // Test.Until = "10 Validator 5";
 Test.Run(expected => {
     // Navigate through a facility to reach the extraction point by coordinating robot actions across multiple time loops
@@ -270,34 +270,40 @@ class Facility : IGame<GhostState> {
         if (current.Loops.Count == maxLoops) {
             yield break;
         }
+        var targets = current.Targets.ToList();
         int startIndex = current.Targets.Count == 1 ? 0 : 1;
         for (int i = current.Targets.Count - 1; i >= startIndex; i--) {
             var found = FindTarget(current, i);
             if (found == null) {
                 continue;
             }
+            targets.Remove(current.Targets[i]);
             yield return found;
             var foundAndCombined = FindTargetAndCombine(current, i);
             if (foundAndCombined != null) {
                 yield return foundAndCombined;
             }
-            yield break;
         }
         // we can't reach target
         var unlockedDoors = UnlockedDoors(current);
         var lockedDoors = grid.Values.Where(it => Cell.IsDoor(it) && !unlockedDoors.Contains(it)).ToHashSet();
         // todo: refactor
         // add new states with permutations of paths that lead there
-        char unreachableTarget = current.Targets.Last();
-        foreach (var path in PathsTo(unreachableTarget)) {
-            var doors = path.Skip(1).SkipLast(1).Select(it => it.Id).Where(it => !unlockedDoors.Contains(it)).ToList();
-            foreach (var doorOrders in Permutations(doors)) {
-                var pathState = current.Copy();
-                foreach (char door in doorOrders) {
-                    lockedDoors.Remove(door);
-                    pathState.AddTarget(Cell.ToSwitch(door));
+        if (targets.Count > 0) {
+            char unreachableTarget = targets.Last();
+            foreach (var path in PathsTo(unreachableTarget)) {
+                var doors = path.Skip(1).SkipLast(1)
+                        .Select(it => it.Id)
+                        .Where(it => !unlockedDoors.Contains(it))
+                        .ToList();
+                foreach (var doorOrders in Permutations(doors)) {
+                    var pathState = current.Copy();
+                    foreach (char door in doorOrders) {
+                        lockedDoors.Remove(door);
+                        pathState.AddTarget(Cell.ToSwitch(door));
+                    }
+                    yield return pathState;
                 }
-                yield return pathState;
             }
         }
         // add new states for remaining locked doors
