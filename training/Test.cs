@@ -3,7 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 
 Debug.Enabled = true;
 Assert.Throw = true;
-// Test.StepEnabled = true;
+Test.StepEnabled = true;
 Test.From = "09 Tumbler";
 Test.Until = "10 Validator 5";
 Test.Run(expected => {
@@ -265,20 +265,20 @@ class Facility : IGame<GhostState> {
                 .OrderBy(it => Array.IndexOf(DIRECTION_PRIORITY, it - current));
     }
 
-    IEnumerable<GhostState> IGame<GhostState>.Next(GhostState current) {
+    IEnumerable<GhostState> IGame<GhostState>.Next(GhostState current, int depth) {
         if (current.Loops.Count == maxLoops) {
             yield break;
         }
         var targets = current.Targets.ToList();
         int startIndex = current.Targets.Count == 1 ? 0 : 1;
         for (int i = current.Targets.Count - 1; i >= startIndex; i--) {
-            var found = FindTarget(current, i);
+            var found = FindTarget(current, i, depth);
             if (found == null) {
                 continue;
             }
             targets.Remove(current.Targets[i]);
             yield return found;
-            var foundAndCombined = FindTargetAndCombine(current, i);
+            var foundAndCombined = FindTargetAndCombine(current, i, depth);
             if (foundAndCombined != null) {
                 yield return foundAndCombined;
             }
@@ -288,7 +288,7 @@ class Facility : IGame<GhostState> {
         // todo: refactor
         if (targets.Count > 0) {
             char unreachableTarget = targets.Last();
-            foreach (var path in PathsTo(unreachableTarget)) {
+            foreach (var path in PathsTo(unreachableTarget, depth)) {
                 var doors = path.Skip(1).SkipLast(1)
                         .Select(it => it.Id)
                         .Where(it => !unlockedDoors.Contains(it))
@@ -305,7 +305,7 @@ class Facility : IGame<GhostState> {
         }
         var moreDoors = lockedDoors.Where(it => !current.Targets.Contains(Cell.ToSwitch(it))).ToList();
         if (moreDoors.Count > 0) {
-            Debug.Log($"trying to unlock remaining doors: {string.Join(", ", moreDoors)}", 1);
+            Debug.Log($"trying to unlock remaining doors: {string.Join(", ", moreDoors)} (depth {depth})", depth + 1);
         }
         foreach (char door in moreDoors) {
             var doorState = current.Copy();
@@ -314,15 +314,15 @@ class Facility : IGame<GhostState> {
         }
     }
 
-    GhostState? FindTarget(GhostState state, int index) {
+    GhostState? FindTarget(GhostState state, int index, int depth) {
         char target = state.Targets[index];
-        Debug.Log($"searching {target}");
+        Debug.Log($"searching {target} (depth {depth})", depth);
         var loop = Pathfinding.Shortest(start, it => grid[it] == target, it => Next(it, state));
         if (loop == null) {
             return null;
         }
         var copy = state.Copy();
-        Debug.Log($"found {target} using {GhostState.Actions(loop)}", 1, ConsoleColor.Blue);
+        Debug.Log($"found {target} using {GhostState.Actions(loop)} (depth {depth})", depth + 1, ConsoleColor.Blue);
         if (!AddLoop(copy, loop)) {
             return null;
         }
@@ -330,7 +330,7 @@ class Facility : IGame<GhostState> {
         return copy;
     }
 
-    GhostState? FindTargetAndCombine(GhostState state, int index) {
+    GhostState? FindTargetAndCombine(GhostState state, int index, int depth) {
         if (state.Loops.Count <= 0) {
             return null;
         }
@@ -341,9 +341,9 @@ class Facility : IGame<GhostState> {
             return null;
         }
         var copy = state.Copy();
-        Debug.Log($"found {target} from {grid[source]} using {GhostState.Actions(loop)}", 1, ConsoleColor.Blue);
+        Debug.Log($"found {target} from {grid[source]} using {GhostState.Actions(loop)} (depth {depth})", depth + 1, ConsoleColor.Blue);
         loop = [.. copy.Loops.Last(), .. loop.Skip(1)];
-        Debug.Log($"combined: {GhostState.Actions(loop)}", 2, ConsoleColor.Blue);
+        Debug.Log($"combined: {GhostState.Actions(loop)} (depth {depth})", depth + 2, ConsoleColor.Blue);
         copy.Loops.RemoveAt(copy.Loops.Count - 1);
         if (!AddLoop(copy, loop)) {
             return null;
@@ -374,11 +374,11 @@ class Facility : IGame<GhostState> {
         return [.. unlockedDoors];
     }
 
-    List<List<Node>> PathsTo(char target) {
+    List<List<Node>> PathsTo(char target, int depth) {
         if (pathsToTargets.TryGetValue(target, out var paths)) {
             return paths;
         }
-        Debug.Log($"can't find {target}, paths that lead there:", 1);
+        Debug.Log($"can't find {target}, paths that lead there (depth {depth}):", depth + 1);
         var pathsToTarget = Pathfinding.All(graph[Cell.START], graph[target], it => {
                     return it.Connections
                             .Select(id => graph[id])
@@ -399,7 +399,7 @@ class Facility : IGame<GhostState> {
         }
         Perf.Stop(t);
         foreach (var path in pathsToTarget) {
-            Debug.Log(string.Join('-', path.Select(it => grid[it.Point])), 2);
+            Debug.Log(string.Join('-', path.Select(it => grid[it.Point])), depth + 2);
         }
         return pathsToTargets[target] = pathsToTarget;
     }
@@ -538,11 +538,11 @@ class StateSearch<T>(IGame<T> game, int depthMax) where T : IState<T>, IEquatabl
             return default;
         }
         T? best = default;
-        foreach (var next in game.Next(current)) {
+        foreach (var next in game.Next(current, depth)) {
             if (!visited.Add(next)) {
                 continue;
             }
-            Debug.Log($"next: {next.Steps}", depth);
+            Debug.Log($"next: {next.Steps} (depth {depth})", depth);
             Debug.Log(next);
             Test.Step();
             var nextBest = FindBest(next, depth + 1);
@@ -558,7 +558,7 @@ class StateSearch<T>(IGame<T> game, int depthMax) where T : IState<T>, IEquatabl
 }
 
 interface IGame<TState> {
-    IEnumerable<TState> Next(TState current);
+    IEnumerable<TState> Next(TState current, int depth);
     bool HasReachedEnd(TState state);
 }
 
