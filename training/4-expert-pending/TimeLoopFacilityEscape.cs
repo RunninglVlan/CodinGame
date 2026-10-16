@@ -279,11 +279,9 @@ class Facility : IGame<GhostState> {
                 yield return foundAndCombined;
             }
         }
-        // we can't reach target
         var unlockedDoors = UnlockedDoors(current);
         var lockedDoors = grid.Values.Where(it => Cell.IsDoor(it) && !unlockedDoors.Contains(it)).ToHashSet();
         // todo: refactor
-        // add new states with permutations of paths that lead there
         if (targets.Count > 0) {
             char unreachableTarget = targets.Last();
             foreach (var path in PathsTo(unreachableTarget)) {
@@ -301,8 +299,11 @@ class Facility : IGame<GhostState> {
                 }
             }
         }
-        // add new states for remaining locked doors
-        foreach (char door in lockedDoors.Where(it => !current.Targets.Contains(Cell.ToSwitch(it)))) {
+        var moreDoors = lockedDoors.Where(it => !current.Targets.Contains(Cell.ToSwitch(it))).ToList();
+        if (moreDoors.Count > 0) {
+            Debug.Log($"trying to unlock remaining doors: {string.Join(", ", moreDoors)}", 1);
+        }
+        foreach (char door in moreDoors) {
             var doorState = current.Copy();
             doorState.AddTarget(Cell.ToSwitch(door));
             yield return doorState;
@@ -359,41 +360,6 @@ class Facility : IGame<GhostState> {
             }
         }
     }
-
-    /*
-    IEnumerable<char> LockedDoors(GhostState current, bool foundTarget) {
-        var unlockedDoors = UnlockedDoors(current);
-        HashSet<char> doors = [];
-        if (!foundTarget) {
-            var pathsToTarget = PathsTo(current.Targets.Peek());
-            var pathDoors = pathsToTarget.SelectMany(path => path.Skip(1).SkipLast(1)
-                    .Select(it => it.Id)
-                    .Where(it => !unlockedDoors.Contains(it))
-                    .Where(it => !current.Targets.Contains(Cell.ToSwitch(it))))
-                    .ToHashSet();
-            if (pathDoors.Count > 0) {
-                Debug.Log($"trying to unlock doors {string.Join(", ", pathDoors)}", 2);
-            }
-            foreach (char door in pathDoors) {
-                doors.Add(door);
-                yield return door;
-            }
-        }
-        var lockedDoors = grid.Where(it => Cell.IsDoor(it.Value) && !unlockedDoors.Contains(it.Value))
-                .OrderBy(it => Point.ManhattanDistance(start, it.Key))
-                .Select(it => it.Value);
-        var moreDoors = lockedDoors
-                .Where(it => !doors.Contains(it))
-                .Where(it => !current.Targets.Contains(Cell.ToSwitch(it)))
-                .ToList();
-        if (moreDoors.Count > 0) {
-            Debug.Log($"trying to unlock first remaining door from {string.Join(", ", moreDoors)}", 2);
-        }
-        foreach (char door in moreDoors.Take(1)) {
-            yield return door;
-        }
-    }
-    */
 
     HashSet<char> UnlockedDoors(GhostState state) {
         var unlockedDoors = state.Loops
