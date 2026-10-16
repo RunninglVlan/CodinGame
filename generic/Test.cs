@@ -4,27 +4,26 @@ using System.IO;
 static class Test {
     const string FILE = "Test.Log.txt";
 
-    static TextReader consoleIn = null!;
-    static StringReader stringIn = null!;
+    static readonly TextReader consoleIn = Console.In;
     public static bool StepEnabled { get; set; }
 
     static Test() => File.WriteAllText(FILE, null);
 
     public static void Cases(string cases) {
-        consoleIn = Console.In;
-        Console.SetIn(stringIn = new StringReader(cases));
+        Console.SetIn(new StringReader(cases));
     }
 
     public static void Step() {
         if (!StepEnabled) {
             return;
         }
+        var current = Console.In;
         Console.SetIn(consoleIn);
         Console.ReadLine();
-        Console.SetIn(stringIn);
+        Console.SetIn(current);
     }
 
-    public static void Log(object line) => File.AppendAllText(FILE, $"{line}{Environment.NewLine}");
+    public static void Log(object? line = null) => File.AppendAllText(FILE, $"{line}{Environment.NewLine}");
 }
 
 static class Assert {
