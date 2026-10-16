@@ -406,7 +406,8 @@ class Facility : IGame<GhostState> {
         var pathsToTarget = Pathfinding.All(graph[Cell.START], graph[target], it => {
                     return it.Connections
                             .Select(id => graph[id])
-                            .Where(node => Cell.IsDoor(grid[node.Point]) || node == graph[target]);
+                            .Where(node => Cell.IsDoor(node.Id) || node == graph[target])
+                            .Where(node => node.Id != Cell.ToDoor(target));
                 })
                 .ToList();
         // todo: sets can be created once

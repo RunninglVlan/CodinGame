@@ -1,9 +1,9 @@
 ﻿using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 
-Debug.Enabled = false;
+// Debug.Enabled = true;
 Assert.Throw = true;
-Test.StepEnabled = false;
+// Test.StepEnabled = true;
 // Test.From = "09 Tumbler";
 // Test.Until = "10 Validator 5";
 Test.Run(expected => {
@@ -411,7 +411,8 @@ class Facility : IGame<GhostState> {
         var pathsToTarget = Pathfinding.All(graph[Cell.START], graph[target], it => {
                     return it.Connections
                             .Select(id => graph[id])
-                            .Where(node => Cell.IsDoor(grid[node.Point]) || node == graph[target]);
+                            .Where(node => Cell.IsDoor(node.Id) || node == graph[target])
+                            .Where(node => node.Id != Cell.ToDoor(target));
                 })
                 .ToList();
         long t = Perf.Start();
