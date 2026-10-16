@@ -4,8 +4,8 @@ using System.Diagnostics.CodeAnalysis;
 Debug.Enabled = true;
 Assert.Throw = true;
 // Test.StepEnabled = true;
-Test.From = "01 Basic Lock";
-Test.Until = "03 The Polite Keymaster";
+Test.From = "09 Tumbler";
+Test.Until = "10 Validator 5";
 Test.Run(expected => {
     // Navigate through a facility to reach the extraction point by coordinating robot actions across multiple time loops
     // https://www.codingame.com/contribute/view/1415851ba1aa5d4b0600a53ac02dd35417fd8b
@@ -96,7 +96,6 @@ record GhostState(List<List<Point>> Loops, List<char> Targets) : IState<GhostSta
     }
 
     public override string ToString() {
-        Debug.Log($"{Steps}, {Targets.Count}");
         return string.Join("\n", Loops.Select(Actions));
     }
 }
@@ -523,7 +522,6 @@ static class Pathfinding {
 
 class StateSearch<T>(IGame<T> game, int depthMax) where T : IState<T>, IEquatable<T> {
     readonly HashSet<T> visited = [];
-    readonly HashSet<string> uniqueSteps = [];
 
     /// DFS/Backtracking
     public T? FindBest(T start) {
@@ -544,21 +542,15 @@ class StateSearch<T>(IGame<T> game, int depthMax) where T : IState<T>, IEquatabl
             if (!visited.Add(next)) {
                 continue;
             }
-            Debug.Log("next", depth);
+            Debug.Log($"next: {next.Steps}", depth);
             Debug.Log(next);
             Test.Step();
-            // string steps = next.Steps;
-            // if (uniqueSteps.Add(steps)) {
-            //     Console.Error.WriteLine(steps);
-            // }
             var nextBest = FindBest(next, depth + 1);
             if (nextBest == null) {
                 continue;
             }
             if (best == null || nextBest.IsBetterThan(best)) {
                 best = nextBest;
-                // Console.Error.WriteLine("  best");
-                // Console.Error.WriteLine(best);
             }
         }
         return best;
