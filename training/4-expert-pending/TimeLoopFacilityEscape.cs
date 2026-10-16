@@ -188,6 +188,7 @@ class Facility : IGame<GhostState> {
     /// as robots can't unlock and go through doors in their loop.
     [SuppressMessage("ReSharper", "InvertIf")]
     void RemoveDuplicate(GhostState state, List<Point> newLoop) {
+        return;
         var switches = Switches(newLoop);
         for (int i = state.Loops.Count - 1; i >= 0; i--) {
             var existingSwitches = Switches(state.Loops[i]);
