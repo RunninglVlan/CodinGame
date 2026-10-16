@@ -6,6 +6,7 @@ static class Test {
 
     static TextReader consoleIn = null!;
     static StringReader stringIn = null!;
+    public static bool StepEnabled { get; set; }
 
     static Test() => File.WriteAllText(FILE, null);
 
@@ -14,7 +15,10 @@ static class Test {
         Console.SetIn(stringIn = new StringReader(cases));
     }
 
-    public static void ReadLine() {
+    public static void Step() {
+        if (!StepEnabled) {
+            return;
+        }
         Console.SetIn(consoleIn);
         Console.ReadLine();
         Console.SetIn(stringIn);
