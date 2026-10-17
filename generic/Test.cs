@@ -21,14 +21,22 @@ static class Test {
             cases = cases[..cases.IndexOf(Until, StringComparison.Ordinal)];
         }
         Console.SetIn(new StringReader(cases));
+        var totalTime = 0L;
         while (Console.In.Peek() != -1) {
             var stopwatch = Stopwatch.StartNew();
             string? name = Console.ReadLine();
             Log(name, debug: true, color: ConsoleColor.Cyan);
-            action(Expected);
-            Log($"Test took {stopwatch.ElapsedMilliseconds}ms", debug: true);
+            try {
+                action(Expected);
+            }
+            finally {
+                long time = stopwatch.ElapsedMilliseconds;
+                totalTime += time;
+                Log($"Test took {time}ms", debug: true);
+            }
             Log(debug: true);
         }
+        Log($"All tests took {totalTime}ms", debug: true);
         return;
 
         static string Expected() {
