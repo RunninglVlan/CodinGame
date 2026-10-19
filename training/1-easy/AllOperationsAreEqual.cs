@@ -9,5 +9,14 @@ for (var _ = 0; _ < integers; _++) {
 return;
 
 bool IsGood(int integer) {
-    return integer % 8 == 0;
+    if (integer < 8) {
+        return false;
+    }
+    for (var i = 2; i < integer; i++) {
+        long square = (long)i * i;
+        if (integer % square == 0) {
+            return true;
+        }
+    }
+    return false;
 }
