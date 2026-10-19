@@ -1,53 +1,95 @@
 ﻿using System;
+using System.Linq;
 
 Debug.Enabled = true;
 // https://www.codingame.com/multiplayer/optimization/codingame-sponsored-contest
 var game = new Game();
 game.Init();
 while (true) {
-    game.Loop();
+    game.ReadTurn();
+    Console.WriteLine(game.Action());
 }
 
 class Game {
-    static readonly char[] ACTIONS = ['A', 'B', 'C', 'D', 'E'];
+    const string WALL = "#";
+    const int ENEMY = 0, PLAYER = 4;
 
-    int thirdInitInput;
     int turn;
+    readonly WalkableDirection[] walkableDirections = new WalkableDirection[4];
+    Point[] characters = null!;
 
     public void Init() {
-        int dimension1 = int.Parse(Console.ReadLine()!);
-        int dimension2 = int.Parse(Console.ReadLine()!);
-        thirdInitInput = int.Parse(Console.ReadLine()!);
-        Debug.Log($"{dimension1}x{dimension2}, {thirdInitInput}");
+        int height = int.Parse(Console.ReadLine()!);
+        int width = int.Parse(Console.ReadLine()!);
+        int characterCount = int.Parse(Console.ReadLine()!);
+        characters = new Point[characterCount];
+        Debug.Log($"{width}x{height}, {characterCount}");
     }
 
-    public void Loop() {
-        string gridView1 = Console.ReadLine()!;
-        string gridView2 = Console.ReadLine()!;
-        string gridView3 = Console.ReadLine()!;
-        string gridView4 = Console.ReadLine()!;
-        var lines = new string[thirdInitInput];
-        for (var i = 0; i < thirdInitInput; i++) {
-            string line = Console.ReadLine()!;
-            lines[i] = line;
-            string[] inputs = line.Split(' ');
-            int fifthInput = int.Parse(inputs[0]);
-            int sixthInput = int.Parse(inputs[1]);
+    public void ReadTurn() {
+        string gridViewUp = Console.ReadLine()!;
+        string gridViewRight = Console.ReadLine()!;
+        string gridViewDown = Console.ReadLine()!;
+        string gridViewLeft = Console.ReadLine()!;
+        walkableDirections[0] = new WalkableDirection(Screen.UP, gridViewUp != WALL);
+        walkableDirections[1] = new WalkableDirection(Screen.RIGHT, gridViewRight != WALL);
+        walkableDirections[2] = new WalkableDirection(Screen.DOWN, gridViewDown != WALL);
+        walkableDirections[3] = new WalkableDirection(Screen.LEFT, gridViewLeft != WALL);
+        for (var i = 0; i < characters.Length; i++) {
+            string[] coordinates = Console.ReadLine()!.Split(' ');
+            int x = int.Parse(coordinates[0]);
+            int y = int.Parse(coordinates[1]);
+            characters[i] = new Point(x, y);
         }
         if (turn++ > 0) {
             Debug.Log();
         }
-        Debug.Log(gridView1);
-        Debug.Log(gridView2);
-        Debug.Log(gridView3);
-        Debug.Log(gridView4);
-        for (var i = 0; i < thirdInitInput; i++) {
-            Debug.Log(lines[i]);
+        Debug.Log(gridViewUp);
+        Debug.Log(gridViewRight);
+        Debug.Log(gridViewDown);
+        Debug.Log(gridViewLeft);
+        foreach (var character in characters) {
+            Debug.Log(character);
         }
-        int random = Random.Shared.Next(0, ACTIONS.Length);
-        // Console.WriteLine(ACTIONS[random]);
-        Console.WriteLine(ACTIONS[2]);
     }
+
+    public char Action() => walkableDirections
+            .Where(it => it.Walkable)
+            .Select(it => {
+                var next = characters[PLAYER] + it.Direction;
+                int distanceToEnemy = Point.ManhattanDistance(next, characters[ENEMY]);
+                return (it.Direction, distanceToEnemy);
+            })
+            .OrderByDescending(it => it.distanceToEnemy)
+            .Select(it => Screen.ToChar(it.Direction))
+            .FirstOrDefault();
+}
+
+record struct WalkableDirection(Point Direction, bool Walkable);
+
+readonly record struct Point(int X, int Y) {
+    public static int ManhattanDistance(Point a, Point b) {
+        return Math.Abs(a.X - b.X) + Math.Abs(a.Y - b.Y);
+    }
+
+    public static Point operator +(Point a, Point b) => new(a.X + b.X, a.Y + b.Y);
+
+    public override string ToString() => $"{X} {Y}";
+}
+
+static class Screen {
+    public static readonly Point UP = new(0, -1);
+    public static readonly Point DOWN = new(0, 1);
+    public static readonly Point LEFT = new(-1, 0);
+    public static readonly Point RIGHT = new(1, 0);
+
+    public static char ToChar(Point direction) => direction switch {
+        _ when direction == UP => 'C',
+        _ when direction == DOWN => 'D',
+        _ when direction == LEFT => 'E',
+        _ when direction == RIGHT => 'A',
+        _ => 'B'
+    };
 }
 
 static class Debug {
