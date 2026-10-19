@@ -1,5 +1,6 @@
 ﻿using System;
 
+Debug.Enabled = true;
 // https://www.codingame.com/multiplayer/optimization/codingame-sponsored-contest
 var game = new Game();
 game.Init();
@@ -11,26 +12,41 @@ class Game {
     static readonly char[] ACTIONS = ['A', 'B', 'C', 'D', 'E'];
 
     int thirdInitInput;
+    int turn;
 
     public void Init() {
-        int firstInitInput = int.Parse(Debug.ReadLine()!);
-        int secondInitInput = int.Parse(Debug.ReadLine()!);
-        thirdInitInput = int.Parse(Debug.ReadLine()!);
+        int dimension1 = int.Parse(Console.ReadLine()!);
+        int dimension2 = int.Parse(Console.ReadLine()!);
+        thirdInitInput = int.Parse(Console.ReadLine()!);
+        Debug.Log($"{dimension1}x{dimension2}, {thirdInitInput}");
     }
 
     public void Loop() {
-        string firstInput = Debug.ReadLine()!;
-        string secondInput = Debug.ReadLine()!;
-        string thirdInput = Debug.ReadLine()!;
-        string fourthInput = Debug.ReadLine()!;
+        string gridView1 = Console.ReadLine()!;
+        string gridView2 = Console.ReadLine()!;
+        string gridView3 = Console.ReadLine()!;
+        string gridView4 = Console.ReadLine()!;
+        var lines = new string[thirdInitInput];
         for (var i = 0; i < thirdInitInput; i++) {
-            string[] inputs = Debug.ReadLine()!.Split(' ');
+            string line = Console.ReadLine()!;
+            lines[i] = line;
+            string[] inputs = line.Split(' ');
             int fifthInput = int.Parse(inputs[0]);
             int sixthInput = int.Parse(inputs[1]);
         }
+        if (turn++ > 0) {
+            Debug.Log();
+        }
+        Debug.Log(gridView1);
+        Debug.Log(gridView2);
+        Debug.Log(gridView3);
+        Debug.Log(gridView4);
+        for (var i = 0; i < thirdInitInput; i++) {
+            Debug.Log(lines[i]);
+        }
         int random = Random.Shared.Next(0, ACTIONS.Length);
         // Console.WriteLine(ACTIONS[random]);
-        Console.WriteLine(ACTIONS[0]);
+        Console.WriteLine(ACTIONS[2]);
     }
 }
 
