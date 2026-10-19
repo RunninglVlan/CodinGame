@@ -9,5 +9,5 @@ for (var _ = 0; _ < integers; _++) {
 return;
 
 bool IsGood(int integer) {
-    return true;
+    return integer % 8 == 0;
 }
