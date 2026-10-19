@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
-// https://www.codingame.com/contribute/view/1537621fc92617df1db4cda018100dceb3c47f
+// https://www.codingame.com/training/easy/anagram-hunt
 string mode = Console.ReadLine()!;
 int playerCount = Math.Clamp(int.Parse(Console.ReadLine()!), 1, 10);
 List<Player> players = [];
