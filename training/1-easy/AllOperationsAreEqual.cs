@@ -9,12 +9,9 @@ for (var _ = 0; _ < integers; _++) {
 return;
 
 bool IsGood(int integer) {
-    if (integer < 8) {
-        return false;
-    }
     for (var i = 2; i < integer; i++) {
         long square = (long)i * i;
-        if (integer % square == 0) {
+        if (integer % square == 0 && integer >= square * 2) {
             return true;
         }
     }
