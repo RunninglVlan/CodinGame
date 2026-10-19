@@ -8,6 +8,8 @@ while (true) {
 }
 
 class Game {
+    static readonly char[] ACTIONS = ['A', 'B', 'C', 'D', 'E'];
+
     int thirdInitInput;
 
     public void Init() {
@@ -26,7 +28,7 @@ class Game {
             int fifthInput = int.Parse(inputs[0]);
             int sixthInput = int.Parse(inputs[1]);
         }
-        // A, B, C, D or E
-        Console.WriteLine("A");
+        int random = Random.Shared.Next(0, ACTIONS.Length);
+        Console.WriteLine(ACTIONS[random]);
     }
 }
