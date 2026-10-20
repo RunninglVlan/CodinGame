@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using System.Text;
 
 Debug.Enabled = true;
 // https://www.codingame.com/multiplayer/optimization/codingame-sponsored-contest
@@ -7,6 +8,7 @@ var game = new Game();
 game.Init();
 while (true) {
     game.ReadTurn();
+    game.LogMaze();
     Console.WriteLine(game.Action());
 }
 
@@ -14,13 +16,16 @@ class Game {
     const string WALL = "#";
     const int ENEMY = 0, PLAYER = 4;
 
+    int width, height;
+    bool?[,] walkableCells = null!;
     int turn;
     readonly WalkableDirection[] walkableDirections = new WalkableDirection[4];
     Point[] characters = null!;
 
     public void Init() {
-        int height = int.Parse(Console.ReadLine()!);
-        int width = int.Parse(Console.ReadLine()!);
+        height = int.Parse(Console.ReadLine()!);
+        width = int.Parse(Console.ReadLine()!);
+        walkableCells = new bool?[width, height];
         int characterCount = int.Parse(Console.ReadLine()!);
         characters = new Point[characterCount];
         Debug.Log($"{width}x{height}, {characterCount}");
@@ -40,17 +45,38 @@ class Game {
             int x = int.Parse(coordinates[0]);
             int y = int.Parse(coordinates[1]);
             characters[i] = new Point(x, y);
+            walkableCells[x, y] = true;
         }
         if (turn++ > 0) {
             Debug.Log();
         }
-        Debug.Log(gridViewUp);
-        Debug.Log(gridViewRight);
-        Debug.Log(gridViewDown);
-        Debug.Log(gridViewLeft);
-        foreach (var character in characters) {
-            Debug.Log(character);
+        foreach ((var direction, bool walkable) in walkableDirections) {
+            var player = characters[PLAYER];
+            var neighbor = player + direction;
+            walkableCells[neighbor.X, neighbor.Y] = walkable;
         }
+    }
+
+    public void LogMaze() {
+        var lines = new StringBuilder();
+        for (var y = 0; y < height; y++) {
+            for (var x = 0; x < width; x++) {
+                bool? cell = walkableCells[x, y];
+                string value = cell == null ? ":" : cell.Value ? " " : WALL;
+                if (value == " ") {
+                    var point = new Point(x, y);
+                    for (var i = 0; i < characters.Length; i++) {
+                        var character = characters[i];
+                        if (point == character) {
+                            value = (i + 1).ToString();
+                        }
+                    }
+                }
+                lines.Append(value);
+            }
+            lines.AppendLine();
+        }
+        Debug.Log(lines);
     }
 
     public char Action() => walkableDirections
