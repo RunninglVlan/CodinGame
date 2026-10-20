@@ -9,6 +9,7 @@ Debug.Enabled = true;
 // todo: i should get more points when i do that
 // todo: maximize points - explore all cells
 // todo: i guess test what else this pacman has (like can it eat ghosts), check other pacman strategies
+// todo: does game really end when player is caught?
 // https://www.codingame.com/multiplayer/optimization/codingame-sponsored-contest
 var game = new Game();
 game.Init();
@@ -26,11 +27,12 @@ class Game {
     readonly WalkableDirection[] walkableDirections = new WalkableDirection[4];
     Point[] characters = null!;
     readonly HashSet<Point> explored = [];
+    Point previous;
 
     public void Init() {
         int height = int.Parse(Console.ReadLine()!);
         int width = int.Parse(Console.ReadLine()!);
-        maze = new Maze(width, height);
+        maze = new Maze(width + 2, height + 2);
         int characterCount = int.Parse(Console.ReadLine()!);
         characters = new Point[characterCount];
         Debug.Log($"{width}x{height}, {characterCount}");
@@ -47,13 +49,13 @@ class Game {
         walkableDirections[3] = new WalkableDirection(Screen.LEFT, gridViewLeft != Cells.WALL);
         for (var i = 0; i < characters.Length; i++) {
             string[] coordinates = Console.ReadLine()!.Split(' ');
-            int x = int.Parse(coordinates[0]);
-            int y = int.Parse(coordinates[1]);
+            int x = int.Parse(coordinates[0]) + 1;
+            int y = int.Parse(coordinates[1]) + 1;
             var cell = new Point(x, y);
             characters[i] = cell;
             maze.SetWalkable(x, y);
             if (i == PLAYER) {
-                explored.Add(cell);
+                SetPlayer(cell);
             }
         }
         if (turn++ > 0) {
@@ -64,6 +66,19 @@ class Game {
             var neighbor = player + direction;
             maze.SetWalkable(neighbor.X, neighbor.Y, walkable);
         }
+    }
+
+    void SetPlayer(Point cell) {
+        explored.Add(cell);
+        // player can teleport to the other side
+        if (cell.X == 1 && previous.X == maze.Width - 2 || cell.X == maze.Width - 2 && previous.X == 1) {
+            explored.Add(cell with { X = 0 });
+            explored.Add(cell with { X = maze.Width - 1 });
+        } else if (cell.Y == 1 && previous.Y == maze.Height - 2 || cell.Y == maze.Height - 2 && previous.Y == 1) {
+            explored.Add(cell with { Y = 0 });
+            explored.Add(cell with { Y = maze.Height - 1 });
+        }
+        previous = cell;
     }
 
     public void LogMaze() {
@@ -91,8 +106,8 @@ class Game {
     }
 }
 
-class Maze(int width, int height) {
-    readonly bool?[,] walkableCells = new bool?[width, height];
+record Maze(int Width, int Height) {
+    readonly bool?[,] walkableCells = new bool?[Width, Height];
 
     public void SetWalkable(int x, int y, bool value = true) {
         walkableCells[x, y] = value;
@@ -100,8 +115,8 @@ class Maze(int width, int height) {
 
     public string ToString(Point[] characters, HashSet<Point> explored) {
         var lines = new StringBuilder();
-        for (var y = 0; y < height; y++) {
-            for (var x = 0; x < width; x++) {
+        for (var y = 0; y < Height; y++) {
+            for (var x = 0; x < Width; x++) {
                 bool? cell = walkableCells[x, y];
                 string value = cell == null ? Cells.UNKNOWN : cell.Value ? Cells.EMPTY : Cells.WALL;
                 if (value == Cells.EMPTY) {
