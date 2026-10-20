@@ -43,14 +43,14 @@ class Game {
     }
 
     public void ReadTurn() {
-        string gridViewUp = Console.ReadLine()!;
-        string gridViewRight = Console.ReadLine()!;
-        string gridViewDown = Console.ReadLine()!;
-        string gridViewLeft = Console.ReadLine()!;
-        walkableDirections[0] = new WalkableDirection(Screen.UP, gridViewUp != Cells.WALL);
-        walkableDirections[1] = new WalkableDirection(Screen.RIGHT, gridViewRight != Cells.WALL);
-        walkableDirections[2] = new WalkableDirection(Screen.DOWN, gridViewDown != Cells.WALL);
-        walkableDirections[3] = new WalkableDirection(Screen.LEFT, gridViewLeft != Cells.WALL);
+        string radarUp = Console.ReadLine()!;
+        string radarRight = Console.ReadLine()!;
+        string radarDown = Console.ReadLine()!;
+        string radarLeft = Console.ReadLine()!;
+        walkableDirections[0] = new WalkableDirection(Screen.UP, radarUp != Cells.WALL);
+        walkableDirections[1] = new WalkableDirection(Screen.RIGHT, radarRight != Cells.WALL);
+        walkableDirections[2] = new WalkableDirection(Screen.DOWN, radarDown != Cells.WALL);
+        walkableDirections[3] = new WalkableDirection(Screen.LEFT, radarLeft != Cells.WALL);
         for (var i = 0; i < characters.Length; i++) {
             string[] coordinates = Console.ReadLine()!.Split(' ');
             int x = int.Parse(coordinates[0]) + 1;
