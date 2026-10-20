@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
 
@@ -10,8 +11,8 @@ Debug.Enabled = true;
 // todo: i still don't understand how i get points
 // todo: - maybe it's not even about exploration, maybe i just need to maximize turns instead
 // todo: - if so, then when there are portals, just move back and forth
-// todo: does game really end when player is caught?
-// todo: check if more cell types are shown on the radar
+// todo: run away from everyone
+// todo: simulate next turns, choose alive turns that maximize distance from ghosts
 // https://www.codingame.com/multiplayer/optimization/codingame-sponsored-contest
 var game = new Game();
 game.Init();
@@ -85,22 +86,27 @@ class Game {
         Debug.Log(maze.ToString(characters, explored));
     }
 
+    [SuppressMessage("ReSharper", "LoopCanBeConvertedToQuery")]
     public char Action() {
-        var closestGhost = characters
+        var closestGhosts = characters
                 .Where((_, i) => i != characters.Length - 1)
                 .Select(it => (point: it, distance: Point.ManhattanDistance(characters[^1], it)))
                 .OrderBy(it => it.distance)
-                .Select(it => it.point)
-                .First();
+                .Take(2)
+                .ToArray();
         return walkableDirections
                 .Where(it => it.Walkable)
                 .Select(it => {
                     var next = characters[^1] + it.Direction;
-                    int nextDistance = Point.ManhattanDistance(next, closestGhost);
-                    return (next, it.Direction, nextDistance);
+                    var diffSum = 0;
+                    foreach (var ghost in closestGhosts) {
+                        int nextDistance = Point.ManhattanDistance(next, ghost.point);
+                        diffSum += nextDistance - ghost.distance;
+                    }
+                    return (next, it.Direction, diffSum);
                 })
                 .OrderByDescending(it => !explored.Contains(it.next) ? 1 : 0)
-                .ThenByDescending(it => it.nextDistance)
+                .ThenByDescending(it => it.diffSum)
                 .Select(it => Screen.ToChar(it.Direction))
                 .FirstOrDefault();
     }
