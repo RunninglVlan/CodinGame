@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
@@ -25,6 +26,7 @@ class Game {
     int turn;
     readonly WalkableDirection[] walkableDirections = new WalkableDirection[4];
     Point[] characters = null!;
+    readonly HashSet<Point> explored = [];
 
     public void Init() {
         int height = int.Parse(Console.ReadLine()!);
@@ -48,8 +50,12 @@ class Game {
             string[] coordinates = Console.ReadLine()!.Split(' ');
             int x = int.Parse(coordinates[0]);
             int y = int.Parse(coordinates[1]);
-            characters[i] = new Point(x, y);
+            var cell = new Point(x, y);
+            characters[i] = cell;
             maze.SetWalkable(x, y);
+            if (i == PLAYER) {
+                explored.Add(cell);
+            }
         }
         if (turn++ > 0) {
             Debug.Log();
@@ -62,7 +68,7 @@ class Game {
     }
 
     public void LogMaze() {
-        Debug.Log(maze.ToString(characters));
+        Debug.Log(maze.ToString(characters, explored));
     }
 
     public char Action() => walkableDirections
@@ -84,32 +90,37 @@ class Maze(int width, int height) {
         walkableCells[x, y] = value;
     }
 
-    public string ToString(Point[] characters) {
+    public string ToString(Point[] characters, HashSet<Point> explored) {
         var lines = new StringBuilder();
         for (var y = 0; y < height; y++) {
             for (var x = 0; x < width; x++) {
                 bool? cell = walkableCells[x, y];
                 string value = cell == null ? Cells.UNKNOWN : cell.Value ? Cells.EMPTY : Cells.WALL;
                 if (value == Cells.EMPTY) {
-                    var point = new Point(x, y);
-                    for (var i = 0; i < characters.Length; i++) {
-                        var character = characters[i];
-                        if (point == character) {
-                            value = (i + 1).ToString();
-                        }
-                    }
+                    value = Empty(x, y, value);
                 }
                 lines.Append(value);
             }
             lines.AppendLine();
         }
         return lines.ToString();
+
+        string Empty(int x, int y, string value) {
+            var point = new Point(x, y);
+            for (var i = 0; i < characters.Length; i++) {
+                if (point == characters[i]) {
+                    return (i + 1).ToString();
+                }
+            }
+            return !explored.Contains(point) ? Cells.EMPTY_UNEXPLORED : value;
+        }
     }
 }
 
 static class Cells {
     public const string WALL = "#";
     public const string EMPTY = " ";
+    public const string EMPTY_UNEXPLORED = "*";
     public const string UNKNOWN = ":";
 }
 
