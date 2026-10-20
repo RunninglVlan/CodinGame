@@ -7,7 +7,6 @@ Debug.Enabled = true;
 // This is pacman, test names probably mean maze types and difficulty levels (e.g., how fast ghosts start moving)
 // todo: character count can really be different from 5, so account for that too - e.g., use last index, not hardcoded 5
 // todo: i should get more points when i do that
-// todo: get away from all ghosts, not just 1
 // todo: maximize points - explore all cells
 // todo: i guess test what else this pacman has (like can it eat ghosts), check other pacman strategies
 // https://www.codingame.com/multiplayer/optimization/codingame-sponsored-contest
@@ -20,7 +19,7 @@ while (true) {
 }
 
 class Game {
-    const int ENEMY = 0, PLAYER = 4;
+    const int PLAYER = 4;
 
     Maze maze = null!;
     int turn;
@@ -71,16 +70,25 @@ class Game {
         Debug.Log(maze.ToString(characters, explored));
     }
 
-    public char Action() => walkableDirections
-            .Where(it => it.Walkable)
-            .Select(it => {
-                var next = characters[PLAYER] + it.Direction;
-                int distanceToEnemy = Point.ManhattanDistance(next, characters[ENEMY]);
-                return (it.Direction, distanceToEnemy);
-            })
-            .OrderByDescending(it => it.distanceToEnemy)
-            .Select(it => Screen.ToChar(it.Direction))
-            .FirstOrDefault();
+    public char Action() {
+        var closestGhost = characters
+                .Where((_, i) => i != PLAYER)
+                .Select(it => (point: it, distance: Point.ManhattanDistance(characters[PLAYER], it)))
+                .OrderBy(it => it.distance)
+                .Select(it => it.point)
+                .First();
+        return walkableDirections
+                .Where(it => it.Walkable)
+                .Select(it => {
+                    var next = characters[PLAYER] + it.Direction;
+                    int nextDistance = Point.ManhattanDistance(next, closestGhost);
+                    return (next, it.Direction, nextDistance);
+                })
+                .OrderByDescending(it => !explored.Contains(it.next) ? 1 : 0)
+                .ThenByDescending(it => it.nextDistance)
+                .Select(it => Screen.ToChar(it.Direction))
+                .FirstOrDefault();
+    }
 }
 
 class Maze(int width, int height) {
