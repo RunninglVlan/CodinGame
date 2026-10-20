@@ -8,8 +8,12 @@ Debug.Enabled = true;
 // todo: character count can really be different from 5, so account for that too - e.g., use last index, not hardcoded 5
 // todo: i should get more points when i do that
 // todo: maximize points - explore all cells
-// todo: i guess test what else this pacman has (like can it eat ghosts), check other pacman strategies
+// todo: - i guess test what else this pacman has (like can it eat ghosts), check other pacman strategies
+// todo: i still don't understand how i get points
+// todo: - maybe it's not even about exploration, maybe i just need to maximize turns instead
+// todo: - if so, then when there are portals, just move back and forth
 // todo: does game really end when player is caught?
+// todo: check if more cell types are shown on the radar
 // https://www.codingame.com/multiplayer/optimization/codingame-sponsored-contest
 var game = new Game();
 game.Init();
