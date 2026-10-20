@@ -19,19 +19,17 @@ while (true) {
 }
 
 class Game {
-    const string WALL = "#";
     const int ENEMY = 0, PLAYER = 4;
 
-    int width, height;
-    bool?[,] walkableCells = null!;
+    Maze maze = null!;
     int turn;
     readonly WalkableDirection[] walkableDirections = new WalkableDirection[4];
     Point[] characters = null!;
 
     public void Init() {
-        height = int.Parse(Console.ReadLine()!);
-        width = int.Parse(Console.ReadLine()!);
-        walkableCells = new bool?[width, height];
+        int height = int.Parse(Console.ReadLine()!);
+        int width = int.Parse(Console.ReadLine()!);
+        maze = new Maze(width, height);
         int characterCount = int.Parse(Console.ReadLine()!);
         characters = new Point[characterCount];
         Debug.Log($"{width}x{height}, {characterCount}");
@@ -42,16 +40,16 @@ class Game {
         string gridViewRight = Console.ReadLine()!;
         string gridViewDown = Console.ReadLine()!;
         string gridViewLeft = Console.ReadLine()!;
-        walkableDirections[0] = new WalkableDirection(Screen.UP, gridViewUp != WALL);
-        walkableDirections[1] = new WalkableDirection(Screen.RIGHT, gridViewRight != WALL);
-        walkableDirections[2] = new WalkableDirection(Screen.DOWN, gridViewDown != WALL);
-        walkableDirections[3] = new WalkableDirection(Screen.LEFT, gridViewLeft != WALL);
+        walkableDirections[0] = new WalkableDirection(Screen.UP, gridViewUp != Cells.WALL);
+        walkableDirections[1] = new WalkableDirection(Screen.RIGHT, gridViewRight != Cells.WALL);
+        walkableDirections[2] = new WalkableDirection(Screen.DOWN, gridViewDown != Cells.WALL);
+        walkableDirections[3] = new WalkableDirection(Screen.LEFT, gridViewLeft != Cells.WALL);
         for (var i = 0; i < characters.Length; i++) {
             string[] coordinates = Console.ReadLine()!.Split(' ');
             int x = int.Parse(coordinates[0]);
             int y = int.Parse(coordinates[1]);
             characters[i] = new Point(x, y);
-            walkableCells[x, y] = true;
+            maze.SetWalkable(x, y);
         }
         if (turn++ > 0) {
             Debug.Log();
@@ -59,30 +57,12 @@ class Game {
         foreach ((var direction, bool walkable) in walkableDirections) {
             var player = characters[PLAYER];
             var neighbor = player + direction;
-            walkableCells[neighbor.X, neighbor.Y] = walkable;
+            maze.SetWalkable(neighbor.X, neighbor.Y, walkable);
         }
     }
 
     public void LogMaze() {
-        var lines = new StringBuilder();
-        for (var y = 0; y < height; y++) {
-            for (var x = 0; x < width; x++) {
-                bool? cell = walkableCells[x, y];
-                string value = cell == null ? ":" : cell.Value ? " " : WALL;
-                if (value == " ") {
-                    var point = new Point(x, y);
-                    for (var i = 0; i < characters.Length; i++) {
-                        var character = characters[i];
-                        if (point == character) {
-                            value = (i + 1).ToString();
-                        }
-                    }
-                }
-                lines.Append(value);
-            }
-            lines.AppendLine();
-        }
-        Debug.Log(lines);
+        Debug.Log(maze.ToString(characters));
     }
 
     public char Action() => walkableDirections
@@ -95,6 +75,42 @@ class Game {
             .OrderByDescending(it => it.distanceToEnemy)
             .Select(it => Screen.ToChar(it.Direction))
             .FirstOrDefault();
+}
+
+class Maze(int width, int height) {
+    readonly bool?[,] walkableCells = new bool?[width, height];
+
+    public void SetWalkable(int x, int y, bool value = true) {
+        walkableCells[x, y] = value;
+    }
+
+    public string ToString(Point[] characters) {
+        var lines = new StringBuilder();
+        for (var y = 0; y < height; y++) {
+            for (var x = 0; x < width; x++) {
+                bool? cell = walkableCells[x, y];
+                string value = cell == null ? Cells.UNKNOWN : cell.Value ? Cells.EMPTY : Cells.WALL;
+                if (value == Cells.EMPTY) {
+                    var point = new Point(x, y);
+                    for (var i = 0; i < characters.Length; i++) {
+                        var character = characters[i];
+                        if (point == character) {
+                            value = (i + 1).ToString();
+                        }
+                    }
+                }
+                lines.Append(value);
+            }
+            lines.AppendLine();
+        }
+        return lines.ToString();
+    }
+}
+
+static class Cells {
+    public const string WALL = "#";
+    public const string EMPTY = " ";
+    public const string UNKNOWN = ":";
 }
 
 record struct WalkableDirection(Point Direction, bool Walkable);
