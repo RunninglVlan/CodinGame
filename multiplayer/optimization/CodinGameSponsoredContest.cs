@@ -3,6 +3,12 @@ using System.Linq;
 using System.Text;
 
 Debug.Enabled = true;
+// This is pacman, test names probably mean maze types and difficulty levels (e.g., how fast ghosts start moving)
+// todo: character count can really be different from 5, so account for that too - e.g., use last index, not hardcoded 5
+// todo: i should get more points when i do that
+// todo: get away from all ghosts, not just 1
+// todo: maximize points - explore all cells
+// todo: i guess test what else this pacman has (like can it eat ghosts), check other pacman strategies
 // https://www.codingame.com/multiplayer/optimization/codingame-sponsored-contest
 var game = new Game();
 game.Init();
