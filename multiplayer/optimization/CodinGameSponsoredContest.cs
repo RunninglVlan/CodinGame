@@ -5,8 +5,6 @@ using System.Text;
 
 Debug.Enabled = true;
 // This is pacman, test names probably mean maze types and difficulty levels (e.g., how fast ghosts start moving)
-// todo: character count can really be different from 5, so account for that too - e.g., use last index, not hardcoded 5
-// todo: i should get more points when i do that
 // todo: maximize points - explore all cells
 // todo: - i guess test what else this pacman has (like can it eat ghosts), check other pacman strategies
 // todo: i still don't understand how i get points
@@ -24,8 +22,6 @@ while (true) {
 }
 
 class Game {
-    const int PLAYER = 4;
-
     Maze maze = null!;
     int turn;
     readonly WalkableDirection[] walkableDirections = new WalkableDirection[4];
@@ -58,7 +54,7 @@ class Game {
             var cell = new Point(x, y);
             characters[i] = cell;
             maze.SetWalkable(x, y);
-            if (i == PLAYER) {
+            if (i == characters.Length - 1) {
                 SetPlayer(cell);
             }
         }
@@ -66,7 +62,7 @@ class Game {
             Debug.Log();
         }
         foreach ((var direction, bool walkable) in walkableDirections) {
-            var player = characters[PLAYER];
+            var player = characters[^1];
             var neighbor = player + direction;
             maze.SetWalkable(neighbor.X, neighbor.Y, walkable);
         }
@@ -91,15 +87,15 @@ class Game {
 
     public char Action() {
         var closestGhost = characters
-                .Where((_, i) => i != PLAYER)
-                .Select(it => (point: it, distance: Point.ManhattanDistance(characters[PLAYER], it)))
+                .Where((_, i) => i != characters.Length - 1)
+                .Select(it => (point: it, distance: Point.ManhattanDistance(characters[^1], it)))
                 .OrderBy(it => it.distance)
                 .Select(it => it.point)
                 .First();
         return walkableDirections
                 .Where(it => it.Walkable)
                 .Select(it => {
-                    var next = characters[PLAYER] + it.Direction;
+                    var next = characters[^1] + it.Direction;
                     int nextDistance = Point.ManhattanDistance(next, closestGhost);
                     return (next, it.Direction, nextDistance);
                 })
