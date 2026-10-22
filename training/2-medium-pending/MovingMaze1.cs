@@ -112,32 +112,12 @@ class Maze(int size) {
             if (!next.InBounds(size)) {
                 continue;
             }
-            if (CanExit(currentCell.Type, direction) && CanEnter(Get(next).Type, direction)) {
+            var nextCell = Get(next);
+            if (currentCell.CanExit(direction) && nextCell.CanEnter(direction)) {
                 yield return next;
             }
         }
     }
-
-    static bool CanExit(CellType current, Point direction) => current switch {
-        CellType.Vertical => direction == Screen.UP || direction == Screen.DOWN,
-        CellType.Horizontal => direction == Screen.LEFT || direction == Screen.RIGHT,
-        CellType.Left => direction == Screen.LEFT,
-        CellType.Right => direction == Screen.RIGHT,
-        CellType.Up => direction == Screen.UP,
-        CellType.Down => direction == Screen.DOWN,
-        _ => true
-    };
-
-    static bool CanEnter(CellType next, Point direction) => next switch {
-        CellType.Vertical => direction == Screen.UP || direction == Screen.DOWN,
-        CellType.Horizontal => direction == Screen.LEFT || direction == Screen.RIGHT,
-        CellType.Left => direction != Screen.RIGHT,
-        CellType.Right => direction != Screen.LEFT,
-        CellType.Up => direction != Screen.DOWN,
-        CellType.Down => direction != Screen.UP,
-        CellType.Blocked => false,
-        _ => true
-    };
 
     public override string ToString() {
         var rows = new StringBuilder();
@@ -154,7 +134,7 @@ class Maze(int size) {
     }
 }
 
-record struct Cell(char Symbol, CellType Type) {
+readonly record struct Cell(char Symbol, CellType Type) {
     public const char BLOCKED = '#';
 
     public static Cell From(char symbol) {
@@ -172,6 +152,27 @@ record struct Cell(char Symbol, CellType Type) {
         };
         return new Cell(symbol, type);
     }
+
+    public bool CanExit(Point direction) => Type switch {
+        CellType.Vertical => direction == Screen.UP || direction == Screen.DOWN,
+        CellType.Horizontal => direction == Screen.LEFT || direction == Screen.RIGHT,
+        CellType.Left => direction == Screen.LEFT,
+        CellType.Right => direction == Screen.RIGHT,
+        CellType.Up => direction == Screen.UP,
+        CellType.Down => direction == Screen.DOWN,
+        _ => true
+    };
+
+    public bool CanEnter(Point direction) => Type switch {
+        CellType.Vertical => direction == Screen.UP || direction == Screen.DOWN,
+        CellType.Horizontal => direction == Screen.LEFT || direction == Screen.RIGHT,
+        CellType.Left => direction != Screen.RIGHT,
+        CellType.Right => direction != Screen.LEFT,
+        CellType.Up => direction != Screen.DOWN,
+        CellType.Down => direction != Screen.UP,
+        CellType.Blocked => false,
+        _ => true
+    };
 }
 
 enum CellType {
