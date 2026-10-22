@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
@@ -17,7 +16,8 @@ var transformations = Debug.ReadLine()!.Split("  ")
             int y = Math.Clamp(int.Parse(it[0]), radius, height - radius - 1);
             int turns = Math.Clamp(int.Parse(it[2]), -10_000, 10_000);
             return new Transformation(new Point(x, y), turns, radius);
-        });
+        })
+        .ToArray();
 var image = new Image(width, height);
 image.Read();
 image.Reconstruct(transformations);
@@ -39,26 +39,27 @@ class Image(int width, int height) {
         }
     }
 
-    public void Reconstruct(IEnumerable<Transformation> transformations) {
-        var transformation = transformations.First();
-        var min = transformation.Center - transformation.Radius;
-        var max = transformation.Center + transformation.Radius;
-        int squareWidth = max.X - min.X + 1;
-        int squareHeight = max.Y - min.Y + 1;
-        // copy
-        var square = new char[squareWidth, squareHeight];
-        for (int y = min.Y; y <= max.Y; y++) {
-            for (int x = min.X; x <= max.X; x++) {
-                square[x - min.X, y - min.Y] = cells[x, y];
+    public void Reconstruct(Transformation[] transformations) {
+        foreach (var transformation in transformations) {
+            var min = transformation.Center - transformation.Radius;
+            var max = transformation.Center + transformation.Radius;
+            int squareWidth = max.X - min.X + 1;
+            int squareHeight = max.Y - min.Y + 1;
+            // copy
+            var square = new char[squareWidth, squareHeight];
+            for (int y = min.Y; y <= max.Y; y++) {
+                for (int x = min.X; x <= max.X; x++) {
+                    square[x - min.X, y - min.Y] = cells[x, y];
+                }
             }
-        }
-        DrawSquare(square, squareWidth, squareHeight);
-        square = TurnSquare(square, squareWidth, squareHeight, transformation.Turns);
-        DrawSquare(square, squareWidth, squareHeight);
-        // paste
-        for (int y = min.Y; y <= max.Y; y++) {
-            for (int x = min.X; x <= max.X; x++) {
-                cells[x, y] = square[x - min.X, y - min.Y];
+            DrawSquare(square, squareWidth, squareHeight);
+            square = TurnSquare(square, squareWidth, squareHeight, transformation);
+            DrawSquare(square, squareWidth, squareHeight);
+            // paste
+            for (int y = min.Y; y <= max.Y; y++) {
+                for (int x = min.X; x <= max.X; x++) {
+                    cells[x, y] = square[x - min.X, y - min.Y];
+                }
             }
         }
     }
@@ -73,39 +74,26 @@ class Image(int width, int height) {
         }
     }
 
-    static char[,] TurnSquare(char[,] square, int squareWidth, int squareHeight, int transformationTurns) {
-        squareWidth = squareHeight = 3;
-        var result = new char[squareWidth, squareHeight];
-        result[1, 1] = square[1, 1];
-        for (var y = 0; y < squareHeight; y++) {
-            for (var x = 0; x < squareWidth; x++) {
-                char source = square[x, y];
-                if (y == 0) {
-                    if (x == 0) {
-                        result[squareWidth - 1, y + 0] = source;
-                    } else if (x == 1) {
-                        result[squareWidth - 1, y + 1] = source;
-                    } else if (x == 2) {
-                        result[squareWidth - 1, y + 2] = source;
-                    }
-                } else if (y == 1) {
-                    if (x == 0) {
-                        result[1, 0] = source;
-                    } else if (x == 2) {
-                        result[1, squareHeight - 1] = source;
-                    }
-                } else if (y == 2) {
-                    if (x == 0) {
-                        result[0, y - 2] = source;
-                    } else if (x == 1) {
-                        result[0, y - 1] = source;
-                    } else if (x == 2) {
-                        result[0, y - 0] = source;
-                    }
-                }
+    static char[,] TurnSquare(char[,] square, int squareWidth, int squareHeight, Transformation transformation) {
+        var turned = new char[squareWidth, squareHeight];
+        var center = new Point(transformation.Radius, transformation.Radius);
+        turned[center.X, center.Y] = square[center.X, center.Y];
+        for (var radius = 1; radius <= transformation.Radius; radius++) {
+            int side = 2 * radius + 1;
+            for (int x = 0, y = 0; x < side; x++) {
+                turned[side - 1, x] = square[x, y];
+            }
+            for (int x = side - 1, y = 0; y < side; y++) {
+                turned[side - 1 - y, x] = square[x, y];
+            }
+            for (int x = side - 1, y = side - 1; x > 0; x--) {
+                turned[0, side - 1 - x] = square[x, y];
+            }
+            for (int x = 0, y = side - 1; y > 0; y--) {
+                turned[side - 1 - y, 0] = square[x, y];
             }
         }
-        return result;
+        return turned;
     }
 
     public override string ToString() {
