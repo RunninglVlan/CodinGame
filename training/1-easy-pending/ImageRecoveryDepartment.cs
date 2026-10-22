@@ -39,7 +39,74 @@ class Image(int width, int height) {
         }
     }
 
-    public void Reconstruct(IEnumerable<Transformation> transformations) { }
+    public void Reconstruct(IEnumerable<Transformation> transformations) {
+        var transformation = transformations.First();
+        var min = transformation.Center - transformation.Radius;
+        var max = transformation.Center + transformation.Radius;
+        int squareWidth = max.X - min.X + 1;
+        int squareHeight = max.Y - min.Y + 1;
+        // copy
+        var square = new char[squareWidth, squareHeight];
+        for (int y = min.Y; y <= max.Y; y++) {
+            for (int x = min.X; x <= max.X; x++) {
+                square[x - min.X, y - min.Y] = cells[x, y];
+            }
+        }
+        DrawSquare(square, squareWidth, squareHeight);
+        square = TurnSquare(square, squareWidth, squareHeight, transformation.Turns);
+        DrawSquare(square, squareWidth, squareHeight);
+        // paste
+        for (int y = min.Y; y <= max.Y; y++) {
+            for (int x = min.X; x <= max.X; x++) {
+                cells[x, y] = square[x - min.X, y - min.Y];
+            }
+        }
+    }
+
+    static void DrawSquare(char[,] square, int squareWidth, int squareHeight) {
+        for (var y = 0; y < squareHeight; y++) {
+            var line = "";
+            for (var x = 0; x < squareWidth; x++) {
+                line += square[x, y];
+            }
+            Debug.Log(line);
+        }
+    }
+
+    static char[,] TurnSquare(char[,] square, int squareWidth, int squareHeight, int transformationTurns) {
+        squareWidth = squareHeight = 3;
+        var result = new char[squareWidth, squareHeight];
+        result[1, 1] = square[1, 1];
+        for (var y = 0; y < squareHeight; y++) {
+            for (var x = 0; x < squareWidth; x++) {
+                char source = square[x, y];
+                if (y == 0) {
+                    if (x == 0) {
+                        result[squareWidth - 1, y + 0] = source;
+                    } else if (x == 1) {
+                        result[squareWidth - 1, y + 1] = source;
+                    } else if (x == 2) {
+                        result[squareWidth - 1, y + 2] = source;
+                    }
+                } else if (y == 1) {
+                    if (x == 0) {
+                        result[1, 0] = source;
+                    } else if (x == 2) {
+                        result[1, squareHeight - 1] = source;
+                    }
+                } else if (y == 2) {
+                    if (x == 0) {
+                        result[0, y - 2] = source;
+                    } else if (x == 1) {
+                        result[0, y - 1] = source;
+                    } else if (x == 2) {
+                        result[0, y - 0] = source;
+                    }
+                }
+            }
+        }
+        return result;
+    }
 
     public override string ToString() {
         var lines = new StringBuilder();
@@ -56,7 +123,8 @@ class Image(int width, int height) {
 }
 
 readonly record struct Point(int X, int Y) {
-    public override string ToString() => $"({X}, {Y})";
+    public static Point operator +(Point a, int value) => new(a.X + value, a.Y + value);
+    public static Point operator -(Point a, int value) => new(a.X - value, a.Y - value);
 }
 
 static class Debug {
