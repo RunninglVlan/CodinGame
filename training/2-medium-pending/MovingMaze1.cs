@@ -23,7 +23,7 @@ class Maze(int size) {
             string row = Console.ReadLine()!;
             for (var x = 0; x < size; x++) {
                 char symbol = row[x];
-                var cell = new Cell(symbol, Cell.From(symbol));
+                var cell = Cell.From(symbol);
                 var point = new Point(x, y);
                 cells[point] = cell;
                 if (cell.Type == CellType.Player) {
@@ -55,81 +55,26 @@ class Maze(int size) {
         }
     }
 
-    [SuppressMessage("ReSharper", "SwitchStatementMissingSomeEnumCasesNoDefault")]
-    static bool CanExit(CellType current, Point direction) {
-        switch (current) {
-            case CellType.Vertical:
-                if (direction != Screen.UP && direction != Screen.DOWN) {
-                    return false;
-                }
-                break;
-            case CellType.Horizontal:
-                if (direction != Screen.LEFT && direction != Screen.RIGHT) {
-                    return false;
-                }
-                break;
-            case CellType.Left:
-                if (direction != Screen.LEFT) {
-                    return false;
-                }
-                break;
-            case CellType.Right:
-                if (direction != Screen.RIGHT) {
-                    return false;
-                }
-                break;
-            case CellType.Up:
-                if (direction != Screen.UP) {
-                    return false;
-                }
-                break;
-            case CellType.Down:
-                if (direction != Screen.DOWN) {
-                    return false;
-                }
-                break;
-        }
-        return true;
-    }
+    static bool CanExit(CellType current, Point direction) => current switch {
+        CellType.Vertical => direction == Screen.UP || direction == Screen.DOWN,
+        CellType.Horizontal => direction == Screen.LEFT || direction == Screen.RIGHT,
+        CellType.Left => direction == Screen.LEFT,
+        CellType.Right => direction == Screen.RIGHT,
+        CellType.Up => direction == Screen.UP,
+        CellType.Down => direction == Screen.DOWN,
+        _ => true
+    };
 
-    [SuppressMessage("ReSharper", "SwitchStatementMissingSomeEnumCasesNoDefault")]
-    static bool CanEnter(CellType next, Point direction) {
-        switch (next) {
-            case CellType.Vertical:
-                if (direction != Screen.UP && direction != Screen.DOWN) {
-                    return false;
-                }
-                break;
-            case CellType.Horizontal:
-                if (direction != Screen.LEFT && direction != Screen.RIGHT) {
-                    return false;
-                }
-                break;
-            case CellType.Left:
-                if (direction == Screen.RIGHT) {
-                    return false;
-                }
-                break;
-            case CellType.Right:
-                if (direction == Screen.LEFT) {
-                    return false;
-                }
-                break;
-            case CellType.Up:
-                if (direction == Screen.DOWN) {
-                    return false;
-                }
-                break;
-            case CellType.Down:
-                if (direction == Screen.UP) {
-                    return false;
-                }
-                break;
-            case CellType.Blocked:
-                return false;
-        }
-        return true;
-    }
+    static bool CanEnter(CellType next, Point direction) => next switch {
+        CellType.Vertical => direction == Screen.UP || direction == Screen.DOWN,
+        CellType.Horizontal => direction == Screen.LEFT || direction == Screen.RIGHT,
+        CellType.Left => direction != Screen.RIGHT,
+        CellType.Right => direction != Screen.LEFT,
+        CellType.Up => direction != Screen.DOWN,
+        CellType.Down => direction != Screen.UP,
+        CellType.Blocked => false,
+        _ => true
+    };
 
     public override string ToString() {
         var rows = new StringBuilder();
@@ -149,8 +94,8 @@ class Maze(int size) {
 record struct Cell(char Symbol, CellType Type) {
     public const char BLOCKED = '#';
 
-    public static CellType From(char symbol) {
-        return symbol switch {
+    public static Cell From(char symbol) {
+        var type = symbol switch {
             'P' => CellType.Player,
             'T' => CellType.Treasure,
             '+' => CellType.Cross,
@@ -162,6 +107,7 @@ record struct Cell(char Symbol, CellType Type) {
             'v' => CellType.Down,
             _ => CellType.Blocked
         };
+        return new Cell(symbol, type);
     }
 }
 
