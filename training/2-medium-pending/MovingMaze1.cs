@@ -4,7 +4,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
 
-Debug.Enabled = true;
 // https://www.codingame.com/contribute/view/152541078689bfa05bb36d9956b0461f4c5e61
 var maze = new Maze(7);
 maze.Read();
@@ -15,10 +14,8 @@ Console.WriteLine(maze);
 class Maze(int size) {
     readonly Dictionary<Point, Cell> cells = [];
     (Point from, Cell tile)? pushed;
-    Point player, treasure;
     HashSet<Point> foundPath = null!;
 
-    [SuppressMessage("ReSharper", "ConvertIfStatementToSwitchStatement")]
     public void Read() {
         for (var y = 0; y < size; y++) {
             string row = Console.ReadLine()!;
@@ -27,47 +24,54 @@ class Maze(int size) {
                 var cell = Cell.From(symbol);
                 var point = new Point(x, y);
                 cells[point] = cell;
-                if (cell.Type == CellType.Player) {
-                    player = point;
-                } else if (cell.Type == CellType.Treasure) {
-                    treasure = point;
-                }
             }
         }
     }
 
     public void FindPath(Cell pushable) {
-        if (Found()) {
+        if (TryFindPath()) {
             return;
         }
         for (var i = 1; i < size; i += 2) {
             pushed = (new Point(i, 0), pushable);
-            if (Found()) {
+            if (TryFindPath()) {
                 return;
             }
             pushed = (new Point(i, size - 1), pushable);
-            if (Found()) {
+            if (TryFindPath()) {
                 return;
             }
             pushed = (new Point(0, i), pushable);
-            if (Found()) {
+            if (TryFindPath()) {
                 return;
             }
             pushed = (new Point(size - 1, i), pushable);
-            if (Found()) {
+            if (TryFindPath()) {
                 return;
             }
         }
-        return;
+    }
 
-        bool Found() {
-            var path = Pathfinding.Shortest(player, treasure, Next);
-            if (path == null) {
-                return false;
+    [SuppressMessage("ReSharper", "ConvertIfStatementToSwitchStatement")]
+    bool TryFindPath() {
+        Point? player = null, treasure = null;
+        foreach (var point in cells.Keys) {
+            var cell = Get(point);
+            if (cell.Type == CellType.Player) {
+                player = point;
+            } else if (cell.Type == CellType.Treasure) {
+                treasure = point;
             }
-            foundPath = [.. path];
-            return true;
         }
+        if (player == null || treasure == null) {
+            return false;
+        }
+        var path = Pathfinding.Shortest(player.Value, treasure.Value, Next);
+        if (path == null) {
+            return false;
+        }
+        foundPath = [.. path];
+        return true;
     }
 
     [SuppressMessage("ReSharper", "InvertIf")]
@@ -75,26 +79,26 @@ class Maze(int size) {
         if (pushed == null) {
             return cells[point];
         }
-        var from = pushed.Value.from;
-        if (point.X == from.X) {
-            if (point.Y == from.Y) {
+        var pushedFrom = pushed.Value.from;
+        if (point.X == pushedFrom.X) {
+            if (point.Y == pushedFrom.Y) {
                 return pushed.Value.tile;
             }
-            if (from.Y == 0) {
+            if (pushedFrom.Y == 0) {
                 return cells[point with { Y = point.Y - 1 }];
             }
-            if (from.Y == size - 1) {
+            if (pushedFrom.Y == size - 1) {
                 return cells[point with { Y = point.Y + 1 }];
             }
         }
-        if (point.Y == from.Y) {
-            if (point.X == from.X) {
+        if (point.Y == pushedFrom.Y) {
+            if (point.X == pushedFrom.X) {
                 return pushed.Value.tile;
             }
-            if (from.X == 0) {
+            if (pushedFrom.X == 0) {
                 return cells[point with { X = point.X - 1 }];
             }
-            if (from.X == size - 1) {
+            if (pushedFrom.X == size - 1) {
                 return cells[point with { X = point.X + 1 }];
             }
         }
@@ -254,28 +258,5 @@ static class Pathfinding {
         path.Add(start);
         path.Reverse();
         return path;
-    }
-}
-
-static class Debug {
-    const int TAB_LENGTH = 2;
-
-    public static bool Enabled { get; set; }
-
-    /// Reads the line from Console and also writes it to Console.Error
-    public static string? ReadLine() {
-        string? line = Console.ReadLine();
-        Console.Error.WriteLine(line);
-        return line;
-    }
-
-    public static void Log(object? line = null, int tab = 0, ConsoleColor? color = null) {
-        if (!Enabled) {
-            return;
-        }
-        Console.ForegroundColor = color ?? ConsoleColor.Red;
-        var padding = new string(' ', tab * TAB_LENGTH);
-        Console.Error.WriteLine($"{padding}{line}");
-        Console.ResetColor();
     }
 }
