@@ -20,6 +20,7 @@ var transformations = Debug.ReadLine()!.Split("  ")
         .ToArray();
 var image = new Image(width, height);
 image.Read();
+Array.Reverse(transformations);
 image.Reconstruct(transformations);
 Console.WriteLine(image);
 
