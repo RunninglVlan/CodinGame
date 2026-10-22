@@ -53,7 +53,7 @@ class Image(int width, int height) {
                 }
             }
             DrawSquare(square, squareWidth, squareHeight);
-            square = TurnSquare(square, squareWidth, squareHeight, transformation);
+            square = TurnSquare(square, squareWidth, squareHeight, transformation.Radius);
             DrawSquare(square, squareWidth, squareHeight);
             // paste
             for (int y = min.Y; y <= max.Y; y++) {
@@ -74,33 +74,33 @@ class Image(int width, int height) {
         }
     }
 
-    static char[,] TurnSquare(char[,] square, int squareWidth, int squareHeight, Transformation transformation) {
-        var turned = new char[squareWidth, squareHeight];
-        var center = new Point(transformation.Radius, transformation.Radius);
-        turned[center.X, center.Y] = square[center.X, center.Y];
-        for (var radius = 1; radius <= transformation.Radius; radius++) {
-            int side = 2 * radius + 1;
+    /// Turns square CW
+    static char[,] TurnSquare(char[,] source, int squareWidth, int squareHeight, int radius) {
+        var target = new char[squareWidth, squareHeight];
+        target[radius, radius] = source[radius, radius];
+        for (var r = 1; r <= radius; r++) {
+            int side = 2 * r + 1;
             for (int x = 0, y = 0; x < side; x++) {
-                char value = SquareAt(x, y, radius);
-                SetTurnedAt(side - 1, x, radius, value);
+                char value = SourceAt(x, y, r);
+                SetTargetAt(side - 1, x, r, value);
             }
             for (int x = side - 1, y = 0; y < side; y++) {
-                char value = SquareAt(x, y, radius);
-                SetTurnedAt(side - 1 - y, x, radius, value);
+                char value = SourceAt(x, y, r);
+                SetTargetAt(side - 1 - y, x, r, value);
             }
             for (int x = side - 1, y = side - 1; x > 0; x--) {
-                char value = SquareAt(x, y, radius);
-                SetTurnedAt(0, side - 1 - x, radius, value);
+                char value = SourceAt(x, y, r);
+                SetTargetAt(0, side - 1 - x, r, value);
             }
             for (int x = 0, y = side - 1; y > 0; y--) {
-                char value = SquareAt(x, y, radius);
-                SetTurnedAt(side - 1 - y, 0, radius, value);
+                char value = SourceAt(x, y, r);
+                SetTargetAt(side - 1 - y, 0, r, value);
             }
         }
-        return turned;
+        return target;
 
-        char SquareAt(int x, int y, int r) => square[x + center.X - r, y + center.Y - r];
-        void SetTurnedAt(int x, int y, int r, char value) => turned[x + center.X - r, y + center.Y - r] = value;
+        char SourceAt(int x, int y, int r) => source[x + radius - r, y + radius - r];
+        void SetTargetAt(int x, int y, int r, char value) => target[x + radius - r, y + radius - r] = value;
     }
 
     public override string ToString() {
