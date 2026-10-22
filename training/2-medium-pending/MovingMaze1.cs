@@ -49,6 +49,14 @@ class Maze(int size) {
             if (Found()) {
                 return;
             }
+            pushed = (new Point(0, i), pushable);
+            if (Found()) {
+                return;
+            }
+            pushed = (new Point(size - 1, i), pushable);
+            if (Found()) {
+                return;
+            }
         }
         return;
 
@@ -62,17 +70,33 @@ class Maze(int size) {
         }
     }
 
+    [SuppressMessage("ReSharper", "InvertIf")]
     Cell Get(Point point) {
         if (pushed == null) {
             return cells[point];
         }
-        if (point.X == pushed.Value.from.X) {
-            if (point.Y == pushed.Value.from.Y) {
+        var from = pushed.Value.from;
+        if (point.X == from.X) {
+            if (point.Y == from.Y) {
                 return pushed.Value.tile;
             }
-            return pushed.Value.from.Y == 0
-                    ? cells[point with { Y = point.Y - 1 }]
-                    : cells[point with { Y = point.Y + 1 }];
+            if (from.Y == 0) {
+                return cells[point with { Y = point.Y - 1 }];
+            }
+            if (from.Y == size - 1) {
+                return cells[point with { Y = point.Y + 1 }];
+            }
+        }
+        if (point.Y == from.Y) {
+            if (point.X == from.X) {
+                return pushed.Value.tile;
+            }
+            if (from.X == 0) {
+                return cells[point with { X = point.X - 1 }];
+            }
+            if (from.X == size - 1) {
+                return cells[point with { X = point.X + 1 }];
+            }
         }
         return cells[point];
     }
