@@ -15,8 +15,8 @@ readonly record struct Point(int X, int Y) {
         new(1, 1), new(-1, 1), new(1, -1), new(-1, -1)
     ];
 
-    public bool InBounds(int width, int height) {
-        return X >= 0 && X < width && Y >= 0 && Y < height;
+    public bool InBounds(int width, int? height = null) {
+        return X >= 0 && X < width && Y >= 0 && Y < (height ?? width);
     }
 
     public static int ManhattanDistance(Point a, Point b) {
