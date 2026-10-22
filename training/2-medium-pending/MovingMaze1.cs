@@ -45,6 +45,10 @@ class Maze(int size) {
             if (Found()) {
                 return;
             }
+            pushed = (new Point(i, size - 1), pushable);
+            if (Found()) {
+                return;
+            }
         }
         return;
 
@@ -59,13 +63,18 @@ class Maze(int size) {
     }
 
     Cell Get(Point point) {
-        if (pushed == null || point.X != pushed.Value.from.X) {
+        if (pushed == null) {
             return cells[point];
         }
-        if (point.Y == pushed.Value.from.Y) {
-            return pushed.Value.tile;
+        if (point.X == pushed.Value.from.X) {
+            if (point.Y == pushed.Value.from.Y) {
+                return pushed.Value.tile;
+            }
+            return pushed.Value.from.Y == 0
+                    ? cells[point with { Y = point.Y - 1 }]
+                    : cells[point with { Y = point.Y + 1 }];
         }
-        return cells[point with { Y = point.Y - 1}];
+        return cells[point];
     }
 
     IEnumerable<Point> Next(Point current) {
