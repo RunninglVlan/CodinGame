@@ -42,41 +42,55 @@ class Image(int width, int height) {
         Array.Reverse(transformations);
         foreach (var transformation in transformations) {
             var min = transformation.Center - transformation.Radius;
-            var max = transformation.Center + transformation.Radius;
-            int squareWidth = max.X - min.X + 1;
-            int squareHeight = max.Y - min.Y + 1;
-            char[,] square = Crop(squareWidth, squareHeight, min, max);
+            var region = new SquareRegion(min, transformation.Radius);
+            region.Crop(cells);
             int rightTurns = (-transformation.Turns % 4 + 4) % 4;
             for (var _ = 0; _ < rightTurns; _++) {
-                square = TurnRight(square, squareWidth, squareHeight, transformation.Radius);
+                region.TurnRight();
             }
-            Paste(square, min, max);
+            region.Paste(cells);
         }
-        return;
+    }
 
-        char[,] Crop(int squareWidth, int squareHeight, Point min, Point max) {
-            var square = new char[squareWidth, squareHeight];
-            for (int y = min.Y; y <= max.Y; y++) {
-                for (int x = min.X; x <= max.X; x++) {
-                    square[x - min.X, y - min.Y] = cells[x, y];
-                }
+    public override string ToString() {
+        var lines = new StringBuilder();
+        for (var y = 0; y < height; y++) {
+            for (var x = 0; x < width; x++) {
+                lines.Append(cells[x, y]);
             }
-            return square;
+            if (y < height - 1) {
+                lines.AppendLine();
+            }
         }
+        return lines.ToString();
+    }
+}
 
-        void Paste(char[,] square, Point min, Point max) {
-            for (int y = min.Y; y <= max.Y; y++) {
-                for (int x = min.X; x <= max.X; x++) {
-                    cells[x, y] = square[x - min.X, y - min.Y];
-                }
+class SquareRegion(Point min, int radius) {
+    char[,] cells = new char[2 * radius + 1, 2 * radius + 1];
+
+    int Side => cells.GetLength(0);
+
+    public void Crop(char[,] image) {
+        for (int y = min.Y; y < min.Y + Side; y++) {
+            for (int x = min.X; x < min.X + Side; x++) {
+                cells[x - min.X, y - min.Y] = image[x, y];
+            }
+        }
+    }
+
+    public void Paste(char[,] image) {
+        for (int y = min.Y; y < min.Y + Side; y++) {
+            for (int x = min.X; x < min.X + Side; x++) {
+                image[x, y] = cells[x - min.X, y - min.Y];
             }
         }
     }
 
     /// Turns CW
-    static char[,] TurnRight(char[,] source, int squareWidth, int squareHeight, int radius) {
-        var target = new char[squareWidth, squareHeight];
-        target[radius, radius] = source[radius, radius];
+    public void TurnRight() {
+        var target = new char[Side, Side];
+        target[radius, radius] = cells[radius, radius];
         for (var r = 1; r <= radius; r++) {
             int side = 2 * r + 1;
             for (int x = 0, y = 0; x < side - 1; x++) {
@@ -96,27 +110,14 @@ class Image(int width, int height) {
                 SetTargetAt(side - 1 - y, 0, r, value);
             }
         }
-        return target;
+        cells = target;
+        return;
 
-        char SourceAt(int x, int y, int r) => source[x + radius - r, y + radius - r];
+        char SourceAt(int x, int y, int r) => cells[x + radius - r, y + radius - r];
         void SetTargetAt(int x, int y, int r, char value) => target[x + radius - r, y + radius - r] = value;
-    }
-
-    public override string ToString() {
-        var lines = new StringBuilder();
-        for (var y = 0; y < height; y++) {
-            for (var x = 0; x < width; x++) {
-                lines.Append(cells[x, y]);
-            }
-            if (y < height - 1) {
-                lines.AppendLine();
-            }
-        }
-        return lines.ToString();
     }
 }
 
 readonly record struct Point(int X, int Y) {
-    public static Point operator +(Point a, int value) => new(a.X + value, a.Y + value);
     public static Point operator -(Point a, int value) => new(a.X - value, a.Y - value);
 }
