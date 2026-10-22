@@ -81,19 +81,26 @@ class Image(int width, int height) {
         for (var radius = 1; radius <= transformation.Radius; radius++) {
             int side = 2 * radius + 1;
             for (int x = 0, y = 0; x < side; x++) {
-                turned[side - 1, x] = square[x, y];
+                char value = SquareAt(x, y, radius);
+                SetTurnedAt(side - 1, x, radius, value);
             }
             for (int x = side - 1, y = 0; y < side; y++) {
-                turned[side - 1 - y, x] = square[x, y];
+                char value = SquareAt(x, y, radius);
+                SetTurnedAt(side - 1 - y, x, radius, value);
             }
             for (int x = side - 1, y = side - 1; x > 0; x--) {
-                turned[0, side - 1 - x] = square[x, y];
+                char value = SquareAt(x, y, radius);
+                SetTurnedAt(0, side - 1 - x, radius, value);
             }
             for (int x = 0, y = side - 1; y > 0; y--) {
-                turned[side - 1 - y, 0] = square[x, y];
+                char value = SquareAt(x, y, radius);
+                SetTurnedAt(side - 1 - y, 0, radius, value);
             }
         }
         return turned;
+
+        char SquareAt(int x, int y, int r) => square[x + center.X - r, y + center.Y - r];
+        void SetTurnedAt(int x, int y, int r, char value) => turned[x + center.X - r, y + center.Y - r] = value;
     }
 
     public override string ToString() {
