@@ -9,11 +9,12 @@ Debug.Enabled = true;
 var maze = new Maze(7);
 maze.Read();
 char pushableTile = Console.ReadLine()!.First();
-maze.FindPath(pushableTile);
+maze.FindPath(Cell.From(pushableTile));
 Console.WriteLine(maze);
 
 class Maze(int size) {
     readonly Dictionary<Point, Cell> cells = [];
+    (Point from, Cell tile)? pushed;
     Point player, treasure;
     HashSet<Point> foundPath = null!;
 
@@ -35,21 +36,46 @@ class Maze(int size) {
         }
     }
 
-    public void FindPath(char pushableTile) {
-        var path = Pathfinding.Shortest(player, treasure, Next);
-        if (path != null) {
+    public void FindPath(Cell pushable) {
+        if (Found()) {
+            return;
+        }
+        for (var i = 1; i < size; i += 2) {
+            pushed = (new Point(i, 0), pushable);
+            if (Found()) {
+                return;
+            }
+        }
+        return;
+
+        bool Found() {
+            var path = Pathfinding.Shortest(player, treasure, Next);
+            if (path == null) {
+                return false;
+            }
             foundPath = [.. path];
+            return true;
         }
     }
 
+    Cell Get(Point point) {
+        if (pushed == null || point.X != pushed.Value.from.X) {
+            return cells[point];
+        }
+        if (point.Y == pushed.Value.from.Y) {
+            return pushed.Value.tile;
+        }
+        return cells[point with { Y = point.Y - 1}];
+    }
+
     IEnumerable<Point> Next(Point current) {
-        var currentCell = cells[current];
+        var currentCell = Get(current);
         foreach (var direction in Screen.Directions4) {
             var next = current + direction;
             if (!next.InBounds(size)) {
                 continue;
             }
-            if (CanExit(currentCell.Type, direction) && CanEnter(cells[next].Type, direction)) {
+            if (CanExit(currentCell.Type, direction) && CanEnter(Get(next).Type, direction)) {
                 yield return next;
             }
         }
@@ -81,7 +107,7 @@ class Maze(int size) {
         for (var y = 0; y < size; y++) {
             for (var x = 0; x < size; x++) {
                 var point = new Point(x, y);
-                rows.Append(foundPath.Contains(point) ? cells[point].Symbol : Cell.BLOCKED);
+                rows.Append(foundPath.Contains(point) ? Get(point).Symbol : Cell.BLOCKED);
             }
             if (y < size - 1) {
                 rows.AppendLine();
