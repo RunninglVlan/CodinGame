@@ -52,9 +52,14 @@ class Image(int width, int height) {
                     square[x - min.X, y - min.Y] = cells[x, y];
                 }
             }
+            Debug.Log("original", 1);
             DrawSquare(square, squareWidth, squareHeight);
-            square = TurnSquare(square, squareWidth, squareHeight, transformation.Radius);
-            DrawSquare(square, squareWidth, squareHeight);
+            int turns = transformation.Turns < 0 ? -transformation.Turns % 4 : 4 - transformation.Turns % 4;
+            for (var i = 0; i < turns; i++) {
+                square = TurnSquare(square, squareWidth, squareHeight, transformation.Radius);
+                Debug.Log($"turned {i + 1} CW", 1);
+                DrawSquare(square, squareWidth, squareHeight);
+            }
             // paste
             for (int y = min.Y; y <= max.Y; y++) {
                 for (int x = min.X; x <= max.X; x++) {
@@ -80,27 +85,40 @@ class Image(int width, int height) {
         target[radius, radius] = source[radius, radius];
         for (var r = 1; r <= radius; r++) {
             int side = 2 * r + 1;
-            for (int x = 0, y = 0; x < side; x++) {
+            Debug.Log($"r: {r}");
+            Debug.Log("x: 0, y: 0..side-1");
+            for (int x = 0, y = 0; x < side - 1; x++) {
                 char value = SourceAt(x, y, r);
                 SetTargetAt(side - 1, x, r, value);
+                Log(r, x, y, side - 1, x);
             }
-            for (int x = side - 1, y = 0; y < side; y++) {
+            Debug.Log("x: side-1, y: 0..side-1");
+            for (int x = side - 1, y = 0; y < side - 1; y++) {
                 char value = SourceAt(x, y, r);
                 SetTargetAt(side - 1 - y, x, r, value);
+                Log(r, x, y, side - 1 - y, x);
             }
+            Debug.Log("x: side-1, y: side-1..0");
             for (int x = side - 1, y = side - 1; x > 0; x--) {
                 char value = SourceAt(x, y, r);
-                SetTargetAt(0, side - 1 - x, r, value);
+                SetTargetAt(0, x, r, value);
+                Log(r, x, y, 0, x);
             }
+            Debug.Log("x: 0, y: side-1..0");
             for (int x = 0, y = side - 1; y > 0; y--) {
                 char value = SourceAt(x, y, r);
                 SetTargetAt(side - 1 - y, 0, r, value);
+                Log(r, x, y, side - 1 - y, 0);
             }
         }
         return target;
 
         char SourceAt(int x, int y, int r) => source[x + radius - r, y + radius - r];
         void SetTargetAt(int x, int y, int r, char value) => target[x + radius - r, y + radius - r] = value;
+
+        void Log(int r, int sx, int sy, int tx, int ty) {
+            Debug.Log($"source: {sx}, {sy} ({sx + radius - r}, {sy + radius - r}), target: {tx}, {ty} ({tx + radius - r}, {ty + radius - r})", 1);
+        }
     }
 
     public override string ToString() {
