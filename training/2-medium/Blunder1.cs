@@ -19,6 +19,12 @@ foreach (string move in map.BlunderMoves) {
 }
 
 class Map(int width, int height) {
+    static readonly Point NORTH = new(0, -1);
+    static readonly Point SOUTH = new(0, 1);
+    static readonly Point WEST = new(-1, 0);
+    static readonly Point EAST = new(1, 0);
+    static readonly Point[] DIRECTIONS = [SOUTH, EAST, NORTH, WEST];
+
     readonly Dictionary<Point, char> map = [];
     Blunder blunder;
     public List<string>? BlunderMoves { get; private set; }
@@ -34,25 +40,26 @@ class Map(int width, int height) {
 
     public void MoveBlunder() {
         var start = map.First(it => it.Value == Cells.START).Key;
-        blunder = new Blunder([start], Screen.SOUTH);
-        Debug.Log(start);
+        blunder = new Blunder([start], SOUTH);
+        List<string> moves = [];
         while (map[blunder.Point] != Cells.SUICIDE_BOOTH) {
             var next = blunder.Point + blunder.Direction;
-            Debug.Log(next);
             if (map[next] is Cells.WALL or Cells.OBSTACLE) {
-                Debug.Log("changing direction", 1);
                 ChangeDirection();
                 continue;
             }
             blunder.Path.Add(next);
-            Debug.Log($"moved {Screen.ToString(blunder.Direction)}", 1);
+            string move = ToMove(blunder.Direction);
+            moves.Add(move);
+            Debug.Log($"moved {move}");
         }
-        BlunderMoves = blunder.Moves();
+        BlunderMoves = moves;
     }
 
     [SuppressMessage("ReSharper", "InvertIf")]
     void ChangeDirection() {
-        foreach (var direction in Screen.Directions4) {
+        Debug.Log("changed direction", 1);
+        foreach (var direction in DIRECTIONS) {
             var next = blunder.Point + direction;
             if (map[next] == Cells.EMPTY) {
                 blunder.Direction = direction;
@@ -60,19 +67,17 @@ class Map(int width, int height) {
             }
         }
     }
+
+    static string ToMove(Point direction) => direction switch {
+        _ when direction == NORTH => nameof(NORTH),
+        _ when direction == SOUTH => nameof(SOUTH),
+        _ when direction == WEST => nameof(WEST),
+        _ => nameof(EAST),
+    };
 }
 
 record struct Blunder(List<Point> Path, Point Direction) {
     public Point Point => Path.Last();
-
-    public List<string> Moves() {
-        List<string> moves = [];
-        for (var i = 1; i < Path.Count; i++) {
-            var direction = Path[i] - Path[i - 1];
-            moves.Add(Screen.ToString(direction));
-        }
-        return moves;
-    }
 }
 
 static class Cells {
@@ -95,23 +100,6 @@ readonly record struct Point(int X, int Y) {
     public static Point operator -(Point a, Point b) => new(a.X - b.X, a.Y - b.Y);
 
     public override string ToString() => $"({X}, {Y})";
-}
-
-static class Screen {
-    public static readonly Point NORTH = new(0, -1);
-    public static readonly Point SOUTH = new(0, 1);
-    public static readonly Point WEST = new(-1, 0);
-    public static readonly Point EAST = new(1, 0);
-
-    public static Point[] Directions4 { get; } = [SOUTH, EAST, NORTH, WEST];
-
-    public static string ToString(Point direction) => direction switch {
-        _ when direction == NORTH => nameof(NORTH),
-        _ when direction == SOUTH => nameof(SOUTH),
-        _ when direction == WEST => nameof(WEST),
-        _ when direction == EAST => nameof(EAST),
-        _ => throw new ArgumentException($"Unsupported direction: {direction}")
-    };
 }
 
 static class Debug {
