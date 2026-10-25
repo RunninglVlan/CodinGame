@@ -48,16 +48,21 @@ class Map(int width, int height) {
                 break;
             }
         }
-        BlunderMoves = [];
-        for (var i = 1; i < blunder.Path.Count; i++) {
-            var direction = blunder.Path[i] - blunder.Path[i - 1];
-            BlunderMoves.Add(Screen.ToString(direction));
-        }
+        BlunderMoves = blunder.Moves();
     }
 }
 
 readonly record struct Blunder(List<Point> Path) {
     public Point Point => Path.Last();
+
+    public List<string> Moves() {
+        List<string> moves = [];
+        for (var i = 1; i < Path.Count; i++) {
+            var direction = Path[i] - Path[i - 1];
+            moves.Add(Screen.ToString(direction));
+        }
+        return moves;
+    }
 }
 
 static class Cells {
