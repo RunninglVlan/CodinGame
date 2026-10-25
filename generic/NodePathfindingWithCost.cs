@@ -1,23 +1,20 @@
 ﻿using System;
 using System.Collections.Generic;
 
-class Pathfinding<T>(IGraph<T> graph) where T : IEquatable<T> {
-    readonly PriorityQueue<T, int> queue = new();
-    readonly Dictionary<T, T> parents = new();
-    readonly Dictionary<T, int> visited = new();
-
+static class Pathfinding {
     /// Dijkstra
-    public List<T>? Path(T start, T end) {
-        queue.Clear();
-        parents.Clear();
-        visited.Clear();
+    public static List<T>? Cheapest<T>(T start, T end, Func<T, IEnumerable<(T, int cost)>> getNext)
+            where T : IEquatable<T> {
+        PriorityQueue<T, int> queue = new();
+        Dictionary<T, T> parents = [];
+        Dictionary<T, int> visited = [];
         queue.Enqueue(start, 0);
         visited.Add(start, 0);
         while (queue.TryDequeue(out var current, out int currentCost)) {
             if (current.Equals(end)) {
-                return Reconstruct(start, current);
+                return Reconstruct(parents, start, current);
             }
-            foreach ((var next, int cost) in graph.Next(current)) {
+            foreach ((var next, int cost) in getNext(current)) {
                 int newCost = currentCost + cost;
                 if (newCost >= visited.GetValueOrDefault(next, int.MaxValue)) {
                     continue;
@@ -30,18 +27,15 @@ class Pathfinding<T>(IGraph<T> graph) where T : IEquatable<T> {
         return null;
     }
 
-    List<T> Reconstruct(T start, T end) {
+    static List<T> Reconstruct<T>(Dictionary<T, T> parents, T start, T end) where T : IEquatable<T> {
         var path = new List<T>();
         var node = end;
         while (!node.Equals(start)) {
             path.Add(node);
             node = parents[node];
         }
+        path.Add(start);
         path.Reverse();
         return path;
     }
-}
-
-interface IGraph<T> {
-    IEnumerable<(T, int cost)> Next(T current);
 }
