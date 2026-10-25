@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
 // https://www.codingame.com/training/medium/blunder-episode-1
 string[] dimensions = Console.ReadLine()!.Split(' ');
@@ -7,17 +8,19 @@ int height = Math.Clamp(int.Parse(dimensions[0]), 4, 100);
 int width = Math.Clamp(int.Parse(dimensions[1]), 4, 100);
 var map = new Map(width, height);
 map.Read();
-var moves = map.BlunderMoves();
-if (moves == null) {
+map.MoveBlunder();
+if (map.BlunderMoves == null) {
     Console.WriteLine("LOOP");
     return;
 }
-foreach (string move in moves) {
+foreach (string move in map.BlunderMoves) {
     Console.WriteLine(move);
 }
 
 class Map(int width, int height) {
     readonly Dictionary<Point, char> map = [];
+    Blunder blunder;
+    public List<string>? BlunderMoves { get; private set; }
 
     public void Read() {
         for (var y = 0; y < height; y++) {
@@ -28,9 +31,33 @@ class Map(int width, int height) {
         }
     }
 
-    public List<string>? BlunderMoves() {
-        return null;
+    public void MoveBlunder() {
+        var start = map.First(it => it.Value == Cells.START).Key;
+        blunder = new Blunder([start]);
+        Debug.Log(start);
+        while (map[blunder.Point] != Cells.SUICIDE_BOOTH) {
+            foreach (var direction in Screen.Directions4) {
+                var next = blunder.Point + direction;
+                Debug.Log(next);
+                if (map[next] == Cells.WALL) {
+                    Debug.Log("changing direction", 1);
+                    continue;
+                }
+                blunder.Path.Add(next);
+                Debug.Log($"moved {Screen.ToString(direction)}", 1);
+                break;
+            }
+        }
+        BlunderMoves = [];
+        for (var i = 1; i < blunder.Path.Count; i++) {
+            var direction = blunder.Path[i] - blunder.Path[i - 1];
+            BlunderMoves.Add(Screen.ToString(direction));
+        }
     }
+}
+
+readonly record struct Blunder(List<Point> Path) {
+    public Point Point => Path.Last();
 }
 
 static class Cells {
@@ -49,6 +76,9 @@ static class Cells {
 }
 
 readonly record struct Point(int X, int Y) {
+    public static Point operator +(Point a, Point b) => new(a.X + b.X, a.Y + b.Y);
+    public static Point operator -(Point a, Point b) => new(a.X - b.X, a.Y - b.Y);
+
     public override string ToString() => $"({X}, {Y})";
 }
 
@@ -58,7 +88,7 @@ static class Screen {
     public static readonly Point WEST = new(-1, 0);
     public static readonly Point EAST = new(1, 0);
 
-    public static Point[] Directions4 { get; } = [EAST, WEST, NORTH, SOUTH];
+    public static Point[] Directions4 { get; } = [SOUTH, EAST, NORTH, WEST];
 
     public static string ToString(Point direction) => direction switch {
         _ when direction == NORTH => nameof(NORTH),
@@ -72,7 +102,7 @@ static class Screen {
 static class Debug {
     const int TAB_LENGTH = 2;
 
-    public static bool Enabled { get; set; }
+    public static bool Enabled { get; set; } = true;
 
     /// Reads the line from Console and also writes it to Console.Error
     public static string? ReadLine() {
