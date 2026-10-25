@@ -12,12 +12,9 @@ Console.WriteLine(building.MaxMoney());
 readonly record struct PathState(int RoomId, int Money) : IState {
     int IState.Score => Money;
 
-    public bool Equals(IState? other) {
-        if (other is not PathState otherState) {
-            return false;
-        }
-        return this == otherState;
-    }
+    public bool Equals(IState? other) => other is PathState s && Equals(s);
+    public bool Equals(PathState other) => RoomId == other.RoomId;
+    public override int GetHashCode() => RoomId;
 }
 
 class Building : IGame<PathState> {
