@@ -92,8 +92,10 @@ class Map(int width, int height) {
                 Debug.Log($"path modifier {nextCell}", 1);
                 break;
             case CellType.Beer:
-                action = () => blunder.Breaker = !blunder.Breaker;
-                Debug.Log($"breaker mode: {blunder.Breaker}", 1);
+                action = () => {
+                    blunder.Breaker = !blunder.Breaker;
+                    Debug.Log($"breaker mode: {blunder.Breaker}", 1);
+                };
                 break;
             default:
                 throw new ArgumentException($"TODO: {nextCell}");
@@ -153,7 +155,7 @@ readonly record struct Cell(char Symbol, CellType Type) {
             'E' => CellType.GoEast,
             'N' => CellType.GoNorth,
             'W' => CellType.GoWest,
-            'R' => CellType.Reverse,
+            'I' => CellType.Reverse,
             'B' => CellType.Beer,
             _ => CellType.Teleporter
         };
