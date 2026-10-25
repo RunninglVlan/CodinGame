@@ -39,7 +39,7 @@ class Map(int width, int height) {
             foreach (var direction in Screen.Directions4) {
                 var next = blunder.Point + direction;
                 Debug.Log(next);
-                if (map[next] == Cells.WALL) {
+                if (map[next] is Cells.WALL or Cells.OBSTACLE) {
                     Debug.Log("changing direction", 1);
                     continue;
                 }
