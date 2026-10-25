@@ -12,7 +12,22 @@ for (var id = 0; id < roomCount; id++) {
     room.AddDoor(roomData[3]);
     rooms[id] = room;
 }
-Console.WriteLine(rooms.Length == 1 ? rooms.First().Money : 0);
+Console.WriteLine(MaxMoney());
+return;
+
+int MaxMoney() {
+    var current = rooms.First();
+    int money = current.Money;
+    while (!current.HasExit) {
+        var bestDoor = current.Doors
+                .Select(it => rooms[it])
+                .OrderByDescending(it => it.Money)
+                .First();
+        current = rooms[bestDoor.Number];
+        money += bestDoor.Money;
+    }
+    return money;
+}
 
 record struct Room(int Number, int Money, List<int> Doors, bool HasExit = false) {
     public void AddDoor(string input) {
