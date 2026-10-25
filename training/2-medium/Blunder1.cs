@@ -27,6 +27,14 @@ class Map(int width, int height) {
 
     readonly Dictionary<Point, Cell> map = [];
     Blunder blunder;
+
+    readonly Dictionary<Cell, Point> modifierDirections = new() {
+        { Cell.GoSouth, SOUTH },
+        { Cell.GoEast, EAST },
+        { Cell.GoNorth, NORTH },
+        { Cell.GoWest, WEST }
+    };
+
     public List<string>? BlunderMoves { get; private set; }
 
     public void Read() {
@@ -56,10 +64,22 @@ class Map(int width, int height) {
         blunder = new Blunder([start], SOUTH);
         List<string> moves = [];
         while (map[blunder.Point] != Cell.SuicideBooth) {
+            if (modifierDirections.TryGetValue(map[blunder.Point], out var direction)) {
+                blunder.Direction = direction;
+            }
             var next = blunder.Point + blunder.Direction;
-            if (map[next] is Cell.Wall or Cell.Obstacle) {
-                ChangeDirection();
-                continue;
+            var nextCell = map[next];
+            switch (nextCell) {
+                case Cell.Empty or Cell.SuicideBooth:
+                    break;
+                case Cell.Wall or Cell.Obstacle:
+                    ChangeDirection();
+                    continue;
+                case Cell.GoSouth or Cell.GoEast or Cell.GoNorth or Cell.GoWest:
+                    Debug.Log($"path modifier {nextCell}", 1);
+                    break;
+                default:
+                    throw new ArgumentException($"TODO: {nextCell}");
             }
             blunder.Path.Add(next);
             string move = ToMove(blunder.Direction);
