@@ -61,11 +61,24 @@ class Map(int width, int height) {
             switch (nextCell) {
                 case CellType.Empty or CellType.SuicideBooth:
                     break;
-                case CellType.Wall or CellType.Obstacle:
+                case CellType.Wall:
                     ChangeDirection();
                     continue;
+                case CellType.Obstacle:
+                    if (!blunder.Breaker) {
+                        ChangeDirection();
+                        continue;
+                    }
+                    map[next] = Cell.Empty;
+                    Debug.Log($"destroyed {nextCell} at {next}", 1);
+                    Debug.Log(this);
+                    break;
                 case CellType.GoSouth or CellType.GoEast or CellType.GoNorth or CellType.GoWest:
                     Debug.Log($"path modifier {nextCell}", 1);
+                    break;
+                case CellType.Beer:
+                    blunder.Breaker = !blunder.Breaker;
+                    Debug.Log($"breaker mode: {blunder.Breaker}", 1);
                     break;
                 default:
                     throw new ArgumentException($"TODO: {nextCell}");
@@ -111,14 +124,17 @@ class Map(int width, int height) {
     }
 }
 
-record struct Blunder(List<Point> Path, Point Direction) {
+record struct Blunder(List<Point> Path, Point Direction, bool Breaker = false) {
     public Point Point => Path.Last();
 }
 
 readonly record struct Cell(char Symbol, CellType Type) {
+    const char EMPTY = ' ';
+    public static Cell Empty { get; } = From(EMPTY);
+
     public static Cell From(char symbol) {
         var type = symbol switch {
-            ' ' => CellType.Empty,
+            EMPTY => CellType.Empty,
             '@' => CellType.Start,
             '$' => CellType.SuicideBooth,
             '#' => CellType.Wall,
