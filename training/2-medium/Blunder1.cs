@@ -19,7 +19,7 @@ foreach (string move in moves) {
 }
 
 class Map(int width, int height) {
-    const int MAX_ITERATIONS = 100;
+    const int MAX_ITERATIONS = 200;
     static readonly Point NORTH = new(0, -1);
     static readonly Point SOUTH = new(0, 1);
     static readonly Point WEST = new(-1, 0);
@@ -57,6 +57,7 @@ class Map(int width, int height) {
             }
             if (pathModifiers.TryGetValue(current.Type, out var direction)) {
                 blunder.Direction = direction;
+                Debug.Log($"path modifier: {current.Type}", 1);
             } else if (current.Type == CellType.Teleporter) {
                 var target = map.First(it => it.Value.Type == CellType.Teleporter && it.Key != blunder.Point);
                 blunder.Point = target.Key;
@@ -80,7 +81,8 @@ class Map(int width, int height) {
         action = () => { };
         var nextCell = map[next].Type;
         switch (nextCell) {
-            case CellType.Empty or CellType.SuicideBooth or CellType.Teleporter:
+            case CellType.Empty or CellType.SuicideBooth or CellType.Teleporter
+                    or CellType.GoSouth or CellType.GoEast or CellType.GoNorth or CellType.GoWest:
                 break;
             case CellType.Wall:
                 action = ChangeDirection;
@@ -95,9 +97,6 @@ class Map(int width, int height) {
                     Debug.Log($"destroyed {nextCell} at {next}", 1);
                     Debug.Log(this);
                 };
-                break;
-            case CellType.GoSouth or CellType.GoEast or CellType.GoNorth or CellType.GoWest:
-                Debug.Log($"path modifier {nextCell}", 1);
                 break;
             case CellType.Beer:
                 action = () => {
@@ -120,7 +119,7 @@ class Map(int width, int height) {
         Debug.Log("changed direction", 1);
         foreach (var direction in directionPriorities) {
             var next = blunder.Point + direction;
-            if (map[next].Type == CellType.Empty) {
+            if (map[next].Type is not (CellType.Wall or CellType.Obstacle)) {
                 blunder.Direction = direction;
                 return;
             }
