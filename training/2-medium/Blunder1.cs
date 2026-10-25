@@ -10,16 +10,16 @@ int height = Math.Clamp(int.Parse(dimensions[0]), 4, 100);
 int width = Math.Clamp(int.Parse(dimensions[1]), 4, 100);
 var map = new Map(width, height);
 map.Read();
-map.MoveBlunder();
-if (map.BlunderMoves == null) {
+if (!map.TryMoveBlunder(out var moves)) {
     Console.WriteLine("LOOP");
     return;
 }
-foreach (string move in map.BlunderMoves) {
+foreach (string move in moves) {
     Console.WriteLine(move);
 }
 
 class Map(int width, int height) {
+    const int MAX_ITERATIONS = 100;
     static readonly Point NORTH = new(0, -1);
     static readonly Point SOUTH = new(0, 1);
     static readonly Point WEST = new(-1, 0);
@@ -36,8 +36,6 @@ class Map(int width, int height) {
         { CellType.GoWest, WEST }
     };
 
-    public List<string>? BlunderMoves { get; private set; }
-
     public void Read() {
         for (var y = 0; y < height; y++) {
             string row = Console.ReadLine()!;
@@ -48,11 +46,15 @@ class Map(int width, int height) {
         Debug.Log(this);
     }
 
-    public void MoveBlunder() {
+    public bool TryMoveBlunder(out List<string> moves) {
         var start = map.First(it => it.Value.Type == CellType.Start).Key;
         blunder = new Blunder(start, SOUTH);
-        List<string> moves = [];
+        moves = [];
+        var i = 0;
         for (var current = map[blunder.Point]; current.Type != CellType.SuicideBooth; current = map[blunder.Point]) {
+            if (++i > MAX_ITERATIONS) {
+                return false;
+            }
             if (pathModifiers.TryGetValue(current.Type, out var direction)) {
                 blunder.Direction = direction;
             } else if (current.Type == CellType.Teleporter) {
@@ -71,7 +73,7 @@ class Map(int width, int height) {
             moves.Add(move);
             Debug.Log($"moved {move}");
         }
-        BlunderMoves = moves;
+        return true;
     }
 
     bool TryMove(Point next, out Action action) {
