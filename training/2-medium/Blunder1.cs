@@ -90,9 +90,11 @@ class Map(int width, int height) {
                     action = ChangeDirection;
                     return false;
                 }
-                action = () => map[next] = Cell.Empty;
-                Debug.Log($"destroyed {nextCell} at {next}", 1);
-                Debug.Log(this);
+                action = () => {
+                    map[next] = Cell.Empty;
+                    Debug.Log($"destroyed {nextCell} at {next}", 1);
+                    Debug.Log(this);
+                };
                 break;
             case CellType.GoSouth or CellType.GoEast or CellType.GoNorth or CellType.GoWest:
                 Debug.Log($"path modifier {nextCell}", 1);
