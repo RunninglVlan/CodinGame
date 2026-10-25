@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
 // https://www.codingame.com/training/hard/blunder-episode-2
@@ -8,18 +9,27 @@ var building = new Building(roomCount);
 building.Read();
 Console.WriteLine(building.MaxMoney());
 
-readonly record struct PathState(int RoomId, int Money) : IState<PathState> {
-    bool IState<PathState>.IsBetterThan(PathState other) => Money > other.Money;
+readonly record struct PathState(int RoomId, int Money) : IState {
+    int IState.Score => Money;
+
+    public bool Equals(IState? other) {
+        if (other is not PathState otherState) {
+            return false;
+        }
+        return this == otherState;
+    }
 }
 
 class Building : IGame<PathState> {
-    readonly StateSearch<PathState> search;
+    const int BEAM_WIDTH = 500;
+
+    readonly BeamSearch<PathState> search;
 
     readonly Room[] rooms;
     readonly int exitId;
 
     public Building(int roomCount) {
-        search = new(this, roomCount);
+        search = new(this);
         rooms = new Room[roomCount + 1];
         exitId = roomCount;
     }
@@ -37,7 +47,8 @@ class Building : IGame<PathState> {
 
     public int MaxMoney() {
         var startRoom = rooms[0];
-        return search.FindBest(new PathState(startRoom.Id, startRoom.Money)).Money;
+        var startState = new PathState(startRoom.Id, startRoom.Money);
+        return search.FindBest(startState, rooms.Length, BEAM_WIDTH).Money;
     }
 
     IEnumerable<PathState> IGame<PathState>.Next(PathState current) {
@@ -46,8 +57,6 @@ class Building : IGame<PathState> {
                 .Select(id => rooms[id])
                 .Select(it => new PathState(it.Id, current.Money + it.Money));
     }
-
-    bool IGame<PathState>.HasReachedEnd(PathState state) => state.RoomId == exitId;
 }
 
 readonly record struct Room(int Id, int Money, List<int> Doors) {
@@ -59,34 +68,37 @@ readonly record struct Room(int Id, int Money, List<int> Doors) {
     }
 }
 
-class StateSearch<T>(IGame<T> game, int depthMax) where T : IState<T>, IEquatable<T> {
+class BeamSearch<T>(IGame<T> game) where T : IState {
     readonly HashSet<T> visited = [];
 
-    /// DFS/Backtracking
-    public T? FindBest(T start) {
-        visited.Clear();
-        visited.Add(start);
-        return FindBest(start, 0);
-    }
-
-    T? FindBest(T current, int depth) {
-        if (game.HasReachedEnd(current)) {
-            return current;
-        }
-        if (depth > depthMax) {
-            return default;
-        }
+    [SuppressMessage("ReSharper", "ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator")]
+    public T? FindBest(T start, int levels, int beamWidth = 10) {
         T? best = default;
-        foreach (var next in game.Next(current)) {
-            if (!visited.Add(next)) {
-                continue;
+        var currentLevel = new List<T> { start };
+        for (var level = 0; level < levels; level++) {
+            var nextLevel = new List<T>();
+            visited.Clear();
+            foreach (var current in currentLevel) {
+                nextLevel.AddRange(game.Next(current));
             }
-            var nextBest = FindBest(next, depth + 1);
-            if (nextBest == null) {
-                continue;
+            currentLevel.Clear();
+            // by score descending
+            nextLevel.Sort((a, b) => b.Score.CompareTo(a.Score));
+            foreach (var state in nextLevel) {
+                if (!visited.Add(state)) {
+                    continue;
+                }
+                if (currentLevel.Count >= beamWidth) {
+                    break;
+                }
+                currentLevel.Add(state);
             }
-            if (best == null || nextBest.IsBetterThan(best)) {
-                best = nextBest;
+            if (currentLevel.Count == 0) {
+                break;
+            }
+            var bestCurrent = currentLevel.First();
+            if (best == null || bestCurrent.Score > best.Score) {
+                best = bestCurrent;
             }
         }
         return best;
@@ -95,32 +107,8 @@ class StateSearch<T>(IGame<T> game, int depthMax) where T : IState<T>, IEquatabl
 
 interface IGame<TState> {
     IEnumerable<TState> Next(TState current);
-    bool HasReachedEnd(TState state);
 }
 
-interface IState<in T> where T : IState<T> {
-    bool IsBetterThan(T other);
-}
-
-static class Debug {
-    const int TAB_LENGTH = 2;
-
-    public static bool Enabled { get; set; } = true;
-
-    /// Reads the line from Console and also writes it to Console.Error
-    public static string? ReadLine() {
-        string? line = Console.ReadLine();
-        Console.Error.WriteLine(line);
-        return line;
-    }
-
-    public static void Log(object? line = null, int tab = 0, ConsoleColor? color = null) {
-        if (!Enabled) {
-            return;
-        }
-        Console.ForegroundColor = color ?? ConsoleColor.Red;
-        var padding = new string(' ', tab * TAB_LENGTH);
-        Console.Error.WriteLine($"{padding}{line}");
-        Console.ResetColor();
-    }
+interface IState : IEquatable<IState> {
+    int Score { get; }
 }
