@@ -24,10 +24,10 @@ class Map(int width, int height) {
     static readonly Point SOUTH = new(0, 1);
     static readonly Point WEST = new(-1, 0);
     static readonly Point EAST = new(1, 0);
-    static readonly Point[] DIRECTIONS = [SOUTH, EAST, NORTH, WEST];
 
     readonly Dictionary<Point, Cell> map = [];
     Blunder blunder;
+    static readonly Point[] directionPriorities = [SOUTH, EAST, NORTH, WEST];
 
     readonly Dictionary<CellType, Point> pathModifiers = new() {
         { CellType.GoSouth, SOUTH },
@@ -97,6 +97,10 @@ class Map(int width, int height) {
                     Debug.Log($"breaker mode: {blunder.Breaker}", 1);
                 };
                 break;
+            case CellType.CircuitInverter:
+                action = () => Array.Reverse(directionPriorities);
+                Debug.Log("reversed direction priorities", 1);
+                break;
             default:
                 throw new ArgumentException($"TODO: {nextCell}");
         }
@@ -106,7 +110,7 @@ class Map(int width, int height) {
     [SuppressMessage("ReSharper", "InvertIf")]
     void ChangeDirection() {
         Debug.Log("changed direction", 1);
-        foreach (var direction in DIRECTIONS) {
+        foreach (var direction in directionPriorities) {
             var next = blunder.Point + direction;
             if (map[next].Type == CellType.Empty) {
                 blunder.Direction = direction;
@@ -155,7 +159,7 @@ readonly record struct Cell(char Symbol, CellType Type) {
             'E' => CellType.GoEast,
             'N' => CellType.GoNorth,
             'W' => CellType.GoWest,
-            'I' => CellType.Reverse,
+            'I' => CellType.CircuitInverter,
             'B' => CellType.Beer,
             _ => CellType.Teleporter
         };
@@ -173,7 +177,7 @@ enum CellType {
     GoEast,
     GoNorth,
     GoWest,
-    Reverse,
+    CircuitInverter,
     Beer,
     Teleporter
 }
