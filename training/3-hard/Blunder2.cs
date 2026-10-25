@@ -23,13 +23,13 @@ int MaxMoney() {
                 .Select(it => rooms[it])
                 .OrderByDescending(it => it.Money)
                 .First();
-        current = rooms[bestDoor.Number];
+        current = rooms[bestDoor.Id];
         money += bestDoor.Money;
     }
     return money;
 }
 
-record struct Room(int Number, int Money, List<int> Doors, bool HasExit = false) {
+record struct Room(int Id, int Money, List<int> Doors, bool HasExit = false) {
     public void AddDoor(string input) {
         if (int.TryParse(input, out int doorId)) {
             Doors.Add(doorId);
