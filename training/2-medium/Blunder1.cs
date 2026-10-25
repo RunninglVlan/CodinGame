@@ -53,8 +53,12 @@ class Map(int width, int height) {
         blunder = new Blunder([start], SOUTH);
         List<string> moves = [];
         while (map[blunder.Point].Type != CellType.SuicideBooth) {
-            if (pathModifiers.TryGetValue(map[blunder.Point].Type, out var direction)) {
+            var current = map[blunder.Point];
+            if (pathModifiers.TryGetValue(current.Type, out var direction)) {
                 blunder.Direction = direction;
+            } else if (current.Type == CellType.Teleporter) {
+                var target = map.First(it => it.Value.Type == CellType.Teleporter && it.Key != blunder.Point);
+                blunder.Path.Add(target.Key);
             }
             var next = blunder.Point + blunder.Direction;
             if (!TryMove(next, out var action)) {
@@ -100,6 +104,9 @@ class Map(int width, int height) {
             case CellType.CircuitInverter:
                 action = () => Array.Reverse(directionPriorities);
                 Debug.Log("reversed direction priorities", 1);
+                break;
+            case CellType.Teleporter:
+                Debug.Log("teleporter", 1);
                 break;
             default:
                 throw new ArgumentException($"TODO: {nextCell}");
