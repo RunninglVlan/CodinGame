@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
 // https://www.codingame.com/training/medium/blunder-episode-1
@@ -33,26 +34,35 @@ class Map(int width, int height) {
 
     public void MoveBlunder() {
         var start = map.First(it => it.Value == Cells.START).Key;
-        blunder = new Blunder([start]);
+        blunder = new Blunder([start], Screen.SOUTH);
         Debug.Log(start);
         while (map[blunder.Point] != Cells.SUICIDE_BOOTH) {
-            foreach (var direction in Screen.Directions4) {
-                var next = blunder.Point + direction;
-                Debug.Log(next);
-                if (map[next] is Cells.WALL or Cells.OBSTACLE) {
-                    Debug.Log("changing direction", 1);
-                    continue;
-                }
-                blunder.Path.Add(next);
-                Debug.Log($"moved {Screen.ToString(direction)}", 1);
-                break;
+            var next = blunder.Point + blunder.Direction;
+            Debug.Log(next);
+            if (map[next] is Cells.WALL or Cells.OBSTACLE) {
+                Debug.Log("changing direction", 1);
+                ChangeDirection();
+                continue;
             }
+            blunder.Path.Add(next);
+            Debug.Log($"moved {Screen.ToString(blunder.Direction)}", 1);
         }
         BlunderMoves = blunder.Moves();
     }
+
+    [SuppressMessage("ReSharper", "InvertIf")]
+    void ChangeDirection() {
+        foreach (var direction in Screen.Directions4) {
+            var next = blunder.Point + direction;
+            if (map[next] == Cells.EMPTY) {
+                blunder.Direction = direction;
+                return;
+            }
+        }
+    }
 }
 
-readonly record struct Blunder(List<Point> Path) {
+record struct Blunder(List<Point> Path, Point Direction) {
     public Point Point => Path.Last();
 
     public List<string> Moves() {
