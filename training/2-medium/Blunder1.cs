@@ -29,7 +29,7 @@ class Map(int width, int height) {
     readonly Dictionary<Point, Cell> map = [];
     Blunder blunder;
 
-    readonly Dictionary<CellType, Point> modifierDirections = new() {
+    readonly Dictionary<CellType, Point> pathModifiers = new() {
         { CellType.GoSouth, SOUTH },
         { CellType.GoEast, EAST },
         { CellType.GoNorth, NORTH },
@@ -53,42 +53,52 @@ class Map(int width, int height) {
         blunder = new Blunder([start], SOUTH);
         List<string> moves = [];
         while (map[blunder.Point].Type != CellType.SuicideBooth) {
-            if (modifierDirections.TryGetValue(map[blunder.Point].Type, out var direction)) {
+            if (pathModifiers.TryGetValue(map[blunder.Point].Type, out var direction)) {
                 blunder.Direction = direction;
             }
             var next = blunder.Point + blunder.Direction;
-            var nextCell = map[next].Type;
-            switch (nextCell) {
-                case CellType.Empty or CellType.SuicideBooth:
-                    break;
-                case CellType.Wall:
-                    ChangeDirection();
-                    continue;
-                case CellType.Obstacle:
-                    if (!blunder.Breaker) {
-                        ChangeDirection();
-                        continue;
-                    }
-                    map[next] = Cell.Empty;
-                    Debug.Log($"destroyed {nextCell} at {next}", 1);
-                    Debug.Log(this);
-                    break;
-                case CellType.GoSouth or CellType.GoEast or CellType.GoNorth or CellType.GoWest:
-                    Debug.Log($"path modifier {nextCell}", 1);
-                    break;
-                case CellType.Beer:
-                    blunder.Breaker = !blunder.Breaker;
-                    Debug.Log($"breaker mode: {blunder.Breaker}", 1);
-                    break;
-                default:
-                    throw new ArgumentException($"TODO: {nextCell}");
+            if (!TryMove(next, out var action)) {
+                action();
+                continue;
             }
+            action();
             blunder.Path.Add(next);
             string move = ToMove(blunder.Direction);
             moves.Add(move);
             Debug.Log($"moved {move}");
         }
         BlunderMoves = moves;
+    }
+
+    bool TryMove(Point next, out Action action) {
+        action = () => { };
+        var nextCell = map[next].Type;
+        switch (nextCell) {
+            case CellType.Empty or CellType.SuicideBooth:
+                break;
+            case CellType.Wall:
+                action = ChangeDirection;
+                return false;
+            case CellType.Obstacle:
+                if (!blunder.Breaker) {
+                    action = ChangeDirection;
+                    return false;
+                }
+                action = () => map[next] = Cell.Empty;
+                Debug.Log($"destroyed {nextCell} at {next}", 1);
+                Debug.Log(this);
+                break;
+            case CellType.GoSouth or CellType.GoEast or CellType.GoNorth or CellType.GoWest:
+                Debug.Log($"path modifier {nextCell}", 1);
+                break;
+            case CellType.Beer:
+                action = () => blunder.Breaker = !blunder.Breaker;
+                Debug.Log($"breaker mode: {blunder.Breaker}", 1);
+                break;
+            default:
+                throw new ArgumentException($"TODO: {nextCell}");
+        }
+        return true;
     }
 
     [SuppressMessage("ReSharper", "InvertIf")]
