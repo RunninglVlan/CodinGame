@@ -25,7 +25,7 @@ class Map(int width, int height) {
     static readonly Point EAST = new(1, 0);
     static readonly Point[] DIRECTIONS = [SOUTH, EAST, NORTH, WEST];
 
-    readonly Dictionary<Point, char> map = [];
+    readonly Dictionary<Point, Cell> map = [];
     Blunder blunder;
     public List<string>? BlunderMoves { get; private set; }
 
@@ -33,18 +33,31 @@ class Map(int width, int height) {
         for (var y = 0; y < height; y++) {
             string row = Debug.ReadLine()!;
             for (var x = 0; x < width; x++) {
-                map[new Point(x, y)] = row[x];
+                map[new Point(x, y)] = row[x] switch {
+                    ' ' => Cell.Empty,
+                    '@' => Cell.Start,
+                    '$' => Cell.SuicideBooth,
+                    '#' => Cell.Wall,
+                    'X' => Cell.Obstacle,
+                    'S' => Cell.GoSouth,
+                    'E' => Cell.GoEast,
+                    'N' => Cell.GoNorth,
+                    'W' => Cell.GoWest,
+                    'R' => Cell.Reverse,
+                    'B' => Cell.Beer,
+                    _ => Cell.Teleporter
+                };
             }
         }
     }
 
     public void MoveBlunder() {
-        var start = map.First(it => it.Value == Cells.START).Key;
+        var start = map.First(it => it.Value == Cell.Start).Key;
         blunder = new Blunder([start], SOUTH);
         List<string> moves = [];
-        while (map[blunder.Point] != Cells.SUICIDE_BOOTH) {
+        while (map[blunder.Point] != Cell.SuicideBooth) {
             var next = blunder.Point + blunder.Direction;
-            if (map[next] is Cells.WALL or Cells.OBSTACLE) {
+            if (map[next] is Cell.Wall or Cell.Obstacle) {
                 ChangeDirection();
                 continue;
             }
@@ -61,7 +74,7 @@ class Map(int width, int height) {
         Debug.Log("changed direction", 1);
         foreach (var direction in DIRECTIONS) {
             var next = blunder.Point + direction;
-            if (map[next] == Cells.EMPTY) {
+            if (map[next] == Cell.Empty) {
                 blunder.Direction = direction;
                 return;
             }
@@ -80,19 +93,19 @@ record struct Blunder(List<Point> Path, Point Direction) {
     public Point Point => Path.Last();
 }
 
-static class Cells {
-    public const char EMPTY = ' ';
-    public const char START = '@';
-    public const char SUICIDE_BOOTH = '$';
-    public const char WALL = '#';
-    public const char OBSTACLE = 'X';
-    public const char GO_SOUTH = 'S';
-    public const char GO_EAST = 'E';
-    public const char GO_NORTH = 'N';
-    public const char GO_WEST = 'W';
-    public const char REVERSE = '|';
-    public const char BEER = 'B';
-    public const char TELEPORTER = 'T';
+enum Cell {
+    Empty,
+    Start,
+    SuicideBooth,
+    Wall,
+    Obstacle,
+    GoSouth,
+    GoEast,
+    GoNorth,
+    GoWest,
+    Reverse,
+    Beer,
+    Teleporter
 }
 
 readonly record struct Point(int X, int Y) {
