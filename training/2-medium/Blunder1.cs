@@ -43,7 +43,6 @@ class Map(int width, int height) {
                 map[new Point(x, y)] = Cell.From(row[x]);
             }
         }
-        Debug.Log(this);
     }
 
     public bool TryMoveBlunder(out List<string> moves) {
@@ -57,11 +56,9 @@ class Map(int width, int height) {
             }
             if (pathModifiers.TryGetValue(current.Type, out var direction)) {
                 blunder.Direction = direction;
-                Debug.Log($"path modifier: {current.Type}", 1);
             } else if (current.Type == CellType.Teleporter) {
                 var target = map.First(it => it.Value.Type == CellType.Teleporter && it.Key != blunder.Point);
                 blunder.Point = target.Key;
-                Debug.Log($"teleported to {target.Key}", 1);
             }
             var next = blunder.Point + blunder.Direction;
             if (!TryMove(next, out var action)) {
@@ -72,7 +69,6 @@ class Map(int width, int height) {
             blunder.Point = next;
             string move = ToMove(blunder.Direction);
             moves.Add(move);
-            Debug.Log($"moved {move}");
         }
         return true;
     }
@@ -92,21 +88,13 @@ class Map(int width, int height) {
                     action = ChangeDirection;
                     return false;
                 }
-                action = () => {
-                    map[next] = Cell.Empty;
-                    Debug.Log($"destroyed {nextCell} at {next}", 1);
-                    Debug.Log(this);
-                };
+                action = () => map[next] = Cell.Empty;
                 break;
             case CellType.Beer:
-                action = () => {
-                    blunder.Breaker = !blunder.Breaker;
-                    Debug.Log($"breaker mode: {blunder.Breaker}", 1);
-                };
+                action = () => blunder.Breaker = !blunder.Breaker;
                 break;
             case CellType.CircuitInverter:
                 action = () => Array.Reverse(directionPriorities);
-                Debug.Log("reversed direction priorities", 1);
                 break;
             default:
                 throw new ArgumentException($"TODO: {nextCell}");
@@ -116,7 +104,6 @@ class Map(int width, int height) {
 
     [SuppressMessage("ReSharper", "InvertIf")]
     void ChangeDirection() {
-        Debug.Log("changed direction", 1);
         foreach (var direction in directionPriorities) {
             var next = blunder.Point + direction;
             if (map[next].Type is not (CellType.Wall or CellType.Obstacle)) {
@@ -189,30 +176,4 @@ enum CellType {
 
 readonly record struct Point(int X, int Y) {
     public static Point operator +(Point a, Point b) => new(a.X + b.X, a.Y + b.Y);
-    public static Point operator -(Point a, Point b) => new(a.X - b.X, a.Y - b.Y);
-
-    public override string ToString() => $"({X}, {Y})";
-}
-
-static class Debug {
-    const int TAB_LENGTH = 2;
-
-    public static bool Enabled { get; set; } = true;
-
-    /// Reads the line from Console and also writes it to Console.Error
-    public static string? ReadLine() {
-        string? line = Console.ReadLine();
-        Console.Error.WriteLine(line);
-        return line;
-    }
-
-    public static void Log(object? line = null, int tab = 0, ConsoleColor? color = null) {
-        if (!Enabled) {
-            return;
-        }
-        Console.ForegroundColor = color ?? ConsoleColor.Red;
-        var padding = new string(' ', tab * TAB_LENGTH);
-        Console.Error.WriteLine($"{padding}{line}");
-        Console.ResetColor();
-    }
 }
