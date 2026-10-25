@@ -50,15 +50,15 @@ class Map(int width, int height) {
 
     public void MoveBlunder() {
         var start = map.First(it => it.Value.Type == CellType.Start).Key;
-        blunder = new Blunder([start], SOUTH);
+        blunder = new Blunder(start, SOUTH);
         List<string> moves = [];
-        while (map[blunder.Point].Type != CellType.SuicideBooth) {
-            var current = map[blunder.Point];
+        for (var current = map[blunder.Point]; current.Type != CellType.SuicideBooth; current = map[blunder.Point]) {
             if (pathModifiers.TryGetValue(current.Type, out var direction)) {
                 blunder.Direction = direction;
             } else if (current.Type == CellType.Teleporter) {
                 var target = map.First(it => it.Value.Type == CellType.Teleporter && it.Key != blunder.Point);
-                blunder.Path.Add(target.Key);
+                blunder.Point = target.Key;
+                Debug.Log($"teleported to {target.Key}", 1);
             }
             var next = blunder.Point + blunder.Direction;
             if (!TryMove(next, out var action)) {
@@ -66,7 +66,7 @@ class Map(int width, int height) {
                 continue;
             }
             action();
-            blunder.Path.Add(next);
+            blunder.Point = next;
             string move = ToMove(blunder.Direction);
             moves.Add(move);
             Debug.Log($"moved {move}");
@@ -78,7 +78,7 @@ class Map(int width, int height) {
         action = () => { };
         var nextCell = map[next].Type;
         switch (nextCell) {
-            case CellType.Empty or CellType.SuicideBooth:
+            case CellType.Empty or CellType.SuicideBooth or CellType.Teleporter:
                 break;
             case CellType.Wall:
                 action = ChangeDirection;
@@ -104,9 +104,6 @@ class Map(int width, int height) {
             case CellType.CircuitInverter:
                 action = () => Array.Reverse(directionPriorities);
                 Debug.Log("reversed direction priorities", 1);
-                break;
-            case CellType.Teleporter:
-                Debug.Log("teleporter", 1);
                 break;
             default:
                 throw new ArgumentException($"TODO: {nextCell}");
@@ -147,9 +144,7 @@ class Map(int width, int height) {
     }
 }
 
-record struct Blunder(List<Point> Path, Point Direction, bool Breaker = false) {
-    public Point Point => Path.Last();
-}
+record struct Blunder(Point Point, Point Direction, bool Breaker = false);
 
 readonly record struct Cell(char Symbol, CellType Type) {
     const char EMPTY = ' ';
