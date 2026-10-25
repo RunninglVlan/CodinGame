@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Text;
 
 // https://www.codingame.com/training/medium/blunder-episode-1
 string[] dimensions = Console.ReadLine()!.Split(' ');
@@ -28,54 +29,42 @@ class Map(int width, int height) {
     readonly Dictionary<Point, Cell> map = [];
     Blunder blunder;
 
-    readonly Dictionary<Cell, Point> modifierDirections = new() {
-        { Cell.GoSouth, SOUTH },
-        { Cell.GoEast, EAST },
-        { Cell.GoNorth, NORTH },
-        { Cell.GoWest, WEST }
+    readonly Dictionary<CellType, Point> modifierDirections = new() {
+        { CellType.GoSouth, SOUTH },
+        { CellType.GoEast, EAST },
+        { CellType.GoNorth, NORTH },
+        { CellType.GoWest, WEST }
     };
 
     public List<string>? BlunderMoves { get; private set; }
 
     public void Read() {
         for (var y = 0; y < height; y++) {
-            string row = Debug.ReadLine()!;
+            string row = Console.ReadLine()!;
             for (var x = 0; x < width; x++) {
-                map[new Point(x, y)] = row[x] switch {
-                    ' ' => Cell.Empty,
-                    '@' => Cell.Start,
-                    '$' => Cell.SuicideBooth,
-                    '#' => Cell.Wall,
-                    'X' => Cell.Obstacle,
-                    'S' => Cell.GoSouth,
-                    'E' => Cell.GoEast,
-                    'N' => Cell.GoNorth,
-                    'W' => Cell.GoWest,
-                    'R' => Cell.Reverse,
-                    'B' => Cell.Beer,
-                    _ => Cell.Teleporter
-                };
+                map[new Point(x, y)] = Cell.From(row[x]);
             }
         }
+        Debug.Log(this);
     }
 
     public void MoveBlunder() {
-        var start = map.First(it => it.Value == Cell.Start).Key;
+        var start = map.First(it => it.Value.Type == CellType.Start).Key;
         blunder = new Blunder([start], SOUTH);
         List<string> moves = [];
-        while (map[blunder.Point] != Cell.SuicideBooth) {
-            if (modifierDirections.TryGetValue(map[blunder.Point], out var direction)) {
+        while (map[blunder.Point].Type != CellType.SuicideBooth) {
+            if (modifierDirections.TryGetValue(map[blunder.Point].Type, out var direction)) {
                 blunder.Direction = direction;
             }
             var next = blunder.Point + blunder.Direction;
-            var nextCell = map[next];
+            var nextCell = map[next].Type;
             switch (nextCell) {
-                case Cell.Empty or Cell.SuicideBooth:
+                case CellType.Empty or CellType.SuicideBooth:
                     break;
-                case Cell.Wall or Cell.Obstacle:
+                case CellType.Wall or CellType.Obstacle:
                     ChangeDirection();
                     continue;
-                case Cell.GoSouth or Cell.GoEast or Cell.GoNorth or Cell.GoWest:
+                case CellType.GoSouth or CellType.GoEast or CellType.GoNorth or CellType.GoWest:
                     Debug.Log($"path modifier {nextCell}", 1);
                     break;
                 default:
@@ -94,7 +83,7 @@ class Map(int width, int height) {
         Debug.Log("changed direction", 1);
         foreach (var direction in DIRECTIONS) {
             var next = blunder.Point + direction;
-            if (map[next] == Cell.Empty) {
+            if (map[next].Type == CellType.Empty) {
                 blunder.Direction = direction;
                 return;
             }
@@ -107,13 +96,46 @@ class Map(int width, int height) {
         _ when direction == WEST => nameof(WEST),
         _ => nameof(EAST),
     };
+
+    public override string ToString() {
+        var rows = new StringBuilder();
+        for (var y = 0; y < height; y++) {
+            for (var x = 0; x < width; x++) {
+                rows.Append(map[new Point(x, y)].Symbol);
+            }
+            if (y < height - 1) {
+                rows.AppendLine();
+            }
+        }
+        return rows.ToString();
+    }
 }
 
 record struct Blunder(List<Point> Path, Point Direction) {
     public Point Point => Path.Last();
 }
 
-enum Cell {
+readonly record struct Cell(char Symbol, CellType Type) {
+    public static Cell From(char symbol) {
+        var type = symbol switch {
+            ' ' => CellType.Empty,
+            '@' => CellType.Start,
+            '$' => CellType.SuicideBooth,
+            '#' => CellType.Wall,
+            'X' => CellType.Obstacle,
+            'S' => CellType.GoSouth,
+            'E' => CellType.GoEast,
+            'N' => CellType.GoNorth,
+            'W' => CellType.GoWest,
+            'R' => CellType.Reverse,
+            'B' => CellType.Beer,
+            _ => CellType.Teleporter
+        };
+        return new Cell(symbol, type);
+    }
+}
+
+enum CellType {
     Empty,
     Start,
     SuicideBooth,
