@@ -25,26 +25,27 @@ static class Test {
         while (Console.In.Peek() != -1) {
             var stopwatch = Stopwatch.StartNew();
             string? name = Console.ReadLine();
-            Log(name, debug: true, color: ConsoleColor.Cyan);
+            Log(name, console: true, color: ConsoleColor.Cyan);
             try {
-                action(Expected);
+                var expected = ReadUntilNewLine;
+                action(expected);
             }
             finally {
                 long time = stopwatch.ElapsedMilliseconds;
                 totalTime += time;
-                Log($"Test took {time}ms", debug: true);
+                Log($"Test took {time}ms", console: true);
             }
-            Log(debug: true);
+            Log(console: true);
         }
-        Log($"All tests took {totalTime}ms", debug: true);
+        Log($"All tests took {totalTime}ms", console: true);
         return;
 
-        static string Expected() {
+        static string ReadUntilNewLine() {
             List<string> lines = [];
             for (string line; !string.IsNullOrEmpty(line = Console.ReadLine()!);) {
                 lines.Add(line);
             }
-            return string.Join("\n", lines);
+            return string.Join(Environment.NewLine, lines);
         }
     }
 
@@ -58,9 +59,9 @@ static class Test {
         Console.SetIn(current);
     }
 
-    public static void Log(object? line = null, bool debug = false, ConsoleColor? color = null) {
+    public static void Log(object? line = null, bool console = false, ConsoleColor? color = null) {
         File.AppendAllText(LOG_FILE, $"{line}{Environment.NewLine}");
-        if (!debug) {
+        if (!console) {
             return;
         }
         if (color != null) {
@@ -74,7 +75,7 @@ static class Test {
 static class Assert {
     public static bool Throw { get; set; }
 
-    public static void ActualEqualsExpected(string actual, string expected) {
+    public static void ActualEqualsExpected(object actual, object expected) {
         bool equals = Equals(actual, expected);
         Console.WriteLine(equals ? $"✅ {actual}" : $"❌ found {actual}, but expected {expected}");
         if (!equals && Throw) {

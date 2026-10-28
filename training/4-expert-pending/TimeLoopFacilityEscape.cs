@@ -617,22 +617,31 @@ static class Test {
             cases = cases[..cases.IndexOf(Until, StringComparison.Ordinal)];
         }
         Console.SetIn(new StringReader(cases));
+        var totalTime = 0L;
         while (Console.In.Peek() != -1) {
             var stopwatch = Stopwatch.StartNew();
             string? name = Console.ReadLine();
-            Log(name, debug: true, color: ConsoleColor.Cyan);
-            action(Expected);
-            Log($"Test took {stopwatch.ElapsedMilliseconds}ms", debug: true);
-            Log(debug: true);
+            Log(name, console: true, color: ConsoleColor.Cyan);
+            try {
+                var expected = ReadUntilNewLine;
+                action(expected);
+            }
+            finally {
+                long time = stopwatch.ElapsedMilliseconds;
+                totalTime += time;
+                Log($"Test took {time}ms", console: true);
+            }
+            Log(console: true);
         }
+        Log($"All tests took {totalTime}ms", console: true);
         return;
 
-        static string Expected() {
+        static string ReadUntilNewLine() {
             List<string> lines = [];
             for (string line; !string.IsNullOrEmpty(line = Console.ReadLine()!);) {
                 lines.Add(line);
             }
-            return string.Join("\n", lines);
+            return string.Join(Environment.NewLine, lines);
         }
     }
 
@@ -646,9 +655,9 @@ static class Test {
         Console.SetIn(current);
     }
 
-    public static void Log(object? line = null, bool debug = false, ConsoleColor? color = null) {
+    public static void Log(object? line = null, bool console = false, ConsoleColor? color = null) {
         File.AppendAllText(LOG_FILE, $"{line}{Environment.NewLine}");
-        if (!debug) {
+        if (!console) {
             return;
         }
         if (color != null) {
@@ -662,7 +671,7 @@ static class Test {
 static class Assert {
     public static bool Throw { get; set; }
 
-    public static void ActualEqualsExpected(string actual, string expected) {
+    public static void ActualEqualsExpected(object actual, object expected) {
         bool equals = Equals(actual, expected);
         Console.WriteLine(equals ? $"✅ {actual}" : $"❌ found {actual}, but expected {expected}");
         if (!equals && Throw) {
