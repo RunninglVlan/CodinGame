@@ -7,9 +7,9 @@ using System.Linq;
 
 // Debug.Enabled = true;
 Assert.Throw = true;
-// Test.StepEnabled = true;
-// Test.From = "09 Tumbler";
-// Test.Until = "10 Validator 5";
+Test.StepEnabled = false;
+// Test.From = "31 Another Brick In The Wall";
+// Test.Until = "33 Symphony No 5";
 Test.Run(expected => {
     // Navigate through a facility to reach the extraction point by coordinating robot actions across multiple time loops
     // https://www.codingame.com/contribute/view/1415851ba1aa5d4b0600a53ac02dd35417fd8b
@@ -26,6 +26,7 @@ Test.Run(expected => {
 
 record GhostState(List<List<Point>> Loops, List<char> Targets) : IState<GhostState> {
     public string Steps { get; private set; } = string.Empty;
+    public string Info { get; set; } = string.Empty;
 
     public GhostState Copy() {
         return new GhostState([.. Loops.Select(it => it.ToList())], [.. Targets]) {
@@ -274,6 +275,7 @@ class Facility : IGame<GhostState> {
         if (current.Loops.Count == maxLoops) {
             yield break;
         }
+        var foundTarget = false;
         var targets = current.Targets.ToList();
         int startIndex = current.Targets.Count == 1 ? 0 : 1;
         for (int i = current.Targets.Count - 1; i >= startIndex; i--) {
@@ -282,15 +284,23 @@ class Facility : IGame<GhostState> {
                 continue;
             }
             targets.Remove(current.Targets[i]);
+            found.Info = "found";
             yield return found;
+            foundTarget = true;
             var foundAndCombined = FindTargetAndCombine(current, i, depth);
             if (foundAndCombined != null) {
+                foundAndCombined.Info = "foundAndCombined";
                 yield return foundAndCombined;
             }
+        }
+        if (foundTarget && depth > 0) {
+            yield break;
         }
         var unlockedDoors = UnlockedDoors(current);
         var lockedDoors = grid.Values.Where(it => Cell.IsDoor(it) && !unlockedDoors.Contains(it)).ToHashSet();
         // todo: refactor
+        // i added this condition to not look for targets that were found above
+        // b was found above, do we need to go to a first?
         if (targets.Count > 0) {
             char unreachableTarget = targets.Last();
             foreach (var path in PathsTo(unreachableTarget, depth)) {
@@ -305,6 +315,7 @@ class Facility : IGame<GhostState> {
                         lockedDoors.Remove(door);
                         pathState.AddTarget(Cell.ToSwitch(door));
                     }
+                    pathState.Info = $"path to {unreachableTarget}";
                     yield return pathState;
                 }
             }
@@ -316,6 +327,7 @@ class Facility : IGame<GhostState> {
         foreach (char door in moreDoors) {
             var doorState = current.Copy();
             doorState.AddTarget(Cell.ToSwitch(door));
+            doorState.Info = "door";
             yield return doorState;
         }
     }
@@ -547,7 +559,7 @@ class StateSearch<T>(IGame<T> game, int depthMax) where T : IState<T>, IEquatabl
             if (!visited.Add(next)) {
                 continue;
             }
-            Debug.Log($"next: {next.Steps} (depth {depth})", depth);
+            Debug.LogSpecial($"next: {next.Steps} ({next.Info}) (depth {depth})", depth);
             Debug.Log(next);
             Test.Step();
             var nextBest = FindBest(next, depth + 1);
@@ -556,6 +568,8 @@ class StateSearch<T>(IGame<T> game, int depthMax) where T : IState<T>, IEquatabl
             }
             if (best == null || nextBest.IsBetterThan(best)) {
                 best = nextBest;
+                Debug.LogSpecial($"best: {best.Steps} (depth {depth})", depth);
+                Debug.LogSpecial(best);
             }
         }
         return best;
@@ -569,6 +583,7 @@ interface IGame<TState> {
 
 interface IState<in T> where T : IState<T> {
     public string Steps { get; }
+    public string Info { get; }
     bool IsBetterThan(T other);
 }
 
@@ -583,6 +598,16 @@ static class Debug {
         Console.Error.WriteLine(line);
         if (line != null) Test.Log(line);
         return line;
+    }
+
+    public static void LogSpecial(object? line = null, int tab = 0, ConsoleColor? color = null) {
+        return;
+        Console.ForegroundColor = color ?? ConsoleColor.Red;
+        var padding = new string(' ', tab * TAB_LENGTH);
+        var log = $"{padding}{line}";
+        Console.Error.WriteLine(log);
+        Test.Log(log);
+        Console.ResetColor();
     }
 
     public static void Log(object? line = null, int tab = 0, ConsoleColor? color = null) {
