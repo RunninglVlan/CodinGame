@@ -8,9 +8,10 @@ using System.Linq;
 Test.StepEnabled = false;
 #if DEBUG
 // Debug.Enabled = true;
+Debug.Group = 1;
 Assert.Throw = true;
-// Test.From = "31 Another Brick In The Wall";
-Test.Until = "33 Symphony No 5";
+// Test.From = "09 Tumbler";
+Test.Until = "35 The Labyrinth Sprint";
 Test.Run(expected => {
 #endif
     // Navigate through a facility to reach the extraction point by coordinating robot actions across multiple time loops
@@ -556,6 +557,8 @@ class StateSearch<T>(IGame<T> game, int depthMax) where T : IState<T>, IEquatabl
         return FindBest(start, 0);
     }
 
+    T? lastBest;
+    
     T? FindBest(T current, int depth) {
         if (game.HasReachedEnd(current)) {
             return current;
@@ -568,7 +571,7 @@ class StateSearch<T>(IGame<T> game, int depthMax) where T : IState<T>, IEquatabl
             if (!visited.Add(next)) {
                 continue;
             }
-            Debug.LogSpecial($"next: {next.Steps} ({next.Info}) (depth {depth})", depth);
+            Debug.Log($"next: {next.Steps} ({next.Info}) (depth {depth})", depth, group: 1);
             Debug.Log(next);
             Test.Step();
             var nextBest = FindBest(next, depth + 1);
@@ -577,8 +580,12 @@ class StateSearch<T>(IGame<T> game, int depthMax) where T : IState<T>, IEquatabl
             }
             if (best == null || nextBest.IsBetterThan(best)) {
                 best = nextBest;
-                Debug.LogSpecial($"best: {best.Steps} (depth {depth})", depth);
-                Debug.LogSpecial(best);
+                Debug.Log($"best: {best.Steps} (depth {depth})", depth, group: 1, color: ConsoleColor.Blue);
+                if (!best.Equals(lastBest)) {
+                    Debug.Log("new best:", depth + 1, group: 1, color: ConsoleColor.Blue);
+                    Debug.Log(best, group: 1, color: ConsoleColor.Blue);
+                    lastBest = best;
+                }
             }
         }
         return best;
@@ -600,6 +607,7 @@ static class Debug {
     const int TAB_LENGTH = 2;
 
     public static bool Enabled { get; set; }
+    public static int? Group { get; set; }
 
     /// Reads the line from Console and also writes it to Console.Error
     public static string? ReadLine() {
@@ -609,18 +617,11 @@ static class Debug {
         return line;
     }
 
-    public static void LogSpecial(object? line = null, int tab = 0, ConsoleColor? color = null) {
-        return;
-        Console.ForegroundColor = color ?? ConsoleColor.Red;
-        var padding = new string(' ', tab * TAB_LENGTH);
-        var log = $"{padding}{line}";
-        Console.Error.WriteLine(log);
-        Test.Log(log);
-        Console.ResetColor();
-    }
-
-    public static void Log(object? line = null, int tab = 0, ConsoleColor? color = null) {
+    public static void Log(object? line = null, int tab = 0, ConsoleColor? color = null, int group = 0) {
         if (!Enabled) {
+            return;
+        }
+        if (Group != null && Group != group) {
             return;
         }
         Console.ForegroundColor = color ?? ConsoleColor.Red;
@@ -700,6 +701,7 @@ static class Test {
         var current = Console.In;
         Console.SetIn(consoleIn);
         Console.ReadLine();
+        Console.CursorTop--;
         Console.SetIn(current);
     }
 
