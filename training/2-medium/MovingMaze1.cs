@@ -17,9 +17,9 @@ class Maze(int size) {
     HashSet<Point> foundPath = null!;
 
     public void Read() {
-        for (var y = 0; y < size; y++) {
+        for (int y = 0; y < size; y++) {
             string row = Console.ReadLine()!;
-            for (var x = 0; x < size; x++) {
+            for (int x = 0; x < size; x++) {
                 char symbol = row[x];
                 var cell = Cell.From(symbol);
                 var point = new Point(x, y);
@@ -32,7 +32,7 @@ class Maze(int size) {
         if (TryFindPath()) {
             return;
         }
-        for (var i = 1; i < size; i += 2) {
+        for (int i = 1; i < size; i += 2) {
             pushed = (new Point(i, 0), pushable);
             if (TryFindPath()) {
                 return;
