@@ -20,7 +20,7 @@ Test.Run(expected => {
     var facility = new Facility(width, height, maxLoops);
     facility.ReadGrid();
     facility.BuildConnections();
-    Assert.ActualEqualsExpected(facility.ReachExit().ToString(), expected());
+    Assert.ActualEqualsExpected(facility.ReachExit(), expected());
     Perf.Report("block");
 });
 
@@ -100,7 +100,7 @@ record GhostState(List<List<Point>> Loops, List<char> Targets) : IState<GhostSta
     }
 
     public override string ToString() {
-        return string.Join("\n", Loops.Select(Actions));
+        return string.Join(Environment.NewLine, Loops.Select(Actions));
     }
 }
 
@@ -686,7 +686,7 @@ static class Assert {
     public static bool Throw { get; set; }
 
     public static void ActualEqualsExpected(object actual, object expected) {
-        bool equals = Equals(actual, expected);
+        bool equals = Equals(actual.ToString(), expected);
         Console.WriteLine(equals ? $"✅ {actual}" : $"❌ found {actual}, but expected {expected}");
         if (!equals && Throw) {
             throw new Exception();

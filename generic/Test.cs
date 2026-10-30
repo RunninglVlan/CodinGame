@@ -3,8 +3,8 @@ using System.Diagnostics;
 using System.IO;
 
 static class Test {
-    const string CASE_FILE = "Test.Cases.txt";
-    const string LOG_FILE = "Test.Log.txt";
+    const string CASE_FILE = "../Test.Cases.txt";
+    const string LOG_FILE = "../Test.Log.txt";
 
     static readonly TextReader consoleIn = Console.In;
     public static bool StepEnabled { get; set; } = true;
@@ -90,7 +90,7 @@ static class Assert {
     public static bool Throw { get; set; }
 
     public static void ActualEqualsExpected(object actual, object expected) {
-        bool equals = Equals(actual, expected);
+        bool equals = Equals(actual.ToString(), expected);
         Console.WriteLine(equals ? $"✅ {actual}" : $"❌ found {actual}, but expected {expected}");
         if (!equals && Throw) {
             throw new Exception();
