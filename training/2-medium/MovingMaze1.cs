@@ -4,7 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
 
-// https://www.codingame.com/contribute/view/152541078689bfa05bb36d9956b0461f4c5e61
+// https://www.codingame.com/training/medium/moving-maze-part-1
 var maze = new Maze(7);
 maze.Read();
 char pushableTile = Console.ReadLine()!.First();
