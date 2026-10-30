@@ -5,12 +5,14 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 
+Test.StepEnabled = false;
+#if DEBUG
 // Debug.Enabled = true;
 Assert.Throw = true;
-Test.StepEnabled = false;
 // Test.From = "31 Another Brick In The Wall";
-// Test.Until = "33 Symphony No 5";
+Test.Until = "33 Symphony No 5";
 Test.Run(expected => {
+#endif
     // Navigate through a facility to reach the extraction point by coordinating robot actions across multiple time loops
     // https://www.codingame.com/contribute/view/1415851ba1aa5d4b0600a53ac02dd35417fd8b
     string[] inputs = Console.ReadLine()!.Split(' ');
@@ -20,9 +22,14 @@ Test.Run(expected => {
     var facility = new Facility(width, height, maxLoops);
     facility.ReadGrid();
     facility.BuildConnections();
-    Assert.ActualEqualsExpected(facility.ReachExit(), expected());
+    var actions = facility.ReachExit();
+#if DEBUG
+    Assert.ActualEqualsExpected(actions, expected());
     Perf.Report("block");
 });
+#else
+    Console.WriteLine(actions);
+#endif
 
 record GhostState(List<List<Point>> Loops, List<char> Targets) : IState<GhostState> {
     public string Steps { get; private set; } = string.Empty;
@@ -359,7 +366,8 @@ class Facility : IGame<GhostState> {
             return null;
         }
         var copy = state.Copy();
-        Debug.Log($"found {target} from {grid[source]} using {GhostState.Actions(loop)} (depth {depth})", depth + 1, ConsoleColor.Blue);
+        Debug.Log($"found {target} from {grid[source]} using {GhostState.Actions(loop)} (depth {depth})", depth + 1,
+                ConsoleColor.Blue);
         loop = [.. copy.Loops.Last(), .. loop.Skip(1)];
         Debug.Log($"combined: {GhostState.Actions(loop)} (depth {depth})", depth + 2, ConsoleColor.Blue);
         copy.Loops.RemoveAt(copy.Loops.Count - 1);
@@ -400,7 +408,8 @@ class Facility : IGame<GhostState> {
         var pathsToTarget = Pathfinding.All(graph[Cell.START], graph[target], it => {
                     return it.Connections
                             .Select(id => graph[id])
-                            .Where(node => Cell.IsDoor(node.Id) && node.Id != Cell.ToDoor(target) || node == graph[target]);
+                            .Where(node =>
+                                    Cell.IsDoor(node.Id) && node.Id != Cell.ToDoor(target) || node == graph[target]);
                 })
                 .ToList();
         long t = Perf.Start();
@@ -694,6 +703,7 @@ static class Test {
         Console.SetIn(current);
     }
 
+    [Conditional("DEBUG")]
     public static void Log(object? line = null, bool console = false, ConsoleColor? color = null) {
         File.AppendAllText(LOG_FILE, $"{line}{Environment.NewLine}");
         if (!console) {
@@ -732,7 +742,7 @@ static class Perf {
     public static void Report(string name) {
         var total = Stopwatch.GetElapsedTime(0, ticks);
         Console.Error.WriteLine(
-                $"{name}: {total.TotalMilliseconds:F1}ms total, {calls} calls, " +
-                $"{total.TotalMilliseconds * 1000 / calls:F2}µs/call");
+                $"{name}: {total.TotalMilliseconds:F1}ms total, {calls} calls, "
+                + $"{total.TotalMilliseconds * 1000 / calls:F2}µs/call");
     }
 }
