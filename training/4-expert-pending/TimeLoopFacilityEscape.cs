@@ -284,14 +284,12 @@ class Facility : IGame<GhostState> {
             yield break;
         }
         var foundTarget = false;
-        var targets = current.Targets.ToList();
         int startIndex = current.Targets.Count == 1 ? 0 : 1;
         for (int i = current.Targets.Count - 1; i >= startIndex; i--) {
             var found = FindTarget(current, i, depth);
             if (found == null) {
                 continue;
             }
-            targets.Remove(current.Targets[i]);
             found.Info = "found";
             yield return found;
             foundTarget = true;
@@ -309,34 +307,25 @@ class Facility : IGame<GhostState> {
         // todo: refactor
         // i added this condition to not look for targets that were found above
         // b was found above, do we need to go to a first?
-        if (targets.Count > 0) {
-            char unreachableTarget = targets.Last();
-            foreach (var path in PathsTo(unreachableTarget, depth)) {
-                var doors = path.Skip(1).SkipLast(1)
-                        .Select(it => it.Id)
-                        .Where(it => !unlockedDoors.Contains(it))
-                        .Where(it => !current.Targets.Contains(Cell.ToSwitch(it)))
-                        .ToList();
-                foreach (var doorOrders in Permutations(doors)) {
-                    var pathState = current.Copy();
-                    foreach (char door in doorOrders) {
-                        lockedDoors.Remove(door);
-                        pathState.AddTarget(Cell.ToSwitch(door));
-                    }
-                    pathState.Info = $"path to {unreachableTarget}";
-                    yield return pathState;
+        if (current.Targets.Count <= 0) {
+            yield break;
+        }
+        char unreachableTarget = current.Targets.Last();
+        foreach (var path in PathsTo(unreachableTarget, current, depth)) {
+            var doors = path.Skip(1).SkipLast(1)
+                    .Select(it => it.Id)
+                    .Where(it => !unlockedDoors.Contains(it))
+                    .Where(it => !current.Targets.Contains(Cell.ToSwitch(it)))
+                    .ToList();
+            foreach (var doorOrders in Permutations(doors)) {
+                var pathState = current.Copy();
+                foreach (char door in doorOrders) {
+                    lockedDoors.Remove(door);
+                    pathState.AddTarget(Cell.ToSwitch(door));
                 }
+                pathState.Info = $"path to {unreachableTarget}";
+                yield return pathState;
             }
-        }
-        var moreDoors = lockedDoors.Where(it => !current.Targets.Contains(Cell.ToSwitch(it))).ToList();
-        if (moreDoors.Count > 0) {
-            Debug.Log($"trying to unlock remaining doors: {string.Join(", ", moreDoors)} (depth {depth})", depth + 1);
-        }
-        foreach (char door in moreDoors) {
-            var doorState = current.Copy();
-            doorState.AddTarget(Cell.ToSwitch(door));
-            doorState.Info = "door";
-            yield return doorState;
         }
     }
 
@@ -401,7 +390,7 @@ class Facility : IGame<GhostState> {
         return [.. unlockedDoors];
     }
 
-    List<List<Node>> PathsTo(char target, int depth) {
+    List<List<Node>> PathsTo(char target, GhostState state, int depth) {
         if (pathsToTargets.TryGetValue(target, out var paths)) {
             return paths;
         }
@@ -415,13 +404,27 @@ class Facility : IGame<GhostState> {
                 .ToList();
         long t = Perf.Start();
         // todo: sets can be created once
-        pathsToTarget = [.. pathsToTarget.OrderBy(it => it.Count)];
+        List<List<Node>> allPaths = [.. pathsToTarget.OrderBy(it => it.Count)];
+        pathsToTarget = [.. allPaths];
         for (var i = 0; i < pathsToTarget.Count; i++) {
             var shorter = pathsToTarget[i].ToHashSet();
             for (int j = pathsToTarget.Count - 1; j > i; j--) {
                 if (pathsToTarget[j].ToHashSet().IsSupersetOf(shorter)) {
                     pathsToTarget.RemoveAt(j);
                 }
+            }
+        }
+        // add one more path that makes #21 and #31 pass
+        // todo: refactor
+        if (pathsToTarget.Count > 0) {
+            int length = pathsToTarget.First().Count;
+            Func<Point, IEnumerable<Point>> next = it => Next(it, state);
+            // #21 validator barely passes, choose both shortest paths instead?
+            var nextShortest = allPaths.Where(it => it.Count == length + 1)
+                    .OrderBy(it => Pathfinding.Shortest(it[^2].Point, it[^1].Point, next)!.Count);
+            foreach (var list in nextShortest) {
+                pathsToTarget.Add(list);
+                break;
             }
         }
         Perf.Stop(t);
@@ -558,7 +561,7 @@ class StateSearch<T>(IGame<T> game, int depthMax) where T : IState<T>, IEquatabl
     }
 
     T? lastBest;
-    
+
     T? FindBest(T current, int depth) {
         if (game.HasReachedEnd(current)) {
             return current;
