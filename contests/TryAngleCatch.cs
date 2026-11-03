@@ -43,7 +43,7 @@ class Game {
     static void ReadScore() {
         string[] scores = Console.ReadLine()!.Split(' ');
         int myScore = int.Parse(scores[0]);
-        int opponentScore = int.Parse(scores[1]);
+        int enemyScore = int.Parse(scores[1]);
     }
 
     [SuppressMessage("ReSharper", "ForCanBeConvertedToForeach")]
@@ -74,15 +74,8 @@ class Game {
         int triangleCount = int.Parse(Debug.ReadLine()!);
         var triangles = new Triangle[triangleCount];
         for (var i = 0; i < triangleCount; i++) {
-            string[] data = Console.ReadLine()!.Split(' ');
-            int house1 = int.Parse(data[0]);
-            int house2 = int.Parse(data[1]);
-            int house3 = int.Parse(data[2]);
-            int owner = int.Parse(data[3]);
-            var triangle = Triangle([house1, house2, house3], owner);
+            var triangle = ReadTriangle();
             triangles[i] = triangle;
-            bool meCanCapture = data[4] != "0";
-            bool opponentCanCapture = data[5] != "0";
             for (var j = 0; j < i; j++) {
                 var existing = triangles[j];
                 if (!existing.IsNeighbor(triangle)) {
@@ -95,7 +88,15 @@ class Game {
         return triangles;
     }
 
-    Triangle Triangle(int[] cornerHouses, int owner) {
+    Triangle ReadTriangle() {
+        string[] data = Console.ReadLine()!.Split(' ');
+        int house1 = int.Parse(data[0]);
+        int house2 = int.Parse(data[1]);
+        int house3 = int.Parse(data[2]);
+        int[] cornerHouses = [house1, house2, house3];
+        int owner = int.Parse(data[3]);
+        bool meCanCapture = data[4] != "0";
+        bool enemyCanCapture = data[5] != "0";
         List<int> required = [.. cornerHouses];
         for (int i = required.Count - 1; i >= 0; i--) {
             int house = required[i];
@@ -179,8 +180,9 @@ class Game {
             return commands;
         }
         // move to neighboring triangle
-        var myTriangles = triangles.Where(it => it.Owner == PLAYER).ToArray();
-        var neighbors = myTriangles.SelectMany(it => it.Neighbors.Where(neighbor => neighbor.Owner != PLAYER));
+        var neighbors = triangles
+                .Where(it => it.Owner == PLAYER)
+                .SelectMany(it => it.Neighbors.Where(neighbor => neighbor.Owner != PLAYER));
         foreach (var neighbor in neighbors) {
             Debug.Log($"neighbor {neighbor}");
             if (commands.Count > 0) {
