@@ -18,7 +18,7 @@ class Game {
     Triangle[] triangles = null!;
 
     public void Init() {
-        int houseCount = Math.Clamp(int.Parse(Debug.ReadLine()!), 1, 50);
+        int houseCount = Math.Clamp(int.Parse(Console.ReadLine()!), 1, 50);
         houses = new House[houseCount];
         for (var _ = 0; _ < houseCount; _++) {
             string[] data = Console.ReadLine()!.Split(' ');
@@ -36,7 +36,7 @@ class Game {
         ReadScore();
         ReadUnits();
         AddPaths();
-        triangles = ReadTriangles();
+        ReadTriangles();
         ReadLinks();
         Console.WriteLine(string.Join(';', NextCommands()));
     }
@@ -71,9 +71,9 @@ class Game {
         }
     }
 
-    Triangle[] ReadTriangles() {
-        int triangleCount = int.Parse(Debug.ReadLine()!);
-        var triangles = new Triangle[triangleCount];
+    void ReadTriangles() {
+        int triangleCount = int.Parse(Console.ReadLine()!);
+        triangles = new Triangle[triangleCount];
         for (var i = 0; i < triangleCount; i++) {
             var triangle = ReadTriangle();
             triangles[i] = triangle;
@@ -86,7 +86,6 @@ class Game {
                 triangle.Neighbors.Add(existing);
             }
         }
-        return triangles;
     }
 
     Triangle ReadTriangle() {
