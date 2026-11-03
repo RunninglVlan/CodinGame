@@ -15,6 +15,7 @@ class Game {
     const int PLAYER = 0;
 
     House[] houses = null!;
+    Triangle[] triangles = null!;
 
     public void Init() {
         int houseCount = Math.Clamp(int.Parse(Debug.ReadLine()!), 1, 50);
@@ -35,9 +36,9 @@ class Game {
         ReadScore();
         ReadUnits();
         AddPaths();
-        var triangles = ReadTriangles();
+        triangles = ReadTriangles();
         ReadLinks();
-        Console.WriteLine(string.Join(';', NextCommands(triangles)));
+        Console.WriteLine(string.Join(';', NextCommands()));
     }
 
     static void ReadScore() {
@@ -117,9 +118,16 @@ class Game {
         }
     }
 
-    [SuppressMessage("ReSharper", "LoopCanBeConvertedToQuery")]
-    List<string> NextCommands(Triangle[] triangles) {
+    List<string> NextCommands() {
         List<string> commands = [];
+        if (TryCapture(commands)) {
+            return commands;
+        }
+        MoveToNeighbor(commands);
+        return commands;
+    }
+
+    bool TryCapture(List<string> commands) {
         var captureThisTurn = triangles
                 .Where(it => it.Owner != PLAYER && it.Required.Count is > 0 and < 3)
                 .OrderBy(it => it.Required.Count);
@@ -129,61 +137,69 @@ class Game {
                 continue;
             }
             switch (triangle.Required.Count) {
-                case 1: {
-                    int target = triangle.Required.First();
-                    var source = houses.FirstOrDefault(it => it.MyUnits > 0 && !triangle.Houses.Contains(it.Id));
-                    if (source == null) {
-                        // no source outside of triangle, which means one house has 2 units
-                        source = houses.FirstOrDefault(it => it.MyUnits > 1);
-                        commands.Add(Commands.Move(source!.Id, target, 1));
-                        continue;
-                    }
-                    var path = Pathfinding.Shortest(source.Id, target, Next)!;
-                    if (path.Count != 3) {
-                        throw new ArgumentException($"Unexpected path: {path.Count}");
-                    }
-                    // 0->1->2, target is 2, 0 moves to 1, and 1 to 2
-                    for (int i = path.Count - 1; i >= 1; i--) {
-                        commands.Add(Commands.Move(path[i - 1], path[i], 1));
-                    }
-                    Debug.Log($"1: path {string.Join("->", path)}", 1);
+                case 1:
+                    ReachOne(triangle, commands);
                     break;
-                }
-                case 2: {
-                    var sources = houses.Where(it => it.MyUnits > 0 && !triangle.Houses.Contains(it.Id)).ToList();
-                    for (int i = sources.Count - 1; i >= 0; i--) {
-                        var source = sources[i];
-                        for (int j = triangle.Required.Count - 1; j >= 0; j--) {
-                            int target = triangle.Required[j];
-                            if (!houses[target].Neighbors.Contains(source.Id)) {
-                                continue;
-                            }
-                            commands.Add(Commands.Move(source.Id, target, 1));
-                            sources.RemoveAt(i);
-                            triangle.Required.RemoveAt(j);
-                        }
-                    }
-                    if (triangle.Required.Count == 0) {
-                        break;
-                    }
-                    var path = Pathfinding.Shortest(sources.First().Id, triangle.Required.First(), Next)!;
-                    if (path.Count != 3) {
-                        commands.Add(Commands.Move(sources.First().Id, triangle.Required.First(), 1));
-                        break;
-                    }
-                    // 0->1->2, target is 2, 0 moves to 1, and 1 to 2
-                    for (int i = path.Count - 1; i >= 1; i--) {
-                        commands.Add(Commands.Move(path[i - 1], path[i], 1));
-                    }
-                    Debug.Log($"2: path {string.Join("->", path)}", 1);
+                case 2:
+                    ReachTwo(triangle, commands);
                     break;
-                }
             }
         }
-        if (commands.Count > 0) {
-            return commands;
+        return commands.Count > 0;
+    }
+
+    void ReachOne(Triangle triangle, List<string> commands) {
+        int target = triangle.Required.First();
+        var source = houses.FirstOrDefault(it => it.MyUnits > 0 && !triangle.Houses.Contains(it.Id));
+        if (source == null) {
+            // no source outside of triangle, which means one house has 2 units
+            source = houses.FirstOrDefault(it => it.MyUnits > 1);
+            commands.Add(Commands.Move(source!.Id, target, 1));
+            return;
         }
-        // move to neighboring triangle
+        var path = Pathfinding.Shortest(source.Id, target, Next)!;
+        if (path.Count != 3) {
+            throw new ArgumentException($"Unexpected path: {path.Count}");
+        }
+        MoveAlong(path, commands);
+    }
+
+    void ReachTwo(Triangle triangle, List<string> commands) {
+        var sources = houses.Where(it => it.MyUnits > 0 && !triangle.Houses.Contains(it.Id)).ToList();
+        // first reach closest
+        for (int i = sources.Count - 1; i >= 0; i--) {
+            var source = sources[i];
+            for (int j = triangle.Required.Count - 1; j >= 0; j--) {
+                int target = triangle.Required[j];
+                if (!houses[target].Neighbors.Contains(source.Id)) {
+                    continue;
+                }
+                commands.Add(Commands.Move(source.Id, target, 1));
+                sources.RemoveAt(i);
+                triangle.Required.RemoveAt(j);
+            }
+        }
+        if (triangle.Required.Count == 0) {
+            return;
+        }
+        var path = Pathfinding.Shortest(sources.First().Id, triangle.Required.First(), Next)!;
+        if (path.Count != 3) {
+            commands.Add(Commands.Move(sources.First().Id, triangle.Required.First(), 1));
+            return;
+        }
+        MoveAlong(path, commands);
+    }
+
+    /// 0->1->2, target is 2, 0 moves to 1, and 1 to 2
+    static void MoveAlong(List<int> path, List<string> commands) {
+        for (int i = path.Count - 1; i >= 1; i--) {
+            commands.Add(Commands.Move(path[i - 1], path[i], 1));
+        }
+        Debug.Log($"path {string.Join("->", path)}", 1);
+    }
+
+    [SuppressMessage("ReSharper", "LoopCanBeConvertedToQuery")]
+    void MoveToNeighbor(List<string> commands) {
         var neighbors = triangles
                 .Where(it => it.Owner == PLAYER)
                 .SelectMany(owner => owner.Neighbors.Where(it => it.Owner != PLAYER && it.Required.Count > 0));
@@ -197,7 +213,6 @@ class Game {
                 commands.Add(Commands.Move(source.Id, target, 1));
             }
         }
-        return commands;
     }
 
     IEnumerable<int> Next(int current) => houses[current].Neighbors;
