@@ -47,11 +47,14 @@ class Game {
             bool meCanCapture = inputs[4] != "0";
             bool opponentCanCapture = inputs[5] != "0";
         }
-        int linkableCount = int.Parse(Console.ReadLine()!);
-        for (var i = 0; i < linkableCount; i++) {
-            inputs = Console.ReadLine()!.Split(' ');
-            int house1 = int.Parse(inputs[0]);
-            int house2 = int.Parse(inputs[1]);
+        {
+            // ignore in lower leagues
+            int linkableCount = int.Parse(Console.ReadLine()!);
+            for (var i = 0; i < linkableCount; i++) {
+                inputs = Console.ReadLine()!.Split(' ');
+                int house1 = int.Parse(inputs[0]);
+                int house2 = int.Parse(inputs[1]);
+            }
         }
         Console.WriteLine("MOVE 3 17 1");
     }
