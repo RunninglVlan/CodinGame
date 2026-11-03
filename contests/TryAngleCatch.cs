@@ -124,8 +124,7 @@ class Game {
             if (myTriangles.Length == 0) {
                 return commands;
             }
-            int[] triangleHouses = myTriangles.First().Houses;
-            commands.Add(Commands.Spawn(triangleHouses[0], triangleHouses[1], triangleHouses[2]));
+            commands.Add(myTriangles.First().Spawn());
             return commands;
         }
         if (TryCapture(commands)) {
@@ -254,6 +253,8 @@ record Triangle(int[] Houses, int Owner, List<int> Required, bool MeCanCapture) 
     public bool IsNeighbor(Triangle triangle) {
         return Houses.Intersect(triangle.Houses).Any();
     }
+
+    public string Spawn() => Commands.Spawn(Houses[0], Houses[1], Houses[2]);
 
     public override string ToString() => string.Join('-', Houses);
 }
