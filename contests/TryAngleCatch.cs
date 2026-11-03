@@ -33,11 +33,9 @@ class Game {
         ReadScore();
         ReadUnits();
         AddPaths();
-        ReadTriangles();
+        List<string> commands = [];
+        ReadTriangles(commands);
         ReadLinks();
-        var commands = houses
-                .Where(it => it.MyUnits > 0)
-                .Select(it => Commands.Move(it.Id, it.Neighbors.First(), 1));
         Console.WriteLine(string.Join(';', commands));
     }
 
@@ -71,27 +69,37 @@ class Game {
         }
     }
 
-    void ReadTriangles() {
+    void ReadTriangles(List<string> commands) {
         int triangles = int.Parse(Debug.ReadLine()!);
         for (var _ = 0; _ < triangles; _++) {
             string[] data = Console.ReadLine()!.Split(' ');
             int house1 = int.Parse(data[0]);
             int house2 = int.Parse(data[1]);
             int house3 = int.Parse(data[2]);
+            int[] triangle = [house1, house2, house3];
+            List<int> required = [.. triangle];
             int owner = int.Parse(data[3]);
             bool meCanCapture = data[4] != "0";
             bool opponentCanCapture = data[5] != "0";
-            var captured = 0;
-            if (houses[house1].MyUnits > 0) {
-                captured++;
+            for (int i = required.Count - 1; i >= 0; i--) {
+                int house = required[i];
+                if (houses[house].MyUnits > 0) {
+                    required.RemoveAt(i);
+                }
             }
-            if (houses[house2].MyUnits > 0) {
-                captured++;
+            if (required.Count != 3) {
+                Debug.Log($"triangle {house1}-{house2}-{house3} needs: {required.Count}");
             }
-            if (houses[house3].MyUnits > 0) {
-                captured++;
+            if (required.Count != 1 || commands.Count > 0) {
+                continue;
             }
-            // Debug.Log($"triangle {house1}-{house2}-{house3} meCaptured: {captured / 3f}");
+            int target = required.First();
+            var source = houses.FirstOrDefault(it => it.MyUnits > 0 && !triangle.Contains(it.Id));
+            var path = Pathfinding.Shortest(source!.Id, target, id => houses[id].Neighbors)!;
+            for (int i = path.Count - 1; i >= 1; i--) {
+                commands.Add(Commands.Move(path[i - 1], path[i], 1));
+            }
+            Debug.Log($"path {string.Join(',', path)}");
         }
     }
 
@@ -127,6 +135,42 @@ static class Commands {
     /// Spawn a unit on <paramref name="house1"/> using the given triangle.
     /// Change the house order to affect the spawning location
     public static string Spawn(int house1, int house2, int house3) => $"SPAWN {house1} {house2} {house3}";
+}
+
+static class Pathfinding {
+    /// BFS to end
+    public static List<T>? Shortest<T>(T start, T end, Func<T, IEnumerable<T>> getNext) where T : IEquatable<T> {
+        Dictionary<T, T> parents = [];
+        Queue<T> queue = [];
+        HashSet<T> visited = [];
+        queue.Enqueue(start);
+        visited.Add(start);
+        while (queue.TryDequeue(out var current)) {
+            if (current.Equals(end)) {
+                return Reconstruct(parents, start, current);
+            }
+            foreach (var next in getNext(current)) {
+                if (!visited.Add(next)) {
+                    continue;
+                }
+                queue.Enqueue(next);
+                parents[next] = current;
+            }
+        }
+        return null;
+    }
+
+    static List<T> Reconstruct<T>(Dictionary<T, T> parents, T start, T end) where T : IEquatable<T> {
+        var path = new List<T>();
+        var current = end;
+        while (!current.Equals(start)) {
+            path.Add(current);
+            current = parents[current];
+        }
+        path.Add(start);
+        path.Reverse();
+        return path;
+    }
 }
 
 static class Debug {
