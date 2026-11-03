@@ -70,7 +70,7 @@ class Game {
         }
     }
 
-    static Triangle[] ReadTriangles() {
+    Triangle[] ReadTriangles() {
         int triangleCount = int.Parse(Debug.ReadLine()!);
         var triangles = new Triangle[triangleCount];
         for (var i = 0; i < triangleCount; i++) {
@@ -79,11 +79,22 @@ class Game {
             int house2 = int.Parse(data[1]);
             int house3 = int.Parse(data[2]);
             int owner = int.Parse(data[3]);
-            triangles[i] = new Triangle([house1, house2, house3], owner);
+            triangles[i] = Triangle([house1, house2, house3], owner);
             bool meCanCapture = data[4] != "0";
             bool opponentCanCapture = data[5] != "0";
         }
         return triangles;
+
+        Triangle Triangle(int[] cornerHouses, int owner) {
+            List<int> required = [.. cornerHouses];
+            for (int i = required.Count - 1; i >= 0; i--) {
+                int house = required[i];
+                if (houses[house].MyUnits > 0) {
+                    required.RemoveAt(i);
+                }
+            }
+            return new Triangle(cornerHouses, owner, required);
+        }
     }
 
     static void ReadLinks() {
@@ -98,27 +109,19 @@ class Game {
 
     List<string> NextCommands(Triangle[] triangles) {
         List<string> commands = [];
-        foreach (var triangle in triangles.Where(it => it.Owner != PLAYER)) {
-            List<int> required = [.. triangle.Houses];
-            for (int i = required.Count - 1; i >= 0; i--) {
-                int house = required[i];
-                if (houses[house].MyUnits > 0) {
-                    required.RemoveAt(i);
-                }
-            }
-            if (required.Count != 3) {
-                Debug.Log($"triangle {triangle} needs: {required.Count}");
-            }
-            if (required.Count != 1 || commands.Count > 0) {
+        foreach (var triangle in triangles.Where(it => it.Owner != PLAYER && it.Required.Count != 3)) {
+            Debug.Log($"triangle {triangle} needs: {triangle.Required.Count}");
+            if (triangle.Required.Count != 1) {
                 continue;
             }
-            int target = required.First();
+            int target = triangle.Required.First();
             var source = houses.FirstOrDefault(it => it.MyUnits > 0 && !triangle.Houses.Contains(it.Id));
             var path = Pathfinding.Shortest(source!.Id, target, id => houses[id].Neighbors)!;
             for (int i = path.Count - 1; i >= 1; i--) {
                 commands.Add(Commands.Move(path[i - 1], path[i], 1));
             }
             Debug.Log($"path {string.Join(',', path)}", 1);
+            break;
         }
         return commands;
     }
@@ -136,7 +139,7 @@ record House(int Id) {
     }
 }
 
-readonly record struct Triangle(int[] Houses, int Owner) {
+readonly record struct Triangle(int[] Houses, int Owner, List<int> Required) {
     public override string ToString() => string.Join('-', Houses);
 }
 
