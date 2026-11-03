@@ -104,7 +104,7 @@ class Game {
                 required.RemoveAt(i);
             }
         }
-        return new Triangle(cornerHouses, owner, required);
+        return new Triangle(cornerHouses, owner, required, meCanCapture);
     }
 
     static void ReadLinks() {
@@ -137,7 +137,7 @@ class Game {
 
     bool TryCapture(List<string> commands) {
         var captureThisTurn = triangles
-                .Where(it => it.Owner != PLAYER && it.Required.Count is > 0 and < 3)
+                .Where(it => it.Owner != PLAYER && it.Required.Count is > 0 and < 3 && it.MeCanCapture)
                 .OrderBy(it => it.Required.Count);
         foreach (var triangle in captureThisTurn) {
             Debug.Log($"triangle {triangle} needs: {triangle.Required.Count}");
@@ -248,7 +248,7 @@ record House(int Id) {
     }
 }
 
-record Triangle(int[] Houses, int Owner, List<int> Required) {
+record Triangle(int[] Houses, int Owner, List<int> Required, bool MeCanCapture) {
     public HashSet<Triangle> Neighbors { get; } = [];
 
     public bool IsNeighbor(Triangle triangle) {
