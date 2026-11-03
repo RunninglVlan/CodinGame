@@ -164,6 +164,9 @@ class Game {
                             triangle.Required.RemoveAt(j);
                         }
                     }
+                    if (triangle.Required.Count == 0) {
+                        break;
+                    }
                     var path = Pathfinding.Shortest(sources.First().Id, triangle.Required.First(), Next);
                     if (path is not { Count: 3 }) {
                         throw new ArgumentException($"Unexpected path: {path?.Count}");
