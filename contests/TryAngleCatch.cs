@@ -12,6 +12,8 @@ while (true) {
 }
 
 class Game {
+    const int PLAYER = 0;
+
     House[] houses = null!;
 
     public void Init() {
@@ -76,8 +78,8 @@ class Game {
             int house1 = int.Parse(data[0]);
             int house2 = int.Parse(data[1]);
             int house3 = int.Parse(data[2]);
-            triangles[i] = new Triangle([house1, house2, house3]);
             int owner = int.Parse(data[3]);
+            triangles[i] = new Triangle([house1, house2, house3], owner);
             bool meCanCapture = data[4] != "0";
             bool opponentCanCapture = data[5] != "0";
         }
@@ -96,7 +98,7 @@ class Game {
 
     List<string> NextCommands(Triangle[] triangles) {
         List<string> commands = [];
-        foreach (var triangle in triangles) {
+        foreach (var triangle in triangles.Where(it => it.Owner != PLAYER)) {
             List<int> required = [.. triangle.Houses];
             for (int i = required.Count - 1; i >= 0; i--) {
                 int house = required[i];
@@ -116,7 +118,7 @@ class Game {
             for (int i = path.Count - 1; i >= 1; i--) {
                 commands.Add(Commands.Move(path[i - 1], path[i], 1));
             }
-            Debug.Log($"path {string.Join(',', path)}");
+            Debug.Log($"path {string.Join(',', path)}", 1);
         }
         return commands;
     }
@@ -134,7 +136,7 @@ record House(int Id) {
     }
 }
 
-readonly record struct Triangle(int[] Houses) {
+readonly record struct Triangle(int[] Houses, int Owner) {
     public override string ToString() => string.Join('-', Houses);
 }
 
