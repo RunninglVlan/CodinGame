@@ -119,7 +119,16 @@ class Game {
 
     List<string> NextCommands() {
         List<string> commands = [];
-        if (houses.Sum(it => it.MyUnits) < 3 || TryCapture(commands)) {
+        var myTriangles = triangles.Where(it => it.Owner == PLAYER).ToArray();
+        if (houses.Sum(it => it.MyUnits) < 3) {
+            if (myTriangles.Length == 0) {
+                return commands;
+            }
+            int[] triangleHouses = myTriangles.First().Houses;
+            commands.Add(Commands.Spawn(triangleHouses[0], triangleHouses[1], triangleHouses[2]));
+            return commands;
+        }
+        if (TryCapture(commands)) {
             return commands;
         }
         MoveToNeighbor(commands);
@@ -156,11 +165,7 @@ class Game {
             commands.Add(Commands.Move(source!.Id, target, 1));
             return;
         }
-        var path = Pathfinding.Shortest(source.Id, target, Next)!;
-        if (path.Count != 3) {
-            throw new ArgumentException($"Unexpected path: {path.Count}");
-        }
-        MoveAlong(path, commands);
+        FollowPath(source.Id, target, commands);
     }
 
     void ReachTwo(Triangle triangle, List<string> commands) {
@@ -181,20 +186,24 @@ class Game {
         if (triangle.Required.Count == 0) {
             return;
         }
-        var path = Pathfinding.Shortest(sources.First().Id, triangle.Required.First(), Next)!;
-        if (path.Count != 3) {
-            commands.Add(Commands.Move(sources.First().Id, triangle.Required.First(), 1));
-            return;
-        }
-        MoveAlong(path, commands);
+        FollowPath(sources.First().Id, triangle.Required.First(), commands);
     }
 
-    /// 0->1->2, target is 2, 0 moves to 1, and 1 to 2
-    static void MoveAlong(List<int> path, List<string> commands) {
+    void FollowPath(int source, int target, List<string> commands) {
+        var path = Pathfinding.Shortest(source, target, Next)!;
+        Debug.Log($"path {string.Join("->", path)}", 1);
+        if (path.Count != 3) {
+            Debug.Log("too far", 2);
+            commands.Add(Commands.Move(source, target, 1));
+            return;
+        }
+        // 0->1->2, target is 2, 0 moves to 1, and 1 to 2
         for (int i = path.Count - 1; i >= 1; i--) {
             commands.Add(Commands.Move(path[i - 1], path[i], 1));
         }
-        Debug.Log($"path {string.Join("->", path)}", 1);
+        return;
+
+        IEnumerable<int> Next(int current) => houses[current].Neighbors;
     }
 
     [SuppressMessage("ReSharper", "LoopCanBeConvertedToQuery")]
@@ -213,8 +222,6 @@ class Game {
             }
         }
     }
-
-    IEnumerable<int> Next(int current) => houses[current].Neighbors;
 }
 
 record House(int Id) {
