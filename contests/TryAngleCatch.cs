@@ -116,6 +116,7 @@ class Game {
         }
     }
 
+    [SuppressMessage("ReSharper", "LoopCanBeConvertedToQuery")]
     List<string> NextCommands(Triangle[] triangles) {
         List<string> commands = [];
         foreach (var triangle in triangles.Where(it => it.Owner != PLAYER && it.Required.Count != 3)) {
@@ -126,18 +127,33 @@ class Game {
             // capture this turn
             int target = triangle.Required.First();
             var source = houses.FirstOrDefault(it => it.MyUnits > 0 && !triangle.Houses.Contains(it.Id));
-            var path = Pathfinding.Shortest(source!.Id, target, id => houses[id].Neighbors)!;
+            if (source == null) {
+                // no source outside of triangle, which means one house has 2 units
+                source = houses.FirstOrDefault(it => it.MyUnits > 1);
+                commands.Add(Commands.Move(source!.Id, target, 1));
+                return commands;
+            }
+            var path = Pathfinding.Shortest(source.Id, target, id => houses[id].Neighbors);
+            if (path is not { Count: 3 }) {
+                throw new ArgumentException($"Unexpected path: {path?.Count}");
+            }
+            // 35->17->44, target is 44, 35 moves to 17, and 17 to 44
             for (int i = path.Count - 1; i >= 1; i--) {
                 commands.Add(Commands.Move(path[i - 1], path[i], 1));
             }
             Debug.Log($"path {string.Join(',', path)}", 1);
             return commands;
         }
-        var neighbors = triangles
-                .Where(it => it.Owner == PLAYER)
-                .SelectMany(it => it.Neighbors.Where(neighbor => neighbor.Owner != PLAYER));
-        foreach (var triangle in neighbors) {
-            Debug.Log($"neighbor {triangle}");
+        // move to neighboring triangle
+        var myTriangles = triangles.Where(it => it.Owner == PLAYER).ToArray();
+        var neighbors = myTriangles.SelectMany(it => it.Neighbors.Where(neighbor => neighbor.Owner != PLAYER));
+        foreach (var neighbor in neighbors) {
+            Debug.Log($"neighbor {neighbor}");
+            int target = neighbor.Required.First();
+            foreach (var source in houses.Where(it => it.MyUnits > 0)) {
+                commands.Add(Commands.Move(source.Id, target, 1));
+            }
+            break;
         }
         return commands;
     }
