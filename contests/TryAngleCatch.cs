@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 
 // Visual
 // https://www.codingame.com/contests/fall-challenge-2026
@@ -18,13 +19,16 @@ class Game {
         for (var _ = 0; _ < houseCount; _++) {
             string[] data = Debug.ReadLine()!.Split(' ');
             int houseId = int.Parse(data[0]);
-            houses[houseId] = new House([]);
+            houses[houseId] = new House();
             Math.Clamp(int.Parse(data[1]), 0, 1920 - 1); // houseX
             Math.Clamp(int.Parse(data[2]), 0, 1080 - 1); // houseY
         }
     }
 
     public void Loop() {
+        foreach (var house in houses) {
+            house.Clear();
+        }
         // todo: capture triangle, spawn unit
         // todo: capture other triangle, spawn unit
         // todo: maximize captured triangles
@@ -43,19 +47,20 @@ class Game {
         int opponentScore = int.Parse(scores[1]);
     }
 
+    [SuppressMessage("ReSharper", "ForCanBeConvertedToForeach")]
     void ReadUnits() {
         for (var _ = 0; _ < houses.Length; _++) {
             string[] data = Console.ReadLine()!.Split(' ');
             int houseId = int.Parse(data[0]);
             int myUnits = int.Parse(data[1]);
-            int opponentUnits = int.Parse(data[2]);
+            int enemyUnits = int.Parse(data[2]);
+            var house = houses[houseId];
+            house.MyUnits = myUnits;
+            house.EnemyUnits = enemyUnits;
         }
     }
 
     void AddPaths() {
-        foreach (var house in houses) {
-            house.Neighbors.Clear();
-        }
         int paths = int.Parse(Console.ReadLine()!);
         for (var _ = 0; _ < paths; _++) {
             string[] data = Console.ReadLine()!.Split(' ');
@@ -90,7 +95,17 @@ class Game {
     }
 }
 
-record House(HashSet<int> Neighbors);
+class House {
+    public HashSet<int> Neighbors { get; } = [];
+    public int MyUnits { get; set; }
+    public int EnemyUnits { get; set; }
+
+    public void Clear() {
+        Neighbors.Clear();
+        MyUnits = 0;
+        EnemyUnits = 0;
+    }
+}
 
 static class Debug {
     const int TAB_LENGTH = 2;
