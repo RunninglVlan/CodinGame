@@ -30,10 +30,6 @@ class Game {
         foreach (var house in houses) {
             house.Clear();
         }
-        // todo: capture triangle, spawn unit
-        // todo: capture other triangle, spawn unit
-        // todo: maximize captured triangles
-        // todo: move and spawn - can move to neighbors each turn, but move command can have final target
         ReadScore();
         ReadUnits();
         AddPaths();
@@ -123,7 +119,14 @@ record House(int Id) {
 }
 
 static class Commands {
+    /// Units can be moved from a house to one of the direct neighbors each turn.
+    /// If there is no direct connection between the houses,
+    /// the units will move closer along the shortest path if possible or stay if there is no path.
     public static string Move(int from, int to, int units) => $"MOVE {from} {to} {units}";
+
+    /// Spawn a unit on <paramref name="house1"/> using the given triangle.
+    /// Change the house order to affect the spawning location
+    public static string Spawn(int house1, int house2, int house3) => $"SPAWN {house1} {house2} {house3}";
 }
 
 static class Debug {
