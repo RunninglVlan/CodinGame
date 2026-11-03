@@ -1,17 +1,11 @@
-﻿/*
-feat: added point frequency priority
-
-The more track connects towns, the better
-
-75ac7bf5
- */
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
 
+// todo: prioritize tracks on safe town regions
 // todo: improve non-state search solution, keep state search, but hide it with regions
 // todo: use pointFrequencies in disrupt logic
 // todo: use pointFrequencies in path sorting too
@@ -46,7 +40,7 @@ return HashCode.Combine(cellsHash, regionsHash);
 
 // Visual
 // Connect towns with your train tracks and disrupt the opponent's
-// https://www.codingame.com/contests/summer-challenge-2026-back-track-king
+// https://www.codingame.com/multiplayer/bot-programming/summer-challenge-2026-back-track-king
 var game = new Game();
 game.Init();
 game.FindPaths();
@@ -690,12 +684,12 @@ static class Screen {
     public static Point[] Directions4 { get; } = [UP, RIGHT, DOWN, LEFT];
 }
 
-class BeamSearch<T>(IGame<T> game) where T : class, IState {
+class BeamSearch<T>(IGame<T> game) where T : IState {
     readonly HashSet<T> visited = [];
 
     [SuppressMessage("ReSharper", "ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator")]
     public T? FindBest(T start, int levels, int beamWidth = 10) {
-        T? best = null;
+        T? best = default;
         var currentLevel = new List<T> { start };
         for (var level = 0; level < levels; level++) {
             var nextLevel = new List<T>();
@@ -817,7 +811,7 @@ static class Debug {
     }
 
     public static void Log(object? line = null, int tab = 0, ConsoleColor? color = null) {
-        return;
+        // return;
         Console.ForegroundColor = color ?? ConsoleColor.Red;
         var padding = new string(' ', tab * TAB_LENGTH);
         Console.Error.WriteLine($"{padding}{line}");
