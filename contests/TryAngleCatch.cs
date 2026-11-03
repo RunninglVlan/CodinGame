@@ -121,7 +121,7 @@ class Game {
     List<string> NextCommands(Triangle[] triangles) {
         List<string> commands = [];
         var captureThisTurn = triangles
-                .Where(it => it.Owner != PLAYER && it.Required.Count != 3)
+                .Where(it => it.Owner != PLAYER && it.Required.Count is > 0 and < 3)
                 .OrderBy(it => it.Required.Count);
         foreach (var triangle in captureThisTurn) {
             Debug.Log($"triangle {triangle} needs: {triangle.Required.Count}");
@@ -129,7 +129,6 @@ class Game {
                 continue;
             }
             switch (triangle.Required.Count) {
-                case 0: return commands;
                 case 1: {
                     int target = triangle.Required.First();
                     var source = houses.FirstOrDefault(it => it.MyUnits > 0 && !triangle.Houses.Contains(it.Id));
@@ -186,7 +185,7 @@ class Game {
         // move to neighboring triangle
         var neighbors = triangles
                 .Where(it => it.Owner == PLAYER)
-                .SelectMany(it => it.Neighbors.Where(neighbor => neighbor.Owner != PLAYER));
+                .SelectMany(owner => owner.Neighbors.Where(it => it.Owner != PLAYER && it.Required.Count > 0));
         foreach (var neighbor in neighbors) {
             Debug.Log($"neighbor {neighbor}");
             if (commands.Count > 0) {
