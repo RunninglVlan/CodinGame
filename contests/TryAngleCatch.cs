@@ -29,49 +29,63 @@ class Game {
         // todo: capture other triangle, spawn unit
         // todo: maximize captured triangles
         // todo: move and spawn - can move to neighbors each turn, but move command can have final target
-        string[] inputs = Console.ReadLine()!.Split(' ');
-        int myScore = int.Parse(inputs[0]);
-        int opponentScore = int.Parse(inputs[1]);
-        for (var i = 0; i < houses.Length; i++) {
-            inputs = Console.ReadLine()!.Split(' ');
-            int houseId = int.Parse(inputs[0]);
-            int myUnits = int.Parse(inputs[1]);
-            int opponentUnits = int.Parse(inputs[2]);
-        }
+        ReadScore();
+        ReadUnits();
         AddPaths();
-        int triangleCount = int.Parse(Console.ReadLine()!);
-        for (var i = 0; i < triangleCount; i++) {
-            inputs = Console.ReadLine()!.Split(' ');
-            int house1 = int.Parse(inputs[0]);
-            int house2 = int.Parse(inputs[1]);
-            int house3 = int.Parse(inputs[2]);
-            int owner = int.Parse(inputs[3]);
-            bool meCanCapture = inputs[4] != "0";
-            bool opponentCanCapture = inputs[5] != "0";
-        }
-        {
-            // ignore in lower leagues
-            int linkableCount = int.Parse(Console.ReadLine()!);
-            for (var i = 0; i < linkableCount; i++) {
-                inputs = Console.ReadLine()!.Split(' ');
-                int house1 = int.Parse(inputs[0]);
-                int house2 = int.Parse(inputs[1]);
-            }
-        }
+        ReadTriangles();
+        ReadLinks();
         Console.WriteLine("MOVE 3 17 1");
+    }
+
+    static void ReadScore() {
+        string[] scores = Console.ReadLine()!.Split(' ');
+        int myScore = int.Parse(scores[0]);
+        int opponentScore = int.Parse(scores[1]);
+    }
+
+    void ReadUnits() {
+        for (var _ = 0; _ < houses.Length; _++) {
+            string[] data = Console.ReadLine()!.Split(' ');
+            int houseId = int.Parse(data[0]);
+            int myUnits = int.Parse(data[1]);
+            int opponentUnits = int.Parse(data[2]);
+        }
     }
 
     void AddPaths() {
         foreach (var house in houses) {
             house.Neighbors.Clear();
         }
-        int pathCount = int.Parse(Console.ReadLine()!);
-        for (var _ = 0; _ < pathCount; _++) {
+        int paths = int.Parse(Console.ReadLine()!);
+        for (var _ = 0; _ < paths; _++) {
             string[] data = Console.ReadLine()!.Split(' ');
             int house1 = int.Parse(data[0]);
             int house2 = int.Parse(data[1]);
             houses[house1].Neighbors.Add(house2);
             houses[house2].Neighbors.Add(house1);
+        }
+    }
+
+    static void ReadTriangles() {
+        int triangles = int.Parse(Console.ReadLine()!);
+        for (var _ = 0; _ < triangles; _++) {
+            string[] data = Console.ReadLine()!.Split(' ');
+            int house1 = int.Parse(data[0]);
+            int house2 = int.Parse(data[1]);
+            int house3 = int.Parse(data[2]);
+            int owner = int.Parse(data[3]);
+            bool meCanCapture = data[4] != "0";
+            bool opponentCanCapture = data[5] != "0";
+        }
+    }
+
+    static void ReadLinks() {
+        // ignore in lower leagues
+        int linkableCount = int.Parse(Console.ReadLine()!);
+        for (var i = 0; i < linkableCount; i++) {
+            string[] inputs = Console.ReadLine()!.Split(' ');
+            int house1 = int.Parse(inputs[0]);
+            int house2 = int.Parse(inputs[1]);
         }
     }
 }
