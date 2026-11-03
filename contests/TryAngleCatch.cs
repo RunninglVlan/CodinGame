@@ -33,10 +33,9 @@ class Game {
         ReadScore();
         ReadUnits();
         AddPaths();
-        List<string> commands = [];
-        ReadTriangles(commands);
+        var triangles = ReadTriangles();
         ReadLinks();
-        Console.WriteLine(string.Join(';', commands));
+        Console.WriteLine(string.Join(';', NextCommands(triangles)));
     }
 
     static void ReadScore() {
@@ -69,38 +68,20 @@ class Game {
         }
     }
 
-    void ReadTriangles(List<string> commands) {
-        int triangles = int.Parse(Debug.ReadLine()!);
-        for (var _ = 0; _ < triangles; _++) {
+    static Triangle[] ReadTriangles() {
+        int triangleCount = int.Parse(Debug.ReadLine()!);
+        var triangles = new Triangle[triangleCount];
+        for (var i = 0; i < triangleCount; i++) {
             string[] data = Console.ReadLine()!.Split(' ');
             int house1 = int.Parse(data[0]);
             int house2 = int.Parse(data[1]);
             int house3 = int.Parse(data[2]);
-            int[] triangle = [house1, house2, house3];
-            List<int> required = [.. triangle];
+            triangles[i] = new Triangle([house1, house2, house3]);
             int owner = int.Parse(data[3]);
             bool meCanCapture = data[4] != "0";
             bool opponentCanCapture = data[5] != "0";
-            for (int i = required.Count - 1; i >= 0; i--) {
-                int house = required[i];
-                if (houses[house].MyUnits > 0) {
-                    required.RemoveAt(i);
-                }
-            }
-            if (required.Count != 3) {
-                Debug.Log($"triangle {house1}-{house2}-{house3} needs: {required.Count}");
-            }
-            if (required.Count != 1 || commands.Count > 0) {
-                continue;
-            }
-            int target = required.First();
-            var source = houses.FirstOrDefault(it => it.MyUnits > 0 && !triangle.Contains(it.Id));
-            var path = Pathfinding.Shortest(source!.Id, target, id => houses[id].Neighbors)!;
-            for (int i = path.Count - 1; i >= 1; i--) {
-                commands.Add(Commands.Move(path[i - 1], path[i], 1));
-            }
-            Debug.Log($"path {string.Join(',', path)}");
         }
+        return triangles;
     }
 
     static void ReadLinks() {
@@ -111,6 +92,33 @@ class Game {
             int house1 = int.Parse(inputs[0]);
             int house2 = int.Parse(inputs[1]);
         }
+    }
+
+    List<string> NextCommands(Triangle[] triangles) {
+        List<string> commands = [];
+        foreach (var triangle in triangles) {
+            List<int> required = [.. triangle.Houses];
+            for (int i = required.Count - 1; i >= 0; i--) {
+                int house = required[i];
+                if (houses[house].MyUnits > 0) {
+                    required.RemoveAt(i);
+                }
+            }
+            if (required.Count != 3) {
+                Debug.Log($"triangle {triangle} needs: {required.Count}");
+            }
+            if (required.Count != 1 || commands.Count > 0) {
+                continue;
+            }
+            int target = required.First();
+            var source = houses.FirstOrDefault(it => it.MyUnits > 0 && !triangle.Houses.Contains(it.Id));
+            var path = Pathfinding.Shortest(source!.Id, target, id => houses[id].Neighbors)!;
+            for (int i = path.Count - 1; i >= 1; i--) {
+                commands.Add(Commands.Move(path[i - 1], path[i], 1));
+            }
+            Debug.Log($"path {string.Join(',', path)}");
+        }
+        return commands;
     }
 }
 
@@ -124,6 +132,10 @@ record House(int Id) {
         MyUnits = 0;
         EnemyUnits = 0;
     }
+}
+
+readonly record struct Triangle(int[] Houses) {
+    public override string ToString() => string.Join('-', Houses);
 }
 
 static class Commands {
