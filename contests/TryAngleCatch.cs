@@ -131,7 +131,7 @@ class Game {
         if (TryCapture(commands)) {
             return commands;
         }
-        MoveToNeighbor(commands);
+        MoveToTriangles(commands);
         return commands;
     }
 
@@ -207,16 +207,28 @@ class Game {
     }
 
     [SuppressMessage("ReSharper", "LoopCanBeConvertedToQuery")]
-    void MoveToNeighbor(List<string> commands) {
+    void MoveToTriangles(List<string> commands) {
         var neighbors = triangles
                 .Where(it => it.Owner == PLAYER)
                 .SelectMany(owner => owner.Neighbors.Where(it => it.Owner != PLAYER && it.Required.Count > 0));
         foreach (var neighbor in neighbors) {
             Debug.Log($"neighbor {neighbor}");
             if (commands.Count > 0) {
-                continue;
+                return;
             }
-            int target = neighbor.Required.First();
+            MoveTo(neighbor);
+        }
+        foreach (var triangle in triangles.Where(it => it.Owner != PLAYER && it.Required.Count == 3)) {
+            Debug.Log($"distant triangle {triangle}");
+            if (commands.Count > 0) {
+                return;
+            }
+            MoveTo(triangle);
+        }
+        return;
+
+        void MoveTo(Triangle triangle) {
+            int target = triangle.Required.First();
             foreach (var source in houses.Where(it => it.MyUnits > 0)) {
                 commands.Add(Commands.Move(source.Id, target, 1));
             }
