@@ -145,7 +145,7 @@ class Game {
                     for (int i = path.Count - 1; i >= 1; i--) {
                         commands.Add(Commands.Move(path[i - 1], path[i], 1));
                     }
-                    Debug.Log($"path {string.Join(',', path)}", 1);
+                    Debug.Log($"1: path {string.Join("->", path)}", 1);
                     break;
                 }
                 case 2: {
@@ -162,7 +162,6 @@ class Game {
                             triangle.Required.RemoveAt(j);
                         }
                     }
-                    Debug.Log(string.Join(", ", commands), 1);
                     var path = Pathfinding.Shortest(sources.First().Id, triangle.Required.First(), Next);
                     if (path is not { Count: 3 }) {
                         throw new ArgumentException($"Unexpected path: {path?.Count}");
@@ -171,6 +170,7 @@ class Game {
                     for (int i = path.Count - 1; i >= 1; i--) {
                         commands.Add(Commands.Move(path[i - 1], path[i], 1));
                     }
+                    Debug.Log($"2: path {string.Join("->", path)}", 1);
                     break;
                 }
             }
