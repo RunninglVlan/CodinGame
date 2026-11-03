@@ -88,8 +88,8 @@ class Game {
                 if (!existing.IsNeighbor(triangle)) {
                     continue;
                 }
-                existing.Neighbors.Add(i);
-                triangle.Neighbors.Add(j);
+                existing.Neighbors.Add(triangle);
+                triangle.Neighbors.Add(existing);
             }
         }
         return triangles;
@@ -133,10 +133,11 @@ class Game {
             Debug.Log($"path {string.Join(',', path)}", 1);
             return commands;
         }
-        foreach (var triangle in triangles.Where(it => it.Owner == PLAYER)) {
-            foreach (var neighbor in triangle.Neighbors.Select(id => triangles[id]).Where(it => it.Owner != PLAYER)) {
-                Debug.Log($"neighbor {neighbor}");
-            }
+        var neighbors = triangles
+                .Where(it => it.Owner == PLAYER)
+                .SelectMany(it => it.Neighbors.Where(neighbor => neighbor.Owner != PLAYER));
+        foreach (var triangle in neighbors) {
+            Debug.Log($"neighbor {triangle}");
         }
         return commands;
     }
@@ -155,7 +156,7 @@ record House(int Id) {
 }
 
 record Triangle(int[] Houses, int Owner, List<int> Required) {
-    public HashSet<int> Neighbors { get; } = [];
+    public HashSet<Triangle> Neighbors { get; } = [];
 
     public bool IsNeighbor(Triangle triangle) {
         return Houses.Intersect(triangle.Houses).Any();
