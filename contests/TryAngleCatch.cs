@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 
 // Visual
 // https://www.codingame.com/contests/fall-challenge-2026
@@ -17,9 +18,9 @@ class Game {
         int houseCount = Math.Clamp(int.Parse(Debug.ReadLine()!), 1, 50);
         houses = new House[houseCount];
         for (var _ = 0; _ < houseCount; _++) {
-            string[] data = Debug.ReadLine()!.Split(' ');
+            string[] data = Console.ReadLine()!.Split(' ');
             int houseId = int.Parse(data[0]);
-            houses[houseId] = new House();
+            houses[houseId] = new House(houseId);
             Math.Clamp(int.Parse(data[1]), 0, 1920 - 1); // houseX
             Math.Clamp(int.Parse(data[2]), 0, 1080 - 1); // houseY
         }
@@ -38,7 +39,10 @@ class Game {
         AddPaths();
         ReadTriangles();
         ReadLinks();
-        Console.WriteLine("MOVE 3 17 1");
+        var commands = houses
+                .Where(it => it.MyUnits > 0)
+                .Select(it => Commands.Move(it.Id, it.Neighbors.First(), 1));
+        Console.WriteLine(string.Join(';', commands));
     }
 
     static void ReadScore() {
@@ -71,8 +75,8 @@ class Game {
         }
     }
 
-    static void ReadTriangles() {
-        int triangles = int.Parse(Console.ReadLine()!);
+    void ReadTriangles() {
+        int triangles = int.Parse(Debug.ReadLine()!);
         for (var _ = 0; _ < triangles; _++) {
             string[] data = Console.ReadLine()!.Split(' ');
             int house1 = int.Parse(data[0]);
@@ -81,6 +85,17 @@ class Game {
             int owner = int.Parse(data[3]);
             bool meCanCapture = data[4] != "0";
             bool opponentCanCapture = data[5] != "0";
+            var captured = 0;
+            if (houses[house1].MyUnits > 0) {
+                captured++;
+            }
+            if (houses[house2].MyUnits > 0) {
+                captured++;
+            }
+            if (houses[house3].MyUnits > 0) {
+                captured++;
+            }
+            // Debug.Log($"triangle {house1}-{house2}-{house3} meCaptured: {captured / 3f}");
         }
     }
 
@@ -95,7 +110,7 @@ class Game {
     }
 }
 
-class House {
+record House(int Id) {
     public HashSet<int> Neighbors { get; } = [];
     public int MyUnits { get; set; }
     public int EnemyUnits { get; set; }
@@ -105,6 +120,10 @@ class House {
         MyUnits = 0;
         EnemyUnits = 0;
     }
+}
+
+static class Commands {
+    public static string Move(int from, int to, int units) => $"MOVE {from} {to} {units}";
 }
 
 static class Debug {
