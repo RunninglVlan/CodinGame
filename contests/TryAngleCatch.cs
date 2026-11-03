@@ -119,7 +119,7 @@ class Game {
 
     List<string> NextCommands() {
         List<string> commands = [];
-        if (TryCapture(commands)) {
+        if (houses.Sum(it => it.MyUnits) < 3 || TryCapture(commands)) {
             return commands;
         }
         MoveToNeighbor(commands);
