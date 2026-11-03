@@ -129,6 +129,7 @@ class Game {
                 continue;
             }
             switch (triangle.Required.Count) {
+                case 0: return commands;
                 case 1: {
                     int target = triangle.Required.First();
                     var source = houses.FirstOrDefault(it => it.MyUnits > 0 && !triangle.Houses.Contains(it.Id));
