@@ -138,9 +138,9 @@ class Game {
                         commands.Add(Commands.Move(source!.Id, target, 1));
                         continue;
                     }
-                    var path = Pathfinding.Shortest(source.Id, target, Next);
-                    if (path is not { Count: 3 }) {
-                        throw new ArgumentException($"Unexpected path: {path?.Count}");
+                    var path = Pathfinding.Shortest(source.Id, target, Next)!;
+                    if (path.Count != 3) {
+                        throw new ArgumentException($"Unexpected path: {path.Count}");
                     }
                     // 0->1->2, target is 2, 0 moves to 1, and 1 to 2
                     for (int i = path.Count - 1; i >= 1; i--) {
@@ -166,9 +166,10 @@ class Game {
                     if (triangle.Required.Count == 0) {
                         break;
                     }
-                    var path = Pathfinding.Shortest(sources.First().Id, triangle.Required.First(), Next);
-                    if (path is not { Count: 3 }) {
-                        throw new ArgumentException($"Unexpected path: {path?.Count}");
+                    var path = Pathfinding.Shortest(sources.First().Id, triangle.Required.First(), Next)!;
+                    if (path.Count != 3) {
+                        commands.Add(Commands.Move(sources.First().Id, triangle.Required.First(), 1));
+                        break;
                     }
                     // 0->1->2, target is 2, 0 moves to 1, and 1 to 2
                     for (int i = path.Count - 1; i >= 1; i--) {
