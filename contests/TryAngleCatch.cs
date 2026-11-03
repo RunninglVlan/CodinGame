@@ -121,7 +121,7 @@ class Game {
         List<string> commands = [];
         foreach (var triangle in triangles.Where(it => it.Owner != PLAYER && it.Required.Count != 3)) {
             Debug.Log($"triangle {triangle} needs: {triangle.Required.Count}");
-            if (triangle.Required.Count != 1) {
+            if (triangle.Required.Count != 1 || commands.Count > 0) {
                 continue;
             }
             // capture this turn
@@ -131,7 +131,7 @@ class Game {
                 // no source outside of triangle, which means one house has 2 units
                 source = houses.FirstOrDefault(it => it.MyUnits > 1);
                 commands.Add(Commands.Move(source!.Id, target, 1));
-                return commands;
+                continue;
             }
             var path = Pathfinding.Shortest(source.Id, target, id => houses[id].Neighbors);
             if (path is not { Count: 3 }) {
@@ -142,6 +142,8 @@ class Game {
                 commands.Add(Commands.Move(path[i - 1], path[i], 1));
             }
             Debug.Log($"path {string.Join(',', path)}", 1);
+        }
+        if (commands.Count > 0) {
             return commands;
         }
         // move to neighboring triangle
@@ -149,11 +151,13 @@ class Game {
         var neighbors = myTriangles.SelectMany(it => it.Neighbors.Where(neighbor => neighbor.Owner != PLAYER));
         foreach (var neighbor in neighbors) {
             Debug.Log($"neighbor {neighbor}");
+            if (commands.Count > 0) {
+                continue;
+            }
             int target = neighbor.Required.First();
             foreach (var source in houses.Where(it => it.MyUnits > 0)) {
                 commands.Add(Commands.Move(source.Id, target, 1));
             }
-            break;
         }
         return commands;
     }
