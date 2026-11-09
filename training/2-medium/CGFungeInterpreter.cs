@@ -40,7 +40,7 @@ class Interpreter {
 
     public void ReadSource(int lines) {
         for (var y = 0; y < lines; y++) {
-            string line = Debug.ReadLine()!;
+            string line = Console.ReadLine()!;
             for (var x = 0; x < line.Length; x++) {
                 source[new Point(x, y)] = line[x];
             }
@@ -50,7 +50,6 @@ class Interpreter {
     public void InterpretSource() {
         var cursor = Screen.ZERO;
         while (source.TryGetValue(cursor, out char character) && character != END) {
-            Console.Error.WriteLine($"character: '{character}', memory: '{(memory.Count > 0 ? memory.Peek() : "")}', {memory.Count}");
             if (stringMode) {
                 if (character == STRING_MODE) {
                     ToggleStringMode();
@@ -141,8 +140,6 @@ class Interpreter {
 readonly record struct Point(int X, int Y) {
     public static Point operator +(Point a, Point b) => new(a.X + b.X, a.Y + b.Y);
     public static Point operator *(Point a, int value) => new(a.X * value, a.Y * value);
-
-    public override string ToString() => $"({X}, {Y})";
 }
 
 static class Screen {
@@ -151,27 +148,4 @@ static class Screen {
     public static readonly Point DOWN = new(0, 1);
     public static readonly Point LEFT = new(-1, 0);
     public static readonly Point RIGHT = new(1, 0);
-}
-
-static class Debug {
-    const int TAB_LENGTH = 2;
-
-    public static bool Enabled { get; set; } = true;
-
-    /// Reads the line from Console and also writes it to Console.Error
-    public static string? ReadLine() {
-        string? line = Console.ReadLine();
-        Console.Error.WriteLine(line);
-        return line;
-    }
-
-    public static void Log(object? line = null, int tab = 0, ConsoleColor? color = null) {
-        if (!Enabled) {
-            return;
-        }
-        Console.ForegroundColor = color ?? ConsoleColor.Red;
-        var padding = new string(' ', tab * TAB_LENGTH);
-        Console.Error.WriteLine($"{padding}{line}");
-        Console.ResetColor();
-    }
 }
