@@ -18,7 +18,7 @@ class Interpreter {
     public Interpreter() {
         operations[Commands.ADD] = Add;
         operations[Commands.MULTIPLY] = Multiply;
-        operations[Commands.PRINT_INTEGER] = PrintTop;
+        operations[Commands.PRINT_INT] = PrintTop;
         operations[Commands.PRINT_CHAR] = PrintTop;
         operations[Commands.STRING_MODE] = ToggleStringMode;
         operations[Commands.CONTINUE_RIGHT] = () => direction = Screen.RIGHT;
@@ -81,7 +81,7 @@ static class Commands {
     public const string END = "E";
     public const string ADD = "+";
     public const string MULTIPLY = "*";
-    public const string PRINT_INTEGER = "I";
+    public const string PRINT_INT = "I";
     public const string PRINT_CHAR = "C";
     public const string STRING_MODE = "\"";
     public const string CONTINUE_RIGHT = ">";
