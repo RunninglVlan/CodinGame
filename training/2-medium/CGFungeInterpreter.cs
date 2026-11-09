@@ -21,12 +21,14 @@ class Interpreter {
         operations[Commands.PRINT_INT] = PrintTop;
         operations[Commands.PRINT_CHAR] = PrintTop;
         operations[Commands.STRING_MODE] = ToggleStringMode;
-        operations[Commands.CONTINUE_RIGHT] = () => direction = Screen.RIGHT;
-        operations[Commands.CONTINUE_LEFT] = () => direction = Screen.LEFT;
-        operations[Commands.CONTINUE_UP] = () => direction = Screen.UP;
-        operations[Commands.CONTINUE_DOWN] = () => direction = Screen.DOWN;
+        operations[Commands.GO_RIGHT] = GoRight;
+        operations[Commands.GO_LEFT] = GoLeft;
+        operations[Commands.GO_UP] = GoUp;
+        operations[Commands.GO_DOWN] = GoDown;
         operations[Commands.SPACE] = () => { };
         operations[Commands.SKIP_NEXT] = () => step = 2;
+        operations[Commands.IF_HORIZONTAL] = IfHorizontal;
+        operations[Commands.IF_VERTICAL] = IfVertical;
     }
 
     public void ReadSource(int lines) {
@@ -75,6 +77,29 @@ class Interpreter {
 
     void PrintTop() => Console.Write(memory.Pop());
     void ToggleStringMode() => stringMode = !stringMode;
+
+    void GoRight() => direction = Screen.RIGHT;
+    void GoLeft() => direction = Screen.LEFT;
+    void GoUp() => direction = Screen.UP;
+    void GoDown() => direction = Screen.DOWN;
+
+    void IfHorizontal() {
+        bool condition = (byte)memory.Pop() == 0;
+        if (condition) {
+            GoRight();
+        } else {
+            GoLeft();
+        }
+    }
+
+    void IfVertical() {
+        bool condition = (byte)memory.Pop() == 0;
+        if (condition) {
+            GoDown();
+        } else {
+            GoUp();
+        }
+    }
 }
 
 static class Commands {
@@ -84,12 +109,14 @@ static class Commands {
     public const string PRINT_INT = "I";
     public const string PRINT_CHAR = "C";
     public const string STRING_MODE = "\"";
-    public const string CONTINUE_RIGHT = ">";
-    public const string CONTINUE_LEFT = "<";
-    public const string CONTINUE_UP = "^";
-    public const string CONTINUE_DOWN = "v";
+    public const string GO_RIGHT = ">";
+    public const string GO_LEFT = "<";
+    public const string GO_UP = "^";
+    public const string GO_DOWN = "v";
     public const string SPACE = " ";
     public const string SKIP_NEXT = "S";
+    public const string IF_HORIZONTAL = "_";
+    public const string IF_VERTICAL = "|";
 }
 
 readonly record struct Point(int X, int Y) {
