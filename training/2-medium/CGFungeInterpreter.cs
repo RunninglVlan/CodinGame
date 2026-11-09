@@ -8,6 +8,9 @@ interpreter.ReadSource(lines);
 interpreter.InterpretSource();
 
 class Interpreter {
+    const string END = "E";
+    const string STRING_MODE = "\"";
+
     readonly Dictionary<Point, string> source = [];
     Point direction = Screen.RIGHT;
     int step = 1;
@@ -16,19 +19,19 @@ class Interpreter {
     bool stringMode;
 
     public Interpreter() {
-        operations[Commands.ADD] = Add;
-        operations[Commands.MULTIPLY] = Multiply;
-        operations[Commands.PRINT_INT] = PrintTop;
-        operations[Commands.PRINT_CHAR] = PrintTop;
-        operations[Commands.STRING_MODE] = ToggleStringMode;
-        operations[Commands.GO_RIGHT] = GoRight;
-        operations[Commands.GO_LEFT] = GoLeft;
-        operations[Commands.GO_UP] = GoUp;
-        operations[Commands.GO_DOWN] = GoDown;
-        operations[Commands.SPACE] = () => { };
-        operations[Commands.SKIP_NEXT] = () => step = 2;
-        operations[Commands.IF_HORIZONTAL] = IfHorizontal;
-        operations[Commands.IF_VERTICAL] = IfVertical;
+        operations["+"] = Add;
+        operations["*"] = Multiply;
+        operations["I"] = PrintTop;
+        operations["C"] = PrintTop;
+        operations[STRING_MODE] = ToggleStringMode;
+        operations[">"] = GoRight;
+        operations["<"] = GoLeft;
+        operations["^"] = GoUp;
+        operations["v"] = GoDown;
+        operations[" "] = () => { };
+        operations["S"] = SkipNext;
+        operations["_"] = IfHorizontal;
+        operations["|"] = IfVertical;
     }
 
     public void ReadSource(int lines) {
@@ -42,10 +45,10 @@ class Interpreter {
 
     public void InterpretSource() {
         var cursor = Screen.ZERO;
-        while (source.TryGetValue(cursor, out string? character) && character != Commands.END) {
+        while (source.TryGetValue(cursor, out string? character) && character != END) {
             Console.Error.WriteLine(character);
             if (stringMode) {
-                if (character == Commands.STRING_MODE) {
+                if (character == STRING_MODE) {
                     ToggleStringMode();
                 } else {
                     memory.Push(character);
@@ -62,6 +65,8 @@ class Interpreter {
             step = 1;
         }
     }
+
+    void SkipNext() => step = 2;
 
     void Add() {
         var a = (byte)memory.Pop();
@@ -100,23 +105,6 @@ class Interpreter {
             GoUp();
         }
     }
-}
-
-static class Commands {
-    public const string END = "E";
-    public const string ADD = "+";
-    public const string MULTIPLY = "*";
-    public const string PRINT_INT = "I";
-    public const string PRINT_CHAR = "C";
-    public const string STRING_MODE = "\"";
-    public const string GO_RIGHT = ">";
-    public const string GO_LEFT = "<";
-    public const string GO_UP = "^";
-    public const string GO_DOWN = "v";
-    public const string SPACE = " ";
-    public const string SKIP_NEXT = "S";
-    public const string IF_HORIZONTAL = "_";
-    public const string IF_VERTICAL = "|";
 }
 
 readonly record struct Point(int X, int Y) {
