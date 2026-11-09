@@ -8,56 +8,56 @@ interpreter.ReadSource(lines);
 interpreter.InterpretSource();
 
 class Interpreter {
-    const string END = "E";
-    const string STRING_MODE = "\"";
+    const char END = 'E';
+    const char STRING_MODE = '\"';
 
-    readonly Dictionary<Point, string> source = [];
+    readonly Dictionary<Point, char> source = [];
     Point direction = Screen.RIGHT;
     int step = 1;
-    readonly Stack<object> memory = new();
-    readonly Dictionary<string, Action> operations = [];
+    readonly Stack<byte> memory = new();
+    readonly Dictionary<char, Action> operations = [];
     bool stringMode;
 
     public Interpreter() {
-        operations["+"] = Add;
-        operations["-"] = Subtract;
-        operations["*"] = Multiply;
-        operations["I"] = PrintTop;
-        operations["C"] = PrintTop;
+        operations['+'] = Add;
+        operations['-'] = Subtract;
+        operations['*'] = Multiply;
+        operations['I'] = PrintInt;
+        operations['C'] = PrintChar;
         operations[STRING_MODE] = ToggleStringMode;
-        operations[">"] = GoRight;
-        operations["<"] = GoLeft;
-        operations["^"] = GoUp;
-        operations["v"] = GoDown;
-        operations[" "] = () => { };
-        operations["S"] = SkipNext;
-        operations["_"] = IfHorizontal;
-        operations["|"] = IfVertical;
-        operations["P"] = () => memory.Pop();
-        operations["X"] = Switch;
-        operations["D"] = Duplicate;
+        operations['>'] = GoRight;
+        operations['<'] = GoLeft;
+        operations['^'] = GoUp;
+        operations['v'] = GoDown;
+        operations[' '] = () => { };
+        operations['S'] = SkipNext;
+        operations['_'] = IfHorizontal;
+        operations['|'] = IfVertical;
+        operations['P'] = () => memory.Pop();
+        operations['X'] = Switch;
+        operations['D'] = Duplicate;
     }
 
     public void ReadSource(int lines) {
         for (var y = 0; y < lines; y++) {
             string line = Debug.ReadLine()!;
             for (var x = 0; x < line.Length; x++) {
-                source[new Point(x, y)] = line[x..(x + 1)];
+                source[new Point(x, y)] = line[x];
             }
         }
     }
 
     public void InterpretSource() {
         var cursor = Screen.ZERO;
-        while (source.TryGetValue(cursor, out string? character) && character != END) {
+        while (source.TryGetValue(cursor, out char character) && character != END) {
             Console.Error.WriteLine($"character: '{character}', memory: '{(memory.Count > 0 ? memory.Peek() : "")}', {memory.Count}");
             if (stringMode) {
                 if (character == STRING_MODE) {
                     ToggleStringMode();
                 } else {
-                    memory.Push(character);
+                    memory.Push((byte)character);
                 }
-            } else if (byte.TryParse(character, out byte digit)) {
+            } else if (byte.TryParse($"{character}", out byte digit)) {
                 memory.Push(digit);
             } else {
                 if (!operations.TryGetValue(character, out var operation)) {
@@ -73,24 +73,33 @@ class Interpreter {
     void SkipNext() => step = 2;
 
     void Add() {
-        var a = (byte)memory.Pop();
-        var b = (byte)memory.Pop();
+        byte a = memory.Pop();
+        byte b = memory.Pop();
         memory.Push((byte)(a + b));
     }
 
     void Subtract() {
-        var a = (byte)memory.Pop();
-        var b = (byte)memory.Pop();
+        byte a = memory.Pop();
+        byte b = memory.Pop();
         memory.Push((byte)(b - a));
     }
 
     void Multiply() {
-        var a = (byte)memory.Pop();
-        var b = (byte)memory.Pop();
+        byte a = memory.Pop();
+        byte b = memory.Pop();
         memory.Push((byte)(a * b));
     }
 
-    void PrintTop() => Console.Write(memory.Pop());
+    void PrintInt() {
+        byte value = memory.Pop();
+        Console.Write(value);
+    }
+
+    void PrintChar() {
+        var value = (char)memory.Pop();
+        Console.Write(value);
+    }
+
     void ToggleStringMode() => stringMode = !stringMode;
 
     void GoRight() => direction = Screen.RIGHT;
@@ -99,7 +108,7 @@ class Interpreter {
     void GoDown() => direction = Screen.DOWN;
 
     void IfHorizontal() {
-        bool condition = (byte)memory.Pop() == 0;
+        bool condition = memory.Pop() == 0;
         if (condition) {
             GoRight();
         } else {
@@ -108,7 +117,7 @@ class Interpreter {
     }
 
     void IfVertical() {
-        bool condition = (byte)memory.Pop() == 0;
+        bool condition = memory.Pop() == 0;
         if (condition) {
             GoDown();
         } else {
@@ -117,14 +126,14 @@ class Interpreter {
     }
 
     void Switch() {
-        var a = (byte)memory.Pop();
-        var b = (byte)memory.Pop();
+        byte a = memory.Pop();
+        byte b = memory.Pop();
         memory.Push(a);
         memory.Push(b);
     }
 
     void Duplicate() {
-        object value = memory.Peek();
+        byte value = memory.Peek();
         memory.Push(value);
     }
 }
