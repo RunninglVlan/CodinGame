@@ -9,13 +9,16 @@ interpreter.InterpretSource();
 
 class Interpreter {
     readonly Dictionary<Point, string> source = [];
-    readonly Stack<byte> memory = new();
+    readonly Stack<object> memory = new();
     readonly Dictionary<string, Action> operations = [];
+    bool stringMode;
 
     public Interpreter() {
         operations[Commands.ADD] = Add;
         operations[Commands.MULTIPLY] = Multiply;
-        operations[Commands.PRINT_TOP] = () => Console.Write(memory.Pop());
+        operations[Commands.PRINT_INTEGER] = PrintTop;
+        operations[Commands.PRINT_CHAR] = PrintTop;
+        operations[Commands.STRING_MODE] = ToggleStringMode;
     }
 
     public void ReadSource(int lines) {
@@ -30,7 +33,13 @@ class Interpreter {
     public void InterpretSource() {
         var cursor = Point.ZERO;
         while (source.TryGetValue(cursor, out string? character) && character != Commands.END) {
-            if (byte.TryParse(character, out byte digit)) {
+            if (stringMode) {
+                if (character == Commands.STRING_MODE) {
+                    ToggleStringMode();
+                } else {
+                    memory.Push(character);
+                }
+            } else if (byte.TryParse(character, out byte digit)) {
                 memory.Push(digit);
             } else {
                 if (!operations.TryGetValue(character, out var operation)) {
@@ -43,23 +52,28 @@ class Interpreter {
     }
 
     void Add() {
-        byte a = memory.Pop();
-        byte b = memory.Pop();
+        var a = (byte)memory.Pop();
+        var b = (byte)memory.Pop();
         memory.Push((byte)(a + b));
     }
 
     void Multiply() {
-        byte a = memory.Pop();
-        byte b = memory.Pop();
+        var a = (byte)memory.Pop();
+        var b = (byte)memory.Pop();
         memory.Push((byte)(a * b));
     }
+
+    void PrintTop() => Console.Write(memory.Pop());
+    void ToggleStringMode() => stringMode = !stringMode;
 }
 
 static class Commands {
     public const string END = "E";
     public const string ADD = "+";
     public const string MULTIPLY = "*";
-    public const string PRINT_TOP = "I";
+    public const string PRINT_INTEGER = "I";
+    public const string PRINT_CHAR = "C";
+    public const string STRING_MODE = "\"";
 }
 
 readonly record struct Point(int X, int Y) {
