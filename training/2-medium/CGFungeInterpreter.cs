@@ -20,6 +20,7 @@ class Interpreter {
 
     public Interpreter() {
         operations["+"] = Add;
+        operations["-"] = Subtract;
         operations["*"] = Multiply;
         operations["I"] = PrintTop;
         operations["C"] = PrintTop;
@@ -32,6 +33,9 @@ class Interpreter {
         operations["S"] = SkipNext;
         operations["_"] = IfHorizontal;
         operations["|"] = IfVertical;
+        operations["P"] = () => memory.Pop();
+        operations["X"] = Switch;
+        operations["D"] = Duplicate;
     }
 
     public void ReadSource(int lines) {
@@ -46,7 +50,7 @@ class Interpreter {
     public void InterpretSource() {
         var cursor = Screen.ZERO;
         while (source.TryGetValue(cursor, out string? character) && character != END) {
-            Console.Error.WriteLine(character);
+            Console.Error.WriteLine($"character: '{character}', memory: '{(memory.Count > 0 ? memory.Peek() : "")}', {memory.Count}");
             if (stringMode) {
                 if (character == STRING_MODE) {
                     ToggleStringMode();
@@ -72,6 +76,12 @@ class Interpreter {
         var a = (byte)memory.Pop();
         var b = (byte)memory.Pop();
         memory.Push((byte)(a + b));
+    }
+
+    void Subtract() {
+        var a = (byte)memory.Pop();
+        var b = (byte)memory.Pop();
+        memory.Push((byte)(b - a));
     }
 
     void Multiply() {
@@ -104,6 +114,18 @@ class Interpreter {
         } else {
             GoUp();
         }
+    }
+
+    void Switch() {
+        var a = (byte)memory.Pop();
+        var b = (byte)memory.Pop();
+        memory.Push(a);
+        memory.Push(b);
+    }
+
+    void Duplicate() {
+        object value = memory.Peek();
+        memory.Push(value);
     }
 }
 
