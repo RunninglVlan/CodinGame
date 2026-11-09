@@ -33,7 +33,10 @@ class Interpreter {
             if (byte.TryParse(command, out byte digit)) {
                 memory.Push(digit);
             } else {
-                operations[command]();
+                if (!operations.TryGetValue(command, out var operation)) {
+                    throw new ArgumentException($"Unknown command: {command}");
+                }
+                operation();
             }
             cursor += Point.RIGHT;
         }
