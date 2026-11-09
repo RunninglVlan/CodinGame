@@ -9,6 +9,8 @@ interpreter.InterpretSource();
 
 class Interpreter {
     readonly Dictionary<Point, string> source = [];
+    Point direction = Screen.RIGHT;
+    int step = 1;
     readonly Stack<object> memory = new();
     readonly Dictionary<string, Action> operations = [];
     bool stringMode;
@@ -19,6 +21,12 @@ class Interpreter {
         operations[Commands.PRINT_INTEGER] = PrintTop;
         operations[Commands.PRINT_CHAR] = PrintTop;
         operations[Commands.STRING_MODE] = ToggleStringMode;
+        operations[Commands.CONTINUE_RIGHT] = () => direction = Screen.RIGHT;
+        operations[Commands.CONTINUE_LEFT] = () => direction = Screen.LEFT;
+        operations[Commands.CONTINUE_UP] = () => direction = Screen.UP;
+        operations[Commands.CONTINUE_DOWN] = () => direction = Screen.DOWN;
+        operations[Commands.SPACE] = () => { };
+        operations[Commands.SKIP_NEXT] = () => step = 2;
     }
 
     public void ReadSource(int lines) {
@@ -31,8 +39,9 @@ class Interpreter {
     }
 
     public void InterpretSource() {
-        var cursor = Point.ZERO;
+        var cursor = Screen.ZERO;
         while (source.TryGetValue(cursor, out string? character) && character != Commands.END) {
+            Console.Error.WriteLine(character);
             if (stringMode) {
                 if (character == Commands.STRING_MODE) {
                     ToggleStringMode();
@@ -47,7 +56,8 @@ class Interpreter {
                 }
                 operation();
             }
-            cursor += Point.RIGHT;
+            cursor += direction * step;
+            step = 1;
         }
     }
 
@@ -74,15 +84,27 @@ static class Commands {
     public const string PRINT_INTEGER = "I";
     public const string PRINT_CHAR = "C";
     public const string STRING_MODE = "\"";
+    public const string CONTINUE_RIGHT = ">";
+    public const string CONTINUE_LEFT = "<";
+    public const string CONTINUE_UP = "^";
+    public const string CONTINUE_DOWN = "v";
+    public const string SPACE = " ";
+    public const string SKIP_NEXT = "S";
 }
 
 readonly record struct Point(int X, int Y) {
-    public static readonly Point ZERO = new(0, 0);
-    public static readonly Point RIGHT = new(1, 0);
-
     public static Point operator +(Point a, Point b) => new(a.X + b.X, a.Y + b.Y);
+    public static Point operator *(Point a, int value) => new(a.X * value, a.Y * value);
 
     public override string ToString() => $"({X}, {Y})";
+}
+
+static class Screen {
+    public static readonly Point ZERO = new(0, 0);
+    public static readonly Point UP = new(0, -1);
+    public static readonly Point DOWN = new(0, 1);
+    public static readonly Point LEFT = new(-1, 0);
+    public static readonly Point RIGHT = new(1, 0);
 }
 
 static class Debug {
