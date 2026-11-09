@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 
@@ -6,10 +7,10 @@ static class Test {
     const string CASE_FILE = "../Test.Cases.txt";
     const string LOG_FILE = "../Test.Log.txt";
 
-    static readonly TextReader consoleIn = Console.In;
     public static bool StepEnabled { get; set; } = true;
     public static string? From { get; set; }
     public static string? Until { get; set; }
+    public static bool LogEnabled { get; set; } = true;
 
     public static void Run(Action<Func<string>> action) {
         File.WriteAllText(LOG_FILE, null);
@@ -18,20 +19,23 @@ static class Test {
         var totalTime = 0L;
         while (Console.In.Peek() != -1) {
             var stopwatch = Stopwatch.StartNew();
-            string? name = Console.ReadLine();
-            Log(name, console: true, color: ConsoleColor.Cyan);
+            string name = Console.ReadLine()!;
+            LogInternal(name, console: true, color: ConsoleColor.Cyan);
             var expected = ReadUntilNewLine;
             try {
                 action(expected);
+            } catch (Exception e) {
+                Console.WriteLine(e);
+                break;
             }
             finally {
                 long time = stopwatch.ElapsedMilliseconds;
                 totalTime += time;
-                Log($"Test took {time}ms", console: true);
+                LogInternal($"Test took {time}ms", console: true);
             }
-            Log(console: true);
+            LogInternal(console: true);
         }
-        Log($"All tests took {totalTime}ms", console: true);
+        LogInternal($"All tests took {totalTime}ms", console: true);
     }
 
     static string ReadCases() {
@@ -67,13 +71,17 @@ static class Test {
         if (!StepEnabled) {
             return;
         }
-        var current = Console.In;
-        Console.SetIn(consoleIn);
-        Console.ReadLine();
-        Console.SetIn(current);
+        Console.ReadKey();
     }
 
     public static void Log(object? line = null, bool console = false, ConsoleColor? color = null) {
+        if (!LogEnabled) {
+            return;
+        }
+        LogInternal(line, console, color);
+    }
+
+    static void LogInternal(object? line = null, bool console = false, ConsoleColor? color = null) {
         File.AppendAllText(LOG_FILE, $"{line}{Environment.NewLine}");
         if (!console) {
             return;
@@ -87,7 +95,7 @@ static class Test {
 }
 
 static class Assert {
-    public static bool Throw { get; set; }
+    public static bool Throw { get; set; } = true;
 
     public static void ActualEqualsExpected(object actual, object expected) {
         bool equals = Equals(actual.ToString(), expected);
