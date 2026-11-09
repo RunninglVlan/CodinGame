@@ -15,7 +15,7 @@ class Interpreter {
     public Interpreter() {
         operations[Commands.ADD] = Add;
         operations[Commands.MULTIPLY] = Multiply;
-        operations[Commands.PRINT_TOP] = PrintTop;
+        operations[Commands.PRINT_TOP] = () => Console.Write(memory.Pop());
     }
 
     public void ReadSource(int lines) {
@@ -29,12 +29,12 @@ class Interpreter {
 
     public void InterpretSource() {
         var cursor = Point.ZERO;
-        while (source.TryGetValue(cursor, out string? command) && command != Commands.END) {
-            if (byte.TryParse(command, out byte digit)) {
+        while (source.TryGetValue(cursor, out string? character) && character != Commands.END) {
+            if (byte.TryParse(character, out byte digit)) {
                 memory.Push(digit);
             } else {
-                if (!operations.TryGetValue(command, out var operation)) {
-                    throw new ArgumentException($"Unknown command: {command}");
+                if (!operations.TryGetValue(character, out var operation)) {
+                    throw new ArgumentException($"Unknown command: {character}");
                 }
                 operation();
             }
@@ -52,10 +52,6 @@ class Interpreter {
         byte a = memory.Pop();
         byte b = memory.Pop();
         memory.Push((byte)(a * b));
-    }
-
-    void PrintTop() {
-        Console.Write(memory.Pop());
     }
 }
 
