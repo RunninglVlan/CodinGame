@@ -1,15 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 
-static class Pathfinding {
+static class Pathfinding<T> where T : IEquatable<T> {
     /// BFS to end
-    public static List<T>? Shortest<T>(T start, T end, Func<T, IEnumerable<T>> getNext) where T : IEquatable<T> {
+    public static List<T>? Shortest(T start, T end, Func<T, IEnumerable<T>> getNext) {
         return Shortest(start, it => it.Equals(end), getNext);
     }
 
     /// BFS to endPredicate
-    public static List<T>? Shortest<T>(T start, Predicate<T> endPredicate, Func<T, IEnumerable<T>> getNext)
-            where T : IEquatable<T> {
+    public static List<T>? Shortest(T start, Predicate<T> endPredicate, Func<T, IEnumerable<T>> getNext) {
         Dictionary<T, T> parents = [];
         Queue<T> queue = [];
         HashSet<T> visited = [];
@@ -30,7 +29,7 @@ static class Pathfinding {
         return null;
     }
 
-    static List<T> Reconstruct<T>(Dictionary<T, T> parents, T start, T end) where T : IEquatable<T> {
+    static List<T> Reconstruct(Dictionary<T, T> parents, T start, T end) {
         var path = new List<T>();
         var current = end;
         while (!current.Equals(start)) {
@@ -43,13 +42,12 @@ static class Pathfinding {
     }
 
     /// DFS/Backtracking
-    public static IEnumerable<List<T>> All<T>(T start, T end, Func<T, IEnumerable<T>> getNext)
-            where T : IEquatable<T> {
+    public static IEnumerable<List<T>> All(T start, T end, Func<T, IEnumerable<T>> getNext) {
         return All(start, end, getNext, [start], [start]);
     }
 
-    static IEnumerable<List<T>> All<T>(T current, T end,
-            Func<T, IEnumerable<T>> getNext, List<T> path, HashSet<T> visited) where T : IEquatable<T> {
+    static IEnumerable<List<T>> All(T current, T end,
+            Func<T, IEnumerable<T>> getNext, List<T> path, HashSet<T> visited) {
         if (current.Equals(end)) {
             yield return [.. path];
             yield break;
