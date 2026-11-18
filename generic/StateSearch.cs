@@ -3,6 +3,7 @@ using System.Collections.Generic;
 class StateSearch<T>(IGame<T> game, int depthMax) where T : IState<T>, IEquatable<T> {
     readonly HashSet<T> visited = [];
 
+    // todo: fix for struct, use try find best, should be in everybody codes
     /// DFS/Backtracking
     public T? FindBest(T start) {
         visited.Clear();
