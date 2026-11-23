@@ -8,7 +8,7 @@ var path = 0f;
 for (var i = 0; i < corners.Length - 1; i++) {
     int current = corners[i];
     int next = corners[i + 1];
-    path += Distance(current, next);
+    path += Distance(Math.Min(current, next), Math.Max(current, next));
 }
 Console.WriteLine($"{path:F3}");
 return;
@@ -24,5 +24,6 @@ return;
 1----------2 */
 float Distance(int current, int next) => (current, next) switch {
     (1, 2) => 1,
+    (1, 4) => 1,
     _ => throw new ArgumentException($"Unexpected: {(current, next)}")
 };
