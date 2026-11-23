@@ -20,12 +20,16 @@ for (var _ = 0; _ < assignments; _++) {
     }
     arrays[arrayName] = array;
 }
-string x = Debug.ReadLine()!;
-int bracket = x.IndexOf(leftBracket);
-string name = x[..bracket];
-(int start, int end, int value) index = (bracket + 1, x.IndexOf(']'), 0);
-index.value = int.Parse(x[index.start..index.end]);
-Console.WriteLine(arrays[name][index.value]);
+Console.WriteLine(GetValue(Debug.ReadLine()!));
+return;
+
+int GetValue(string x) {
+    int bracket = x.IndexOf(leftBracket);
+    string name = x[..bracket];
+    (int start, int end, int value) index = (bracket + 1, x.IndexOf(']'), 0);
+    index.value = int.Parse(x[index.start..index.end]);
+    return arrays[name][index.value];
+}
 
 static class Debug {
     const int TAB_LENGTH = 2;
