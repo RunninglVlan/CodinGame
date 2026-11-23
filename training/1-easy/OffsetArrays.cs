@@ -26,9 +26,9 @@ return;
 int GetValue(string x) {
     int bracket = x.IndexOf(leftBracket);
     string name = x[..bracket];
-    (int start, int end, int value) index = (bracket + 1, x.IndexOf(']'), 0);
-    index.value = int.Parse(x[index.start..index.end]);
-    return arrays[name][index.value];
+    (int indexStart, int indexEnd) = (bracket + 1, x.IndexOf(']'));
+    int index = int.Parse(x[indexStart..indexEnd]);
+    return arrays[name][index];
 }
 
 static class Debug {
