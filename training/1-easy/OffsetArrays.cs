@@ -3,13 +3,15 @@ using System.Collections.Generic;
 using System.Linq;
 
 // https://www.codingame.com/training/easy/offset-arrays
-Dictionary<char, Dictionary<int, int>> arrays = [];
+const char leftBracket = '[';
+Dictionary<string, Dictionary<int, int>> arrays = [];
 int assignments = Math.Clamp(int.Parse(Console.ReadLine()!), 1, 100);
 for (var _ = 0; _ < assignments; _++) {
     string assignment = Debug.ReadLine()!;
-    char arrayName = assignment[0];
+    int arrayBracket = assignment.IndexOf(leftBracket);
+    string arrayName = assignment[..arrayBracket];
     Dictionary<int, int> array = [];
-    string[] parts = assignment[1..].Split(" = ");
+    string[] parts = assignment[arrayBracket..].Split(" = ");
     string[] range = parts.First()[1..^1].Split("..");
     int startIndex = int.Parse(range.First());
     string[] values = parts.Last().Split(' ');
@@ -19,8 +21,9 @@ for (var _ = 0; _ < assignments; _++) {
     arrays[arrayName] = array;
 }
 string x = Console.ReadLine()!;
-char name = x[0];
-(int start, int end, int value) index = (x.IndexOf('[') + 1, x.IndexOf(']'), 0);
+int bracket = x.IndexOf(leftBracket);
+string name = x[..bracket];
+(int start, int end, int value) index = (bracket + 1, x.IndexOf(']'), 0);
 index.value = int.Parse(x[index.start..index.end]);
 Console.WriteLine(arrays[name][index.value]);
 
