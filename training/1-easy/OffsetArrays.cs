@@ -20,7 +20,7 @@ for (var _ = 0; _ < assignments; _++) {
     }
     arrays[arrayName] = array;
 }
-string x = Console.ReadLine()!;
+string x = Debug.ReadLine()!;
 int bracket = x.IndexOf(leftBracket);
 string name = x[..bracket];
 (int start, int end, int value) index = (bracket + 1, x.IndexOf(']'), 0);
