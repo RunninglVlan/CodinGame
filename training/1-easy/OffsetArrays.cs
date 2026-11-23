@@ -26,8 +26,14 @@ return;
 int GetValue(string x) {
     int bracket = x.IndexOf(leftBracket);
     string name = x[..bracket];
-    (int indexStart, int indexEnd) = (bracket + 1, x.IndexOf(']'));
-    int index = int.Parse(x[indexStart..indexEnd]);
+    int index;
+    int afterBracket = bracket + 1;
+    if (char.IsLetter(x[afterBracket])) {
+        index = GetValue(x[afterBracket..]);
+    } else {
+        (int indexStart, int indexEnd) = (afterBracket, x.IndexOf(']'));
+        index = int.Parse(x[indexStart..indexEnd]);
+    }
     return arrays[name][index];
 }
 
