@@ -27,9 +27,9 @@ double Distance(int current, int next) {
     double diagonal = Math.Sqrt(2);
     double opposite = 2 * Math.Sqrt(1.25);
     return (current, next) switch {
-        (1, 2) or (1, 4) => shortest,
+        (1, 2) or (1, 4) or (2, 6) or (3, 4) or (3, 7) or (5, 6) or (5, 8) or (7, 8) => shortest,
         (4, 7) or (6, 8) => diagonal,
-        (3, 5) => opposite,
+        (2, 8) or (3, 5) => opposite,
         _ => throw new ArgumentException($"{(current, next)}")
     };
 }
