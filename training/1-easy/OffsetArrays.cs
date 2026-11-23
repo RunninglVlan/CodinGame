@@ -8,6 +8,12 @@ Dictionary<string, Dictionary<int, int>> arrays = [];
 int assignments = Math.Clamp(int.Parse(Console.ReadLine()!), 1, 100);
 for (var _ = 0; _ < assignments; _++) {
     string assignment = Console.ReadLine()!;
+    AddArray(assignment);
+}
+Console.WriteLine(GetValue(Console.ReadLine()!));
+return;
+
+void AddArray(string assignment) {
     int arrayBracket = assignment.IndexOf(leftBracket);
     string arrayName = assignment[..arrayBracket];
     Dictionary<int, int> array = [];
@@ -20,8 +26,6 @@ for (var _ = 0; _ < assignments; _++) {
     }
     arrays[arrayName] = array;
 }
-Console.WriteLine(GetValue(Console.ReadLine()!));
-return;
 
 int GetValue(string x) {
     int bracket = x.IndexOf(leftBracket);
