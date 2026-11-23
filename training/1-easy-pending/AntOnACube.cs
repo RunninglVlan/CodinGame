@@ -30,6 +30,6 @@ double Distance(int current, int next) {
         (1, 2) or (1, 4) => shortest,
         (4, 7) or (6, 8) => diagonal,
         (3, 5) => opposite,
-        _ => throw new ArgumentException($"Unexpected: {(current, next)}")
+        _ => throw new ArgumentException($"{(current, next)}")
     };
 }
