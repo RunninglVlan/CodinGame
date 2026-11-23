@@ -1,10 +1,18 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 
 // https://www.codingame.com/contribute/view/15719447898a8b794f809022fb88be55c75ff3
 string tour = Console.ReadLine()!;
 int[] corners = [.. tour.Select(it => (int)char.GetNumericValue(it))];
+var path = 0d;
+for (var i = 0; i < corners.Length - 1; i++) {
+    int current = corners[i];
+    int next = corners[i + 1];
+    path += Distance(Math.Min(current, next), Math.Max(current, next));
+}
+Console.WriteLine($"{path:F3}");
+return;
+
 /* 8----------7
   /|         /|
  / |        / |
@@ -14,29 +22,14 @@ int[] corners = [.. tour.Select(it => (int)char.GetNumericValue(it))];
 | /        | /
 |/         |/
 1----------2 */
-Dictionary<int, Point> cube = new() {
-    { 1, new Point(0, 0, 0) },
-    { 2, new Point(1, 0, 0) },
-    { 3, new Point(1, 1, 0) },
-    { 4, new Point(0, 1, 0) },
-    { 5, new Point(0, 0, 1) },
-    { 6, new Point(1, 0, 1) },
-    { 7, new Point(1, 1, 1) },
-    { 8, new Point(0, 1, 1) }
-};
-var path = 0d;
-for (var i = 0; i < corners.Length - 1; i++) {
-    int current = corners[i];
-    int next = corners[i + 1];
-    path += Point.Distance(cube[current], cube[next]);
-}
-Console.WriteLine($"{path:F3}");
-
-readonly record struct Point(int X, int Y, int Z) {
-    public static double Distance(Point a, Point b) {
-        int diffX = a.X - b.X;
-        int diffY = a.Y - b.Y;
-        int diffZ = a.Z - b.Z;
-        return Math.Sqrt(diffX * diffX + diffY * diffY + diffZ * diffZ);
-    }
+double Distance(int current, int next) {
+    const int shortest = 1;
+    double diagonal = Math.Sqrt(2);
+    double opposite = 2 * Math.Sqrt(1.25);
+    return (current, next) switch {
+        (1, 2) or (1, 4) or (2, 6) or (3, 4) or (3, 7) or (5, 6) or (5, 8) or (7, 8) => shortest,
+        (4, 7) or (6, 8) => diagonal,
+        (2, 8) or (3, 5) => opposite,
+        _ => throw new ArgumentException($"{(current, next)}")
+    };
 }
