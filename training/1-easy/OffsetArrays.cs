@@ -7,7 +7,7 @@ const char leftBracket = '[';
 Dictionary<string, Dictionary<int, int>> arrays = [];
 int assignments = Math.Clamp(int.Parse(Console.ReadLine()!), 1, 100);
 for (var _ = 0; _ < assignments; _++) {
-    string assignment = Debug.ReadLine()!;
+    string assignment = Console.ReadLine()!;
     int arrayBracket = assignment.IndexOf(leftBracket);
     string arrayName = assignment[..arrayBracket];
     Dictionary<int, int> array = [];
@@ -20,7 +20,7 @@ for (var _ = 0; _ < assignments; _++) {
     }
     arrays[arrayName] = array;
 }
-Console.WriteLine(GetValue(Debug.ReadLine()!));
+Console.WriteLine(GetValue(Console.ReadLine()!));
 return;
 
 int GetValue(string x) {
@@ -35,27 +35,4 @@ int GetValue(string x) {
         index = int.Parse(x[indexStart..indexEnd]);
     }
     return arrays[name][index];
-}
-
-static class Debug {
-    const int TAB_LENGTH = 2;
-
-    public static bool Enabled { get; set; } = true;
-
-    /// Reads the line from Console and also writes it to Console.Error
-    public static string? ReadLine() {
-        string? line = Console.ReadLine();
-        Console.Error.WriteLine(line);
-        return line;
-    }
-
-    public static void Log(object? line = null, int tab = 0, ConsoleColor? color = null) {
-        if (!Enabled) {
-            return;
-        }
-        Console.ForegroundColor = color ?? ConsoleColor.Red;
-        var padding = new string(' ', tab * TAB_LENGTH);
-        Console.Error.WriteLine($"{padding}{line}");
-        Console.ResetColor();
-    }
 }
