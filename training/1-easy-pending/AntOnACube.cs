@@ -23,11 +23,13 @@ return;
 |/         |/
 1----------2 */
 double Distance(int current, int next) {
+    const int shortest = 1;
     double diagonal = Math.Sqrt(2);
+    double opposite = 2 * Math.Sqrt(1.25);
     return (current, next) switch {
-        (1, 2) => 1,
-        (1, 4) => 1,
-        (4, 7) => diagonal,
+        (1, 2) or (1, 4) => shortest,
+        (4, 7) or (6, 8) => diagonal,
+        (3, 5) => opposite,
         _ => throw new ArgumentException($"Unexpected: {(current, next)}")
     };
 }
